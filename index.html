@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FiestApp - Vive las fiestas desde dentro</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-background"></div>
+        
+        <div class="auth-content">
+            <!-- Logo Central -->
+            <div class="logo-section">
+                <div class="logo">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M30 5L35 20H50L38 28L43 43L30 35L17 43L22 28L10 20H25L30 5Z" fill="url(#gradient1)"/>
+                        <circle cx="30" cy="45" r="8" fill="url(#gradient2)"/>
+                        <defs>
+                            <linearGradient id="gradient1" x1="10" y1="5" x2="50" y2="43">
+                                <stop offset="0%" stop-color="#FF6B35"/>
+                                <stop offset="100%" stop-color="#F7931E"/>
+                            </linearGradient>
+                            <linearGradient id="gradient2" x1="22" y1="37" x2="38" y2="53">
+                                <stop offset="0%" stop-color="#8B5CF6"/>
+                                <stop offset="100%" stop-color="#A78BFA"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1 class="logo-text">FiestApp</h1>
+                <p class="tagline">Vive las fiestas desde dentro</p>
+            </div>
+
+            <div class="auth-panels">
+                <!-- Panel de Login -->
+                <div class="auth-panel">
+                    <h2>Iniciar Sesión</h2>
+                    <form id="loginForm" class="auth-form">
+                        <div class="form-group">
+                            <input type="email" placeholder="Correo electrónico" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" placeholder="Contraseña" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                        <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                    </form>
+                </div>
+
+                <!-- Panel de Registro -->
+                <div class="auth-panel">
+                    <h2>Crear Cuenta</h2>
+                    <form id="registerForm" class="auth-form">
+                        <div class="form-group">
+                            <input type="email" placeholder="Correo electrónico" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" placeholder="Contraseña" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="password" placeholder="Confirmar contraseña" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Crear Cuenta</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/main.js"></script>
+</body>
+</html>

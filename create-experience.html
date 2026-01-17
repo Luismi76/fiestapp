@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Experiencia - FiestApp</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/create-experience.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="create-container">
+        <!-- Header -->
+        <header class="create-header">
+            <button class="back-btn" onclick="navigate('dashboard.html')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <h1>🎉 FiestApp</h1>
+            <div></div>
+        </header>
+
+        <div class="create-content">
+            <!-- Form Section -->
+            <div class="form-section">
+                <h2>Crear/Editar Experiencia</h2>
+
+                <form id="experienceForm" class="experience-form">
+                    <!-- Festival Selection -->
+                    <div class="form-section-group">
+                        <h3>Selección de Festival y Ubicación</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Festival</label>
+                                <select required>
+                                    <option value="">Selecciona un festival</option>
+                                    <option value="feria-sevilla">Feria de Sevilla</option>
+                                    <option value="san-fermin">San Fermín</option>
+                                    <option value="las-fallas">Las Fallas</option>
+                                    <option value="semana-santa">Semana Santa</option>
+                                    <option value="carnaval">Carnaval de Cádiz</option>
+                                    <option value="la-tomatina">La Tomatina</option>
+                                    <option value="feria-malaga">Feria de Málaga</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Ciudad</label>
+                                <input type="text" placeholder="Sevilla" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Fecha inicio del festival</label>
+                                <input type="date" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Fecha fin del festival</label>
+                                <input type="date" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modality Type -->
+                    <div class="form-section-group">
+                        <h3>Tipo de modalidad</h3>
+                        <div class="radio-group-horizontal">
+                            <label class="radio-card">
+                                <input type="radio" name="modality" value="intercambio" checked>
+                                <span class="card-content">
+                                    <span class="icon">🔄</span>
+                                    <span class="text">Intercambio</span>
+                                </span>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="modality" value="pago">
+                                <span class="card-content">
+                                    <span class="icon">💰</span>
+                                    <span class="text">Pago</span>
+                                </span>
+                            </label>
+                            <label class="radio-card">
+                                <input type="radio" name="modality" value="ambos">
+                                <span class="card-content">
+                                    <span class="icon">🔀</span>
+                                    <span class="text">Ambos</span>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div class="form-group" id="priceField" style="display: none;">
+                            <label>Precio por persona y día (€)</label>
+                            <input type="number" placeholder="45" min="0">
+                            <p class="help-text">💡 Establece un precio justo por persona y día</p>
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="form-section-group">
+                        <h3>Descripción de la experiencia</h3>
+                        <div class="form-group">
+                            <label>Describe tu experiencia en detalle</label>
+                            <div class="editor-toolbar">
+                                <button type="button" class="toolbar-btn"><strong>B</strong></button>
+                                <button type="button" class="toolbar-btn"><em>I</em></button>
+                                <button type="button" class="toolbar-btn"><u>U</u></button>
+                                <button type="button" class="toolbar-btn">≡</button>
+                                <button type="button" class="toolbar-btn">🔗</button>
+                            </div>
+                            <textarea rows="6"
+                                placeholder="Disfruta de la Feria de Sevilla como un auténtico sevillano. Te ofrezco acceso exclusivo a mi caseta privada, donde podrás bailar sevillanas, degustar rebujito y tapas típicas..."></textarea>
+                            <p class="char-count">0 / 1000 caracteres</p>
+                        </div>
+                    </div>
+
+                    <!-- What's Included -->
+                    <div class="form-section-group">
+                        <h3>¿Qué incluyes?</h3>
+                        <div class="checkbox-grid-large">
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="includes" value="caseta">
+                                <span>✓ Acceso a caseta</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="includes" value="traje">
+                                <span>✓ Traje típico</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="includes" value="comidas">
+                                <span>✓ Comidas y bebidas</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="includes" value="alojamiento">
+                                <span>✓ Alojamiento</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="includes" value="guia">
+                                <span>✓ Guía local</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="includes" value="transporte">
+                                <span>✓ Transporte local</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload -->
+                    <div class="form-section-group">
+                        <h3>Área de fotos</h3>
+                        <div class="photo-upload-area">
+                            <div class="upload-zone">
+                                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                                <p>Arrastra y suelta fotos aquí o haz clic para subir</p>
+                                <span class="upload-limit">(máx. 5 imágenes)</span>
+                            </div>
+                            <div class="photo-previews">
+                                <!-- Preview thumbnails will appear here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Conditions -->
+                    <div class="form-section-group">
+                        <h3>Condiciones particulares</h3>
+                        <div class="form-group">
+                            <textarea rows="4"
+                                placeholder="Ej: No se permite fumar dentro de la caseta. Horario flexible. Se requiere buen comportamiento y respeto a las normas de la caseta."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Max People -->
+                    <div class="form-section-group">
+                        <h3>Número máximo de personas</h3>
+                        <div class="form-group">
+                            <select>
+                                <option value="1">1 persona</option>
+                                <option value="2">2 personas</option>
+                                <option value="3">3 personas</option>
+                                <option value="4" selected>4 personas</option>
+                                <option value="5">5 personas</option>
+                                <option value="6+">6+ personas</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary">Guardar borrador</button>
+                        <button type="submit" class="btn btn-primary">Publicar experiencia</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="preview-section">
+                <div class="preview-sticky">
+                    <h3>Vista previa de tu experiencia</h3>
+                    <div class="preview-card">
+                        <div class="preview-image">
+                            <img src="images/feria_abril.png" alt="Preview">
+                            <span class="preview-badge">50€/persona/día</span>
+                        </div>
+                        <div class="preview-content">
+                            <h4>Feria de Sevilla: Acceso a Caseta Privada y Comida Típica</h4>
+                            <div class="preview-location">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                                <span>Sevilla, España</span>
+                            </div>
+                            <p class="preview-description">
+                                Disfruta de la Feria de Sevilla como un auténtico sevillano. Te ofrezco acceso exclusivo
+                                a mi caseta privada...
+                            </p>
+                            <div class="preview-includes">
+                                <h5>Qué incluye</h5>
+                                <div class="includes-list">
+                                    <span>✓ Acceso a caseta</span>
+                                    <span>✓ Comidas y bebidas</span>
+                                    <span>✓ Guía local</span>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline btn-block">Solicitar Experiencia</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/main.js"></script>
+    <script>
+        // Show/hide price field based on modality
+        document.querySelectorAll('input[name="modality"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const priceField = document.getElementById('priceField');
+                if (e.target.value === 'pago' || e.target.value === 'ambos') {
+                    priceField.style.display = 'block';
+                } else {
+                    priceField.style.display = 'none';
+                }
+            });
+        });
+
+        // Form submission
+        document.getElementById('experienceForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            alert('¡Experiencia publicada con éxito!');
+            navigate('dashboard.html');
+        });
+    </script>
+</body>
+
+</html>

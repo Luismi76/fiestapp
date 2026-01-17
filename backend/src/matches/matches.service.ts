@@ -1,0 +1,479 @@
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateMatchDto } from './dto/create-match.dto';
+import { MatchStatus } from './dto/update-match.dto';
+
+@Injectable()
+export class MatchesService {
+  constructor(private prisma: PrismaService) {}
+
+  // Crear solicitud de match
+  async create(createDto: CreateMatchDto, requesterId: string) {
+    // Verificar que la experiencia existe y está publicada
+    const experience = await this.prisma.experience.findUnique({
+      where: { id: createDto.experienceId },
+      include: { host: true },
+    });
+
+    if (!experience) {
+      throw new NotFoundException('Experiencia no encontrada');
+    }
+
+    if (!experience.published) {
+      throw new BadRequestException('Esta experiencia no está disponible');
+    }
+
+    // No puede solicitar su propia experiencia
+    if (experience.hostId === requesterId) {
+      throw new BadRequestException('No puedes solicitar tu propia experiencia');
+    }
+
+    // Verificar que no existe ya un match pendiente o aceptado
+    const existingMatch = await this.prisma.match.findUnique({
+      where: {
+        experienceId_requesterId: {
+          experienceId: createDto.experienceId,
+          requesterId,
+        },
+      },
+    });
+
+    if (existingMatch) {
+      if (existingMatch.status === 'pending' || existingMatch.status === 'accepted') {
+        throw new ConflictException('Ya tienes una solicitud activa para esta experiencia');
+      }
+    }
+
+    // Crear el match
+    const match = await this.prisma.match.create({
+      data: {
+        experienceId: createDto.experienceId,
+        requesterId,
+        hostId: experience.hostId,
+        status: 'pending',
+        agreedDate: createDto.proposedDate ? new Date(createDto.proposedDate) : null,
+      },
+      include: {
+        experience: {
+          include: {
+            festival: true,
+          },
+        },
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            verified: true,
+            city: true,
+          },
+        },
+        host: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            verified: true,
+          },
+        },
+      },
+    });
+
+    // Si hay mensaje inicial, crearlo
+    if (createDto.message) {
+      await this.prisma.message.create({
+        data: {
+          matchId: match.id,
+          senderId: requesterId,
+          content: createDto.message,
+        },
+      });
+    }
+
+    return match;
+  }
+
+  // Obtener matches donde soy el host (solicitudes recibidas)
+  async findReceivedMatches(hostId: string, status?: string) {
+    const where: Record<string, unknown> = { hostId };
+    if (status) {
+      where.status = status;
+    }
+
+    return this.prisma.match.findMany({
+      where,
+      include: {
+        experience: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            price: true,
+            city: true,
+            festival: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            verified: true,
+            city: true,
+            bio: true,
+          },
+        },
+        _count: {
+          select: {
+            messages: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+  }
+
+  // Obtener matches donde soy el requester (mis solicitudes)
+  async findSentMatches(requesterId: string, status?: string) {
+    const where: Record<string, unknown> = { requesterId };
+    if (status) {
+      where.status = status;
+    }
+
+    return this.prisma.match.findMany({
+      where,
+      include: {
+        experience: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            price: true,
+            city: true,
+            festival: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        host: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            verified: true,
+            city: true,
+          },
+        },
+        _count: {
+          select: {
+            messages: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+  }
+
+  // Obtener un match por ID
+  async findOne(id: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id },
+      include: {
+        experience: {
+          include: {
+            festival: true,
+          },
+        },
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            verified: true,
+            city: true,
+            bio: true,
+          },
+        },
+        host: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            verified: true,
+            city: true,
+            bio: true,
+          },
+        },
+        messages: {
+          include: {
+            sender: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    // Verificar que el usuario es parte del match
+    if (match.hostId !== userId && match.requesterId !== userId) {
+      throw new ForbiddenException('No tienes acceso a esta solicitud');
+    }
+
+    // Marcar mensajes como leídos
+    await this.prisma.message.updateMany({
+      where: {
+        matchId: id,
+        senderId: { not: userId },
+        read: false,
+      },
+      data: { read: true },
+    });
+
+    return match;
+  }
+
+  // Aceptar match (solo host)
+  async accept(id: string, hostId: string, agreedDate?: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    if (match.hostId !== hostId) {
+      throw new ForbiddenException('Solo el anfitrión puede aceptar solicitudes');
+    }
+
+    if (match.status !== 'pending') {
+      throw new BadRequestException('Esta solicitud ya no está pendiente');
+    }
+
+    return this.prisma.match.update({
+      where: { id },
+      data: {
+        status: MatchStatus.ACCEPTED,
+        agreedDate: agreedDate ? new Date(agreedDate) : match.agreedDate,
+      },
+      include: {
+        experience: true,
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        host: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Rechazar match (solo host)
+  async reject(id: string, hostId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    if (match.hostId !== hostId) {
+      throw new ForbiddenException('Solo el anfitrión puede rechazar solicitudes');
+    }
+
+    if (match.status !== 'pending') {
+      throw new BadRequestException('Esta solicitud ya no está pendiente');
+    }
+
+    return this.prisma.match.update({
+      where: { id },
+      data: { status: MatchStatus.REJECTED },
+    });
+  }
+
+  // Cancelar match (solo requester si está pending, ambos si está accepted)
+  async cancel(id: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    // Solo el requester puede cancelar si está pending
+    if (match.status === 'pending' && match.requesterId !== userId) {
+      throw new ForbiddenException('Solo quien solicitó puede cancelar una solicitud pendiente');
+    }
+
+    // Ambos pueden cancelar si está accepted
+    if (match.status === 'accepted') {
+      if (match.hostId !== userId && match.requesterId !== userId) {
+        throw new ForbiddenException('No tienes permiso para cancelar esta solicitud');
+      }
+    }
+
+    if (match.status !== 'pending' && match.status !== 'accepted') {
+      throw new BadRequestException('Esta solicitud no se puede cancelar');
+    }
+
+    return this.prisma.match.update({
+      where: { id },
+      data: { status: MatchStatus.CANCELLED },
+    });
+  }
+
+  // Marcar como completado (solo host después de accepted)
+  async complete(id: string, hostId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    if (match.hostId !== hostId) {
+      throw new ForbiddenException('Solo el anfitrión puede marcar como completada');
+    }
+
+    if (match.status !== 'accepted') {
+      throw new BadRequestException('Solo se pueden completar solicitudes aceptadas');
+    }
+
+    return this.prisma.match.update({
+      where: { id },
+      data: { status: MatchStatus.COMPLETED },
+    });
+  }
+
+  // Enviar mensaje en un match
+  async sendMessage(matchId: string, senderId: string, content: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    // Verificar que el usuario es parte del match
+    if (match.hostId !== senderId && match.requesterId !== senderId) {
+      throw new ForbiddenException('No tienes acceso a esta conversación');
+    }
+
+    // No permitir mensajes si está rechazado o cancelado
+    if (match.status === 'rejected' || match.status === 'cancelled') {
+      throw new BadRequestException('No puedes enviar mensajes en esta solicitud');
+    }
+
+    const message = await this.prisma.message.create({
+      data: {
+        matchId,
+        senderId,
+        content,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    // Actualizar updatedAt del match
+    await this.prisma.match.update({
+      where: { id: matchId },
+      data: { updatedAt: new Date() },
+    });
+
+    return message;
+  }
+
+  // Contar mensajes no leídos
+  async countUnreadMessages(userId: string) {
+    return this.prisma.message.count({
+      where: {
+        match: {
+          OR: [{ hostId: userId }, { requesterId: userId }],
+        },
+        senderId: { not: userId },
+        read: false,
+      },
+    });
+  }
+
+  // Obtener estadísticas de matches
+  async getStats(userId: string) {
+    const [asHost, asRequester] = await Promise.all([
+      this.prisma.match.groupBy({
+        by: ['status'],
+        where: { hostId: userId },
+        _count: true,
+      }),
+      this.prisma.match.groupBy({
+        by: ['status'],
+        where: { requesterId: userId },
+        _count: true,
+      }),
+    ]);
+
+    return {
+      asHost: asHost.reduce(
+        (acc, item) => {
+          acc[item.status] = item._count;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+      asRequester: asRequester.reduce(
+        (acc, item) => {
+          acc[item.status] = item._count;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+    };
+  }
+}

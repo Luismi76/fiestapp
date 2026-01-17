@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monedero - FiestApp</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/wallet.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="wallet-container">
+        <!-- Header -->
+        <header class="wallet-header">
+            <button class="back-btn" onclick="navigate('dashboard.html')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <h1>Monedero Virtual</h1>
+            <div></div>
+        </header>
+
+        <div class="wallet-content">
+            <!-- Balance Card -->
+            <div class="balance-card">
+                <div class="balance-circle">
+                    <svg class="progress-ring" width="200" height="200">
+                        <circle class="progress-ring-bg" cx="100" cy="100" r="85" />
+                        <circle class="progress-ring-fill" cx="100" cy="100" r="85" stroke-dasharray="534"
+                            stroke-dashoffset="178" />
+                    </svg>
+                    <div class="balance-content">
+                        <span class="balance-label">Saldo:</span>
+                        <span class="balance-amount">15.00€</span>
+                        <span class="balance-credits">3 cierres restantes</span>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-large">Recargar Saldo</button>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-section">
+                <div class="filter-group">
+                    <label>Rango de fechas</label>
+                    <input type="date" class="filter-input">
+                </div>
+                <div class="filter-group">
+                    <label>Tipo de transacción</label>
+                    <select class="filter-input">
+                        <option value="">Todas</option>
+                        <option value="recarga">Recarga</option>
+                        <option value="cierre">Cierre</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Transactions Table -->
+            <div class="transactions-section">
+                <h2>Historial de Transacciones</h2>
+                <div class="table-container">
+                    <table class="transactions-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Descripción</th>
+                                <th>Importe</th>
+                                <th>Saldo tras</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>25/05/24</td>
+                                <td><span class="type-badge recarga">Recarga</span></td>
+                                <td>Recarga via app - Usuario123</td>
+                                <td class="amount positive">+20.00€</td>
+                                <td>35.00€</td>
+                            </tr>
+                            <tr>
+                                <td>24/05/24</td>
+                                <td><span class="type-badge cierre">Cierre</span></td>
+                                <td>Entrada - Festival Sol</td>
+                                <td class="amount negative">-5.00€</td>
+                                <td>15.00€</td>
+                            </tr>
+                            <tr>
+                                <td>22/05/24</td>
+                                <td><span class="type-badge cierre">Cierre</span></td>
+                                <td>Bilbao - Carpa Norte</td>
+                                <td class="amount negative">-5.00€</td>
+                                <td>20.00€</td>
+                            </tr>
+                            <tr>
+                                <td>20/05/24</td>
+                                <td><span class="type-badge recarga">Recarga</span></td>
+                                <td>Recarga via app - Usuario123</td>
+                                <td class="amount positive">+25.00€</td>
+                                <td>25.00€</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pricing Info -->
+            <div class="info-cards">
+                <div class="info-card">
+                    <div class="card-icon">💰</div>
+                    <h3>Información de Precios</h3>
+                    <p class="price-highlight">1 cierre = 5€</p>
+                    <p class="info-text">Cada vez que cierres un acuerdo con otro usuario, se descontarán 5€ de tu
+                        saldo.</p>
+                </div>
+
+                <div class="info-card">
+                    <h3>Métodos de Pago</h3>
+                    <div class="payment-methods">
+                        <div class="payment-card">
+                            <svg width="60" height="40" viewBox="0 0 60 40" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <rect width="60" height="40" rx="4" fill="#1A1F71" />
+                                <text x="10" y="26" fill="white" font-family="Arial, sans-serif" font-weight="bold"
+                                    font-size="14">VISA</text>
+                            </svg>
+                            <span>•••• 4242</span>
+                        </div>
+                        <div class="payment-card">
+                            <svg width="60" height="40" viewBox="0 0 60 40" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <rect width="60" height="40" rx="4" fill="#EB001B" />
+                                <circle cx="22" cy="20" r="10" fill="#FF5F00" opacity="0.8" />
+                                <circle cx="38" cy="20" r="10" fill="#F79E1B" opacity="0.8" />
+                            </svg>
+                            <span>•••• 5555</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline">+ Añadir método de pago</button>
+                </div>
+            </div>
+
+            <!-- Security Badges -->
+            <div class="security-badges">
+                <div class="badge-item">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>PCI DSS</span>
+                </div>
+                <div class="badge-item">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    <span>SSL Seguro</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/main.js"></script>
+</body>
+
+</html>

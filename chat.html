@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - FiestApp</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/chat.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="chat-container">
+        <!-- Sidebar -->
+        <aside class="chat-sidebar">
+            <div class="sidebar-header">
+                <h2>FiestApp</h2>
+                <button class="back-btn" onclick="navigate('dashboard.html')">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="filter-tabs">
+                <button class="tab-btn active">Todos</button>
+                <button class="tab-btn">Pendientes</button>
+                <button class="tab-btn">Aceptados</button>
+                <button class="tab-btn">Cerrados</button>
+            </div>
+
+            <!-- Search -->
+            <div class="sidebar-search">
+                <input type="text" placeholder="Buscar conversaciones...">
+            </div>
+
+            <!-- Matches List -->
+            <div class="sidebar-matches">
+                <div class="match-item active">
+                    <img src="images/avatar_ana.png" alt="Ana">
+                    <div class="match-details">
+                        <h4>Ana</h4>
+                        <span class="festival-badge music">Música Electrónica</span>
+                        <p>¡Hola! ¿Vas al festival este...</p>
+                        <span class="time">10:45 AM</span>
+                    </div>
+                    <span class="unread-badge">2</span>
+                </div>
+
+                <div class="match-item">
+                    <img src="images/avatar_carlos.png" alt="Carlos">
+                    <div class="match-details">
+                        <h4>Carlos</h4>
+                        <span class="festival-badge rock">Rock/Pop</span>
+                        <p>Confirmado, nos vemos...</p>
+                        <span class="time">Ayer</span>
+                    </div>
+                </div>
+
+                <div class="match-item">
+                    <img src="images/avatar_lucia.png" alt="Lucía">
+                    <div class="match-details">
+                        <h4>Lucía</h4>
+                        <span class="festival-badge art">Cine & Arte</span>
+                        <p>Me parece bien</p>
+                        <span class="time">Ayer</span>
+                    </div>
+                    <span class="unread-badge">3</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Chat Main -->
+        <main class="chat-main">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="chat-users">
+                    <div class="user-avatars">
+                        <img src="images/user_maria.png" alt="You">
+                        <img src="images/avatar_ana.png" alt="Ana">
+                    </div>
+                    <div class="chat-info">
+                        <h3>Tú y Ana</h3>
+                        <p>Tomorrowland</p>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <span class="status-badge active">Activo</span>
+                    <button class="btn btn-success">Cerrar Acuerdo</button>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div class="messages-area">
+                <div class="date-divider">
+                    <span>Hoy</span>
+                </div>
+
+                <div class="message received">
+                    <img src="images/avatar_ana.png" alt="Ana">
+                    <div class="message-content">
+                        <p>¡Hola Ana! Sí, claro, estoy muy emocionado por Tomorrowland. ¿A qué hora te acomoda?</p>
+                        <span class="message-time">10:30 AM</span>
+                    </div>
+                </div>
+
+                <div class="message sent">
+                    <div class="message-content">
+                        <p>¡Hola! ¿Vas al festival este fin de semana?</p>
+                        <span class="message-time">10:45 AM</span>
+                    </div>
+                </div>
+
+                <div class="message received">
+                    <img src="images/avatar_ana.png" alt="Ana">
+                    <div class="message-content">
+                        <p>¡Qué emoción! Podríamos encontrarnos cerca de la entrada principal.</p>
+                        <span class="message-time">10:46 AM</span>
+                    </div>
+                </div>
+
+                <div class="typing-indicator">
+                    <img src="images/avatar_ana.png" alt="Ana">
+                    <div class="typing-dots">
+                        <span>Ana está escribiendo</span>
+                        <div class="dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Input -->
+            <div class="message-input">
+                <button class="emoji-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+                        <line x1="9" y1="9" x2="9.01" y2="9"></line>
+                        <line x1="15" y1="9" x2="15.01" y2="9"></line>
+                    </svg>
+                </button>
+                <input type="text" placeholder="Escribe un mensaje...">
+                <button class="send-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script src="scripts/main.js"></script>
+</body>
+
+</html>

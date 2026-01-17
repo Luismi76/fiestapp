@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String           @id @default(uuid())
+  email              String           @unique
+  password           String
+  name               String
+  age                Int?
+  bio                String?
+  city               String?
+  avatar             String?
+  verified           Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  experiences        Experience[]
+  matchesAsHost      Match[]          @relation("MatchHost")
+  matchesAsRequester Match[]          @relation("MatchRequester")
+  messagesSent       Message[]
+  reviewsGiven       Review[]         @relation("ReviewAuthor")
+  reviewsReceived    Review[]         @relation("ReviewTarget")
+  transactions       Transaction[]
+  preferences        UserPreference[]
+  wallet             Wallet?
+
+  @@map("users")
+}
+
+model UserPreference {
+  id        String   @id @default(uuid())
+  userId    String
+  category  String
+  value     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category, value])
+  @@map("user_preferences")
+}
+
+model Festival {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  city        String
+  startDate   DateTime?
+  endDate     DateTime?
+  description String?
+  imageUrl    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  experiences Experience[]
+
+  @@map("festivals")
+}
+
+model Experience {
+  id           String                   @id @default(uuid())
+  title        String
+  description  String
+  festivalId   String
+  city         String
+  price        Float?
+  type         String
+  hostId       String
+  photos       String[]
+  highlights   String[]
+  published    Boolean                  @default(true)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+  availability ExperienceAvailability[]
+  festival     Festival                 @relation(fields: [festivalId], references: [id])
+  host         User                     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  matches      Match[]
+  reviews      Review[]
+
+  @@map("experiences")
+}
+
+model ExperienceAvailability {
+  id           String     @id @default(uuid())
+  experienceId String
+  date         DateTime
+  available    Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+
+  @@unique([experienceId, date])
+  @@map("experience_availability")
+}
+
+model Match {
+  id           String     @id @default(uuid())
+  experienceId String
+  requesterId  String
+  hostId       String
+  status       String     @default("pending")
+  agreedDate   DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  host         User       @relation("MatchHost", fields: [hostId], references: [id], onDelete: Cascade)
+  requester    User       @relation("MatchRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  messages     Message[]
+
+  @@unique([experienceId, requesterId])
+  @@map("matches")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  matchId   String
+  senderId  String
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  userId      String
+  type        String
+  amount      Float
+  status      String   @default("pending")
+  stripeId    String?  @unique
+  paypalId    String?  @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Review {
+  id           String     @id @default(uuid())
+  experienceId String
+  authorId     String
+  targetId     String
+  rating       Int
+  comment      String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  author       User       @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  target       User       @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([experienceId, authorId])
+  @@map("reviews")
+}

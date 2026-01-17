@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Perfil - FiestApp</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/profile.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="profile-container">
+        <div class="profile-card">
+            <!-- Progress Indicator -->
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 50%;"></div>
+            </div>
+            <p class="progress-text">Paso 1 de 2: Tu Perfil</p>
+
+            <!-- Logo -->
+            <div class="profile-logo">
+                <h2>FiestApp</h2>
+            </div>
+
+            <form id="profileForm" class="profile-form">
+                <!-- Photo Upload -->
+                <div class="photo-upload">
+                    <div class="photo-circle">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
+                            </path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        <span>Subir foto de perfil</span>
+                    </div>
+                </div>
+
+                <!-- Basic Info -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre completo</label>
+                        <input type="text" placeholder="María García" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Edad</label>
+                        <select required>
+                            <option value="">Selecciona tu edad</option>
+                            <option value="18-25">18-25</option>
+                            <option value="26-35">26-35</option>
+                            <option value="36-45">36-45</option>
+                            <option value="46+">46+</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ciudad de residencia</label>
+                        <select required>
+                            <option value="">Selecciona tu ciudad</option>
+                            <option value="sevilla">Sevilla</option>
+                            <option value="madrid">Madrid</option>
+                            <option value="barcelona">Barcelona</option>
+                            <option value="valencia">Valencia</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Personal Status -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Estado civil</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="status" value="single">
+                                <span>👤 Soltero/a</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="status" value="couple">
+                                <span>👥 En pareja</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>¿Tienes hijos?</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="children" value="yes">
+                                <span>Sí</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="children" value="no">
+                                <span>No</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="form-group">
+                    <label>Descripción personal</label>
+                    <textarea placeholder="Cuéntanos un poco sobre ti y qué buscas en la fiesta..." rows="3"></textarea>
+                </div>
+
+                <!-- Festival Preferences -->
+                <div class="form-group">
+                    <label>Preferencias de festival</label>
+                    <div class="checkbox-grid">
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="festival" value="feria">
+                            <span class="card-content">
+                                <span class="icon">🎪</span>
+                                <span class="text">Feria de Abril</span>
+                            </span>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="festival" value="semana-santa">
+                            <span class="card-content">
+                                <span class="icon">🕯️</span>
+                                <span class="text">Semana Santa</span>
+                            </span>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="festival" value="carnaval">
+                            <span class="card-content">
+                                <span class="icon">🎭</span>
+                                <span class="text">Carnaval</span>
+                            </span>
+                        </label>
+                        <label class="checkbox-card">
+                            <input type="checkbox" name="festival" value="sanfermin">
+                            <span class="card-content">
+                                <span class="icon">🐂</span>
+                                <span class="text">San Fermín</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Experience Type -->
+                <div class="form-group">
+                    <label>Tipo de experiencia que ofreces</label>
+                    <div class="experience-cards">
+                        <label class="experience-card">
+                            <input type="radio" name="experience" value="host">
+                            <span class="card-content">
+                                <span class="icon">🏠</span>
+                                <span class="title">Anfitrión festero</span>
+                            </span>
+                        </label>
+                        <label class="experience-card">
+                            <input type="radio" name="experience" value="guide">
+                            <span class="card-content">
+                                <span class="icon">📚</span>
+                                <span class="title">Guía local</span>
+                            </span>
+                        </label>
+                        <label class="experience-card">
+                            <input type="radio" name="experience" value="adventure">
+                            <span class="card-content">
+                                <span class="icon">🎉</span>
+                                <span class="title">Compañero de aventuras</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- How You Enjoy -->
+                <div class="form-group">
+                    <label>Cómo disfrutas la fiesta (Selección múltiple)</label>
+                    <div class="chip-group">
+                        <label class="chip">
+                            <input type="checkbox" name="enjoy" value="dancing">
+                            <span>🎵 Bailando hasta el amanecer</span>
+                        </label>
+                        <label class="chip">
+                            <input type="checkbox" name="enjoy" value="food">
+                            <span>🍽️ Probando gastronomía local</span>
+                        </label>
+                        <label class="chip">
+                            <input type="checkbox" name="enjoy" value="tradition">
+                            <span>🎊 Viviendo la tradición</span>
+                        </label>
+                        <label class="chip">
+                            <input type="checkbox" name="enjoy" value="meeting">
+                            <span>👋 Conociendo gente nueva</span>
+                        </label>
+                        <label class="chip">
+                            <input type="checkbox" name="enjoy" value="ambient">
+                            <span>🌆 Disfrutando del ambiente</span>
+                        </label>
+                        <label class="chip">
+                            <input type="checkbox" name="enjoy" value="documenting">
+                            <span>📸 Documentando todo</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary btn-large">Continuar</button>
+                <p class="terms-text">Al continuar, aceptas nuestros <a href="#">Términos y Condiciones</a></p>
+            </form>
+        </div>
+    </div>
+
+    <script src="scripts/main.js"></script>
+    <script>
+        document.getElementById('profileForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            navigate('dashboard.html');
+        });
+    </script>
+</body>
+
+</html>

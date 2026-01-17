@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - FiestApp</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/dashboard.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h1>FiestApp</h1>
+            </div>
+            <div class="nav-search">
+                <input type="text" placeholder="Buscar experiencias, ciudades, festivales...">
+            </div>
+            <div class="nav-actions">
+                <button class="nav-icon" onclick="navigate('wallet.html')" title="Monedero">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path>
+                        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"></path>
+                        <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"></path>
+                    </svg>
+                </button>
+                <button class="nav-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <span class="badge">3</span>
+                </button>
+                <div class="nav-avatar">
+                    <img src="images/user_maria.png" alt="User">
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <!-- Filters Section -->
+        <section class="filters-section">
+            <div class="filters-container">
+                <div class="filter-group">
+                    <select class="filter-select">
+                        <option value="">Ciudad</option>
+                        <option value="sevilla">Sevilla</option>
+                        <option value="madrid">Madrid</option>
+                        <option value="barcelona">Barcelona</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select class="filter-select">
+                        <option value="">Tipo de Festival</option>
+                        <option value="feria">Feria</option>
+                        <option value="carnaval">Carnaval</option>
+                        <option value="sanfermin">San Fermín</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <input type="date" class="filter-select" placeholder="Fecha inicio">
+                </div>
+                <div class="filter-group">
+                    <input type="date" class="filter-select" placeholder="Fecha fin">
+                </div>
+                <div class="filter-toggle">
+                    <button class="toggle-btn active">Intercambio</button>
+                    <button class="toggle-btn">Pago</button>
+                    <button class="toggle-btn">Ambos</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="dashboard-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <h3>Mis Matches</h3>
+                </div>
+                <div class="matches-list">
+                    <div class="match-item" onclick="navigate('chat.html')">
+                        <img src="images/avatar_ana.png" alt="Ana">
+                        <div class="match-info">
+                            <h4>Ana</h4>
+                            <p>¡Hola! ¿Vas al festival...</p>
+                        </div>
+                        <span class="match-badge">2</span>
+                    </div>
+                    <div class="match-item">
+                        <img src="images/avatar_carlos.png" alt="Carlos">
+                        <div class="match-info">
+                            <h4>Carlos</h4>
+                            <p>Confirmado, nos vemos...</p>
+                        </div>
+                    </div>
+                    <div class="match-item">
+                        <img src="images/avatar_lucia.png" alt="Lucía">
+                        <div class="match-info">
+                            <h4>Lucía</h4>
+                            <p>Me parece bien</p>
+                        </div>
+                        <span class="match-badge">3</span>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <h2 class="section-title">Experiencias Disponibles</h2>
+
+                <div class="experiences-grid">
+                    <!-- Experience Card 1 -->
+                    <div class="experience-card" onclick="navigate('experience-detail.html')">
+                        <div class="card-image">
+                            <img src="images/feria_abril.png" alt="Feria de Abril">
+                            <span class="price-badge">45€</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="card-header">
+                                <img src="images/user_maria.png" alt="María" class="user-avatar">
+                                <div class="user-info">
+                                    <h3>María, 28</h3>
+                                    <p>📍 Sevilla</p>
+                                </div>
+                            </div>
+                            <h4 class="experience-title">Feria de Abril</h4>
+                            <p class="experience-description">Vive la Feria como sevillana auténtica. Te ofrezco acceso
+                                exclusivo a mi caseta privada...</p>
+                            <button class="btn btn-outline">Ver perfil</button>
+                        </div>
+                    </div>
+
+                    <!-- Experience Card 2 -->
+                    <div class="experience-card">
+                        <div class="card-image">
+                            <img src="images/san_fermin.png" alt="San Fermín">
+                            <span class="price-badge exchange">Intercambio</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="card-header">
+                                <img src="images/avatar_carlos.png" alt="Carlos" class="user-avatar">
+                                <div class="user-info">
+                                    <h3>Carlos, 32</h3>
+                                    <p>📍 Pamplona</p>
+                                </div>
+                            </div>
+                            <h4 class="experience-title">San Fermín</h4>
+                            <p class="experience-description">Experimenta los Sanfermines desde dentro. Conoce la
+                                tradición real más allá del turismo...</p>
+                            <button class="btn btn-outline">Ver perfil</button>
+                        </div>
+                    </div>
+
+                    <!-- Experience Card 3 -->
+                    <div class="experience-card">
+                        <div class="card-image">
+                            <img src="images/las_fallas.png" alt="Las Fallas">
+                            <span class="price-badge">50€</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="card-header">
+                                <img src="images/avatar_ana.png" alt="Ana" class="user-avatar">
+                                <div class="user-info">
+                                    <h3>Ana, 25</h3>
+                                    <p>📍 Valencia</p>
+                                </div>
+                            </div>
+                            <h4 class="experience-title">Las Fallas</h4>
+                            <p class="experience-description">Disfruta las Fallas con una valenciana local. Mascletás,
+                                paellas y mucha pólvora...</p>
+                            <button class="btn btn-outline">Ver perfil</button>
+                        </div>
+                    </div>
+
+                    <!-- Experience Card 4 -->
+                    <div class="experience-card">
+                        <div class="card-image">
+                            <img src="images/semana_santa.png" alt="Semana Santa">
+                            <span class="price-badge exchange">Intercambio</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="card-header">
+                                <img src="images/avatar_juan.png" alt="Juan" class="user-avatar">
+                                <div class="user-info">
+                                    <h3>Juan, 35</h3>
+                                    <p>📍 Málaga</p>
+                                </div>
+                            </div>
+                            <h4 class="experience-title">Semana Santa</h4>
+                            <p class="experience-description">Vive la Semana Santa malagueña con un cofrade. Emoción,
+                                tradición y devoción...</p>
+                            <button class="btn btn-outline">Ver perfil</button>
+                        </div>
+                    </div>
+
+                    <!-- Experience Card 5 -->
+                    <div class="experience-card">
+                        <div class="card-image">
+                            <img src="images/carnaval.png" alt="Carnaval">
+                            <span class="price-badge">40€</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="card-header">
+                                <img src="images/avatar_laura.png" alt="Laura" class="user-avatar">
+                                <div class="user-info">
+                                    <h3>Laura, 29</h3>
+                                    <p>📍 Cádiz</p>
+                                </div>
+                            </div>
+                            <h4 class="experience-title">Carnaval de Cádiz</h4>
+                            <p class="experience-description">Carnaval gaditano auténtico. Chirigotas, disfraces y mucho
+                                humor...</p>
+                            <button class="btn btn-outline">Ver perfil</button>
+                        </div>
+                    </div>
+
+                    <!-- Experience Card 6 -->
+                    <div class="experience-card">
+                        <div class="card-image">
+                            <img src="images/la_tomatina.png" alt="La Tomatina">
+                            <span class="price-badge">35€</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="card-header">
+                                <img src="images/avatar_pedro.png" alt="Pedro" class="user-avatar">
+                                <div class="user-info">
+                                    <h3>Pedro, 27</h3>
+                                    <p>📍 Buñol</p>
+                                </div>
+                            </div>
+                            <h4 class="experience-title">La Tomatina</h4>
+                            <p class="experience-description">Batalla de tomates épica. Diversión asegurada en la fiesta
+                                más loca de España...</p>
+                            <button class="btn btn-outline">Ver perfil</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button class="fab" onclick="navigate('create-experience.html')" title="Crear experiencia">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    </button>
+
+    <script src="scripts/main.js"></script>
+</body>
+
+</html>

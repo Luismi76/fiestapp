@@ -1,0 +1,399 @@
+/* ===========================
+   EXPERIENCE DETAIL PAGE
+   =========================== */
+
+.detail-container {
+    min-height: 100vh;
+    background: var(--gray-50);
+}
+
+.detail-header {
+    background: white;
+    padding: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.detail-header h1 {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, var(--primary-orange), var(--secondary-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+}
+
+.detail-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-lg);
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: var(--spacing-xl);
+}
+
+/* Profile Sidebar */
+.profile-sidebar {
+    position: relative;
+}
+
+.profile-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 100px;
+    text-align: center;
+}
+
+.profile-image {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.profile-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-card h2 {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-sm);
+}
+
+.location {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--gray-600);
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-lg);
+}
+
+/* User Stats */
+.user-stats {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-lg) 0;
+    border-top: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    font-size: 0.875rem;
+}
+
+.stat-item .icon {
+    font-size: 1.25rem;
+}
+
+/* Rating */
+.rating {
+    margin-bottom: var(--spacing-lg);
+}
+
+.stars {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-orange);
+}
+
+.reviews {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    margin-left: var(--spacing-sm);
+}
+
+/* Experience Details */
+.experience-details {
+    background: white;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.experience-banner {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+}
+
+.experience-banner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.banner-overlay {
+    position: absolute;
+    top: var(--spacing-lg);
+    left: var(--spacing-lg);
+}
+
+.festival-tag {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--primary-orange);
+    box-shadow: var(--shadow-md);
+}
+
+.experience-content {
+    padding: var(--spacing-2xl);
+}
+
+.experience-content h1 {
+    font-family: var(--font-heading);
+    font-size: 2rem;
+    margin-bottom: var(--spacing-xl);
+    color: var(--gray-900);
+}
+
+.content-section {
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-xl);
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.content-section:last-child {
+    border-bottom: none;
+}
+
+.content-section h3 {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.content-section p {
+    line-height: 1.8;
+    color: var(--gray-600);
+    margin-bottom: var(--spacing-md);
+}
+
+/* Includes Grid */
+.includes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.include-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--gray-50);
+    border-radius: var(--radius-sm);
+}
+
+.include-item svg {
+    color: var(--accent-green);
+    flex-shrink: 0;
+}
+
+.include-item span {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Calendar Widget */
+.calendar-widget {
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-md);
+}
+
+.calendar-month {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.calendar-nav {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--gray-600);
+    padding: var(--spacing-sm);
+}
+
+.calendar-nav:hover {
+    color: var(--gray-900);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--spacing-sm);
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.calendar-day.header {
+    font-weight: 700;
+    color: var(--gray-600);
+    cursor: default;
+}
+
+.calendar-day.disabled {
+    color: var(--gray-300);
+    cursor: not-allowed;
+}
+
+.calendar-day.available {
+    background: var(--accent-green);
+    color: white;
+    font-weight: 600;
+}
+
+.calendar-day.available:hover {
+    background: #059669;
+}
+
+/* Pricing Card */
+.pricing-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(247, 147, 30, 0.1));
+    border-radius: var(--radius-md);
+}
+
+.price-amount {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-orange);
+}
+
+.price-amount span {
+    font-size: 1rem;
+    color: var(--gray-600);
+    font-weight: 400;
+}
+
+.price-badge {
+    padding: 8px 16px;
+    background: var(--accent-green);
+    color: white;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+/* Reviews */
+.reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.review-item {
+    padding: var(--spacing-lg);
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+}
+
+.review-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.review-header img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.review-info h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.review-rating {
+    font-size: 0.875rem;
+}
+
+.review-text {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--gray-600);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .detail-content {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-card {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .experience-banner {
+        height: 250px;
+    }
+
+    .experience-content {
+        padding: var(--spacing-lg);
+    }
+
+    .experience-content h1 {
+        font-size: 1.5rem;
+    }
+
+    .includes-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pricing-card {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        text-align: center;
+    }
+}

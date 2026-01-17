@@ -1,0 +1,99 @@
+export type ExperienceType = 'pago' | 'intercambio' | 'ambos';
+
+export interface Host {
+  id: string;
+  name: string;
+  avatar?: string;
+  verified: boolean;
+  bio?: string;
+  city?: string;
+}
+
+export interface Festival {
+  id: string;
+  name: string;
+  city: string;
+  description?: string;
+  imageUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  _count?: {
+    experiences: number;
+  };
+}
+
+export interface Experience {
+  id: string;
+  title: string;
+  description: string;
+  city: string;
+  price?: number;
+  type: ExperienceType;
+  photos: string[];
+  highlights?: string[];
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+  hostId: string;
+  festivalId: string;
+  host: Host;
+  festival: Festival;
+  avgRating?: number;
+  _count?: {
+    reviews: number;
+    matches: number;
+  };
+}
+
+export interface Review {
+  id: string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+}
+
+export interface ExperienceDetail extends Experience {
+  reviews?: Review[];
+  availability?: (Date | string)[];
+}
+
+export interface ExperiencesResponse {
+  data: Experience[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface CreateExperienceData {
+  title: string;
+  description: string;
+  festivalId: string;
+  city: string;
+  price?: number;
+  type: ExperienceType;
+  photos?: string[];
+  highlights?: string[];
+}
+
+export interface UpdateExperienceData extends Partial<CreateExperienceData> {
+  published?: boolean;
+  highlights?: string[];
+}
+
+export interface ExperienceFilters {
+  festivalId?: string;
+  city?: string;
+  type?: ExperienceType;
+  minPrice?: number;
+  maxPrice?: number;
+  page?: number;
+  limit?: number;
+}
