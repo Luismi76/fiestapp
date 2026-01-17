@@ -30,8 +30,12 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-fiestapp}:${POSTGRES_PASSWORD:-fiestapp_secret}@postgres:5432/${POSTGRES_DB:-fiestapp}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       NODE_ENV: production
-    volumes:
-      - uploads_data:/app/uploads
+      # MinIO Configuration
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-fiestapp}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
     ports:
       - "3001:3001"
 
@@ -50,6 +54,27 @@ services:
     ports:
       - "3000:3000"
 
+  # Optional: Include MinIO in the compose stack
+  # Uncomment if you want to run MinIO locally
+  # minio:
+  #   image: minio/minio:latest
+  #   container_name: fiestapp-minio
+  #   restart: unless-stopped
+  #   command: server /data --console-address ":9001"
+  #   environment:
+  #     MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+  #     MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+  #   volumes:
+  #     - minio_data:/data
+  #   ports:
+  #     - "9000:9000"
+  #     - "9001:9001"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+  #     interval: 30s
+  #     timeout: 20s
+  #     retries: 3
+
 volumes:
   postgres_data:
-  uploads_data:
+  # minio_data:
