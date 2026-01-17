@@ -13,6 +13,13 @@ POSTGRES_PASSWORD=<contraseña_segura>
 POSTGRES_DB=fiestapp
 JWT_SECRET=<cadena_aleatoria_32_caracteres>
 NEXT_PUBLIC_API_URL=https://api.tudominio.com/api
+
+# MinIO Storage
+MINIO_ENDPOINT=http://minio:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=<contraseña_minio_segura>
+MINIO_BUCKET=fiestapp
+MINIO_PUBLIC_URL=https://storage.tudominio.com
 ```
 
 5. Configura los dominios:
@@ -68,11 +75,54 @@ NEXT_PUBLIC_API_URL=https://api.tudominio.com/api
 | `DATABASE_URL` | URL de PostgreSQL | `postgresql://user:pass@host:5432/db` |
 | `JWT_SECRET` | Clave secreta para tokens | `abc123def456...` (32+ chars) |
 | `NEXT_PUBLIC_API_URL` | URL pública del API | `https://api.tudominio.com/api` |
+| `MINIO_ENDPOINT` | URL interna de MinIO | `http://minio:9000` |
+| `MINIO_ACCESS_KEY` | Usuario de MinIO | `minioadmin` |
+| `MINIO_SECRET_KEY` | Contraseña de MinIO | `<contraseña_segura>` |
+| `MINIO_BUCKET` | Nombre del bucket | `fiestapp` |
+| `MINIO_PUBLIC_URL` | URL pública para acceder a imágenes | `https://storage.tudominio.com` |
+
+## Configuración de MinIO
+
+### Opción A: MinIO Externo (Recomendado)
+Si ya tienes un servidor MinIO:
+```env
+MINIO_ENDPOINT=http://192.168.1.102:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=<tu_contraseña>
+MINIO_BUCKET=fiestapp
+MINIO_PUBLIC_URL=http://192.168.1.102:9000
+```
+
+### Opción B: MinIO en Docker Compose
+Descomenta la sección `minio` en `docker-compose.yml`:
+```yaml
+minio:
+  image: minio/minio:latest
+  container_name: fiestapp-minio
+  restart: unless-stopped
+  command: server /data --console-address ":9001"
+  environment:
+    MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+    MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+  volumes:
+    - minio_data:/data
+  ports:
+    - "9000:9000"
+    - "9001:9001"
+```
+
+### Configurar Bucket Público
+El StorageService crea automáticamente el bucket si no existe. Para que las imágenes sean accesibles públicamente, puedes configurar la política del bucket desde la consola de MinIO (puerto 9001) o usando `mc`:
+
+```bash
+mc alias set fiestapp http://192.168.1.102:9000 minioadmin <password>
+mc anonymous set download fiestapp/fiestapp
+```
 
 ## Volúmenes Persistentes
 
 - **PostgreSQL**: `/var/lib/postgresql/data`
-- **Uploads**: `/app/uploads` (en el backend)
+- **MinIO**: `/data` (si usas MinIO en Docker)
 
 ## Después del Despliegue
 
@@ -95,8 +145,15 @@ docker logs fiestapp-frontend
 - Asegúrate de que el backend puede alcanzar la base de datos
 
 ### Error 403 en uploads
-- Verifica que el volumen de uploads esté montado
-- Comprueba permisos del directorio
+- Verifica que MinIO esté corriendo y accesible
+- Comprueba las credenciales de MinIO
+- Asegúrate de que el bucket existe y tiene política pública
+- Revisa los logs: `docker logs fiestapp-backend | grep -i minio`
+
+### Imágenes no cargan
+- Verifica que `MINIO_PUBLIC_URL` sea accesible desde el navegador
+- Si usas HTTPS, asegúrate de configurar un proxy inverso para MinIO
+- Comprueba que el bucket tenga política de acceso público
 
 ### Frontend no conecta con backend
 - Verifica que `NEXT_PUBLIC_API_URL` apunta al backend correcto
