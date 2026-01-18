@@ -12,12 +12,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fiestapp}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fiestapp} -d ${POSTGRES_DB:-fiestapp}"]
+      interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - fiestapp-internal
+      start_period: 10s
 
   minio:
     image: minio/minio:latest
@@ -29,11 +28,15 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
     volumes:
       - minio_data:/data
+    expose:
+      - "9000"
+      - "9001"
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 20s
       retries: 3
+      start_period: 10s
     labels:
       - "traefik.enable=true"
       # MinIO API (S3)
@@ -46,9 +49,6 @@ services:
       - "traefik.http.routers.fiestapp-minio-console.entrypoints=http"
       - "traefik.http.routers.fiestapp-minio-console.service=fiestapp-minio-console"
       - "traefik.http.services.fiestapp-minio-console.loadbalancer.server.port=9001"
-    networks:
-      - fiestapp-internal
-      - coolify
 
   backend:
     build:
@@ -60,7 +60,7 @@ services:
       postgres:
         condition: service_healthy
       minio:
-        condition: service_healthy
+        condition: service_started
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-fiestapp}:${POSTGRES_PASSWORD:-fiestapp_secret}@postgres:5432/${POSTGRES_DB:-fiestapp}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
@@ -74,14 +74,20 @@ services:
       # Stripe Configuration
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+    expose:
+      - "3001"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fiestapp-backend.rule=Host(`api.fiestapp.lmsc.es`)"
       - "traefik.http.routers.fiestapp-backend.entrypoints=http"
+      - "traefik.http.routers.fiestapp-backend.service=fiestapp-backend"
       - "traefik.http.services.fiestapp-backend.loadbalancer.server.port=3001"
-    networks:
-      - fiestapp-internal
-      - coolify
 
   frontend:
     build:
@@ -93,25 +99,27 @@ services:
     container_name: fiestapp-frontend
     restart: unless-stopped
     depends_on:
-      - backend
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.fiestapp.lmsc.es/api}
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+      backend:
+        condition: service_healthy
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fiestapp-frontend.rule=Host(`fiestapp.lmsc.es`)"
       - "traefik.http.routers.fiestapp-frontend.entrypoints=http"
+      - "traefik.http.routers.fiestapp-frontend.service=fiestapp-frontend"
       - "traefik.http.services.fiestapp-frontend.loadbalancer.server.port=3000"
-    networks:
-      - fiestapp-internal
-      - coolify
+
+networks:
+  default:
+    name: coolify
 
 volumes:
   postgres_data:
   minio_data:
-
-networks:
-  fiestapp-internal:
-    driver: bridge
-  coolify:
-    external: true
