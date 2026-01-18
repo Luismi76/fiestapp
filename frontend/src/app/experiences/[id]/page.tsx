@@ -457,24 +457,6 @@ export default function ExperienceDetailPage() {
 
       {/* Content sections */}
       <div className="p-4 space-y-4 -mt-4 relative z-10">
-        {/* Action buttons - like the mockup */}
-        {!isOwner && (
-          <div className="flex gap-3">
-            <button
-              onClick={handleRequestMatch}
-              className="flex-1 py-3.5 bg-white text-gray-900 font-semibold rounded-full text-center border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors"
-            >
-              Unirme
-            </button>
-            <button
-              onClick={handleRequestMatch}
-              className="flex-1 py-3.5 bg-blue-500 text-white font-semibold rounded-full text-center shadow-sm hover:bg-blue-600 transition-colors"
-            >
-              Ver Detalles
-            </button>
-          </div>
-        )}
-
         {/* Host card */}
         <Link href={`/profile/${experience.hostId}`} className="block bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-4 flex items-center gap-4">

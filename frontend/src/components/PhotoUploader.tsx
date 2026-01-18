@@ -143,7 +143,7 @@ export default function PhotoUploader({
           {photos.map((photo, index) => (
             <div
               key={`photo-${index}`}
-              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group"
+              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
             >
               <img
                 src={getUploadUrl(photo)}
@@ -155,36 +155,40 @@ export default function PhotoUploader({
                   Principal
                 </div>
               )}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                {index > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => movePhoto(index, 'left')}
-                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-sm hover:bg-gray-100"
-                    disabled={disabled}
-                  >
-                    ←
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => removePhoto(index)}
-                  className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600"
-                  disabled={disabled}
-                >
-                  ✕
-                </button>
-                {index < photos.length - 1 && (
-                  <button
-                    type="button"
-                    onClick={() => movePhoto(index, 'right')}
-                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-sm hover:bg-gray-100"
-                    disabled={disabled}
-                  >
-                    →
-                  </button>
-                )}
-              </div>
+              {/* Botón eliminar siempre visible */}
+              <button
+                type="button"
+                onClick={() => removePhoto(index)}
+                className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600 shadow-md"
+                disabled={disabled}
+              >
+                ✕
+              </button>
+              {/* Botones de reordenar en la parte inferior */}
+              {photos.length > 1 && (
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                  {index > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => movePhoto(index, 'left')}
+                      className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-sm hover:bg-white shadow-md"
+                      disabled={disabled}
+                    >
+                      ←
+                    </button>
+                  )}
+                  {index < photos.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => movePhoto(index, 'right')}
+                      className="w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-sm hover:bg-white shadow-md"
+                      disabled={disabled}
+                    >
+                      →
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ))}
 
@@ -192,26 +196,25 @@ export default function PhotoUploader({
           {pendingFiles.map((file, index) => (
             <div
               key={`pending-${index}`}
-              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group"
+              className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
             >
               <img
                 src={URL.createObjectURL(file)}
                 alt={`Nueva foto ${index + 1}`}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute top-2 right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
+              <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
                 Pendiente
               </div>
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() => removePendingFile(index)}
-                  className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600"
-                  disabled={disabled}
-                >
-                  ✕
-                </button>
-              </div>
+              {/* Botón eliminar siempre visible */}
+              <button
+                type="button"
+                onClick={() => removePendingFile(index)}
+                className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600 shadow-md"
+                disabled={disabled}
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>

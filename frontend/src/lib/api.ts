@@ -351,4 +351,90 @@ export const uploadsApi = {
   },
 };
 
+export interface PaymentStatus {
+  requiresPayment: boolean;
+  amount: number | null;
+  status: string | null;
+  paymentStatus: string | null;
+}
+
+// Wallet types
+export interface WalletInfo {
+  balance: number;
+  canOperate: boolean;
+  platformFee: number;
+  minTopUp: number;
+  operationsAvailable: number;
+}
+
+export interface WalletTransaction {
+  id: string;
+  type: string;
+  amount: number;
+  status: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WalletTransactionsResponse {
+  transactions: WalletTransaction[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export const walletApi = {
+  // Obtener información del monedero
+  getWallet: async (): Promise<WalletInfo> => {
+    const response = await api.get<WalletInfo>('/wallet');
+    return response.data;
+  },
+
+  // Crear intención de recarga
+  createTopUp: async (amount?: number): Promise<{ clientSecret: string; paymentIntentId: string }> => {
+    const response = await api.post('/wallet/topup', { amount });
+    return response.data;
+  },
+
+  // Confirmar recarga
+  confirmTopUp: async (paymentIntentId: string): Promise<void> => {
+    await api.post('/wallet/topup/confirm', { paymentIntentId });
+  },
+
+  // Obtener historial de transacciones
+  getTransactions: async (page = 1, limit = 20): Promise<WalletTransactionsResponse> => {
+    const response = await api.get<WalletTransactionsResponse>(`/wallet/transactions?page=${page}&limit=${limit}`);
+    return response.data;
+  },
+
+  // Verificar si puede operar
+  canOperate: async (): Promise<{ canOperate: boolean; requiredAmount: number }> => {
+    const response = await api.get('/wallet/can-operate');
+    return response.data;
+  },
+};
+
+export const paymentsApi = {
+  // Crear Payment Intent
+  createPaymentIntent: async (matchId: string): Promise<{ clientSecret: string; paymentIntentId: string }> => {
+    const response = await api.post(`/payments/create-intent/${matchId}`);
+    return response.data;
+  },
+
+  // Obtener estado del pago
+  getPaymentStatus: async (matchId: string): Promise<PaymentStatus> => {
+    const response = await api.get<PaymentStatus>(`/payments/status/${matchId}`);
+    return response.data;
+  },
+
+  // Liberar pago al anfitrión
+  releasePayment: async (matchId: string): Promise<void> => {
+    await api.post(`/payments/release/${matchId}`);
+  },
+};
+
 export default api;

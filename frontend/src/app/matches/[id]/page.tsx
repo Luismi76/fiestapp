@@ -3,11 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { matchesApi, reviewsApi } from '@/lib/api';
+import { matchesApi, reviewsApi, paymentsApi, PaymentStatus } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchDetail, MatchStatus, Message } from '@/types/match';
 import { CanReviewResponse } from '@/types/review';
 import ReviewForm from '@/components/ReviewForm';
+import PaymentModal from '@/components/PaymentModal';
 import { getAvatarUrl } from '@/lib/utils';
 
 // Mock match details for fallback
@@ -262,6 +263,10 @@ export default function MatchDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
+  // Payment state
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
   // For mock data, assume user is the host for IDs 1-3 and requester for IDs 10+
   const mockUserId = match ? (parseInt(match.id) < 10 ? match.hostId : 'me') : null;
   const isHost = useMockData ? (match ? parseInt(match.id) < 10 : false) : user?.id === match?.hostId;
@@ -275,6 +280,16 @@ export default function MatchDetailPage() {
         const data = await matchesApi.getById(id);
         setMatch(data);
         setUseMockData(false);
+
+        // Check payment status
+        if (data.status === 'pending' || data.status === 'accepted') {
+          try {
+            const payment = await paymentsApi.getPaymentStatus(id);
+            setPaymentStatus(payment);
+          } catch {
+            // Ignore payment status errors
+          }
+        }
 
         if (data.status === 'completed') {
           const reviewCheck = await reviewsApi.canReview(data.experienceId);
@@ -548,30 +563,117 @@ export default function MatchDetailPage() {
 
       {/* Action buttons based on status */}
       {match.status === 'pending' && isHost && (
-        <div className="mx-4 mt-4 flex gap-2">
-          <button
-            onClick={handleAccept}
-            className="flex-1 py-3 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition-colors shadow-md flex items-center justify-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-            </svg>
-            Aceptar
-          </button>
-          <button
-            onClick={handleReject}
-            className="flex-1 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-              <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-            </svg>
-            Rechazar
-          </button>
+        <div className="mx-4 mt-4 space-y-3">
+          {/* Payment status for host */}
+          {paymentStatus?.requiresPayment && (
+            <div className={`rounded-xl p-4 ${paymentStatus.paymentStatus === 'held' ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentStatus.paymentStatus === 'held' ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                  {paymentStatus.paymentStatus === 'held' ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-emerald-600">
+                      <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600">
+                      <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  {paymentStatus.paymentStatus === 'held' ? (
+                    <>
+                      <p className="font-medium text-emerald-800">Pago recibido</p>
+                      <p className="text-sm text-emerald-600">
+                        El viajero ha pagado {paymentStatus.amount}€. Puedes aceptar la solicitud.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-amber-800">Esperando pago</p>
+                      <p className="text-sm text-amber-600">
+                        El viajero debe pagar {paymentStatus.amount}€ antes de que puedas aceptar.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleAccept}
+              disabled={paymentStatus?.requiresPayment && paymentStatus.paymentStatus !== 'held'}
+              className="flex-1 py-3 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+              </svg>
+              Aceptar
+            </button>
+            <button
+              onClick={handleReject}
+              className="flex-1 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+              </svg>
+              Rechazar
+            </button>
+          </div>
         </div>
       )}
 
       {match.status === 'pending' && !isHost && (
-        <div className="mx-4 mt-4">
+        <div className="mx-4 mt-4 space-y-3">
+          {/* Payment section for requester */}
+          {paymentStatus?.requiresPayment && paymentStatus.paymentStatus !== 'held' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600">
+                    <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-amber-800">Pago pendiente</p>
+                  <p className="text-sm text-amber-600">
+                    Completa el pago de {paymentStatus.amount}€ para que el anfitrión pueda aceptar
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                  <path d="M4.5 3.75a3 3 0 0 0-3 3v.75h21v-.75a3 3 0 0 0-3-3h-15Z" />
+                  <path fillRule="evenodd" d="M1.5 9.75v6.75a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-6.75H1.5Zm6 3.75a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                </svg>
+                Pagar {paymentStatus.amount}€
+              </button>
+            </div>
+          )}
+
+          {/* Payment confirmed */}
+          {paymentStatus?.paymentStatus === 'held' && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-emerald-600">
+                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-emerald-800">Pago confirmado</p>
+                  <p className="text-sm text-emerald-600">
+                    Tu pago de {paymentStatus.amount}€ está retenido. Esperando respuesta del anfitrión.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={handleCancel}
             className="w-full py-3 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition-colors"
@@ -766,6 +868,21 @@ export default function MatchDetailPage() {
             />
           </div>
         </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && match && paymentStatus?.amount && (
+        <PaymentModal
+          matchId={match.id}
+          amount={paymentStatus.amount}
+          experienceTitle={match.experience.title}
+          onSuccess={async () => {
+            // Refresh payment status
+            const payment = await paymentsApi.getPaymentStatus(match.id);
+            setPaymentStatus(payment);
+          }}
+          onClose={() => setShowPaymentModal(false)}
+        />
       )}
     </div>
   );

@@ -4,14 +4,23 @@ import {
   ForbiddenException,
   BadRequestException,
   ConflictException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { MatchStatus } from './dto/update-match.dto';
+import { PaymentsService } from '../payments/payments.service';
+import { WalletService, PLATFORM_FEE } from '../wallet/wallet.service';
 
 @Injectable()
 export class MatchesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => PaymentsService))
+    private paymentsService: PaymentsService,
+    private walletService: WalletService,
+  ) {}
 
   // Crear solicitud de match
   async create(createDto: CreateMatchDto, requesterId: string) {
@@ -265,6 +274,7 @@ export class MatchesService {
   async accept(id: string, hostId: string, agreedDate?: string) {
     const match = await this.prisma.match.findUnique({
       where: { id },
+      include: { experience: true },
     });
 
     if (!match) {
@@ -277,6 +287,15 @@ export class MatchesService {
 
     if (match.status !== 'pending') {
       throw new BadRequestException('Esta solicitud ya no está pendiente');
+    }
+
+    // Verificar pago si la experiencia es de pago
+    if (match.experience.price && match.experience.price > 0) {
+      if (match.paymentStatus !== 'held') {
+        throw new BadRequestException(
+          'El viajero debe completar el pago antes de que puedas aceptar',
+        );
+      }
     }
 
     return this.prisma.match.update({
@@ -323,6 +342,11 @@ export class MatchesService {
       throw new BadRequestException('Esta solicitud ya no está pendiente');
     }
 
+    // Reembolsar pago si existe
+    if (match.paymentStatus === 'held' || match.paymentStatus === 'pending') {
+      await this.paymentsService.refundPayment(id, 'Solicitud rechazada por el anfitrión');
+    }
+
     return this.prisma.match.update({
       where: { id },
       data: { status: MatchStatus.REJECTED },
@@ -355,6 +379,14 @@ export class MatchesService {
       throw new BadRequestException('Esta solicitud no se puede cancelar');
     }
 
+    // Reembolsar pago si existe
+    if (match.paymentStatus === 'held' || match.paymentStatus === 'pending') {
+      const reason = match.requesterId === userId
+        ? 'Cancelado por el viajero'
+        : 'Cancelado por el anfitrión';
+      await this.paymentsService.refundPayment(id, reason);
+    }
+
     return this.prisma.match.update({
       where: { id },
       data: { status: MatchStatus.CANCELLED },
@@ -378,6 +410,30 @@ export class MatchesService {
     if (match.status !== 'accepted') {
       throw new BadRequestException('Solo se pueden completar solicitudes aceptadas');
     }
+
+    // Verificar saldo de ambos usuarios antes de completar
+    const [hostHasBalance, requesterHasBalance] = await Promise.all([
+      this.walletService.hasEnoughBalance(match.hostId),
+      this.walletService.hasEnoughBalance(match.requesterId),
+    ]);
+
+    if (!hostHasBalance) {
+      throw new BadRequestException(
+        `No tienes saldo suficiente. Necesitas ${PLATFORM_FEE}€ para completar esta operación. Recarga tu monedero.`,
+      );
+    }
+
+    if (!requesterHasBalance) {
+      throw new BadRequestException(
+        `El viajero no tiene saldo suficiente (${PLATFORM_FEE}€) para completar esta operación.`,
+      );
+    }
+
+    // Descontar tarifa de plataforma a ambos usuarios
+    await Promise.all([
+      this.walletService.deductPlatformFee(match.hostId, id),
+      this.walletService.deductPlatformFee(match.requesterId, id),
+    ]);
 
     return this.prisma.match.update({
       where: { id },

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
-import { experiencesApi } from '@/lib/api';
+import { experiencesApi, walletApi, WalletInfo } from '@/lib/api';
 import { Experience } from '@/types/experience';
 import { getUploadUrl, getAvatarUrl } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -106,11 +106,12 @@ const mockHosts = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user: authUser } = useAuth();
+  const { user: authUser, isAuthenticated } = useAuth();
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [useMockData, setUseMockData] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [wallet, setWallet] = useState<WalletInfo | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -133,6 +134,15 @@ export default function DashboardPage() {
 
     loadData();
   }, []);
+
+  // Load wallet data if authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      walletApi.getWallet()
+        .then(setWallet)
+        .catch(() => setWallet(null));
+    }
+  }, [isAuthenticated]);
 
   const displayExperiences = useMockData ? mockExperiences : experiences;
   const featuredExperience = displayExperiences[4] || displayExperiences[0]; // Semana Santa como destacada
@@ -170,23 +180,17 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Hero Header con imagen/gradiente de fondo */}
+      {/* Hero Header con imagen de fondo */}
       <div className="relative">
-        {/* Background con gradiente festivo */}
+        {/* Background con imagen de fiesta */}
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: 'linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 25%, #4a1942 50%, #1a1a2e 100%)',
+            backgroundImage: 'url(/images/hero_fiesta.jpg)',
           }}
         >
-          {/* Efecto de luces/partículas */}
-          <div className="absolute inset-0 opacity-30" style={{
-            backgroundImage: `radial-gradient(circle at 20% 30%, rgba(255,183,77,0.4) 0%, transparent 25%),
-                              radial-gradient(circle at 80% 20%, rgba(255,107,107,0.3) 0%, transparent 20%),
-                              radial-gradient(circle at 40% 70%, rgba(255,183,77,0.3) 0%, transparent 25%),
-                              radial-gradient(circle at 70% 60%, rgba(236,72,153,0.3) 0%, transparent 20%)`
-          }} />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30" />
+          {/* Overlay oscuro para legibilidad */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60" />
         </div>
 
         {/* Content */}
@@ -206,12 +210,31 @@ export default function DashboardPage() {
               <span className="text-2xl font-bold text-orange-400">Festas</span>
             </div>
 
-            {/* Camera/Action button */}
-            <button className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
-              <div className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center">
-                <div className="w-2 h-2 rounded-full bg-red-500" />
-              </div>
-            </button>
+            {/* Wallet button */}
+            {isAuthenticated ? (
+              <Link
+                href="/wallet"
+                className={`px-3 py-2 rounded-full backdrop-blur-sm flex items-center gap-1.5 border ${
+                  wallet && !wallet.canOperate
+                    ? 'bg-amber-500/20 border-amber-400/50'
+                    : 'bg-white/10 border-white/20'
+                }`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
+                  <path d="M2.273 5.625A4.483 4.483 0 0 1 5.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 3H5.25a3 3 0 0 0-2.977 2.625ZM2.273 8.625A4.483 4.483 0 0 1 5.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 6H5.25a3 3 0 0 0-2.977 2.625ZM5.25 9a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H15a.75.75 0 0 0-.75.75 2.25 2.25 0 0 1-4.5 0A.75.75 0 0 0 9 9H5.25Z" />
+                </svg>
+                <span className="text-white font-semibold text-sm">
+                  {wallet ? `${wallet.balance.toFixed(2)}€` : '...'}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium"
+              >
+                Entrar
+              </Link>
+            )}
           </div>
 
           {/* Tagline */}

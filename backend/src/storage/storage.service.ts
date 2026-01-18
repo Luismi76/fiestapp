@@ -46,8 +46,17 @@ export class StorageService implements OnModuleInit {
     } catch (error: any) {
       if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
         console.log(`📦 Creating bucket '${this.bucket}'...`);
-        await this.s3Client.send(new CreateBucketCommand({ Bucket: this.bucket }));
-        console.log(`✅ Bucket '${this.bucket}' created`);
+        try {
+          await this.s3Client.send(new CreateBucketCommand({ Bucket: this.bucket }));
+          console.log(`✅ Bucket '${this.bucket}' created`);
+        } catch (createError: any) {
+          // Bucket already exists (created by another process or already owned)
+          if (createError.name === 'BucketAlreadyOwnedByYou' || createError.name === 'BucketAlreadyExists') {
+            console.log(`✅ Bucket '${this.bucket}' already exists`);
+          } else {
+            console.error('Error creating bucket:', createError);
+          }
+        }
       } else {
         console.error('Error checking bucket:', error);
       }
