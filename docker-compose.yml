@@ -78,10 +78,10 @@ services:
       - "3001"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
-      interval: 30s
+      interval: 10s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 10
+      start_period: 120s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fiestapp-backend.rule=Host(`api.fiestapp.lmsc.es`)"
@@ -100,7 +100,7 @@ services:
     restart: unless-stopped
     depends_on:
       backend:
-        condition: service_healthy
+        condition: service_started
     expose:
       - "3000"
     healthcheck:
