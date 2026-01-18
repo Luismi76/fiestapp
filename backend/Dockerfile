@@ -29,7 +29,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Install wget for healthcheck
-# Force rebuild: 2026-01-18
+# Force rebuild: 2026-01-18-v2
 RUN apk add --no-cache wget
 
 RUN addgroup --system --gid 1001 nodejs
