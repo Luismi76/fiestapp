@@ -21,7 +21,7 @@ COPY . .
 
 RUN npx prisma generate
 RUN npm run build
-RUN ls -la dist/ && ls -la dist/main.js
+RUN ls -la dist/src/ && ls -la dist/src/main.js
 
 # Production image
 FROM base AS runner
@@ -49,4 +49,4 @@ USER nestjs
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/src/main.js"]
