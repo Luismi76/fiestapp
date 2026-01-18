@@ -40,12 +40,12 @@ services:
     labels:
       - "traefik.enable=true"
       # MinIO API (S3)
-      - "traefik.http.routers.fiestapp-minio.rule=Host(`s3.fiestapp.lmsc.es`)"
+      - "traefik.http.routers.fiestapp-minio.rule=Host(`fiestapp-s3.lmsc.es`)"
       - "traefik.http.routers.fiestapp-minio.entrypoints=http"
       - "traefik.http.routers.fiestapp-minio.service=fiestapp-minio"
       - "traefik.http.services.fiestapp-minio.loadbalancer.server.port=9000"
       # MinIO Console
-      - "traefik.http.routers.fiestapp-minio-console.rule=Host(`minio.fiestapp.lmsc.es`)"
+      - "traefik.http.routers.fiestapp-minio-console.rule=Host(`fiestapp-minio.lmsc.es`)"
       - "traefik.http.routers.fiestapp-minio-console.entrypoints=http"
       - "traefik.http.routers.fiestapp-minio-console.service=fiestapp-minio-console"
       - "traefik.http.services.fiestapp-minio-console.loadbalancer.server.port=9001"
@@ -70,7 +70,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-fiestapp}
-      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-https://s3.fiestapp.lmsc.es}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-https://fiestapp-s3.lmsc.es}
       # Stripe Configuration
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
@@ -84,7 +84,7 @@ services:
       start_period: 120s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.fiestapp-backend.rule=Host(`api.fiestapp.lmsc.es`)"
+      - "traefik.http.routers.fiestapp-backend.rule=Host(`fiestapp-api.lmsc.es`)"
       - "traefik.http.routers.fiestapp-backend.entrypoints=http"
       - "traefik.http.routers.fiestapp-backend.service=fiestapp-backend"
       - "traefik.http.services.fiestapp-backend.loadbalancer.server.port=3001"
@@ -94,7 +94,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.fiestapp.lmsc.es/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://fiestapp-api.lmsc.es/api}
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
     container_name: fiestapp-frontend
     restart: unless-stopped

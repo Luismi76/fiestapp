@@ -13,7 +13,7 @@ async function bootstrap() {
       'http://localhost:3002',
       'http://localhost:3003',
       'https://fiestapp.lmsc.es',
-      'https://api.fiestapp.lmsc.es',
+      'https://fiestapp-api.lmsc.es',
     ],
     credentials: true,
   });
