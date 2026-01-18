@@ -38,19 +38,17 @@ services:
       - "traefik.enable=true"
       # MinIO API (S3)
       - "traefik.http.routers.fiestapp-minio.rule=Host(`s3.fiestapp.lmsc.es`)"
-      - "traefik.http.routers.fiestapp-minio.entrypoints=websecure"
-      - "traefik.http.routers.fiestapp-minio.tls=true"
+      - "traefik.http.routers.fiestapp-minio.entrypoints=http"
       - "traefik.http.routers.fiestapp-minio.service=fiestapp-minio"
       - "traefik.http.services.fiestapp-minio.loadbalancer.server.port=9000"
       # MinIO Console
       - "traefik.http.routers.fiestapp-minio-console.rule=Host(`minio.fiestapp.lmsc.es`)"
-      - "traefik.http.routers.fiestapp-minio-console.entrypoints=websecure"
-      - "traefik.http.routers.fiestapp-minio-console.tls=true"
+      - "traefik.http.routers.fiestapp-minio-console.entrypoints=http"
       - "traefik.http.routers.fiestapp-minio-console.service=fiestapp-minio-console"
       - "traefik.http.services.fiestapp-minio-console.loadbalancer.server.port=9001"
     networks:
       - fiestapp-internal
-      - traefik
+      - coolify
 
   backend:
     build:
@@ -79,12 +77,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fiestapp-backend.rule=Host(`api.fiestapp.lmsc.es`)"
-      - "traefik.http.routers.fiestapp-backend.entrypoints=websecure"
-      - "traefik.http.routers.fiestapp-backend.tls=true"
+      - "traefik.http.routers.fiestapp-backend.entrypoints=http"
       - "traefik.http.services.fiestapp-backend.loadbalancer.server.port=3001"
     networks:
       - fiestapp-internal
-      - traefik
+      - coolify
 
   frontend:
     build:
@@ -103,12 +100,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fiestapp-frontend.rule=Host(`fiestapp.lmsc.es`)"
-      - "traefik.http.routers.fiestapp-frontend.entrypoints=websecure"
-      - "traefik.http.routers.fiestapp-frontend.tls=true"
+      - "traefik.http.routers.fiestapp-frontend.entrypoints=http"
       - "traefik.http.services.fiestapp-frontend.loadbalancer.server.port=3000"
     networks:
       - fiestapp-internal
-      - traefik
+      - coolify
 
 volumes:
   postgres_data:
@@ -117,5 +113,5 @@ volumes:
 networks:
   fiestapp-internal:
     driver: bridge
-  traefik:
+  coolify:
     external: true
