@@ -19,6 +19,39 @@ services:
     networks:
       - fiestapp-internal
 
+  minio:
+    image: minio/minio:latest
+    container_name: fiestapp-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      # MinIO API (S3)
+      - "traefik.http.routers.fiestapp-minio.rule=Host(`s3.fiestapp.lmsc.es`)"
+      - "traefik.http.routers.fiestapp-minio.entrypoints=websecure"
+      - "traefik.http.routers.fiestapp-minio.tls=true"
+      - "traefik.http.routers.fiestapp-minio.service=fiestapp-minio"
+      - "traefik.http.services.fiestapp-minio.loadbalancer.server.port=9000"
+      # MinIO Console
+      - "traefik.http.routers.fiestapp-minio-console.rule=Host(`minio.fiestapp.lmsc.es`)"
+      - "traefik.http.routers.fiestapp-minio-console.entrypoints=websecure"
+      - "traefik.http.routers.fiestapp-minio-console.tls=true"
+      - "traefik.http.routers.fiestapp-minio-console.service=fiestapp-minio-console"
+      - "traefik.http.services.fiestapp-minio-console.loadbalancer.server.port=9001"
+    networks:
+      - fiestapp-internal
+      - traefik
+
   backend:
     build:
       context: ./backend
@@ -28,16 +61,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      minio:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-fiestapp}:${POSTGRES_PASSWORD:-fiestapp_secret}@postgres:5432/${POSTGRES_DB:-fiestapp}
       JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       NODE_ENV: production
       # MinIO Configuration
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET: ${MINIO_BUCKET:-fiestapp}
-      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-http://localhost:9000}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-https://s3.fiestapp.lmsc.es}
       # Stripe Configuration
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
@@ -77,6 +112,7 @@ services:
 
 volumes:
   postgres_data:
+  minio_data:
 
 networks:
   fiestapp-internal:
