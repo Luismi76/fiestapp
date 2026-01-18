@@ -54,9 +54,9 @@ prisma/migrations/
 # OS
 Thumbs.db
 
-# Uploads
-uploads/
-backend/uploads/
+# Uploads (user uploaded files, not source code)
+/uploads/
+/backend/uploads/
 
 # SQLite
 *.sqlite
