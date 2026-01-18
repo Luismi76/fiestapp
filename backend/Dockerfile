@@ -21,6 +21,7 @@ COPY . .
 
 RUN npx prisma generate
 RUN npm run build
+RUN ls -la dist/ && ls -la dist/main.js
 
 # Production image
 FROM base AS runner
@@ -29,7 +30,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Install wget for healthcheck
-# Force rebuild: 2026-01-18-v2
+# Force rebuild: 2026-01-18-v3
 RUN apk add --no-cache wget
 
 RUN addgroup --system --gid 1001 nodejs
@@ -48,4 +49,4 @@ USER nestjs
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/main.js"]
