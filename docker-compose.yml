@@ -16,6 +16,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - fiestapp-internal
 
   backend:
     build:
@@ -39,47 +41,45 @@ services:
       # Stripe Configuration
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-    ports:
-      - "3001:3001"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fiestapp-backend.rule=Host(`api.fiestapp.lmsc.es`)"
+      - "traefik.http.routers.fiestapp-backend.entrypoints=websecure"
+      - "traefik.http.routers.fiestapp-backend.tls=true"
+      - "traefik.http.services.fiestapp-backend.loadbalancer.server.port=3001"
+    networks:
+      - fiestapp-internal
+      - traefik
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.fiestapp.lmsc.es/api}
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
     container_name: fiestapp-frontend
     restart: unless-stopped
     depends_on:
       - backend
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.fiestapp.lmsc.es/api}
       NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
-    ports:
-      - "3000:3000"
-
-  # Optional: Include MinIO in the compose stack
-  # Uncomment if you want to run MinIO locally
-  # minio:
-  #   image: minio/minio:latest
-  #   container_name: fiestapp-minio
-  #   restart: unless-stopped
-  #   command: server /data --console-address ":9001"
-  #   environment:
-  #     MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
-  #     MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
-  #   volumes:
-  #     - minio_data:/data
-  #   ports:
-  #     - "9000:9000"
-  #     - "9001:9001"
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-  #     interval: 30s
-  #     timeout: 20s
-  #     retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fiestapp-frontend.rule=Host(`fiestapp.lmsc.es`)"
+      - "traefik.http.routers.fiestapp-frontend.entrypoints=websecure"
+      - "traefik.http.routers.fiestapp-frontend.tls=true"
+      - "traefik.http.services.fiestapp-frontend.loadbalancer.server.port=3000"
+    networks:
+      - fiestapp-internal
+      - traefik
 
 volumes:
   postgres_data:
-  # minio_data:
+
+networks:
+  fiestapp-internal:
+    driver: bridge
+  traefik:
+    external: true
