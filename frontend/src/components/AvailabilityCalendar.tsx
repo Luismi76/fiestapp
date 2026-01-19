@@ -48,6 +48,10 @@ const MONTHS_ES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
+const MONTHS_ES_SHORT = [
+  'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+];
 
 export default function AvailabilityCalendar({
   mode = 'select',
@@ -62,6 +66,28 @@ export default function AvailabilityCalendar({
   maxDate,
   initialDate,
 }: AvailabilityCalendarProps) {
+  // Calcular si las fechas disponibles abarcan múltiples meses
+  const { spansMultipleMonths, firstMonth, lastMonth } = useMemo(() => {
+    if (availableDates.length === 0) {
+      return { spansMultipleMonths: false, firstMonth: null, lastMonth: null };
+    }
+
+    const sorted = [...availableDates].sort((a, b) => a.getTime() - b.getTime());
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+
+    const firstMonthDate = new Date(first.getFullYear(), first.getMonth(), 1);
+    const lastMonthDate = new Date(last.getFullYear(), last.getMonth(), 1);
+
+    const spans = firstMonthDate.getTime() !== lastMonthDate.getTime();
+
+    return {
+      spansMultipleMonths: spans,
+      firstMonth: firstMonthDate,
+      lastMonth: lastMonthDate,
+    };
+  }, [availableDates]);
+
   const [currentMonth, setCurrentMonth] = useState(() => {
     // Prioridad: initialDate > primera fecha disponible > fecha actual
     if (initialDate) {
@@ -89,15 +115,15 @@ export default function AvailabilityCalendar({
     return map;
   }, [occupancy]);
 
-  // Get calendar days for current month
-  const calendarDays = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
+  // Get calendar days for a specific month
+  const getCalendarDays = (month: Date) => {
+    const year = month.getFullYear();
+    const m = month.getMonth();
 
     // First day of month
-    const firstDay = new Date(year, month, 1);
+    const firstDay = new Date(year, m, 1);
     // Last day of month
-    const lastDay = new Date(year, month + 1, 0);
+    const lastDay = new Date(year, m + 1, 0);
 
     // Start from Monday (adjust if month starts on Sunday)
     let startDay = firstDay.getDay();
@@ -112,11 +138,24 @@ export default function AvailabilityCalendar({
 
     // Add all days of month
     for (let day = 1; day <= lastDay.getDate(); day++) {
-      days.push(new Date(year, month, day));
+      days.push(new Date(year, m, day));
     }
 
     return days;
-  }, [currentMonth]);
+  };
+
+  const calendarDays = useMemo(() => getCalendarDays(currentMonth), [currentMonth]);
+
+  // Segundo mes (solo si las fechas abarcan múltiples meses)
+  const secondMonth = useMemo(() => {
+    if (!spansMultipleMonths) return null;
+    return new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+  }, [currentMonth, spansMultipleMonths]);
+
+  const secondMonthDays = useMemo(() => {
+    if (!secondMonth) return [];
+    return getCalendarDays(secondMonth);
+  }, [secondMonth]);
 
   const goToPrevMonth = () => {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -234,6 +273,15 @@ export default function AvailabilityCalendar({
     return prevMonth >= new Date(today.getFullYear(), today.getMonth(), 1);
   };
 
+  // Check if we can go to next month (considering if showing 2 months)
+  const canGoNext = () => {
+    if (!lastMonth) return true;
+    const nextMonth = spansMultipleMonths
+      ? new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 1)
+      : new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    return nextMonth <= lastMonth;
+  };
+
   // Calcular número de días del rango
   const rangeDays = useMemo(() => {
     if (mode !== 'range' || !dateRange.start || !dateRange.end) return 0;
@@ -263,44 +311,32 @@ export default function AvailabilityCalendar({
     }
   };
 
-  return (
-    <div className="bg-white rounded-xl p-2">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <button
-          type="button"
-          onClick={goToPrevMonth}
-          disabled={!canGoPrev()}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        >
-          ←
-        </button>
-        <h3 className="font-semibold text-gray-900">
-          {MONTHS_ES[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+  // Renderizar un mes
+  const renderMonth = (monthDate: Date, days: (Date | null)[], showHeader: boolean = true) => (
+    <div className={spansMultipleMonths ? 'flex-1 min-w-0' : ''}>
+      {showHeader && (
+        <h3 className="font-semibold text-gray-900 text-center mb-2 text-sm">
+          {spansMultipleMonths
+            ? `${MONTHS_ES_SHORT[monthDate.getMonth()]} ${monthDate.getFullYear()}`
+            : `${MONTHS_ES[monthDate.getMonth()]} ${monthDate.getFullYear()}`
+          }
         </h3>
-        <button
-          type="button"
-          onClick={goToNextMonth}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
-        >
-          →
-        </button>
-      </div>
+      )}
 
       {/* Days header */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="grid grid-cols-7 gap-0.5 mb-1">
         {DAYS_ES.map(day => (
-          <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
+          <div key={`${monthDate.getTime()}-${day}`} className="text-center text-[10px] font-medium text-gray-500 py-0.5">
             {day}
           </div>
         ))}
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {calendarDays.map((date, index) => {
+      <div className="grid grid-cols-7 gap-0.5">
+        {days.map((date, index) => {
           if (!date) {
-            return <div key={`empty-${index}`} className="aspect-square" />;
+            return <div key={`empty-${monthDate.getTime()}-${index}`} className="aspect-square" />;
           }
 
           const disabled = isDateDisabled(date);
@@ -321,9 +357,9 @@ export default function AvailabilityCalendar({
               disabled={disabled}
               title={occ ? `${occ.booked}/${occ.capacity} reservas` : undefined}
               className={`
-                aspect-square flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-all relative
+                aspect-square flex flex-col items-center justify-center rounded-md text-xs font-medium transition-all relative
                 ${disabled ? 'text-gray-300 cursor-not-allowed' : 'cursor-pointer'}
-                ${today && !selected && !inRange ? 'ring-2 ring-primary ring-inset' : ''}
+                ${today && !selected && !inRange ? 'ring-1 ring-primary ring-inset' : ''}
                 ${selected ? 'bg-primary text-white' : ''}
                 ${rangeStart || rangeEnd ? 'bg-primary text-white' : ''}
                 ${inRange && !rangeStart && !rangeEnd ? 'bg-primary/20 text-primary' : ''}
@@ -335,7 +371,7 @@ export default function AvailabilityCalendar({
               <span>{date.getDate()}</span>
               {/* Indicador de ocupación parcial */}
               {occ && occ.status === 'partial' && !inRange && !selected && (
-                <span className="text-[9px] leading-none">
+                <span className="text-[8px] leading-none">
                   {occ.capacity - occ.booked}
                 </span>
               )}
@@ -343,6 +379,103 @@ export default function AvailabilityCalendar({
           );
         })}
       </div>
+    </div>
+  );
+
+  return (
+    <div className="bg-white rounded-xl p-2">
+      {/* Header con navegación */}
+      <div className="flex items-center justify-between mb-2">
+        <button
+          type="button"
+          onClick={goToPrevMonth}
+          disabled={!canGoPrev()}
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          ←
+        </button>
+        {!spansMultipleMonths && (
+          <h3 className="font-semibold text-gray-900">
+            {MONTHS_ES[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+          </h3>
+        )}
+        {spansMultipleMonths && <div />}
+        <button
+          type="button"
+          onClick={goToNextMonth}
+          disabled={!canGoNext()}
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          →
+        </button>
+      </div>
+
+      {/* Calendarios - uno o dos meses */}
+      {spansMultipleMonths && secondMonth ? (
+        <div className="flex gap-2">
+          {renderMonth(currentMonth, calendarDays, true)}
+          {renderMonth(secondMonth, secondMonthDays, true)}
+        </div>
+      ) : (
+        <>
+          {/* Days header */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {DAYS_ES.map(day => (
+              <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
+                {day}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((date, index) => {
+              if (!date) {
+                return <div key={`empty-${index}`} className="aspect-square" />;
+              }
+
+              const disabled = isDateDisabled(date);
+              const selected = mode === 'select' && isDateSelected(date);
+              const available = (mode === 'view' || mode === 'range') && isDateAvailable(date);
+              const today = isToday(date);
+              const inRange = isInRange(date);
+              const rangeStart = isRangeStart(date);
+              const rangeEnd = isRangeEnd(date);
+              const occ = getDateOccupancy(date);
+              const isFull = occ?.status === 'full';
+
+              return (
+                <button
+                  key={date.toISOString()}
+                  type="button"
+                  onClick={() => handleDateClick(date)}
+                  disabled={disabled}
+                  title={occ ? `${occ.booked}/${occ.capacity} reservas` : undefined}
+                  className={`
+                    aspect-square flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-all relative
+                    ${disabled ? 'text-gray-300 cursor-not-allowed' : 'cursor-pointer'}
+                    ${today && !selected && !inRange ? 'ring-2 ring-primary ring-inset' : ''}
+                    ${selected ? 'bg-primary text-white' : ''}
+                    ${rangeStart || rangeEnd ? 'bg-primary text-white' : ''}
+                    ${inRange && !rangeStart && !rangeEnd ? 'bg-primary/20 text-primary' : ''}
+                    ${available && !selected && !inRange && !isFull ? getOccupancyClass(date, available) : ''}
+                    ${isFull && !inRange ? 'bg-red-100 text-red-400 cursor-not-allowed' : ''}
+                    ${!disabled && !selected && !available && !inRange ? 'hover:bg-gray-100 text-gray-700' : ''}
+                  `}
+                >
+                  <span>{date.getDate()}</span>
+                  {/* Indicador de ocupación parcial */}
+                  {occ && occ.status === 'partial' && !inRange && !selected && (
+                    <span className="text-[9px] leading-none">
+                      {occ.capacity - occ.booked}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {/* Legend */}
       {mode === 'select' && (
