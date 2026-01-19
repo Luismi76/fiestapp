@@ -74,4 +74,9 @@ export class AdminController {
   deleteExperience(@Param('id') id: string) {
     return this.adminService.deleteExperience(id);
   }
+
+  @Post('users/:id/impersonate')
+  impersonateUser(@Param('id') id: string) {
+    return this.adminService.impersonateUser(id);
+  }
 }

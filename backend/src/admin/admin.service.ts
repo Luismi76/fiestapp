@@ -1,9 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+  ) {}
 
   async getDashboardStats() {
     const [
@@ -220,5 +224,42 @@ export class AdminService {
     return this.prisma.experience.delete({
       where: { id: experienceId },
     });
+  }
+
+  async impersonateUser(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        verified: true,
+        city: true,
+        age: true,
+        bio: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    const payload = { sub: user.id, email: user.email };
+    const access_token = this.jwtService.sign(payload);
+
+    return {
+      access_token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar ?? undefined,
+        verified: user.verified,
+        city: user.city ?? undefined,
+        age: user.age ?? undefined,
+        bio: user.bio ?? undefined,
+      },
+    };
   }
 }

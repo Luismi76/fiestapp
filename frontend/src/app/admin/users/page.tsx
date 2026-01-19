@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminUsersPage() {
   const router = useRouter();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, loginWithToken } = useAuth();
   const [data, setData] = useState<AdminUsersResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -81,6 +81,19 @@ export default function AdminUsersPage() {
     } catch {
       alert('Error al eliminar usuario');
     } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleImpersonate = async (user: AdminUser) => {
+    if (!confirm(`Iniciar sesion como ${user.name}? Seras redirigido al dashboard.`)) return;
+
+    setActionLoading(user.id);
+    try {
+      const response = await adminApi.impersonateUser(user.id);
+      loginWithToken(response.access_token, response.user);
+    } catch {
+      alert('Error al impersonar usuario');
       setActionLoading(null);
     }
   };
@@ -181,6 +194,16 @@ export default function AdminUsersPage() {
 
                   {/* Actions */}
                   <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={() => handleImpersonate(user)}
+                      disabled={actionLoading === user.id}
+                      className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="Iniciar sesion como este usuario"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                      </svg>
+                    </button>
                     <button
                       onClick={() => handleToggleRole(user)}
                       disabled={actionLoading === user.id}

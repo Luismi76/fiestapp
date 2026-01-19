@@ -767,6 +767,12 @@ export const adminApi = {
   deleteExperience: async (experienceId: string): Promise<void> => {
     await api.delete(`/admin/experiences/${experienceId}`);
   },
+
+  // Impersonate user (login as)
+  impersonateUser: async (userId: string): Promise<AuthResponse> => {
+    const response = await api.post<AuthResponse>(`/admin/users/${userId}/impersonate`);
+    return response.data;
+  },
 };
 
 export default api;

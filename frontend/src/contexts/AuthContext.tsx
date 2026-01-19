@@ -14,6 +14,7 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     login: (data: LoginData) => Promise<void>;
+    loginWithToken: (token: string, user: User) => void;
     register: (data: RegisterData) => Promise<string>;
     logout: () => void;
     refreshUser: () => Promise<void>;
@@ -67,6 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const loginWithToken = (token: string, userData: User) => {
+        localStorage.setItem('token', token);
+        setUser(userData);
+        router.push('/dashboard');
+    };
+
     const logout = () => {
         localStorage.removeItem('token');
         setUser(null);
@@ -88,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 user,
                 loading,
                 login,
+                loginWithToken,
                 register,
                 logout,
                 refreshUser,
