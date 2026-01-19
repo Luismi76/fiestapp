@@ -3,6 +3,25 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+// URLs de Cloudinary para las imágenes
+const CLOUDINARY_IMAGES = {
+  // Avatares de usuarios
+  user_maria: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829480/fiestapp/seed/user_maria.jpg',
+  user_carlos: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829470/fiestapp/seed/user_carlos.jpg',
+  user_laura: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829476/fiestapp/seed/user_laura.jpg',
+  user_pedro: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829482/fiestapp/seed/user_pedro.jpg',
+  user_juan: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829474/fiestapp/seed/user_juan.jpg',
+  user_ana: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829468/fiestapp/seed/user_ana.jpg',
+  user_demo: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829472/fiestapp/seed/user_demo.jpg',
+  // Fotos de experiencias
+  feria_abril: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829453/fiestapp/seed/feria_abril.jpg',
+  san_fermin: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829463/fiestapp/seed/san_fermin.jpg',
+  las_fallas: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829457/fiestapp/seed/las_fallas.jpg',
+  la_tomatina: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829460/fiestapp/seed/la_tomatina.jpg',
+  semana_santa: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829465/fiestapp/seed/semana_santa.jpg',
+  carnaval: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829450/fiestapp/seed/carnaval.jpg',
+};
+
 async function main() {
   console.log('🌱 Iniciando seed de la base de datos...');
 
@@ -33,7 +52,7 @@ async function main() {
         age: 32,
         bio: 'Sevillana de toda la vida. Me encanta compartir nuestras tradiciones con visitantes de todo el mundo. La Feria de Abril es mi fiesta favorita y llevo más de 20 años disfrutándola en nuestra caseta familiar.',
         city: 'Sevilla',
-        avatar: '/images/user_maria.png',
+        avatar: CLOUDINARY_IMAGES.user_maria,
         verified: true,
       },
     }),
@@ -46,7 +65,7 @@ async function main() {
         age: 28,
         bio: 'Pamplonés de nacimiento. Llevo corriendo encierros desde los 18 años. Conozco cada rincón de la ciudad y los mejores sitios para vivir San Fermín como un local.',
         city: 'Pamplona',
-        avatar: '/images/user_carlos.png',
+        avatar: CLOUDINARY_IMAGES.user_carlos,
         verified: true,
       },
     }),
@@ -59,7 +78,7 @@ async function main() {
         age: 35,
         bio: 'Valenciana apasionada por las Fallas. Mi familia lleva 4 generaciones siendo falleros. La paella de mi abuela es famosa en todo el barrio.',
         city: 'Valencia',
-        avatar: '/images/user_laura.png',
+        avatar: CLOUDINARY_IMAGES.user_laura,
         verified: true,
       },
     }),
@@ -72,7 +91,7 @@ async function main() {
         age: 26,
         bio: 'De Buñol, vivo La Tomatina desde pequeño. ¡La mejor fiesta del mundo! Veterano de más de 10 ediciones, conozco todos los trucos para sobrevivir.',
         city: 'Valencia',
-        avatar: '/images/user_pedro.png',
+        avatar: CLOUDINARY_IMAGES.user_pedro,
         verified: false,
       },
     }),
@@ -85,7 +104,7 @@ async function main() {
         age: 45,
         bio: 'Cofrade desde hace 30 años. La Semana Santa es mi pasión. He sido costalero y ahora guío a visitantes por las procesiones más emblemáticas de Sevilla.',
         city: 'Sevilla',
-        avatar: '/images/user_juan.png',
+        avatar: CLOUDINARY_IMAGES.user_juan,
         verified: true,
       },
     }),
@@ -98,7 +117,7 @@ async function main() {
         age: 29,
         bio: 'Gaditana de corazón. El Carnaval corre por mis venas. Mi padre fue autor de chirigotas y crecí entre comparsas y disfraces.',
         city: 'Cádiz',
-        avatar: '/images/user_ana.png',
+        avatar: CLOUDINARY_IMAGES.user_ana,
         verified: true,
       },
     }),
@@ -111,7 +130,7 @@ async function main() {
         age: 30,
         bio: 'Viajero entusiasta buscando experiencias auténticas en las festividades españolas. Me encanta conocer las tradiciones locales de la mano de sus protagonistas.',
         city: 'Madrid',
-        avatar: '/images/user_demo.png',
+        avatar: CLOUDINARY_IMAGES.user_demo,
         verified: false,
       },
     }),
@@ -219,7 +238,7 @@ async function main() {
         price: 45,
         type: 'pago',
         hostId: 'user-maria',
-        photos: ['/images/feria_abril.png'],
+        photos: [CLOUDINARY_IMAGES.feria_abril],
         highlights: [
           'Traje de flamenca o traje corto auténtico incluido',
           'Acceso a caseta familiar con comida y bebida',
@@ -240,7 +259,7 @@ async function main() {
         price: null,
         type: 'intercambio',
         hostId: 'user-carlos',
-        photos: ['/images/san_fermin.png'],
+        photos: [CLOUDINARY_IMAGES.san_fermin],
         highlights: [
           'Acceso a balcón privilegiado para el encierro',
           'Ruta de tapas por el casco antiguo',
@@ -260,7 +279,7 @@ async function main() {
         price: 35,
         type: 'pago',
         hostId: 'user-laura',
-        photos: ['/images/las_fallas.png'],
+        photos: [CLOUDINARY_IMAGES.las_fallas],
         highlights: [
           'Plaza reservada para la mascletà',
           'Tour guiado por las mejores fallas',
@@ -280,7 +299,7 @@ async function main() {
         price: 25,
         type: 'ambos',
         hostId: 'user-pedro',
-        photos: ['/images/la_tomatina.png'],
+        photos: [CLOUDINARY_IMAGES.la_tomatina],
         highlights: [
           'Camiseta blanca y gafas incluidas',
           'Acompañamiento durante la batalla',
@@ -301,7 +320,7 @@ async function main() {
         price: 30,
         type: 'pago',
         hostId: 'user-juan',
-        photos: ['/images/semana_santa.png'],
+        photos: [CLOUDINARY_IMAGES.semana_santa],
         highlights: [
           'Ruta por procesiones emblemáticas',
           'Explicación histórica y religiosa',
@@ -322,7 +341,7 @@ async function main() {
         price: null,
         type: 'intercambio',
         hostId: 'user-ana',
-        photos: ['/images/carnaval.png'],
+        photos: [CLOUDINARY_IMAGES.carnaval],
         highlights: [
           'Tour por las calles del Carnaval',
           'Visita al Teatro Falla',
