@@ -25,13 +25,17 @@ export class WalletService {
     if (stripeKey) {
       this.stripe = new Stripe(stripeKey);
     } else {
-      console.warn('⚠️ STRIPE_SECRET_KEY not configured - wallet topup disabled');
+      console.warn(
+        '⚠️ STRIPE_SECRET_KEY not configured - wallet topup disabled',
+      );
     }
   }
 
   private ensureStripe(): Stripe {
     if (!this.stripe) {
-      throw new BadRequestException('Pagos no configurados. Contacta al administrador.');
+      throw new BadRequestException(
+        'Pagos no configurados. Contacta al administrador.',
+      );
     }
     return this.stripe;
   }
@@ -59,13 +63,19 @@ export class WalletService {
   }
 
   // Verificar si tiene saldo suficiente
-  async hasEnoughBalance(userId: string, amount: number = PLATFORM_FEE): Promise<boolean> {
+  async hasEnoughBalance(
+    userId: string,
+    amount: number = PLATFORM_FEE,
+  ): Promise<boolean> {
     const balance = await this.getBalance(userId);
     return balance >= amount;
   }
 
   // Crear Payment Intent para recarga
-  async createTopUpIntent(userId: string, amount: number = MIN_TOPUP): Promise<{
+  async createTopUpIntent(
+    userId: string,
+    amount: number = MIN_TOPUP,
+  ): Promise<{
     clientSecret: string;
     paymentIntentId: string;
   }> {
@@ -97,9 +107,18 @@ export class WalletService {
     if (existingPending && existingPending.stripeId) {
       // Verificar que el PaymentIntent aún es válido en Stripe
       try {
-        const existingIntent = await this.ensureStripe().paymentIntents.retrieve(existingPending.stripeId);
-        if (existingIntent.status === 'requires_payment_method' || existingIntent.status === 'requires_confirmation') {
-          console.log('Reutilizando PaymentIntent existente:', existingPending.stripeId);
+        const existingIntent =
+          await this.ensureStripe().paymentIntents.retrieve(
+            existingPending.stripeId,
+          );
+        if (
+          existingIntent.status === 'requires_payment_method' ||
+          existingIntent.status === 'requires_confirmation'
+        ) {
+          console.log(
+            'Reutilizando PaymentIntent existente:',
+            existingPending.stripeId,
+          );
           return {
             clientSecret: existingIntent.client_secret!,
             paymentIntentId: existingIntent.id,
@@ -160,7 +179,16 @@ export class WalletService {
       where: { stripeId: paymentIntentId, type: 'topup' },
     });
 
-    console.log('Found transaction:', transaction ? { id: transaction.id, status: transaction.status, stripeId: transaction.stripeId } : null);
+    console.log(
+      'Found transaction:',
+      transaction
+        ? {
+            id: transaction.id,
+            status: transaction.status,
+            stripeId: transaction.stripeId,
+          }
+        : null,
+    );
 
     if (!transaction) {
       throw new NotFoundException('Transacción no encontrada');
@@ -174,14 +202,17 @@ export class WalletService {
 
     // Verificar estado en Stripe
     console.log('Retrieving PaymentIntent from Stripe...');
-    const paymentIntent = await this.ensureStripe().paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent =
+      await this.ensureStripe().paymentIntents.retrieve(paymentIntentId);
     console.log('Stripe PaymentIntent status:', paymentIntent.status);
 
     // Aceptar 'succeeded' o 'processing' (algunos pagos tardan un momento)
     const validStatuses = ['succeeded', 'processing', 'requires_capture'];
     if (!validStatuses.includes(paymentIntent.status)) {
       console.log(`Payment intent status: ${paymentIntent.status}`);
-      throw new BadRequestException(`El pago no se ha completado. Estado: ${paymentIntent.status}`);
+      throw new BadRequestException(
+        `El pago no se ha completado. Estado: ${paymentIntent.status}`,
+      );
     }
 
     // Actualizar saldo y transacción en una transacción atómica
@@ -207,7 +238,7 @@ export class WalletService {
 
     if (wallet.balance < PLATFORM_FEE) {
       throw new BadRequestException(
-        `Saldo insuficiente. Necesitas ${PLATFORM_FEE}€ para completar esta operación.`
+        `Saldo insuficiente. Necesitas ${PLATFORM_FEE}€ para completar esta operación.`,
       );
     }
 
@@ -276,7 +307,7 @@ export class WalletService {
   // Webhook handler para eventos de Stripe relacionados con el monedero
   async handleWebhook(event: Stripe.Event): Promise<void> {
     if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      const paymentIntent = event.data.object;
 
       // Solo procesar recargas de monedero
       if (paymentIntent.metadata?.type === 'wallet_topup') {

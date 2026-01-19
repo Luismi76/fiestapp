@@ -35,7 +35,9 @@ export class PaymentsController {
 
   private ensureStripe(): Stripe {
     if (!this.stripe) {
-      throw new BadRequestException('Pagos no configurados. Contacta al administrador.');
+      throw new BadRequestException(
+        'Pagos no configurados. Contacta al administrador.',
+      );
     }
     return this.stripe;
   }
@@ -77,7 +79,9 @@ export class PaymentsController {
     @Headers('stripe-signature') signature: string,
     @Req() req: RawBodyRequest<Request>,
   ) {
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    );
 
     if (!webhookSecret) {
       console.warn('⚠️ STRIPE_WEBHOOK_SECRET not configured');

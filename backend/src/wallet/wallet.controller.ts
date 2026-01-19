@@ -68,7 +68,9 @@ export class WalletController {
   // Verificar si puede operar
   @Get('can-operate')
   async canOperate(@Request() req: AuthenticatedRequest) {
-    const hasBalance = await this.walletService.hasEnoughBalance(req.user.userId);
+    const hasBalance = await this.walletService.hasEnoughBalance(
+      req.user.userId,
+    );
     return {
       canOperate: hasBalance,
       requiredAmount: PLATFORM_FEE,

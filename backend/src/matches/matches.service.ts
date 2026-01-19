@@ -40,7 +40,9 @@ export class MatchesService {
 
     // No puede solicitar su propia experiencia
     if (experience.hostId === requesterId) {
-      throw new BadRequestException('No puedes solicitar tu propia experiencia');
+      throw new BadRequestException(
+        'No puedes solicitar tu propia experiencia',
+      );
     }
 
     // Verificar que no existe ya un match pendiente o aceptado
@@ -54,8 +56,13 @@ export class MatchesService {
     });
 
     if (existingMatch) {
-      if (existingMatch.status === 'pending' || existingMatch.status === 'accepted') {
-        throw new ConflictException('Ya tienes una solicitud activa para esta experiencia');
+      if (
+        existingMatch.status === 'pending' ||
+        existingMatch.status === 'accepted'
+      ) {
+        throw new ConflictException(
+          'Ya tienes una solicitud activa para esta experiencia',
+        );
       }
     }
 
@@ -66,7 +73,9 @@ export class MatchesService {
         requesterId,
         hostId: experience.hostId,
         status: 'pending',
-        agreedDate: createDto.proposedDate ? new Date(createDto.proposedDate) : null,
+        agreedDate: createDto.proposedDate
+          ? new Date(createDto.proposedDate)
+          : null,
       },
       include: {
         experience: {
@@ -282,7 +291,9 @@ export class MatchesService {
     }
 
     if (match.hostId !== hostId) {
-      throw new ForbiddenException('Solo el anfitrión puede aceptar solicitudes');
+      throw new ForbiddenException(
+        'Solo el anfitrión puede aceptar solicitudes',
+      );
     }
 
     if (match.status !== 'pending') {
@@ -335,7 +346,9 @@ export class MatchesService {
     }
 
     if (match.hostId !== hostId) {
-      throw new ForbiddenException('Solo el anfitrión puede rechazar solicitudes');
+      throw new ForbiddenException(
+        'Solo el anfitrión puede rechazar solicitudes',
+      );
     }
 
     if (match.status !== 'pending') {
@@ -344,7 +357,10 @@ export class MatchesService {
 
     // Reembolsar pago si existe
     if (match.paymentStatus === 'held' || match.paymentStatus === 'pending') {
-      await this.paymentsService.refundPayment(id, 'Solicitud rechazada por el anfitrión');
+      await this.paymentsService.refundPayment(
+        id,
+        'Solicitud rechazada por el anfitrión',
+      );
     }
 
     return this.prisma.match.update({
@@ -365,13 +381,17 @@ export class MatchesService {
 
     // Solo el requester puede cancelar si está pending
     if (match.status === 'pending' && match.requesterId !== userId) {
-      throw new ForbiddenException('Solo quien solicitó puede cancelar una solicitud pendiente');
+      throw new ForbiddenException(
+        'Solo quien solicitó puede cancelar una solicitud pendiente',
+      );
     }
 
     // Ambos pueden cancelar si está accepted
     if (match.status === 'accepted') {
       if (match.hostId !== userId && match.requesterId !== userId) {
-        throw new ForbiddenException('No tienes permiso para cancelar esta solicitud');
+        throw new ForbiddenException(
+          'No tienes permiso para cancelar esta solicitud',
+        );
       }
     }
 
@@ -381,9 +401,10 @@ export class MatchesService {
 
     // Reembolsar pago si existe
     if (match.paymentStatus === 'held' || match.paymentStatus === 'pending') {
-      const reason = match.requesterId === userId
-        ? 'Cancelado por el viajero'
-        : 'Cancelado por el anfitrión';
+      const reason =
+        match.requesterId === userId
+          ? 'Cancelado por el viajero'
+          : 'Cancelado por el anfitrión';
       await this.paymentsService.refundPayment(id, reason);
     }
 
@@ -404,11 +425,15 @@ export class MatchesService {
     }
 
     if (match.hostId !== hostId) {
-      throw new ForbiddenException('Solo el anfitrión puede marcar como completada');
+      throw new ForbiddenException(
+        'Solo el anfitrión puede marcar como completada',
+      );
     }
 
     if (match.status !== 'accepted') {
-      throw new BadRequestException('Solo se pueden completar solicitudes aceptadas');
+      throw new BadRequestException(
+        'Solo se pueden completar solicitudes aceptadas',
+      );
     }
 
     // Verificar saldo de ambos usuarios antes de completar
@@ -458,7 +483,9 @@ export class MatchesService {
 
     // No permitir mensajes si está rechazado o cancelado
     if (match.status === 'rejected' || match.status === 'cancelled') {
-      throw new BadRequestException('No puedes enviar mensajes en esta solicitud');
+      throw new BadRequestException(
+        'No puedes enviar mensajes en esta solicitud',
+      );
     }
 
     const message = await this.prisma.message.create({

@@ -67,7 +67,9 @@ export class ReviewsService {
     });
 
     if (existingReview) {
-      throw new ConflictException('Ya has dejado una reseña para esta experiencia');
+      throw new ConflictException(
+        'Ya has dejado una reseña para esta experiencia',
+      );
     }
 
     // Crear la reseña
@@ -411,7 +413,11 @@ export class ReviewsService {
     });
 
     if (existingReview) {
-      return { canReview: false, reason: 'Ya dejaste una reseña', existingReview };
+      return {
+        canReview: false,
+        reason: 'Ya dejaste una reseña',
+        existingReview,
+      };
     }
 
     // Determinar a quién puede reseñar

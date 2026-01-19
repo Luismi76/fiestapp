@@ -174,23 +174,24 @@ export class UsersService {
     });
 
     // Estadísticas de matches
-    const [pendingReceived, acceptedMatches, completedMatches] = await Promise.all([
-      this.prisma.match.count({
-        where: { hostId: userId, status: 'pending' },
-      }),
-      this.prisma.match.count({
-        where: {
-          OR: [{ hostId: userId }, { requesterId: userId }],
-          status: 'accepted',
-        },
-      }),
-      this.prisma.match.count({
-        where: {
-          OR: [{ hostId: userId }, { requesterId: userId }],
-          status: 'completed',
-        },
-      }),
-    ]);
+    const [pendingReceived, acceptedMatches, completedMatches] =
+      await Promise.all([
+        this.prisma.match.count({
+          where: { hostId: userId, status: 'pending' },
+        }),
+        this.prisma.match.count({
+          where: {
+            OR: [{ hostId: userId }, { requesterId: userId }],
+            status: 'accepted',
+          },
+        }),
+        this.prisma.match.count({
+          where: {
+            OR: [{ hostId: userId }, { requesterId: userId }],
+            status: 'completed',
+          },
+        }),
+      ]);
 
     return {
       ...user,

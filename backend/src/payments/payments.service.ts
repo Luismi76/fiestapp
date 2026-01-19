@@ -33,7 +33,9 @@ export class PaymentsService {
 
   private ensureStripe(): Stripe {
     if (!this.stripe) {
-      throw new BadRequestException('Pagos no configurados. Contacta al administrador.');
+      throw new BadRequestException(
+        'Pagos no configurados. Contacta al administrador.',
+      );
     }
     return this.stripe;
   }
@@ -57,7 +59,9 @@ export class PaymentsService {
     }
 
     if (match.requesterId !== userId) {
-      throw new BadRequestException('Solo el solicitante puede realizar el pago');
+      throw new BadRequestException(
+        'Solo el solicitante puede realizar el pago',
+      );
     }
 
     if (match.status !== 'pending') {
@@ -134,7 +138,8 @@ export class PaymentsService {
     }
 
     // Verificar el estado en Stripe
-    const paymentIntent = await this.ensureStripe().paymentIntents.retrieve(paymentIntentId);
+    const paymentIntent =
+      await this.ensureStripe().paymentIntents.retrieve(paymentIntentId);
 
     if (paymentIntent.status === 'requires_capture') {
       // El pago está autorizado y retenido
@@ -271,7 +276,8 @@ export class PaymentsService {
     });
 
     return {
-      requiresPayment: match.experience.price !== null && match.experience.price > 0,
+      requiresPayment:
+        match.experience.price !== null && match.experience.price > 0,
       amount: match.experience.price,
       status: transaction?.status || null,
       paymentStatus: match.paymentStatus,
@@ -282,12 +288,12 @@ export class PaymentsService {
   async handleWebhook(event: Stripe.Event): Promise<void> {
     switch (event.type) {
       case 'payment_intent.succeeded':
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const paymentIntent = event.data.object;
         await this.confirmPaymentHeld(paymentIntent.id);
         break;
 
       case 'payment_intent.payment_failed':
-        const failedPayment = event.data.object as Stripe.PaymentIntent;
+        const failedPayment = event.data.object;
         await this.handlePaymentFailed(failedPayment.id);
         break;
     }
