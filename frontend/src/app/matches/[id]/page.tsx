@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { matchesApi, reviewsApi, paymentsApi, PaymentStatus } from '@/lib/api';
@@ -10,6 +10,7 @@ import { CanReviewResponse } from '@/types/review';
 import ReviewForm from '@/components/ReviewForm';
 import PaymentModal from '@/components/PaymentModal';
 import { getAvatarUrl } from '@/lib/utils';
+import { useSocket, useSocketEvent } from '@/hooks/useSocket';
 
 // Mock match details for fallback
 const mockMatchDetails: Record<string, MatchDetail> = {
@@ -258,6 +259,11 @@ export default function MatchDetailPage() {
   const [useMockData, setUseMockData] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // WebSocket
+  const { socket, isConnected, sendMessage: socketSendMessage, joinMatch, leaveMatch, setTyping, markAsRead } = useSocket();
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Review state
   const [canReviewData, setCanReviewData] = useState<CanReviewResponse | null>(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -316,16 +322,90 @@ export default function MatchDetailPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [match?.messages]);
 
+  // Join/leave match room for WebSocket
+  useEffect(() => {
+    if (match && isConnected && !useMockData) {
+      joinMatch(match.id);
+      markAsRead(match.id);
+
+      return () => {
+        leaveMatch(match.id);
+      };
+    }
+  }, [match?.id, isConnected, useMockData, joinMatch, leaveMatch, markAsRead]);
+
+  // Handle incoming messages via WebSocket
+  const handleNewMessage = useCallback((message: Message) => {
+    if (match && message.matchId === match.id) {
+      setMatch(prev => {
+        if (!prev) return prev;
+        // Check if message already exists
+        if (prev.messages.some(m => m.id === message.id)) {
+          return prev;
+        }
+        return {
+          ...prev,
+          messages: [...prev.messages, message],
+        };
+      });
+      markAsRead(match.id);
+    }
+  }, [match?.id, markAsRead]);
+
+  useSocketEvent(socket, 'newMessage', handleNewMessage);
+
+  // Handle typing indicator
+  const handleUserTyping = useCallback((data: { userId: string; isTyping: boolean }) => {
+    if (match && data.userId !== user?.id) {
+      setOtherUserTyping(data.isTyping);
+      if (data.isTyping) {
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        typingTimeoutRef.current = setTimeout(() => {
+          setOtherUserTyping(false);
+        }, 3000);
+      }
+    }
+  }, [match?.id, user?.id]);
+
+  useSocketEvent(socket, 'userTyping', handleUserTyping);
+
+  // Clean up typing timeout
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle input change with typing indicator
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    if (match && isConnected && e.target.value.length > 0) {
+      setTyping(match.id, true);
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !match) return;
+
+    const messageContent = newMessage.trim();
+    setNewMessage('');
+
+    // Stop typing indicator
+    if (isConnected) {
+      setTyping(match.id, false);
+    }
 
     if (useMockData) {
       const mockMessage: Message = {
         id: `m${Date.now()}`,
         matchId: match.id,
         senderId: mockUserId || 'me',
-        content: newMessage.trim(),
+        content: messageContent,
         createdAt: new Date().toISOString(),
         read: false,
         sender: { id: mockUserId || 'me', name: isHost ? match.host.name : (match.requester.name || 'Yo'), avatar: isHost ? match.host.avatar : match.requester.avatar },
@@ -334,20 +414,46 @@ export default function MatchDetailPage() {
         ...match,
         messages: [...match.messages, mockMessage],
       });
-      setNewMessage('');
       return;
     }
 
     setSending(true);
     try {
-      const message = await matchesApi.sendMessage(match.id, newMessage.trim());
-      setMatch({
-        ...match,
-        messages: [...match.messages, message],
-      });
-      setNewMessage('');
+      // Try WebSocket first if connected
+      if (isConnected) {
+        const message = await socketSendMessage(match.id, messageContent);
+        if (message) {
+          // Message already added via socket event, but ensure it's there
+          setMatch(prev => {
+            if (!prev) return prev;
+            if (prev.messages.some(m => m.id === message.id)) {
+              return prev;
+            }
+            return {
+              ...prev,
+              messages: [...prev.messages, message],
+            };
+          });
+        } else {
+          // Fallback to REST API if socket fails
+          const restMessage = await matchesApi.sendMessage(match.id, messageContent);
+          setMatch(prev => prev ? {
+            ...prev,
+            messages: [...prev.messages, restMessage],
+          } : prev);
+        }
+      } else {
+        // Use REST API
+        const message = await matchesApi.sendMessage(match.id, messageContent);
+        setMatch(prev => prev ? {
+          ...prev,
+          messages: [...prev.messages, message],
+        } : prev);
+      }
     } catch {
       setError('No se pudo enviar el mensaje');
+      // Restore message on error
+      setNewMessage(messageContent);
     } finally {
       setSending(false);
     }
@@ -804,34 +910,50 @@ export default function MatchDetailPage() {
 
       {/* Message Input */}
       {canSendMessages ? (
-        <form
-          onSubmit={handleSendMessage}
-          className="p-4 bg-white border-t border-gray-100"
-        >
-          <div className="flex items-center gap-3">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Escribe un mensaje..."
-              className="flex-1 px-4 py-3 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-              disabled={sending}
-            />
-            <button
-              type="submit"
-              className="w-11 h-11 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-              disabled={!newMessage.trim() || sending}
-            >
-              {sending ? (
-                <div className="spinner spinner-sm border-white border-t-transparent" />
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                  <path d="M3.105 2.288a.75.75 0 0 0-.826.95l1.414 4.926A1.5 1.5 0 0 0 5.135 9.25h6.115a.75.75 0 0 1 0 1.5H5.135a1.5 1.5 0 0 0-1.442 1.086l-1.414 4.926a.75.75 0 0 0 .826.95 28.897 28.897 0 0 0 15.293-7.155.75.75 0 0 0 0-1.114A28.897 28.897 0 0 0 3.105 2.288Z" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </form>
+        <div className="bg-white border-t border-gray-100">
+          {/* Typing indicator */}
+          {otherUserTyping && (
+            <div className="px-4 pt-2 flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <span>{otherUser?.name} está escribiendo...</span>
+            </div>
+          )}
+          {/* Connection status */}
+          {!useMockData && (
+            <div className={`px-4 pt-1 text-[10px] ${isConnected ? 'text-green-500' : 'text-gray-400'}`}>
+              {isConnected ? '● En línea' : '○ Conectando...'}
+            </div>
+          )}
+          <form onSubmit={handleSendMessage} className="p-4 pt-2">
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={handleInputChange}
+                placeholder="Escribe un mensaje..."
+                className="flex-1 px-4 py-3 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                disabled={sending}
+              />
+              <button
+                type="submit"
+                className="w-11 h-11 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                disabled={!newMessage.trim() || sending}
+              >
+                {sending ? (
+                  <div className="spinner spinner-sm border-white border-t-transparent" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                    <path d="M3.105 2.288a.75.75 0 0 0-.826.95l1.414 4.926A1.5 1.5 0 0 0 5.135 9.25h6.115a.75.75 0 0 1 0 1.5H5.135a1.5 1.5 0 0 0-1.442 1.086l-1.414 4.926a.75.75 0 0 0 .826.95 28.897 28.897 0 0 0 15.293-7.155.75.75 0 0 0 0-1.114A28.897 28.897 0 0 0 3.105 2.288Z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       ) : (
         <div className="p-4 bg-gray-50 border-t border-gray-200 text-center">
           <p className="text-sm text-gray-500">

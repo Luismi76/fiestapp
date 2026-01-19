@@ -14,6 +14,7 @@ import { StorageModule } from './storage/storage.module';
 import { PaymentsModule } from './payments/payments.module';
 import { WalletModule } from './wallet/wallet.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { FavoritesModule } from './favorites/favorites.module';
     PaymentsModule,
     WalletModule,
     FavoritesModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
