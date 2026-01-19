@@ -203,4 +203,141 @@ export class UsersService {
       },
     };
   }
+
+  // Obtener estadísticas detalladas para anfitriones
+  async getHostStats(userId: string) {
+    // Obtener experiencias del usuario
+    const experiences = await this.prisma.experience.findMany({
+      where: { hostId: userId },
+      include: {
+        _count: {
+          select: {
+            matches: true,
+            reviews: true,
+            favorites: true,
+          },
+        },
+      },
+    });
+
+    // Calcular estadísticas por experiencia
+    const experienceStats = await Promise.all(
+      experiences.map(async (exp) => {
+        const [matchStats, avgRating] = await Promise.all([
+          this.prisma.match.groupBy({
+            by: ['status'],
+            where: { experienceId: exp.id },
+            _count: true,
+          }),
+          this.prisma.review.aggregate({
+            where: { experienceId: exp.id },
+            _avg: { rating: true },
+          }),
+        ]);
+
+        const statusCounts = matchStats.reduce(
+          (acc, item) => {
+            acc[item.status] = item._count;
+            return acc;
+          },
+          {} as Record<string, number>,
+        );
+
+        return {
+          id: exp.id,
+          title: exp.title,
+          city: exp.city,
+          type: exp.type,
+          price: exp.price,
+          published: exp.published,
+          totalRequests: exp._count.matches,
+          totalReviews: exp._count.reviews,
+          totalFavorites: exp._count.favorites,
+          avgRating: avgRating._avg.rating || 0,
+          pending: statusCounts['pending'] || 0,
+          accepted: statusCounts['accepted'] || 0,
+          completed: statusCounts['completed'] || 0,
+          rejected: statusCounts['rejected'] || 0,
+          cancelled: statusCounts['cancelled'] || 0,
+        };
+      }),
+    );
+
+    // Estadísticas globales
+    const [totalMatches, completedMatches, avgRating, recentActivity] =
+      await Promise.all([
+        this.prisma.match.count({
+          where: { hostId: userId },
+        }),
+        this.prisma.match.count({
+          where: { hostId: userId, status: 'completed' },
+        }),
+        this.prisma.review.aggregate({
+          where: { targetId: userId },
+          _avg: { rating: true },
+        }),
+        this.prisma.match.findMany({
+          where: { hostId: userId },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          include: {
+            experience: {
+              select: { id: true, title: true },
+            },
+            requester: {
+              select: { id: true, name: true, avatar: true },
+            },
+          },
+        }),
+      ]);
+
+    // Calcular tasa de completado
+    const completionRate =
+      totalMatches > 0
+        ? Math.round((completedMatches / totalMatches) * 100)
+        : 0;
+
+    // Estadísticas por mes (últimos 6 meses)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const monthlyMatches = await this.prisma.match.groupBy({
+      by: ['status'],
+      where: {
+        hostId: userId,
+        createdAt: { gte: sixMonthsAgo },
+      },
+      _count: true,
+    });
+
+    return {
+      summary: {
+        totalExperiences: experiences.length,
+        publishedExperiences: experiences.filter((e) => e.published).length,
+        totalRequests: totalMatches,
+        completedExperiences: completedMatches,
+        completionRate,
+        avgRating: avgRating._avg.rating || 0,
+        totalFavorites: experiences.reduce(
+          (sum, e) => sum + e._count.favorites,
+          0,
+        ),
+      },
+      experiences: experienceStats,
+      recentActivity: recentActivity.map((m) => ({
+        id: m.id,
+        status: m.status,
+        createdAt: m.createdAt,
+        experience: m.experience,
+        requester: m.requester,
+      })),
+      monthlyStats: monthlyMatches.reduce(
+        (acc, item) => {
+          acc[item.status] = item._count;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+    };
+  }
 }

@@ -307,6 +307,43 @@ export const reviewsApi = {
   },
 };
 
+export interface HostStats {
+  summary: {
+    totalExperiences: number;
+    publishedExperiences: number;
+    totalRequests: number;
+    completedExperiences: number;
+    completionRate: number;
+    avgRating: number;
+    totalFavorites: number;
+  };
+  experiences: {
+    id: string;
+    title: string;
+    city: string;
+    type: string;
+    price: number | null;
+    published: boolean;
+    totalRequests: number;
+    totalReviews: number;
+    totalFavorites: number;
+    avgRating: number;
+    pending: number;
+    accepted: number;
+    completed: number;
+    rejected: number;
+    cancelled: number;
+  }[];
+  recentActivity: {
+    id: string;
+    status: string;
+    createdAt: string;
+    experience: { id: string; title: string };
+    requester: { id: string; name: string; avatar: string | null };
+  }[];
+  monthlyStats: Record<string, number>;
+}
+
 export const usersApi = {
   // Obtener perfil público de un usuario
   getPublicProfile: async (userId: string): Promise<UserPublicProfile> => {
@@ -323,6 +360,12 @@ export const usersApi = {
   // Actualizar mi perfil
   updateProfile: async (data: UpdateProfileData): Promise<UserFullProfile> => {
     const response = await api.put<UserFullProfile>('/users/me', data);
+    return response.data;
+  },
+
+  // Obtener estadísticas de anfitrión
+  getHostStats: async (): Promise<HostStats> => {
+    const response = await api.get<HostStats>('/users/me/stats');
     return response.data;
   },
 };

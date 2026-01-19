@@ -32,6 +32,13 @@ export class UsersController {
     return this.usersService.getMyProfile(req.user.userId);
   }
 
+  // Obtener estadísticas de anfitrión
+  @Get('me/stats')
+  @UseGuards(JwtAuthGuard)
+  getHostStats(@Request() req: AuthenticatedRequest) {
+    return this.usersService.getHostStats(req.user.userId);
+  }
+
   // Actualizar mi perfil (requiere auth)
   @Put('me')
   @UseGuards(JwtAuthGuard)
