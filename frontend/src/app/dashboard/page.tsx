@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import BottomNav from '@/components/BottomNav';
@@ -145,8 +145,18 @@ export default function DashboardPage() {
   }, [isAuthenticated]);
 
   const displayExperiences = useMockData ? mockExperiences : experiences;
-  const featuredExperience = displayExperiences[4] || displayExperiences[0]; // Semana Santa como destacada
-  const popularExperiences = displayExperiences.slice(0, 4);
+
+  // Seleccionar experiencia destacada aleatoria
+  const featuredExperience = useMemo(() => {
+    if (displayExperiences.length === 0) return null;
+    const randomIndex = Math.floor(Math.random() * displayExperiences.length);
+    return displayExperiences[randomIndex];
+  }, [displayExperiences]);
+
+  // Excluir la destacada de las populares
+  const popularExperiences = displayExperiences
+    .filter(exp => exp.id !== featuredExperience?.id)
+    .slice(0, 4);
 
   const getImageUrl = (exp: typeof mockExperiences[0] | Experience) => {
     if ('photos' in exp && exp.photos && exp.photos.length > 0) {
