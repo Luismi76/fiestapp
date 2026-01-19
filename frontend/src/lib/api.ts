@@ -145,6 +145,11 @@ export const experiencesApi = {
     const response = await api.get<OccupancyResponse>(`/experiences/${id}/occupancy`);
     return response.data;
   },
+
+  getCities: async (): Promise<string[]> => {
+    const response = await api.get<string[]>('/experiences/cities');
+    return response.data;
+  },
 };
 
 export const festivalsApi = {

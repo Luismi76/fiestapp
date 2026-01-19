@@ -103,12 +103,16 @@ export interface UpdateExperienceData extends Partial<CreateExperienceData> {
   highlights?: string[];
 }
 
+export type SortBy = 'newest' | 'price_asc' | 'price_desc' | 'rating';
+
 export interface ExperienceFilters {
   festivalId?: string;
   city?: string;
   type?: ExperienceType;
   minPrice?: number;
   maxPrice?: number;
+  search?: string;
+  sortBy?: SortBy;
   page?: number;
   limit?: number;
 }

@@ -48,6 +48,8 @@ export class ExperiencesController {
     @Query('type') type?: string,
     @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
+    @Query('search') search?: string,
+    @Query('sortBy') sortBy?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -57,9 +59,17 @@ export class ExperiencesController {
       type,
       minPrice: minPrice ? parseFloat(minPrice) : undefined,
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      search,
+      sortBy: sortBy as 'newest' | 'price_asc' | 'price_desc' | 'rating',
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
     });
+  }
+
+  // Obtener ciudades unicas (publico)
+  @Get('cities')
+  getCities() {
+    return this.experiencesService.getCities();
   }
 
   // Mis experiencias (requiere auth)

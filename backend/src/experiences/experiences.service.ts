@@ -79,6 +79,8 @@ export class ExperiencesService {
     type?: string;
     minPrice?: number;
     maxPrice?: number;
+    search?: string;
+    sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'rating';
     page?: number;
     limit?: number;
   }) {
@@ -88,6 +90,8 @@ export class ExperiencesService {
       type,
       minPrice,
       maxPrice,
+      search,
+      sortBy = 'newest',
       page = 1,
       limit = 10,
     } = options || {};
@@ -121,6 +125,35 @@ export class ExperiencesService {
       }
     }
 
+    // Busqueda por texto
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { city: { contains: search, mode: 'insensitive' } },
+        { festival: { name: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    // Ordenacion
+    let orderBy: Record<string, string> | Record<string, string>[];
+    switch (sortBy) {
+      case 'price_asc':
+        orderBy = { price: 'asc' };
+        break;
+      case 'price_desc':
+        orderBy = { price: 'desc' };
+        break;
+      case 'rating':
+        // Para rating ordenamos despues de obtener los datos
+        orderBy = { createdAt: 'desc' };
+        break;
+      case 'newest':
+      default:
+        orderBy = { createdAt: 'desc' };
+        break;
+    }
+
     const skip = (page - 1) * limit;
 
     const [experiences, total] = await Promise.all([
@@ -149,9 +182,7 @@ export class ExperiencesService {
             },
           },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy,
         skip,
         take: limit,
       }),
@@ -172,8 +203,16 @@ export class ExperiencesService {
       }),
     );
 
+    // Si ordenamos por rating, lo hacemos aqui
+    let sortedExperiences = experiencesWithRating;
+    if (sortBy === 'rating') {
+      sortedExperiences = [...experiencesWithRating].sort(
+        (a, b) => b.avgRating - a.avgRating,
+      );
+    }
+
     return {
-      data: experiencesWithRating,
+      data: sortedExperiences,
       meta: {
         total,
         page,
@@ -181,6 +220,16 @@ export class ExperiencesService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async getCities(): Promise<string[]> {
+    const cities = await this.prisma.experience.findMany({
+      where: { published: true },
+      select: { city: true },
+      distinct: ['city'],
+      orderBy: { city: 'asc' },
+    });
+    return cities.map((c) => c.city);
   }
 
   async findOne(id: string) {
