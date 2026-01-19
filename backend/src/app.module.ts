@@ -19,7 +19,6 @@ import { ChatModule } from './chat/chat.module';
 import { RemindersModule } from './reminders/reminders.module';
 import { AdminModule } from './admin/admin.module';
 import { ReportsModule } from './reports/reports.module';
-import { IdentityModule } from './identity/identity.module';
 
 @Module({
   imports: [
@@ -43,7 +42,6 @@ import { IdentityModule } from './identity/identity.module';
     RemindersModule,
     AdminModule,
     ReportsModule,
-    IdentityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

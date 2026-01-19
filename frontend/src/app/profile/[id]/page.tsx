@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { UserPublicProfile } from '@/types/user';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import BottomNav from '@/components/BottomNav';
+import ReputationBadges from '@/components/ReputationBadges';
 
 // Mock profiles para fallback
 const mockProfiles: Record<string, any> = {
@@ -294,6 +295,19 @@ export default function PublicProfilePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Reputation Badges */}
+      <div className="px-4 mt-4">
+        <ReputationBadges
+          verified={profile.verified}
+          createdAt={profile.createdAt}
+          experiencesCount={profile._count.experiences}
+          reviewsCount={profile._count.reviewsReceived}
+          avgRating={profile.avgRating}
+          size="md"
+          showAll
+        />
       </div>
 
       {/* Bio */}

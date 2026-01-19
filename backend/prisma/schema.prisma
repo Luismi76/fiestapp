@@ -17,14 +17,7 @@ model User {
   bio                       String?
   city                      String?
   avatar                    String?
-  verified                  Boolean          @default(false)
-  identityVerified          Boolean          @default(false)
-  identityStatus            String?          // pending, approved, rejected
-  identityDocument          String?          // stored document path
-  identitySelfie            String?          // stored selfie path
-  identitySubmittedAt       DateTime?
-  identityReviewedAt        DateTime?
-  identityRejectReason      String?
+  verified                  Boolean          @default(false) // email verified
   emailVerificationToken    String?
   emailVerificationExpires  DateTime?
   passwordResetToken        String?
