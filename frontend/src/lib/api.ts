@@ -560,4 +560,292 @@ export const paymentsApi = {
   },
 };
 
+// Admin types
+export interface AdminDashboardStats {
+  users: {
+    total: number;
+    verified: number;
+    unverified: number;
+  };
+  experiences: {
+    total: number;
+    published: number;
+    drafts: number;
+  };
+  matches: {
+    total: number;
+    accepted: number;
+    completed: number;
+  };
+  reviews: number;
+  revenue: number;
+  recentUsers: {
+    id: string;
+    name: string;
+    email: string;
+    createdAt: string;
+    verified: boolean;
+  }[];
+  recentExperiences: {
+    id: string;
+    title: string;
+    city: string;
+    published: boolean;
+    createdAt: string;
+    host: { name: string };
+  }[];
+}
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  verified: boolean;
+  city: string | null;
+  createdAt: string;
+  _count: {
+    experiences: number;
+    matchesAsHost: number;
+    matchesAsRequester: number;
+  };
+}
+
+export interface AdminExperience {
+  id: string;
+  title: string;
+  city: string;
+  type: string;
+  price: number | null;
+  published: boolean;
+  createdAt: string;
+  host: { id: string; name: string; email: string };
+  festival: { name: string };
+  _count: {
+    matches: number;
+    reviews: number;
+  };
+}
+
+export interface PaginatedResponse<T> {
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export interface AdminUsersResponse extends PaginatedResponse<AdminUser> {
+  users: AdminUser[];
+}
+
+export interface AdminExperiencesResponse extends PaginatedResponse<AdminExperience> {
+  experiences: AdminExperience[];
+}
+
+// Reports types
+export interface Report {
+  id: string;
+  reporterId: string;
+  reportedType: 'user' | 'experience' | 'match';
+  reportedId: string;
+  reason: string;
+  description: string | null;
+  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+  adminNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+  reporter?: { id: string; name: string; email: string };
+  reportedEntity?: unknown;
+}
+
+export interface ReportsResponse extends PaginatedResponse<Report> {
+  reports: Report[];
+}
+
+export interface ReportStats {
+  pending: number;
+  reviewed: number;
+  resolved: number;
+  dismissed: number;
+  total: number;
+}
+
+export interface CreateReportData {
+  reportedType: 'user' | 'experience' | 'match';
+  reportedId: string;
+  reason: 'spam' | 'inappropriate' | 'fraud' | 'harassment' | 'other';
+  description?: string;
+}
+
+export const reportsApi = {
+  // Create a report
+  create: async (data: CreateReportData): Promise<Report> => {
+    const response = await api.post<Report>('/reports', data);
+    return response.data;
+  },
+
+  // Get my reports
+  getMyReports: async (): Promise<Report[]> => {
+    const response = await api.get<Report[]>('/reports/my');
+    return response.data;
+  },
+
+  // Admin: Get all reports
+  getAll: async (
+    page = 1,
+    limit = 20,
+    status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed'
+  ): Promise<ReportsResponse> => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (status) params.append('status', status);
+    const response = await api.get<ReportsResponse>(`/reports/admin?${params}`);
+    return response.data;
+  },
+
+  // Admin: Get stats
+  getStats: async (): Promise<ReportStats> => {
+    const response = await api.get<ReportStats>('/reports/admin/stats');
+    return response.data;
+  },
+
+  // Admin: Update report status
+  updateStatus: async (
+    reportId: string,
+    status: 'reviewed' | 'resolved' | 'dismissed',
+    adminNotes?: string
+  ): Promise<Report> => {
+    const response = await api.put<Report>(`/reports/admin/${reportId}`, {
+      status,
+      adminNotes,
+    });
+    return response.data;
+  },
+};
+
+export const adminApi = {
+  // Dashboard stats
+  getDashboardStats: async (): Promise<AdminDashboardStats> => {
+    const response = await api.get<AdminDashboardStats>('/admin/dashboard');
+    return response.data;
+  },
+
+  // Users management
+  getUsers: async (page = 1, limit = 20, search?: string): Promise<AdminUsersResponse> => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search) params.append('search', search);
+    const response = await api.get<AdminUsersResponse>(`/admin/users?${params}`);
+    return response.data;
+  },
+
+  setUserRole: async (userId: string, role: 'user' | 'admin'): Promise<void> => {
+    await api.post(`/admin/users/${userId}/role`, { role });
+  },
+
+  deleteUser: async (userId: string): Promise<void> => {
+    await api.delete(`/admin/users/${userId}`);
+  },
+
+  // Experiences management
+  getExperiences: async (
+    page = 1,
+    limit = 20,
+    status?: 'all' | 'published' | 'draft'
+  ): Promise<AdminExperiencesResponse> => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (status) params.append('status', status);
+    const response = await api.get<AdminExperiencesResponse>(`/admin/experiences?${params}`);
+    return response.data;
+  },
+
+  toggleExperiencePublished: async (experienceId: string): Promise<void> => {
+    await api.post(`/admin/experiences/${experienceId}/toggle-published`);
+  },
+
+  deleteExperience: async (experienceId: string): Promise<void> => {
+    await api.delete(`/admin/experiences/${experienceId}`);
+  },
+};
+
+// Identity verification types
+export interface IdentityStatus {
+  identityVerified: boolean;
+  identityStatus: 'pending' | 'approved' | 'rejected' | null;
+  identitySubmittedAt: string | null;
+  identityReviewedAt: string | null;
+  identityRejectReason: string | null;
+}
+
+export interface PendingVerification {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  identityDocument: string;
+  identitySelfie: string;
+  identitySubmittedAt: string;
+}
+
+export interface IdentityVerificationsResponse extends PaginatedResponse<PendingVerification> {
+  verifications: PendingVerification[];
+}
+
+export interface IdentityStats {
+  pending: number;
+  approved: number;
+  rejected: number;
+  total: number;
+}
+
+export const identityApi = {
+  // Get my verification status
+  getStatus: async (): Promise<IdentityStatus> => {
+    const response = await api.get<IdentityStatus>('/identity/status');
+    return response.data;
+  },
+
+  // Submit verification documents
+  submit: async (document: File, selfie: File): Promise<{ id: string; identityStatus: string }> => {
+    const formData = new FormData();
+    formData.append('document', document);
+    formData.append('selfie', selfie);
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+    const response = await axios.post(`${API_URL}/identity/submit`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    return response.data;
+  },
+
+  // Admin: Get pending verifications
+  getPending: async (page = 1, limit = 20): Promise<IdentityVerificationsResponse> => {
+    const response = await api.get<IdentityVerificationsResponse>(
+      `/identity/admin/pending?page=${page}&limit=${limit}`
+    );
+    return response.data;
+  },
+
+  // Admin: Get stats
+  getStats: async (): Promise<IdentityStats> => {
+    const response = await api.get<IdentityStats>('/identity/admin/stats');
+    return response.data;
+  },
+
+  // Admin: Approve verification
+  approve: async (userId: string): Promise<void> => {
+    await api.post(`/identity/admin/${userId}/approve`);
+  },
+
+  // Admin: Reject verification
+  reject: async (userId: string, reason: string): Promise<void> => {
+    await api.post(`/identity/admin/${userId}/reject`, { reason });
+  },
+};
+
 export default api;

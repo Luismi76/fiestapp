@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import ShareButton from '@/components/ShareButton';
+import ImageGallery from '@/components/ImageGallery';
 
 // Helper to generate availability dates for mock data
 const generateMockAvailability = (baseMonth: number, count: number): Date[] => {
@@ -238,7 +239,6 @@ export default function ExperienceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [useMockData, setUseMockData] = useState(false);
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [message, setMessage] = useState('');
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
@@ -404,26 +404,24 @@ export default function ExperienceDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
-      {/* Hero Image - Full screen style */}
-      <div className="relative">
-        <div className="aspect-[3/4] max-h-[70vh] bg-gray-900">
-          {experience.photos && experience.photos.length > 0 ? (
-            <img
-              src={getImageUrl(experience.photos[currentPhotoIndex])}
-              alt={experience.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-purple-900 via-pink-800 to-orange-700 flex items-center justify-center">
-              <span className="text-9xl opacity-50">🎉</span>
-            </div>
-          )}
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+      {/* Hero Image with Gallery */}
+      <div className="relative group">
+        <div className="max-h-[70vh] overflow-hidden">
+          <ImageGallery
+            images={experience.photos && experience.photos.length > 0
+              ? experience.photos.map(getImageUrl).filter((url): url is string => url !== undefined)
+              : []}
+            alt={experience.title}
+            aspectRatio="aspect-[3/4]"
+            showDots={false}
+            showCounter={false}
+          />
+          {/* Gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none" />
         </div>
 
         {/* Header buttons */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 pt-6">
+        <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 pt-6 z-10">
           <button
             onClick={() => router.back()}
             className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-lg"
@@ -460,21 +458,8 @@ export default function ExperienceDetailPage() {
           </div>
         </div>
 
-        {/* Photo indicator */}
-        {experience.photos && experience.photos.length > 1 && (
-          <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex gap-1.5">
-            {experience.photos.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPhotoIndex(i)}
-                className={`h-1.5 rounded-full transition-all ${i === currentPhotoIndex ? 'bg-white w-6' : 'bg-white/50 w-1.5'}`}
-              />
-            ))}
-          </div>
-        )}
-
         {/* Content overlay on image */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+        <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10 pointer-events-none">
           {/* Title */}
           <h1 className="text-2xl font-bold mb-2">
             {experience.festival.name} en {experience.city}

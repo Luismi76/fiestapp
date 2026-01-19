@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -15,12 +16,17 @@ import { PaymentsModule } from './payments/payments.module';
 import { WalletModule } from './wallet/wallet.module';
 import { FavoritesModule } from './favorites/favorites.module';
 import { ChatModule } from './chat/chat.module';
+import { RemindersModule } from './reminders/reminders.module';
+import { AdminModule } from './admin/admin.module';
+import { ReportsModule } from './reports/reports.module';
+import { IdentityModule } from './identity/identity.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     StorageModule,
     PrismaModule,
     AuthModule,
@@ -34,6 +40,10 @@ import { ChatModule } from './chat/chat.module';
     WalletModule,
     FavoritesModule,
     ChatModule,
+    RemindersModule,
+    AdminModule,
+    ReportsModule,
+    IdentityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

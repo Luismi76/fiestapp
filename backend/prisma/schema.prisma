@@ -12,11 +12,19 @@ model User {
   email                     String           @unique
   password                  String
   name                      String
+  role                      String           @default("user") // user, admin
   age                       Int?
   bio                       String?
   city                      String?
   avatar                    String?
   verified                  Boolean          @default(false)
+  identityVerified          Boolean          @default(false)
+  identityStatus            String?          // pending, approved, rejected
+  identityDocument          String?          // stored document path
+  identitySelfie            String?          // stored selfie path
+  identitySubmittedAt       DateTime?
+  identityReviewedAt        DateTime?
+  identityRejectReason      String?
   emailVerificationToken    String?
   emailVerificationExpires  DateTime?
   passwordResetToken        String?
@@ -33,6 +41,7 @@ model User {
   preferences        UserPreference[]
   wallet             Wallet?
   favorites          Favorite[]
+  reports            Report[]
 
   @@map("users")
 }
@@ -102,21 +111,23 @@ model ExperienceAvailability {
 }
 
 model Match {
-  id            String        @id @default(uuid())
-  experienceId  String
-  requesterId   String
-  hostId        String
-  status        String        @default("pending")
-  paymentStatus String?       // pending, held, released, refunded
-  startDate     DateTime?
-  endDate       DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  experience    Experience    @relation(fields: [experienceId], references: [id], onDelete: Cascade)
-  host          User          @relation("MatchHost", fields: [hostId], references: [id], onDelete: Cascade)
-  requester     User          @relation("MatchRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  messages      Message[]
-  transactions  Transaction[]
+  id                    String        @id @default(uuid())
+  experienceId          String
+  requesterId           String
+  hostId                String
+  status                String        @default("pending")
+  paymentStatus         String?       // pending, held, released, refunded
+  startDate             DateTime?
+  endDate               DateTime?
+  reminderOneDaySent    Boolean       @default(false)
+  reminderThreeDaysSent Boolean       @default(false)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  experience            Experience    @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  host                  User          @relation("MatchHost", fields: [hostId], references: [id], onDelete: Cascade)
+  requester             User          @relation("MatchRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  messages              Message[]
+  transactions          Transaction[]
 
   @@unique([experienceId, requesterId])
   @@map("matches")
@@ -191,4 +202,21 @@ model Favorite {
 
   @@unique([userId, experienceId])
   @@map("favorites")
+}
+
+model Report {
+  id            String      @id @default(uuid())
+  reporterId    String
+  reportedType  String      // user, experience, match
+  reportedId    String
+  reason        String      // spam, inappropriate, fraud, harassment, other
+  description   String?
+  status        String      @default("pending") // pending, reviewed, resolved, dismissed
+  adminNotes    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  resolvedAt    DateTime?
+  reporter      User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
 }

@@ -7,6 +7,7 @@ export interface User {
     city?: string;
     bio?: string;
     verified?: boolean;
+    role?: string;
 }
 
 export interface AuthResponse {
