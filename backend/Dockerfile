@@ -49,4 +49,4 @@ USER nestjs
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma db push --skip-generate && if [ \"$RUN_SEED\" = \"true\" ]; then npx prisma db seed; fi && node dist/src/main.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && if [ \"$RUN_SEED\" = \"true\" ]; then npx prisma db seed; fi && node dist/src/main.js"]
