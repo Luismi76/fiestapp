@@ -1,121 +1,66 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  S3Client,
-  PutObjectCommand,
-  DeleteObjectCommand,
-  HeadBucketCommand,
-  CreateBucketCommand,
-} from '@aws-sdk/client-s3';
-import { v4 as uuidv4 } from 'uuid';
-import { extname } from 'path';
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 
 @Injectable()
 export class StorageService implements OnModuleInit {
-  private s3Client: S3Client;
-  private bucket: string;
-  private publicUrl: string;
+  constructor(private configService: ConfigService) {}
 
-  constructor(private configService: ConfigService) {
-    const endpoint =
-      this.configService.get<string>('MINIO_ENDPOINT') ||
-      'http://localhost:9000';
-    const accessKey =
-      this.configService.get<string>('MINIO_ACCESS_KEY') || 'minioadmin';
-    const secretKey =
-      this.configService.get<string>('MINIO_SECRET_KEY') || 'minioadmin';
-
-    this.bucket = this.configService.get<string>('MINIO_BUCKET') || 'fiestapp';
-    this.publicUrl =
-      this.configService.get<string>('MINIO_PUBLIC_URL') || endpoint;
-
-    this.s3Client = new S3Client({
-      endpoint,
-      region: 'us-east-1', // MinIO ignores this but it's required
-      credentials: {
-        accessKeyId: accessKey,
-        secretAccessKey: secretKey,
-      },
-      forcePathStyle: true, // Required for MinIO
+  onModuleInit() {
+    cloudinary.config({
+      cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
+      api_key: this.configService.get<string>('CLOUDINARY_API_KEY'),
+      api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET'),
     });
-  }
-
-  async onModuleInit() {
-    await this.ensureBucketExists();
-  }
-
-  private async ensureBucketExists() {
-    try {
-      await this.s3Client.send(new HeadBucketCommand({ Bucket: this.bucket }));
-      console.log(`✅ Bucket '${this.bucket}' exists`);
-    } catch (error: any) {
-      if (
-        error.name === 'NotFound' ||
-        error.$metadata?.httpStatusCode === 404
-      ) {
-        console.log(`📦 Creating bucket '${this.bucket}'...`);
-        try {
-          await this.s3Client.send(
-            new CreateBucketCommand({ Bucket: this.bucket }),
-          );
-          console.log(`✅ Bucket '${this.bucket}' created`);
-        } catch (createError: any) {
-          // Bucket already exists (created by another process or already owned)
-          if (
-            createError.name === 'BucketAlreadyOwnedByYou' ||
-            createError.name === 'BucketAlreadyExists'
-          ) {
-            console.log(`✅ Bucket '${this.bucket}' already exists`);
-          } else {
-            console.error('Error creating bucket:', createError);
-          }
-        }
-      } else {
-        console.error('Error checking bucket:', error);
-      }
-    }
+    console.log('✅ Cloudinary configured');
   }
 
   async uploadFile(file: Express.Multer.File, folder: string): Promise<string> {
-    const fileExtension = extname(file.originalname);
-    const fileName = `${folder}/${uuidv4()}${fileExtension}`;
-
-    await this.s3Client.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: fileName,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        ACL: 'public-read',
-      }),
-    );
-
-    // Return the public URL
-    return `${this.publicUrl}/${this.bucket}/${fileName}`;
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream(
+          {
+            folder: `fiestapp/${folder}`,
+            resource_type: 'image',
+          },
+          (error, result: UploadApiResponse | undefined) => {
+            if (error) {
+              console.error('Error uploading to Cloudinary:', error);
+              reject(error);
+            } else if (result) {
+              resolve(result.secure_url);
+            } else {
+              reject(new Error('No result from Cloudinary'));
+            }
+          },
+        )
+        .end(file.buffer);
+    });
   }
 
   async deleteFile(fileUrl: string): Promise<void> {
     try {
-      // Extract the key from the URL
-      const url = new URL(fileUrl);
-      const pathParts = url.pathname.split('/');
-      // Remove empty string and bucket name
-      const key = pathParts.slice(2).join('/');
+      // Extract public_id from Cloudinary URL
+      // URL format: https://res.cloudinary.com/cloud_name/image/upload/v123/folder/filename.ext
+      const urlParts = fileUrl.split('/');
+      const uploadIndex = urlParts.indexOf('upload');
+      if (uploadIndex === -1) return;
 
-      if (key) {
-        await this.s3Client.send(
-          new DeleteObjectCommand({
-            Bucket: this.bucket,
-            Key: key,
-          }),
-        );
+      // Get everything after 'upload/vXXX/' and remove extension
+      const pathParts = urlParts.slice(uploadIndex + 2);
+      const publicId = pathParts.join('/').replace(/\.[^/.]+$/, '');
+
+      if (publicId) {
+        await cloudinary.uploader.destroy(publicId);
+        console.log(`✅ Deleted from Cloudinary: ${publicId}`);
       }
     } catch (error) {
-      console.error('Error deleting file from MinIO:', error);
+      console.error('Error deleting file from Cloudinary:', error);
     }
   }
 
   getPublicUrl(key: string): string {
-    return `${this.publicUrl}/${this.bucket}/${key}`;
+    // For Cloudinary, we return the full URL directly from upload
+    return key;
   }
 }
