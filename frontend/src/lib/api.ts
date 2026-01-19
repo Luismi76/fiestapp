@@ -96,16 +96,6 @@ export const authApi = {
     const response = await api.post<ResetPasswordResponse>('/auth/reset-password', { token, newPassword });
     return response.data;
   },
-
-  sendPhoneVerification: async (phone: string): Promise<{ message: string }> => {
-    const response = await api.post<{ message: string }>('/auth/send-phone-verification', { phone });
-    return response.data;
-  },
-
-  verifyPhone: async (code: string): Promise<{ message: string }> => {
-    const response = await api.post<{ message: string }>('/auth/verify-phone', { code });
-    return response.data;
-  },
 };
 
 export const experiencesApi = {

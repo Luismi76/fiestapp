@@ -2,7 +2,6 @@
 
 interface ReputationBadgesProps {
   verified: boolean;
-  phoneVerified?: boolean;
   createdAt: string;
   experiencesCount: number;
   reviewsCount: number;
@@ -21,7 +20,6 @@ interface Badge {
 
 export function calculateBadges({
   verified,
-  phoneVerified,
   createdAt,
   experiencesCount,
   reviewsCount,
@@ -40,17 +38,6 @@ export function calculateBadges({
       icon: '✓',
       color: 'text-green-700',
       bgColor: 'bg-green-100',
-    });
-  }
-
-  // Teléfono verificado
-  if (phoneVerified) {
-    badges.push({
-      id: 'phone-verified',
-      label: 'Teléfono verificado',
-      icon: '📱',
-      color: 'text-teal-700',
-      bgColor: 'bg-teal-100',
     });
   }
 
@@ -136,7 +123,6 @@ export function calculateBadges({
 
 export default function ReputationBadges({
   verified,
-  phoneVerified,
   createdAt,
   experiencesCount,
   reviewsCount,
@@ -146,7 +132,6 @@ export default function ReputationBadges({
 }: ReputationBadgesProps) {
   const badges = calculateBadges({
     verified,
-    phoneVerified,
     createdAt,
     experiencesCount,
     reviewsCount,
@@ -190,7 +175,6 @@ export default function ReputationBadges({
 // Componente simplificado que solo muestra iconos
 export function ReputationBadgesCompact({
   verified,
-  phoneVerified,
   createdAt,
   experiencesCount,
   reviewsCount,
@@ -198,7 +182,6 @@ export function ReputationBadgesCompact({
 }: Omit<ReputationBadgesProps, 'size' | 'showAll'>) {
   const badges = calculateBadges({
     verified,
-    phoneVerified,
     createdAt,
     experiencesCount,
     reviewsCount,

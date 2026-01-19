@@ -7,7 +7,6 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
 import { EmailModule } from '../email/email.module';
-import { SmsModule } from '../sms/sms.module';
 
 @Module({
   imports: [
@@ -15,7 +14,6 @@ import { SmsModule } from '../sms/sms.module';
     PassportModule,
     ConfigModule,
     EmailModule,
-    SmsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

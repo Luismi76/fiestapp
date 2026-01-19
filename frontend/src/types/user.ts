@@ -8,7 +8,6 @@ export interface UserPublicProfile {
   bio?: string;
   city?: string;
   verified: boolean;
-  phoneVerified?: boolean;
   createdAt: string;
   avgRating: number;
   _count: {

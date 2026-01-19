@@ -75,15 +75,3 @@ export class ResetPasswordDto {
   @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
   newPassword: string;
 }
-
-export class SendPhoneVerificationDto {
-  @IsString()
-  @MinLength(9, { message: 'Número de teléfono inválido' })
-  phone: string;
-}
-
-export class VerifyPhoneDto {
-  @IsString()
-  @MinLength(6, { message: 'El código debe tener 6 dígitos' })
-  code: string;
-}

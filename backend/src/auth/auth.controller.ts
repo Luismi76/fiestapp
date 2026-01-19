@@ -15,8 +15,6 @@ import {
   ResendVerificationDto,
   ForgotPasswordDto,
   ResetPasswordDto,
-  SendPhoneVerificationDto,
-  VerifyPhoneDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthenticatedUser } from './strategies/jwt.strategy';
@@ -66,23 +64,5 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async getProfile(@Request() req: AuthenticatedRequest) {
     return this.authService.validateUser(req.user.userId);
-  }
-
-  @Post('send-phone-verification')
-  @UseGuards(JwtAuthGuard)
-  async sendPhoneVerification(
-    @Request() req: AuthenticatedRequest,
-    @Body() dto: SendPhoneVerificationDto,
-  ) {
-    return this.authService.sendPhoneVerification(req.user.userId, dto);
-  }
-
-  @Post('verify-phone')
-  @UseGuards(JwtAuthGuard)
-  async verifyPhone(
-    @Request() req: AuthenticatedRequest,
-    @Body() dto: VerifyPhoneDto,
-  ) {
-    return this.authService.verifyPhone(req.user.userId, dto);
   }
 }

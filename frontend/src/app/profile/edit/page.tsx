@@ -8,7 +8,6 @@ import { usersApi, uploadsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { UpdateProfileData } from '@/types/user';
 import { getAvatarUrl } from '@/lib/utils';
-import PhoneVerification from '@/components/PhoneVerification';
 
 interface FormData {
   name: string;
@@ -381,13 +380,6 @@ export default function EditProfilePage() {
             </p>
           </div>
         </div>
-
-        {/* Phone Verification */}
-        <PhoneVerification
-          phone={user?.phone}
-          phoneVerified={user?.phoneVerified}
-          onVerified={refreshUser}
-        />
 
         {/* Actions */}
         <div className="space-y-3 pt-2">

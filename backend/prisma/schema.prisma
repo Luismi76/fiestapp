@@ -20,10 +20,6 @@ model User {
   verified                  Boolean          @default(false) // email verified
   emailVerificationToken    String?
   emailVerificationExpires  DateTime?
-  phone                     String?
-  phoneVerified             Boolean          @default(false)
-  phoneVerificationCode     String?
-  phoneVerificationExpires  DateTime?
   passwordResetToken        String?
   passwordResetExpires      DateTime?
   createdAt                 DateTime         @default(now())
