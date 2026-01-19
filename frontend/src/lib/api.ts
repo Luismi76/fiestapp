@@ -7,6 +7,8 @@ import {
   User,
   VerifyEmailResponse,
   ResendVerificationResponse,
+  ForgotPasswordResponse,
+  ResetPasswordResponse,
 } from '@/types/auth';
 import {
   Experience,
@@ -82,6 +84,16 @@ export const authApi = {
 
   resendVerification: async (email: string): Promise<ResendVerificationResponse> => {
     const response = await api.post<ResendVerificationResponse>('/auth/resend-verification', { email });
+    return response.data;
+  },
+
+  forgotPassword: async (email: string): Promise<ForgotPasswordResponse> => {
+    const response = await api.post<ForgotPasswordResponse>('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<ResetPasswordResponse> => {
+    const response = await api.post<ResetPasswordResponse>('/auth/reset-password', { token, newPassword });
     return response.data;
   },
 };

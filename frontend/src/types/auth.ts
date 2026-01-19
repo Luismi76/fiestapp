@@ -39,3 +39,11 @@ export interface VerifyEmailResponse {
 export interface ResendVerificationResponse {
     message: string;
 }
+
+export interface ForgotPasswordResponse {
+    message: string;
+}
+
+export interface ResetPasswordResponse {
+    message: string;
+}

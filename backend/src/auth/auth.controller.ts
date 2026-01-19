@@ -9,7 +9,13 @@ import {
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, ResendVerificationDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  ResendVerificationDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthenticatedUser } from './strategies/jwt.strategy';
 
@@ -39,6 +45,19 @@ export class AuthController {
   @Post('resend-verification')
   async resendVerification(@Body() resendDto: ResendVerificationDto) {
     return this.authService.resendVerification(resendDto);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+    );
   }
 
   @Get('me')

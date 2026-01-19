@@ -296,4 +296,71 @@ export class AuthService {
 
     return user;
   }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    this.log(`Forgot password requested for: ${email}`);
+
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    // Siempre devolver el mismo mensaje por seguridad
+    const successMessage = {
+      message: 'Si el email existe, recibirás un enlace para restablecer tu contraseña.',
+    };
+
+    if (!user) {
+      return successMessage;
+    }
+
+    const resetToken = uuidv4();
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: resetToken,
+        passwordResetExpires: resetExpires,
+      },
+    });
+
+    await this.emailService.sendPasswordResetEmail(email, resetToken, user.name);
+    this.log(`Password reset email sent to ${email}`);
+
+    return successMessage;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    this.log(`Reset password attempt with token: ${token}`);
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        passwordResetToken: token,
+      },
+    });
+
+    if (!user) {
+      this.log(`Reset failed: Invalid token ${token}`);
+      throw new BadRequestException('Token inválido o expirado.');
+    }
+
+    if (user.passwordResetExpires && user.passwordResetExpires < new Date()) {
+      this.log(`Reset failed: Token expired for ${user.email}`);
+      throw new BadRequestException('El token ha expirado. Solicita uno nuevo.');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        passwordResetToken: null,
+        passwordResetExpires: null,
+      },
+    });
+
+    this.log(`Password reset successful for ${user.email}`);
+    return { message: 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.' };
+  }
 }
