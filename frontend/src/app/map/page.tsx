@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { experiencesApi } from '@/lib/api';
 import { Experience } from '@/types/experience';
+import { getUploadUrl } from '@/lib/utils';
 import ExperienceMap from '@/components/ExperienceMap';
 import BottomNav from '@/components/BottomNav';
 
@@ -99,9 +100,7 @@ export default function MapPage() {
             <div className="flex gap-4">
               <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
                 <img
-                  src={selectedExperience.photos?.[0]
-                    ? (selectedExperience.photos[0].startsWith('/images/') ? selectedExperience.photos[0] : `/uploads/${selectedExperience.photos[0]}`)
-                    : '/images/feria_abril.png'}
+                  src={getUploadUrl(selectedExperience.photos?.[0]) || '/images/feria_abril.png'}
                   alt={selectedExperience.title}
                   className="w-full h-full object-cover"
                 />

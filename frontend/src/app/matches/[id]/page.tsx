@@ -9,7 +9,7 @@ import { MatchDetail, MatchStatus, Message } from '@/types/match';
 import { CanReviewResponse } from '@/types/review';
 import ReviewForm from '@/components/ReviewForm';
 import PaymentModal from '@/components/PaymentModal';
-import { getAvatarUrl } from '@/lib/utils';
+import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import { useSocket, useSocketEvent } from '@/hooks/useSocket';
 
 // Mock match details for fallback
@@ -646,7 +646,7 @@ export default function MatchDetailPage() {
         <div className="w-16 h-16 flex-shrink-0 relative">
           {match.experience.photos && match.experience.photos[0] ? (
             <img
-              src={match.experience.photos[0].startsWith('/images/') ? match.experience.photos[0] : `/uploads/${match.experience.photos[0]}`}
+              src={getUploadUrl(match.experience.photos[0]) || '/images/feria_abril.png'}
               alt={match.experience.title}
               className="w-full h-full object-cover"
             />
