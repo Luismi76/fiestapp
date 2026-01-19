@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 const registerSchema = z.object({
@@ -23,6 +24,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const { register: registerUser } = useAuth();
+  const router = useRouter();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -42,7 +44,8 @@ export default function RegisterPage() {
       setLoading(true);
       const { confirmPassword: _unused, ...registerData } = data;
       void _unused;
-      await registerUser(registerData);
+      const email = await registerUser(registerData);
+      router.push(`/verification-pending?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al registrarse');
     } finally {

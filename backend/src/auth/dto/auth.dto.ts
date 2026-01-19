@@ -51,3 +51,13 @@ export class AuthResponseDto {
     bio?: string;
   };
 }
+
+export class RegisterResponseDto {
+  message: string;
+  email: string;
+}
+
+export class ResendVerificationDto {
+  @IsEmail({}, { message: 'Email inválido' })
+  email: string;
+}

@@ -1,5 +1,13 @@
 import axios from 'axios';
-import { AuthResponse, LoginData, RegisterData, User } from '@/types/auth';
+import {
+  AuthResponse,
+  LoginData,
+  RegisterData,
+  RegisterResponse,
+  User,
+  VerifyEmailResponse,
+  ResendVerificationResponse,
+} from '@/types/auth';
 import {
   Experience,
   ExperienceDetail,
@@ -56,13 +64,23 @@ export const authApi = {
     return response.data;
   },
 
-  register: async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/auth/register', data);
+  register: async (data: RegisterData): Promise<RegisterResponse> => {
+    const response = await api.post<RegisterResponse>('/auth/register', data);
     return response.data;
   },
 
   getProfile: async (): Promise<User> => {
     const response = await api.get<User>('/auth/me');
+    return response.data;
+  },
+
+  verifyEmail: async (token: string): Promise<VerifyEmailResponse> => {
+    const response = await api.get<VerifyEmailResponse>(`/auth/verify-email?token=${token}`);
+    return response.data;
+  },
+
+  resendVerification: async (email: string): Promise<ResendVerificationResponse> => {
+    const response = await api.post<ResendVerificationResponse>('/auth/resend-verification', { email });
     return response.data;
   },
 };

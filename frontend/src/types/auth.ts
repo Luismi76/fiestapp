@@ -26,3 +26,16 @@ export interface RegisterData {
     age: number;
     city: string;
 }
+
+export interface RegisterResponse {
+    message: string;
+    email: string;
+}
+
+export interface VerifyEmailResponse {
+    message: string;
+}
+
+export interface ResendVerificationResponse {
+    message: string;
+}

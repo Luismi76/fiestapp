@@ -5,10 +5,11 @@ import {
   Get,
   UseGuards,
   Request,
+  Query,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, ResendVerificationDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthenticatedUser } from './strategies/jwt.strategy';
 
@@ -28,6 +29,16 @@ export class AuthController {
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
+  @Post('resend-verification')
+  async resendVerification(@Body() resendDto: ResendVerificationDto) {
+    return this.authService.resendVerification(resendDto);
   }
 
   @Get('me')

@@ -14,7 +14,7 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     login: (data: LoginData) => Promise<void>;
-    register: (data: RegisterData) => Promise<void>;
+    register: (data: RegisterData) => Promise<string>;
     logout: () => void;
     refreshUser: () => Promise<void>;
     isAuthenticated: boolean;
@@ -57,12 +57,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const register = async (data: RegisterData) => {
+    const register = async (data: RegisterData): Promise<string> => {
         try {
             const response = await authApi.register(data);
-            localStorage.setItem('token', response.access_token);
-            setUser(response.user);
-            router.push('/dashboard');
+            return response.email;
         } catch (error) {
             const axiosError = error as AxiosError<ApiErrorResponse>;
             throw new Error(axiosError.response?.data?.message || 'Error al registrarse');
