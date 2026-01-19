@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { matchesApi } from '@/lib/api';
 
 export default function BottomNav() {
@@ -11,13 +11,29 @@ export default function BottomNav() {
   const { isAuthenticated } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useEffect(() => {
+  const fetchUnreadCount = useCallback(async () => {
     if (isAuthenticated) {
-      matchesApi.getUnreadCount()
-        .then(count => setUnreadCount(count))
-        .catch(() => setUnreadCount(0));
+      try {
+        const count = await matchesApi.getUnreadCount();
+        setUnreadCount(count);
+      } catch {
+        setUnreadCount(0);
+      }
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchUnreadCount();
+
+    // Poll every 30 seconds for new messages
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [fetchUnreadCount]);
+
+  // Refresh when pathname changes (e.g., coming back from chat)
+  useEffect(() => {
+    fetchUnreadCount();
+  }, [pathname, fetchUnreadCount]);
 
   const isActive = (href: string, id?: string) => {
     if (id === 'home') return pathname === '/dashboard' || pathname === '/';
