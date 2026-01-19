@@ -131,7 +131,7 @@ export default function BottomNav() {
               {item.icon(active)}
             </span>
             <span>{item.label}</span>
-            {item.badge && item.badge > 0 && (
+            {item.badge !== undefined && item.badge > 0 && (
               <span className="bottom-nav-badge">{item.badge > 99 ? '99+' : item.badge}</span>
             )}
           </Link>
