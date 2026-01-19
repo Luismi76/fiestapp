@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { experiencesApi, matchesApi } from '@/lib/api';
+import { experiencesApi, matchesApi, favoritesApi } from '@/lib/api';
 import { ExperienceDetail, DateOccupancy } from '@/types/experience';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
@@ -244,6 +244,8 @@ export default function ExperienceDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [occupancy, setOccupancy] = useState<DateOccupancy[]>([]);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   useEffect(() => {
     const fetchExperience = async () => {
@@ -274,6 +276,38 @@ export default function ExperienceDetailPage() {
     };
     if (params.id) fetchExperience();
   }, [params.id]);
+
+  // Verificar si es favorito cuando el usuario esta autenticado
+  useEffect(() => {
+    const checkFavorite = async () => {
+      if (!isAuthenticated || !params.id) return;
+      try {
+        const result = await favoritesApi.isFavorite(params.id as string);
+        setIsFavorite(result.isFavorite);
+      } catch {
+        // Si falla, asumimos que no es favorito
+      }
+    };
+    checkFavorite();
+  }, [isAuthenticated, params.id]);
+
+  const handleToggleFavorite = async () => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    if (!params.id || favoriteLoading) return;
+
+    setFavoriteLoading(true);
+    try {
+      await favoritesApi.toggleFavorite(params.id as string, isFavorite);
+      setIsFavorite(!isFavorite);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
 
   const handleRequestMatch = () => {
     if (!isAuthenticated) {
@@ -403,10 +437,24 @@ export default function ExperienceDetailPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
               </svg>
             </button>
-            <button className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-              </svg>
+            <button
+              onClick={handleToggleFavorite}
+              disabled={favoriteLoading}
+              className={`w-11 h-11 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg transition-colors ${
+                isFavorite ? 'bg-red-500 text-white' : 'bg-white/20 text-white'
+              }`}
+            >
+              {favoriteLoading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : isFavorite ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                  <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                </svg>
+              )}
             </button>
           </div>
         </div>

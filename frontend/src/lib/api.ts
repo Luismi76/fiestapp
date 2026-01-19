@@ -459,6 +459,45 @@ export const walletApi = {
   },
 };
 
+export const favoritesApi = {
+  // Obtener favoritos del usuario
+  getFavorites: async (): Promise<Experience[]> => {
+    const response = await api.get<Experience[]>('/favorites');
+    return response.data;
+  },
+
+  // Obtener solo IDs de favoritos
+  getFavoriteIds: async (): Promise<string[]> => {
+    const response = await api.get<string[]>('/favorites/ids');
+    return response.data;
+  },
+
+  // Verificar si una experiencia es favorita
+  isFavorite: async (experienceId: string): Promise<{ isFavorite: boolean }> => {
+    const response = await api.get<{ isFavorite: boolean }>(`/favorites/${experienceId}/check`);
+    return response.data;
+  },
+
+  // Anadir a favoritos
+  addFavorite: async (experienceId: string): Promise<void> => {
+    await api.post(`/favorites/${experienceId}`);
+  },
+
+  // Eliminar de favoritos
+  removeFavorite: async (experienceId: string): Promise<void> => {
+    await api.delete(`/favorites/${experienceId}`);
+  },
+
+  // Toggle favorito
+  toggleFavorite: async (experienceId: string, isFavorite: boolean): Promise<void> => {
+    if (isFavorite) {
+      await api.delete(`/favorites/${experienceId}`);
+    } else {
+      await api.post(`/favorites/${experienceId}`);
+    }
+  },
+};
+
 export const paymentsApi = {
   // Crear Payment Intent
   createPaymentIntent: async (matchId: string): Promise<{ clientSecret: string; paymentIntentId: string }> => {

@@ -32,6 +32,7 @@ model User {
   transactions       Transaction[]
   preferences        UserPreference[]
   wallet             Wallet?
+  favorites          Favorite[]
 
   @@map("users")
 }
@@ -83,6 +84,7 @@ model Experience {
   host         User                     @relation(fields: [hostId], references: [id], onDelete: Cascade)
   matches      Match[]
   reviews      Review[]
+  favorites    Favorite[]
 
   @@map("experiences")
 }
@@ -177,4 +179,16 @@ model Review {
 
   @@unique([experienceId, authorId])
   @@map("reviews")
+}
+
+model Favorite {
+  id           String     @id @default(uuid())
+  userId       String
+  experienceId String
+  createdAt    DateTime   @default(now())
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, experienceId])
+  @@map("favorites")
 }

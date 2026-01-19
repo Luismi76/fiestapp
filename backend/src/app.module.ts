@@ -13,6 +13,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { StorageModule } from './storage/storage.module';
 import { PaymentsModule } from './payments/payments.module';
 import { WalletModule } from './wallet/wallet.module';
+import { FavoritesModule } from './favorites/favorites.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { WalletModule } from './wallet/wallet.module';
     UploadsModule,
     PaymentsModule,
     WalletModule,
+    FavoritesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
