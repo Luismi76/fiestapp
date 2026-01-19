@@ -17,6 +17,7 @@ export class UsersService {
         bio: true,
         city: true,
         verified: true,
+        phoneVerified: true,
         createdAt: true,
         _count: {
           select: {

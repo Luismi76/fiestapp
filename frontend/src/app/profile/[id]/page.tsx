@@ -301,6 +301,7 @@ export default function PublicProfilePage() {
       <div className="px-4 mt-4">
         <ReputationBadges
           verified={profile.verified}
+          phoneVerified={profile.phoneVerified}
           createdAt={profile.createdAt}
           experiencesCount={profile._count.experiences}
           reviewsCount={profile._count.reviewsReceived}

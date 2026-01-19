@@ -7,6 +7,8 @@ export interface User {
     city?: string;
     bio?: string;
     verified?: boolean;
+    phone?: string;
+    phoneVerified?: boolean;
     role?: string;
 }
 

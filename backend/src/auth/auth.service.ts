@@ -13,7 +13,10 @@ import {
   AuthResponseDto,
   RegisterResponseDto,
   ResendVerificationDto,
+  SendPhoneVerificationDto,
+  VerifyPhoneDto,
 } from './dto/auth.dto';
+import { SmsService } from '../sms/sms.service';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -26,6 +29,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private emailService: EmailService,
+    private smsService: SmsService,
   ) {}
 
   private log(message: string) {
@@ -287,6 +291,8 @@ export class AuthService {
         bio: true,
         age: true,
         verified: true,
+        phone: true,
+        phoneVerified: true,
       },
     });
 
@@ -362,5 +368,125 @@ export class AuthService {
 
     this.log(`Password reset successful for ${user.email}`);
     return { message: 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.' };
+  }
+
+  async sendPhoneVerification(
+    userId: string,
+    dto: SendPhoneVerificationDto,
+  ): Promise<{ message: string }> {
+    const { phone } = dto;
+    this.log(`Phone verification requested for user ${userId}, phone: ${phone}`);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado.');
+    }
+
+    // Check if phone is already verified by another user
+    const existingPhone = await this.prisma.user.findFirst({
+      where: {
+        phone,
+        phoneVerified: true,
+        id: { not: userId },
+      },
+    });
+
+    if (existingPhone) {
+      throw new BadRequestException(
+        'Este número de teléfono ya está verificado por otro usuario.',
+      );
+    }
+
+    // Rate limiting: check if a code was sent recently (60 seconds)
+    if (
+      user.phoneVerificationExpires &&
+      user.phoneVerificationExpires > new Date(Date.now() - 9 * 60 * 1000) // 9 minutes ago means code sent less than 1 min ago
+    ) {
+      const timeSinceLastSent =
+        Date.now() - (user.phoneVerificationExpires.getTime() - 10 * 60 * 1000);
+      if (timeSinceLastSent < 60 * 1000) {
+        throw new BadRequestException(
+          'Por favor, espera 60 segundos antes de solicitar otro código.',
+        );
+      }
+    }
+
+    const code = this.smsService.generateVerificationCode();
+    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        phone,
+        phoneVerificationCode: code,
+        phoneVerificationExpires: expires,
+        phoneVerified: false,
+      },
+    });
+
+    const sent = await this.smsService.sendVerificationCode(phone, code);
+
+    if (!sent) {
+      throw new BadRequestException(
+        'Error al enviar el SMS. Por favor, inténtalo de nuevo.',
+      );
+    }
+
+    this.log(`Phone verification code sent to ${phone}`);
+    return {
+      message: 'Código de verificación enviado. Válido por 10 minutos.',
+    };
+  }
+
+  async verifyPhone(
+    userId: string,
+    dto: VerifyPhoneDto,
+  ): Promise<{ message: string }> {
+    const { code } = dto;
+    this.log(`Phone verification attempt for user ${userId}`);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Usuario no encontrado.');
+    }
+
+    if (!user.phone || !user.phoneVerificationCode) {
+      throw new BadRequestException(
+        'No hay ninguna verificación de teléfono pendiente.',
+      );
+    }
+
+    if (
+      user.phoneVerificationExpires &&
+      user.phoneVerificationExpires < new Date()
+    ) {
+      this.log(`Phone verification failed: Code expired for ${user.email}`);
+      throw new BadRequestException(
+        'El código ha expirado. Solicita uno nuevo.',
+      );
+    }
+
+    if (user.phoneVerificationCode !== code) {
+      this.log(`Phone verification failed: Invalid code for ${user.email}`);
+      throw new BadRequestException('Código incorrecto.');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        phoneVerified: true,
+        phoneVerificationCode: null,
+        phoneVerificationExpires: null,
+      },
+    });
+
+    this.log(`Phone verified successfully for ${user.email}`);
+    return { message: 'Teléfono verificado correctamente.' };
   }
 }
