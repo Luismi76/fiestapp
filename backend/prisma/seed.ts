@@ -134,6 +134,19 @@ async function main() {
         verified: false,
       },
     }),
+    prisma.user.create({
+      data: {
+        id: 'user-admin',
+        email: 'admin@fiestapp.com',
+        password: passwordHash,
+        name: 'Administrador',
+        age: 35,
+        bio: 'Administrador de FiestApp',
+        city: 'Madrid',
+        role: 'admin',
+        verified: true,
+      },
+    }),
   ]);
 
   console.log(`✅ ${users.length} usuarios creados`);
@@ -632,6 +645,9 @@ async function main() {
   console.log('   Password: password123');
   console.log('\n   Otros usuarios: maria@test.com, carlos@test.com, etc.');
   console.log('   Todos con password: password123');
+  console.log('\n🔑 Admin:');
+  console.log('   Email: admin@fiestapp.com');
+  console.log('   Password: password123');
 }
 
 main()
