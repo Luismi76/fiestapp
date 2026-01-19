@@ -16,6 +16,7 @@ import {
   UpdateExperienceData,
   ExperienceFilters,
   Festival,
+  OccupancyResponse,
 } from '@/types/experience';
 import {
   Match,
@@ -127,6 +128,11 @@ export const experiencesApi = {
     const response = await api.patch<Experience>(`/experiences/${id}/toggle-published`);
     return response.data;
   },
+
+  getOccupancy: async (id: string): Promise<OccupancyResponse> => {
+    const response = await api.get<OccupancyResponse>(`/experiences/${id}/occupancy`);
+    return response.data;
+  },
 };
 
 export const festivalsApi = {
@@ -179,8 +185,8 @@ export const matchesApi = {
   },
 
   // Aceptar solicitud
-  accept: async (id: string, agreedDate?: string): Promise<Match> => {
-    const response = await api.patch<Match>(`/matches/${id}/accept`, { agreedDate });
+  accept: async (id: string, startDate?: string, endDate?: string): Promise<Match> => {
+    const response = await api.patch<Match>(`/matches/${id}/accept`, { startDate, endDate });
     return response.data;
   },
 

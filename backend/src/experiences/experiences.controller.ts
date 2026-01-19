@@ -75,6 +75,12 @@ export class ExperiencesController {
     return this.experiencesService.findOne(id);
   }
 
+  // Obtener ocupación por fechas (público)
+  @Get(':id/occupancy')
+  getOccupancy(@Param('id') id: string) {
+    return this.experiencesService.getOccupancy(id);
+  }
+
   // Actualizar experiencia (requiere auth + ser el dueño)
   @Put(':id')
   @UseGuards(JwtAuthGuard)

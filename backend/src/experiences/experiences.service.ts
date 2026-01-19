@@ -21,36 +21,56 @@ export class ExperiencesService {
       throw new NotFoundException('Festival no encontrado');
     }
 
-    return this.prisma.experience.create({
-      data: {
-        title: createDto.title,
-        description: createDto.description,
-        festivalId: createDto.festivalId,
-        city: createDto.city,
-        price: createDto.price,
-        type: createDto.type,
-        photos: createDto.photos || [],
-        highlights: createDto.highlights || [],
-        hostId: userId,
-      },
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-            verified: true,
+    // Crear experiencia con disponibilidad en una transacción
+    const experience = await this.prisma.$transaction(async (tx) => {
+      const exp = await tx.experience.create({
+        data: {
+          title: createDto.title,
+          description: createDto.description,
+          festivalId: createDto.festivalId,
+          city: createDto.city,
+          price: createDto.price,
+          type: createDto.type,
+          photos: createDto.photos || [],
+          highlights: createDto.highlights || [],
+          capacity: createDto.capacity || 1,
+          hostId: userId,
+        },
+        include: {
+          host: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+              verified: true,
+            },
+          },
+          festival: {
+            select: {
+              id: true,
+              name: true,
+              city: true,
+            },
           },
         },
-        festival: {
-          select: {
-            id: true,
-            name: true,
-            city: true,
-          },
-        },
-      },
+      });
+
+      // Crear registros de disponibilidad si se proporcionaron fechas
+      if (createDto.availability && createDto.availability.length > 0) {
+        await tx.experienceAvailability.createMany({
+          data: createDto.availability.map((dateStr) => ({
+            experienceId: exp.id,
+            date: new Date(dateStr),
+            available: true,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      return exp;
     });
+
+    return experience;
   }
 
   async findAll(options?: {
@@ -193,6 +213,20 @@ export class ExperiencesService {
           },
           take: 5,
         },
+        availability: {
+          where: {
+            available: true,
+            date: {
+              gte: new Date(),
+            },
+          },
+          orderBy: {
+            date: 'asc',
+          },
+          select: {
+            date: true,
+          },
+        },
         _count: {
           select: {
             reviews: true,
@@ -212,8 +246,12 @@ export class ExperiencesService {
       _avg: { rating: true },
     });
 
+    // Transformar availability a array de fechas
+    const availabilityDates = experience.availability.map((a) => a.date);
+
     return {
       ...experience,
+      availability: availabilityDates,
       avgRating: avgRating._avg.rating || 0,
     };
   }
@@ -281,27 +319,58 @@ export class ExperiencesService {
       );
     }
 
-    return this.prisma.experience.update({
-      where: { id },
-      data: updateDto,
-      include: {
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-            verified: true,
+    // Extraer availability del DTO para manejarlo por separado
+    const { availability, ...updateData } = updateDto;
+
+    // Usar transacción para actualizar experiencia y disponibilidad
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Actualizar la experiencia
+      const updated = await tx.experience.update({
+        where: { id },
+        data: updateData,
+        include: {
+          host: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+              verified: true,
+            },
+          },
+          festival: {
+            select: {
+              id: true,
+              name: true,
+              city: true,
+            },
           },
         },
-        festival: {
-          select: {
-            id: true,
-            name: true,
-            city: true,
-          },
-        },
-      },
+      });
+
+      // Si se proporcionaron fechas de disponibilidad, reemplazar todas
+      if (availability !== undefined) {
+        // Eliminar disponibilidad existente
+        await tx.experienceAvailability.deleteMany({
+          where: { experienceId: id },
+        });
+
+        // Crear nuevas fechas de disponibilidad
+        if (availability.length > 0) {
+          await tx.experienceAvailability.createMany({
+            data: availability.map((dateStr) => ({
+              experienceId: id,
+              date: new Date(dateStr),
+              available: true,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+
+      return updated;
     });
+
+    return result;
   }
 
   async remove(id: string, userId: string) {
@@ -347,5 +416,93 @@ export class ExperiencesService {
         published: !experience.published,
       },
     });
+  }
+
+  // Obtener ocupación por fechas para una experiencia
+  async getOccupancy(experienceId: string) {
+    const experience = await this.prisma.experience.findUnique({
+      where: { id: experienceId },
+      select: {
+        id: true,
+        capacity: true,
+        availability: {
+          where: {
+            available: true,
+            date: { gte: new Date() },
+          },
+          select: { date: true },
+          orderBy: { date: 'asc' },
+        },
+      },
+    });
+
+    if (!experience) {
+      throw new NotFoundException('Experiencia no encontrada');
+    }
+
+    // Obtener todos los matches activos (pending o accepted) para esta experiencia
+    const activeMatches = await this.prisma.match.findMany({
+      where: {
+        experienceId,
+        status: { in: ['pending', 'accepted'] },
+        startDate: { not: null },
+      },
+      select: {
+        startDate: true,
+        endDate: true,
+      },
+    });
+
+    // Calcular ocupación por cada fecha disponible
+    const occupancyMap: Record<
+      string,
+      { date: string; booked: number; capacity: number; status: string }
+    > = {};
+
+    for (const avail of experience.availability) {
+      const dateStr = avail.date.toISOString().split('T')[0];
+      const dateTime = avail.date.getTime();
+
+      // Contar cuántos matches incluyen esta fecha
+      let booked = 0;
+      for (const match of activeMatches) {
+        if (match.startDate && match.endDate) {
+          const start = match.startDate.getTime();
+          const end = match.endDate.getTime();
+          if (dateTime >= start && dateTime <= end) {
+            booked++;
+          }
+        } else if (match.startDate) {
+          // Solo fecha de inicio (un día)
+          if (
+            match.startDate.toISOString().split('T')[0] === dateStr
+          ) {
+            booked++;
+          }
+        }
+      }
+
+      // Determinar estado
+      let status: string;
+      if (booked === 0) {
+        status = 'available';
+      } else if (booked >= experience.capacity) {
+        status = 'full';
+      } else {
+        status = 'partial';
+      }
+
+      occupancyMap[dateStr] = {
+        date: dateStr,
+        booked,
+        capacity: experience.capacity,
+        status,
+      };
+    }
+
+    return {
+      capacity: experience.capacity,
+      dates: Object.values(occupancyMap),
+    };
   }
 }

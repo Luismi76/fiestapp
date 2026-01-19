@@ -72,6 +72,7 @@ model Experience {
   hostId       String
   photos       String[]
   highlights   String[]
+  capacity     Int                      @default(1)
   published    Boolean                  @default(true)
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
@@ -103,7 +104,8 @@ model Match {
   hostId        String
   status        String        @default("pending")
   paymentStatus String?       // pending, held, released, refunded
-  agreedDate    DateTime?
+  startDate     DateTime?
+  endDate       DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   experience    Experience    @relation(fields: [experienceId], references: [id], onDelete: Cascade)

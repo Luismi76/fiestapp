@@ -44,7 +44,8 @@ export interface Match {
   requesterId: string;
   hostId: string;
   status: MatchStatus;
-  agreedDate?: string;
+  startDate?: string;
+  endDate?: string;
   createdAt: string;
   updatedAt: string;
   experience: MatchExperience;
@@ -63,7 +64,8 @@ export interface MatchDetail extends Match {
 export interface CreateMatchData {
   experienceId: string;
   message?: string;
-  proposedDate?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface MatchStats {

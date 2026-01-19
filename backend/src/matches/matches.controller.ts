@@ -79,9 +79,15 @@ export class MatchesController {
   accept(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body('agreedDate') agreedDate?: string,
+    @Body('startDate') startDate?: string,
+    @Body('endDate') endDate?: string,
   ) {
-    return this.matchesService.accept(id, req.user.userId, agreedDate);
+    return this.matchesService.accept(
+      id,
+      req.user.userId,
+      startDate,
+      endDate,
+    );
   }
 
   // Rechazar solicitud

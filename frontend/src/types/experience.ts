@@ -31,6 +31,7 @@ export interface Experience {
   type: ExperienceType;
   photos: string[];
   highlights?: string[];
+  capacity: number;
   published: boolean;
   createdAt: string;
   updatedAt: string;
@@ -81,6 +82,20 @@ export interface CreateExperienceData {
   type: ExperienceType;
   photos?: string[];
   highlights?: string[];
+  capacity?: number;
+  availability?: string[];
+}
+
+export interface DateOccupancy {
+  date: string;
+  booked: number;
+  capacity: number;
+  status: 'available' | 'partial' | 'full';
+}
+
+export interface OccupancyResponse {
+  capacity: number;
+  dates: DateOccupancy[];
 }
 
 export interface UpdateExperienceData extends Partial<CreateExperienceData> {

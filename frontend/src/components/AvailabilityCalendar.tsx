@@ -2,14 +2,42 @@
 
 import { useState, useMemo } from 'react';
 
+interface DateRange {
+  start: Date | null;
+  end: Date | null;
+}
+
+interface DateOccupancy {
+  date: string;
+  booked: number;
+  capacity: number;
+  status: 'available' | 'partial' | 'full';
+}
+
 interface AvailabilityCalendarProps {
-  selectedDates: Date[];
-  onDatesChange: (dates: Date[]) => void;
-  minDate?: Date;
-  maxDate?: Date;
-  mode?: 'select' | 'view';
+  // Modo 'select': seleccionar múltiples fechas individuales (para configurar disponibilidad)
+  // Modo 'view': ver fechas disponibles y hacer clic en una
+  // Modo 'range': seleccionar un rango de fechas (inicio y fin)
+  mode?: 'select' | 'view' | 'range';
+
+  // Para modo 'select': fechas seleccionadas individualmente
+  selectedDates?: Date[];
+  onDatesChange?: (dates: Date[]) => void;
+
+  // Para modo 'range': rango seleccionado
+  dateRange?: DateRange;
+  onRangeChange?: (range: DateRange) => void;
+
+  // Para modo 'view': fechas disponibles para mostrar
   availableDates?: Date[];
   onDateClick?: (date: Date) => void;
+
+  // Para modo 'view' y 'range': información de ocupación por fecha
+  occupancy?: DateOccupancy[];
+
+  // Restricciones
+  minDate?: Date;
+  maxDate?: Date;
 }
 
 const DAYS_ES = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -19,18 +47,33 @@ const MONTHS_ES = [
 ];
 
 export default function AvailabilityCalendar({
-  selectedDates,
-  onDatesChange,
-  minDate = new Date(),
-  maxDate,
   mode = 'select',
+  selectedDates = [],
+  onDatesChange,
+  dateRange = { start: null, end: null },
+  onRangeChange,
   availableDates = [],
   onDateClick,
+  occupancy = [],
+  minDate = new Date(),
+  maxDate,
 }: AvailabilityCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+
+  // Para el modo range: tracking de si estamos seleccionando inicio o fin
+  const [selectingEnd, setSelectingEnd] = useState(false);
+
+  // Crear mapa de ocupación para acceso rápido
+  const occupancyMap = useMemo(() => {
+    const map: Record<string, DateOccupancy> = {};
+    for (const occ of occupancy) {
+      map[occ.date] = occ;
+    }
+    return map;
+  }, [occupancy]);
 
   // Get calendar days for current month
   const calendarDays = useMemo(() => {
@@ -69,20 +112,28 @@ export default function AvailabilityCalendar({
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
+  const isSameDay = (d1: Date, d2: Date) => {
+    return d1.getFullYear() === d2.getFullYear() &&
+      d1.getMonth() === d2.getMonth() &&
+      d1.getDate() === d2.getDate();
+  };
+
   const isDateSelected = (date: Date) => {
-    return selectedDates.some(d =>
-      d.getFullYear() === date.getFullYear() &&
-      d.getMonth() === date.getMonth() &&
-      d.getDate() === date.getDate()
-    );
+    return selectedDates.some(d => isSameDay(d, date));
   };
 
   const isDateAvailable = (date: Date) => {
-    return availableDates.some(d =>
-      d.getFullYear() === date.getFullYear() &&
-      d.getMonth() === date.getMonth() &&
-      d.getDate() === date.getDate()
-    );
+    return availableDates.some(d => isSameDay(d, date));
+  };
+
+  const getDateOccupancy = (date: Date): DateOccupancy | null => {
+    const dateStr = date.toISOString().split('T')[0];
+    return occupancyMap[dateStr] || null;
+  };
+
+  const isDateFull = (date: Date): boolean => {
+    const occ = getDateOccupancy(date);
+    return occ?.status === 'full';
   };
 
   const isDateDisabled = (date: Date) => {
@@ -93,7 +144,34 @@ export default function AvailabilityCalendar({
     if (minDate && date < minDate) return true;
     if (maxDate && date > maxDate) return true;
 
+    // En modo view/range, fechas llenas no son clickeables
+    if ((mode === 'view' || mode === 'range') && occupancy.length > 0) {
+      if (isDateFull(date)) return true;
+    }
+
+    // En modo view/range, solo las fechas disponibles son clickeables
+    if ((mode === 'view' || mode === 'range') && availableDates.length > 0) {
+      return !isDateAvailable(date);
+    }
+
     return false;
+  };
+
+  const isInRange = (date: Date) => {
+    if (mode !== 'range' || !dateRange.start) return false;
+
+    const end = dateRange.end || dateRange.start;
+    const start = dateRange.start;
+
+    return date >= start && date <= end;
+  };
+
+  const isRangeStart = (date: Date) => {
+    return mode === 'range' && dateRange.start && isSameDay(date, dateRange.start);
+  };
+
+  const isRangeEnd = (date: Date) => {
+    return mode === 'range' && dateRange.end && isSameDay(date, dateRange.end);
   };
 
   const handleDateClick = (date: Date) => {
@@ -104,23 +182,35 @@ export default function AvailabilityCalendar({
       return;
     }
 
-    // Toggle date selection
+    if (mode === 'range') {
+      if (!dateRange.start || (dateRange.start && dateRange.end)) {
+        // Iniciar nueva selección
+        onRangeChange?.({ start: date, end: null });
+        setSelectingEnd(true);
+      } else if (selectingEnd) {
+        // Completar el rango
+        if (date < dateRange.start) {
+          // Si la fecha es anterior al inicio, intercambiar
+          onRangeChange?.({ start: date, end: dateRange.start });
+        } else {
+          onRangeChange?.({ start: dateRange.start, end: date });
+        }
+        setSelectingEnd(false);
+      }
+      return;
+    }
+
+    // Modo select: toggle date selection
     if (isDateSelected(date)) {
-      onDatesChange(selectedDates.filter(d =>
-        d.getFullYear() !== date.getFullYear() ||
-        d.getMonth() !== date.getMonth() ||
-        d.getDate() !== date.getDate()
-      ));
+      onDatesChange?.(selectedDates.filter(d => !isSameDay(d, date)));
     } else {
-      onDatesChange([...selectedDates, date]);
+      onDatesChange?.([...selectedDates, date]);
     }
   };
 
   const isToday = (date: Date) => {
     const today = new Date();
-    return date.getFullYear() === today.getFullYear() &&
-      date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate();
+    return isSameDay(date, today);
   };
 
   // Check if we can go to previous month
@@ -128,6 +218,35 @@ export default function AvailabilityCalendar({
     const prevMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
     const today = new Date();
     return prevMonth >= new Date(today.getFullYear(), today.getMonth(), 1);
+  };
+
+  // Calcular número de días del rango
+  const rangeDays = useMemo(() => {
+    if (mode !== 'range' || !dateRange.start || !dateRange.end) return 0;
+    const diffTime = Math.abs(dateRange.end.getTime() - dateRange.start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }, [mode, dateRange]);
+
+  // Obtener clase de estilo según ocupación
+  const getOccupancyClass = (date: Date, available: boolean): string => {
+    if (!available) return '';
+
+    const occ = getDateOccupancy(date);
+    if (!occ) {
+      // Sin datos de ocupación, mostrar como disponible normal
+      return 'bg-green-100 text-green-700 hover:bg-green-200';
+    }
+
+    switch (occ.status) {
+      case 'available':
+        return 'bg-green-100 text-green-700 hover:bg-green-200';
+      case 'partial':
+        return 'bg-amber-100 text-amber-700 hover:bg-amber-200';
+      case 'full':
+        return 'bg-red-100 text-red-400 cursor-not-allowed';
+      default:
+        return 'bg-green-100 text-green-700 hover:bg-green-200';
+    }
   };
 
   return (
@@ -171,9 +290,14 @@ export default function AvailabilityCalendar({
           }
 
           const disabled = isDateDisabled(date);
-          const selected = isDateSelected(date);
-          const available = mode === 'view' && isDateAvailable(date);
+          const selected = mode === 'select' && isDateSelected(date);
+          const available = (mode === 'view' || mode === 'range') && isDateAvailable(date);
           const today = isToday(date);
+          const inRange = isInRange(date);
+          const rangeStart = isRangeStart(date);
+          const rangeEnd = isRangeEnd(date);
+          const occ = getDateOccupancy(date);
+          const isFull = occ?.status === 'full';
 
           return (
             <button
@@ -181,16 +305,26 @@ export default function AvailabilityCalendar({
               type="button"
               onClick={() => handleDateClick(date)}
               disabled={disabled}
+              title={occ ? `${occ.booked}/${occ.capacity} reservas` : undefined}
               className={`
-                aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-all
+                aspect-square flex flex-col items-center justify-center rounded-lg text-sm font-medium transition-all relative
                 ${disabled ? 'text-gray-300 cursor-not-allowed' : 'cursor-pointer'}
-                ${today && !selected ? 'ring-2 ring-primary ring-inset' : ''}
+                ${today && !selected && !inRange ? 'ring-2 ring-primary ring-inset' : ''}
                 ${selected ? 'bg-primary text-white' : ''}
-                ${available && !selected ? 'bg-green-100 text-green-700 hover:bg-green-200' : ''}
-                ${!disabled && !selected && !available ? 'hover:bg-gray-100 text-gray-700' : ''}
+                ${rangeStart || rangeEnd ? 'bg-primary text-white' : ''}
+                ${inRange && !rangeStart && !rangeEnd ? 'bg-primary/20 text-primary' : ''}
+                ${available && !selected && !inRange && !isFull ? getOccupancyClass(date, available) : ''}
+                ${isFull && !inRange ? 'bg-red-100 text-red-400 cursor-not-allowed' : ''}
+                ${!disabled && !selected && !available && !inRange ? 'hover:bg-gray-100 text-gray-700' : ''}
               `}
             >
-              {date.getDate()}
+              <span>{date.getDate()}</span>
+              {/* Indicador de ocupación parcial */}
+              {occ && occ.status === 'partial' && !inRange && !selected && (
+                <span className="text-[9px] leading-none">
+                  {occ.capacity - occ.booked}
+                </span>
+              )}
             </button>
           );
         })}
@@ -219,16 +353,78 @@ export default function AvailabilityCalendar({
 
       {mode === 'view' && (
         <div className="mt-4 pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
             <div className="flex items-center gap-1">
               <div className="w-4 h-4 rounded bg-green-100" />
               <span>Disponible</span>
             </div>
+            {occupancy.length > 0 && (
+              <>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4 rounded bg-amber-100" />
+                  <span>Ocupado</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4 rounded bg-red-100" />
+                  <span>Completo</span>
+                </div>
+              </>
+            )}
             <div className="flex items-center gap-1">
               <div className="w-4 h-4 rounded bg-gray-100" />
               <span>No disponible</span>
             </div>
           </div>
+        </div>
+      )}
+
+      {mode === 'range' && (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 rounded bg-primary" />
+              <span>Inicio/Fin</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 rounded bg-primary/20" />
+              <span>En rango</span>
+            </div>
+            {occupancy.length > 0 ? (
+              <>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4 rounded bg-green-100" />
+                  <span>Libre</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4 rounded bg-amber-100" />
+                  <span>Ocupado</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-4 h-4 rounded bg-red-100" />
+                  <span>Completo</span>
+                </div>
+              </>
+            ) : availableDates.length > 0 && (
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 rounded bg-green-100" />
+                <span>Disponible</span>
+              </div>
+            )}
+          </div>
+          {dateRange.start && (
+            <div className="mt-2 text-sm text-gray-600">
+              {dateRange.end ? (
+                <span>
+                  {dateRange.start.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                  {' → '}
+                  {dateRange.end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                  <span className="text-primary font-medium"> ({rangeDays} {rangeDays === 1 ? 'día' : 'días'})</span>
+                </span>
+              ) : (
+                <span className="text-primary">Selecciona la fecha de fin</span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

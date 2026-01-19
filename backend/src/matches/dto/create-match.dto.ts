@@ -9,6 +9,10 @@ export class CreateMatchDto {
   message?: string;
 
   @IsOptional()
-  @IsDateString({}, { message: 'Fecha inválida' })
-  proposedDate?: string;
+  @IsDateString({}, { message: 'Fecha de inicio inválida' })
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'Fecha de fin inválida' })
+  endDate?: string;
 }

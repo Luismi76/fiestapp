@@ -14,8 +14,12 @@ export class UpdateMatchDto {
   status?: MatchStatus;
 
   @IsOptional()
-  @IsDateString({}, { message: 'Fecha inválida' })
-  agreedDate?: string;
+  @IsDateString({}, { message: 'Fecha de inicio inválida' })
+  startDate?: string;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'Fecha de fin inválida' })
+  endDate?: string;
 }
 
 export class SendMessageDto {

@@ -148,6 +148,7 @@ export default function CreateExperiencePage() {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [highlights, setHighlights] = useState<string[]>(['']);
   const [festivalError, setFestivalError] = useState('');
+  const [capacity, setCapacity] = useState(1);
 
   const {
     register,
@@ -248,6 +249,8 @@ export default function CreateExperiencePage() {
 
     try {
       const validHighlightsList = highlights.filter(h => h.trim() !== '');
+      // Convertir fechas a formato ISO string para el backend
+      const availabilityDates = selectedDates.map(date => date.toISOString());
       const experienceData: CreateExperienceData = {
         title: data.title,
         description: data.description,
@@ -256,6 +259,8 @@ export default function CreateExperiencePage() {
         type: data.type,
         price: data.type !== 'intercambio' && data.price ? parseFloat(data.price) : undefined,
         highlights: validHighlightsList.length > 0 ? validHighlightsList : undefined,
+        capacity: capacity,
+        availability: availabilityDates.length > 0 ? availabilityDates : undefined,
       };
 
       setUploadProgress('Creando experiencia...');
@@ -747,6 +752,39 @@ export default function CreateExperiencePage() {
                 <p className="text-xs text-gray-400 mt-1.5">Precio que pagarán los participantes</p>
               </div>
             )}
+
+            {/* Capacity */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Capacidad máxima
+              </label>
+              <p className="text-sm text-gray-500 mb-3">
+                ¿Cuántas personas puedes atender por día?
+              </p>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setCapacity(Math.max(1, capacity - 1))}
+                  className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 transition-colors"
+                >
+                  −
+                </button>
+                <div className="flex-1 text-center">
+                  <span className="text-4xl font-bold text-gray-900">{capacity}</span>
+                  <p className="text-sm text-gray-500">{capacity === 1 ? 'persona' : 'personas'}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCapacity(capacity + 1)}
+                  className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 transition-colors"
+                >
+                  +
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-3 text-center">
+                Las fechas se marcarán como completas cuando alcances esta capacidad
+              </p>
+            </div>
 
             {/* Calendar */}
             <div>

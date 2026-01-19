@@ -416,7 +416,8 @@ async function main() {
         requesterId: 'user-demo',
         hostId: 'user-maria',
         status: 'accepted',
-        agreedDate: new Date('2026-04-22'),
+        startDate: new Date('2026-04-22'),
+        endDate: new Date('2026-04-24'),
       },
     }),
     prisma.match.create({
@@ -435,7 +436,8 @@ async function main() {
         requesterId: 'user-demo',
         hostId: 'user-ana',
         status: 'completed',
-        agreedDate: new Date('2026-02-15'),
+        startDate: new Date('2026-02-15'),
+        endDate: new Date('2026-02-16'),
       },
     }),
     prisma.match.create({
@@ -445,7 +447,8 @@ async function main() {
         requesterId: 'user-carlos',
         hostId: 'user-laura',
         status: 'accepted',
-        agreedDate: new Date('2026-03-17'),
+        startDate: new Date('2026-03-17'),
+        endDate: new Date('2026-03-19'),
       },
     }),
     prisma.match.create({

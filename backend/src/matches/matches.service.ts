@@ -28,6 +28,13 @@ export class MatchesService {
     const experience = await this.prisma.experience.findUnique({
       where: { id: createDto.experienceId },
       include: { host: true },
+      // No es include, usamos select para capacity
+    });
+
+    // Obtener capacity por separado
+    const expWithCapacity = await this.prisma.experience.findUnique({
+      where: { id: createDto.experienceId },
+      select: { capacity: true },
     });
 
     if (!experience) {
@@ -66,6 +73,40 @@ export class MatchesService {
       }
     }
 
+    // Verificar capacidad si hay fechas seleccionadas
+    if (createDto.startDate) {
+      const startDate = new Date(createDto.startDate);
+      const endDate = createDto.endDate
+        ? new Date(createDto.endDate)
+        : startDate;
+
+      // Contar matches activos que se solapan con las fechas seleccionadas
+      const overlappingMatches = await this.prisma.match.count({
+        where: {
+          experienceId: createDto.experienceId,
+          status: { in: ['pending', 'accepted'] },
+          OR: [
+            // Match con rango que se solapa
+            {
+              startDate: { lte: endDate },
+              endDate: { gte: startDate },
+            },
+            // Match con solo startDate que cae en el rango
+            {
+              startDate: { gte: startDate, lte: endDate },
+              endDate: null,
+            },
+          ],
+        },
+      });
+
+      if (overlappingMatches >= (expWithCapacity?.capacity || 1)) {
+        throw new BadRequestException(
+          'No hay disponibilidad para las fechas seleccionadas. La experiencia está completa.',
+        );
+      }
+    }
+
     // Crear el match
     const match = await this.prisma.match.create({
       data: {
@@ -73,9 +114,8 @@ export class MatchesService {
         requesterId,
         hostId: experience.hostId,
         status: 'pending',
-        agreedDate: createDto.proposedDate
-          ? new Date(createDto.proposedDate)
-          : null,
+        startDate: createDto.startDate ? new Date(createDto.startDate) : null,
+        endDate: createDto.endDate ? new Date(createDto.endDate) : null,
       },
       include: {
         experience: {
@@ -280,7 +320,12 @@ export class MatchesService {
   }
 
   // Aceptar match (solo host)
-  async accept(id: string, hostId: string, agreedDate?: string) {
+  async accept(
+    id: string,
+    hostId: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
     const match = await this.prisma.match.findUnique({
       where: { id },
       include: { experience: true },
@@ -313,7 +358,8 @@ export class MatchesService {
       where: { id },
       data: {
         status: MatchStatus.ACCEPTED,
-        agreedDate: agreedDate ? new Date(agreedDate) : match.agreedDate,
+        startDate: startDate ? new Date(startDate) : match.startDate,
+        endDate: endDate ? new Date(endDate) : match.endDate,
       },
       include: {
         experience: true,

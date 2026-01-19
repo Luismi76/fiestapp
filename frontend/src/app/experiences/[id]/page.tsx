@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { experiencesApi, matchesApi } from '@/lib/api';
-import { ExperienceDetail } from '@/types/experience';
+import { ExperienceDetail, DateOccupancy } from '@/types/experience';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
@@ -240,9 +240,10 @@ export default function ExperienceDetailPage() {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [message, setMessage] = useState('');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [occupancy, setOccupancy] = useState<DateOccupancy[]>([]);
 
   useEffect(() => {
     const fetchExperience = async () => {
@@ -251,6 +252,15 @@ export default function ExperienceDetailPage() {
         const data = await experiencesApi.getById(id);
         setExperience(data);
         setUseMockData(false);
+
+        // Cargar ocupación para mostrar disponibilidad real
+        try {
+          const occupancyData = await experiencesApi.getOccupancy(id);
+          setOccupancy(occupancyData.dates);
+        } catch {
+          // Si falla la carga de ocupación, continuamos sin ella
+          console.log('No se pudo cargar la ocupación');
+        }
       } catch {
         if (mockExperiencesMap[id]) {
           setExperience(mockExperiencesMap[id] as ExperienceDetail);
@@ -276,12 +286,14 @@ export default function ExperienceDetailPage() {
   const handleSubmitRequest = async () => {
     if (!experience) return;
     if (useMockData) {
-      const dateStr = selectedDate
-        ? selectedDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+      const dateStr = dateRange.start
+        ? dateRange.end
+          ? `${dateRange.start.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} - ${dateRange.end.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`
+          : dateRange.start.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
         : 'Sin fecha específica';
       setShowModal(false);
-      alert(`¡Solicitud enviada! (Modo demo)\n\nFecha: ${dateStr}`);
-      setSelectedDate(null);
+      alert(`¡Solicitud enviada! (Modo demo)\n\nFechas: ${dateStr}`);
+      setDateRange({ start: null, end: null });
       setMessage('');
       return;
     }
@@ -291,6 +303,8 @@ export default function ExperienceDetailPage() {
       const match = await matchesApi.create({
         experienceId: experience.id,
         message: message.trim() || undefined,
+        startDate: dateRange.start ? dateRange.start.toISOString() : undefined,
+        endDate: dateRange.end ? dateRange.end.toISOString() : undefined,
       });
       setShowModal(false);
       router.push(`/matches/${match.id}`);
@@ -561,16 +575,15 @@ export default function ExperienceDetailPage() {
               <h2 className="font-bold text-gray-900 flex items-center gap-2">
                 <span className="text-lg">📅</span> Disponibilidad
               </h2>
-              <p className="text-sm text-gray-500">{availabilityDates.length} fechas disponibles</p>
+              <p className="text-sm text-gray-500">{availabilityDates.length} fechas disponibles - Toca para reservar</p>
             </div>
             <div className="p-4">
               <AvailabilityCalendar
-                selectedDates={[]}
-                onDatesChange={() => {}}
                 availableDates={availabilityDates}
                 mode="view"
+                occupancy={occupancy}
                 onDateClick={(date) => {
-                  setSelectedDate(date);
+                  setDateRange({ start: date, end: null });
                   setShowModal(true);
                 }}
               />
@@ -652,11 +665,11 @@ export default function ExperienceDetailPage() {
       {/* Request Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
-          <div className="bg-white w-full sm:w-96 sm:rounded-2xl rounded-t-2xl p-6 max-h-[85vh] overflow-y-auto">
+          <div className="bg-white w-full sm:w-[420px] sm:rounded-2xl rounded-t-2xl p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">Solicitar experiencia</h2>
               <button
-                onClick={() => { setShowModal(false); setSelectedDate(null); setMessage(''); setSubmitError(''); }}
+                onClick={() => { setShowModal(false); setDateRange({ start: null, end: null }); setMessage(''); setSubmitError(''); }}
                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
@@ -681,30 +694,35 @@ export default function ExperienceDetailPage() {
               </div>
             </div>
 
-            {/* Date selection */}
+            {/* Date range selection */}
             {availabilityDates.length > 0 && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
-                {selectedDate ? (
-                  <div className="flex items-center justify-between bg-blue-50 text-blue-700 p-3 rounded-xl">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Selecciona las fechas
+                </label>
+                {dateRange.start && dateRange.end ? (
+                  <div className="flex items-center justify-between bg-blue-50 text-blue-700 p-3 rounded-xl mb-3">
                     <span className="font-medium text-sm">
-                      📅 {selectedDate.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      📅 {dateRange.start.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                      {' → '}
+                      {dateRange.end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                     </span>
-                    <button onClick={() => setSelectedDate(null)} className="text-sm underline">Cambiar</button>
+                    <button onClick={() => setDateRange({ start: null, end: null })} className="text-sm underline">Cambiar</button>
                   </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {availabilityDates.slice(0, 6).map((date, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setSelectedDate(date)}
-                        className="px-3 py-2 bg-gray-100 hover:bg-blue-50 hover:text-blue-700 rounded-lg text-sm transition-colors"
-                      >
-                        {date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                      </button>
-                    ))}
+                ) : dateRange.start ? (
+                  <div className="bg-amber-50 text-amber-700 p-3 rounded-xl mb-3 text-sm">
+                    📅 Inicio: {dateRange.start.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - Selecciona fecha de fin
                   </div>
-                )}
+                ) : null}
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <AvailabilityCalendar
+                    mode="range"
+                    dateRange={dateRange}
+                    onRangeChange={setDateRange}
+                    availableDates={availabilityDates}
+                    occupancy={occupancy}
+                  />
+                </div>
               </div>
             )}
 

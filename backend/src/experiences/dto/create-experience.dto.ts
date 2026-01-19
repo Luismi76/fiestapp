@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsArray,
   IsEnum,
+  IsDateString,
   Min,
   MinLength,
 } from 'class-validator';
@@ -50,4 +51,14 @@ export class CreateExperienceDto {
   @IsArray()
   @IsString({ each: true })
   highlights?: string[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1, { message: 'La capacidad debe ser al menos 1' })
+  capacity?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsDateString({}, { each: true, message: 'Fecha de disponibilidad inválida' })
+  availability?: string[];
 }
