@@ -38,6 +38,9 @@ interface AvailabilityCalendarProps {
   // Restricciones
   minDate?: Date;
   maxDate?: Date;
+
+  // Fecha inicial para centrar el calendario
+  initialDate?: Date;
 }
 
 const DAYS_ES = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
@@ -57,8 +60,19 @@ export default function AvailabilityCalendar({
   occupancy = [],
   minDate = new Date(),
   maxDate,
+  initialDate,
 }: AvailabilityCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(() => {
+    // Prioridad: initialDate > primera fecha disponible > fecha actual
+    if (initialDate) {
+      return new Date(initialDate.getFullYear(), initialDate.getMonth(), 1);
+    }
+    if (availableDates.length > 0) {
+      const firstAvailable = availableDates.reduce((earliest, date) =>
+        date < earliest ? date : earliest
+      , availableDates[0]);
+      return new Date(firstAvailable.getFullYear(), firstAvailable.getMonth(), 1);
+    }
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });

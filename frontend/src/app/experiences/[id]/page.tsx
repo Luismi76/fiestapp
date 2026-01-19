@@ -616,6 +616,7 @@ export default function ExperienceDetailPage() {
                 availableDates={availabilityDates}
                 mode="view"
                 occupancy={occupancy}
+                initialDate={availabilityDates[0]}
                 onDateClick={(date) => {
                   setDateRange({ start: date, end: null });
                   setShowModal(true);
@@ -755,6 +756,7 @@ export default function ExperienceDetailPage() {
                     onRangeChange={setDateRange}
                     availableDates={availabilityDates}
                     occupancy={occupancy}
+                    initialDate={availabilityDates[0]}
                   />
                 </div>
               </div>
