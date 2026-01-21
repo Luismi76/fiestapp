@@ -5,37 +5,28 @@ import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
 import { SanitizePipe } from './common/pipes/sanitize.pipe';
+import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS FIRST (before helmet)
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://fiestapp.lmsc.es',
-    'https://www.fiestapp.lmsc.es',
-    process.env.FRONTEND_URL,
-  ].filter(Boolean);
+  // RAW CORS middleware - handles preflight BEFORE anything else
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin || '*';
 
-  app.enableCors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, etc.)
-      if (!origin) return callback(null, true);
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
+    res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
 
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.log(`CORS blocked origin: ${origin}`);
-        callback(null, true); // Allow all for now, but log blocked ones
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
-    exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+
+    next();
   });
 
   // Security headers (after CORS)
