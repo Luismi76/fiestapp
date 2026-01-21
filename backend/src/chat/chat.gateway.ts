@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { WalletService, PLATFORM_FEE } from '../wallet/wallet.service';
 import { Logger } from '@nestjs/common';
 
 interface AuthenticatedSocket extends Socket {
@@ -43,6 +44,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
+    private walletService: WalletService,
   ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
@@ -117,23 +119,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         id: matchId,
         OR: [{ hostId: client.userId }, { requesterId: client.userId }],
       },
-      include: {
-        experience: {
-          select: { price: true },
-        },
-      },
     });
 
     if (!match) {
       return { success: false, error: 'No access to this match' };
     }
 
-    // If experience has a price, payment must be held before joining chat
-    if (match.experience.price > 0 && match.paymentStatus !== 'held') {
+    // Verify user has enough balance to use chat
+    const hasBalance = await this.walletService.hasEnoughBalance(client.userId);
+    if (!hasBalance) {
       return {
         success: false,
-        error: 'Debes completar el pago mínimo antes de poder acceder al chat.',
-        requiresPayment: true,
+        error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para acceder al chat. Recarga tu saldo.`,
+        requiresTopUp: true,
+        requiredAmount: PLATFORM_FEE,
       };
     }
 
@@ -192,17 +191,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      // Verify user is part of this match and get experience details
+      // Verify user is part of this match
       const match = await this.prisma.match.findFirst({
         where: {
           id: data.matchId,
           OR: [{ hostId: client.userId }, { requesterId: client.userId }],
           status: { notIn: ['rejected', 'cancelled'] },
-        },
-        include: {
-          experience: {
-            select: { price: true },
-          },
         },
       });
 
@@ -210,12 +204,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return { success: false, error: 'No access to this match' };
       }
 
-      // If experience has a price, payment must be held before chatting
-      if (match.experience.price > 0 && match.paymentStatus !== 'held') {
+      // Verify user has enough balance to use chat
+      const hasBalance = await this.walletService.hasEnoughBalance(client.userId);
+      if (!hasBalance) {
         return {
           success: false,
-          error: 'Debes completar el pago mínimo antes de poder usar el chat.',
-          requiresPayment: true,
+          error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para usar el chat. Recarga tu saldo.`,
+          requiresTopUp: true,
+          requiredAmount: PLATFORM_FEE,
         };
       }
 

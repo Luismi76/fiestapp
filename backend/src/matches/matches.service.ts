@@ -675,11 +675,6 @@ export class MatchesService {
   async sendMessage(matchId: string, senderId: string, content: string) {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
-      include: {
-        experience: {
-          select: { price: true },
-        },
-      },
     });
 
     if (!match) {
@@ -698,10 +693,11 @@ export class MatchesService {
       );
     }
 
-    // Si la experiencia tiene precio, el pago debe estar retenido
-    if (match.experience.price > 0 && match.paymentStatus !== 'held') {
+    // Verificar que el usuario tiene saldo suficiente en su monedero
+    const hasBalance = await this.walletService.hasEnoughBalance(senderId);
+    if (!hasBalance) {
       throw new BadRequestException(
-        'Debes completar el pago mínimo antes de poder usar el chat',
+        `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para usar el chat. Recarga tu saldo.`,
       );
     }
 
