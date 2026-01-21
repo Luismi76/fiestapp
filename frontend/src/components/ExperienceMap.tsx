@@ -54,6 +54,11 @@ interface ExperienceMapProps {
   showClustering?: boolean;
 }
 
+// Helper to encode SVG for data URI (handles Unicode)
+const encodeSvgForDataUri = (svg: string): string => {
+  return `data:image/svg+xml,${encodeURIComponent(svg.trim())}`;
+};
+
 // Custom marker icons as SVG data URIs
 const createMarkerIcon = (type: 'intercambio' | 'pago' | 'mixto' | 'cluster', count?: number) => {
   const colors = {
@@ -68,35 +73,20 @@ const createMarkerIcon = (type: 'intercambio' | 'pago' | 'mixto' | 'cluster', co
   if (type === 'cluster' && count) {
     // Cluster icon with count
     const size = count > 99 ? 50 : count > 9 ? 44 : 38;
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-        <circle cx="${size/2}" cy="${size/2}" r="${size/2 - 2}" fill="${bg}" stroke="${border}" stroke-width="3"/>
-        <text x="50%" y="50%" text-anchor="middle" dy=".35em" fill="white" font-family="system-ui, sans-serif" font-size="${count > 99 ? 12 : 14}" font-weight="bold">${count}</text>
-      </svg>
-    `;
-    return `data:image/svg+xml;base64,${btoa(svg)}`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${size/2 - 2}" fill="${bg}" stroke="${border}" stroke-width="3"/><text x="50%" y="50%" text-anchor="middle" dy=".35em" fill="white" font-family="system-ui, sans-serif" font-size="${count > 99 ? 12 : 14}" font-weight="bold">${count}</text></svg>`;
+    return encodeSvgForDataUri(svg);
   }
 
-  // Regular marker icon
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
-      <defs>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
-        </filter>
-      </defs>
-      <path filter="url(#shadow)" d="M16 0C7.163 0 0 7.163 0 16c0 8.837 16 24 16 24s16-15.163 16-24C32 7.163 24.837 0 16 0z" fill="${bg}" stroke="${border}" stroke-width="2"/>
-      <circle cx="16" cy="14" r="6" fill="white"/>
-      ${type === 'intercambio' ? `
-        <path d="M13 14h6M16 11v6" stroke="${bg}" stroke-width="2" stroke-linecap="round"/>
-      ` : type === 'pago' ? `
-        <text x="16" y="17" text-anchor="middle" fill="${bg}" font-family="system-ui" font-size="10" font-weight="bold">€</text>
-      ` : `
-        <path d="M13 12l3 4 3-4M13 16l3-4 3 4" stroke="${bg}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      `}
-    </svg>
-  `;
-  return `data:image/svg+xml;base64,${btoa(svg)}`;
+  // Regular marker icon - use E character instead of € symbol to avoid encoding issues
+  const innerIcon = type === 'intercambio'
+    ? `<path d="M13 14h6M16 11v6" stroke="${bg}" stroke-width="2" stroke-linecap="round"/>`
+    : type === 'pago'
+    ? `<text x="16" y="17" text-anchor="middle" fill="${bg}" font-family="system-ui" font-size="10" font-weight="bold">E</text>`
+    : `<path d="M13 12l3 4 3-4M13 16l3-4 3 4" stroke="${bg}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40"><defs><filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/></filter></defs><path filter="url(#shadow)" d="M16 0C7.163 0 0 7.163 0 16c0 8.837 16 24 16 24s16-15.163 16-24C32 7.163 24.837 0 16 0z" fill="${bg}" stroke="${border}" stroke-width="2"/><circle cx="16" cy="14" r="6" fill="white"/>${innerIcon}</svg>`;
+
+  return encodeSvgForDataUri(svg);
 };
 
 // Map tile styles
