@@ -12,6 +12,7 @@ import { CreateMatchDto } from './dto/create-match.dto';
 import { MatchStatus } from './dto/update-match.dto';
 import { PaymentsService } from '../payments/payments.service';
 import { WalletService, PLATFORM_FEE } from '../wallet/wallet.service';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class MatchesService {
@@ -20,6 +21,8 @@ export class MatchesService {
     @Inject(forwardRef(() => PaymentsService))
     private paymentsService: PaymentsService,
     private walletService: WalletService,
+    @Inject(forwardRef(() => UsersService))
+    private usersService: UsersService,
   ) {}
 
   // Crear solicitud de match
@@ -49,6 +52,17 @@ export class MatchesService {
     if (experience.hostId === requesterId) {
       throw new BadRequestException(
         'No puedes solicitar tu propia experiencia',
+      );
+    }
+
+    // Verificar si hay bloqueo entre usuarios
+    const hasBlock = await this.usersService.hasBlockBetweenUsers(
+      requesterId,
+      experience.hostId,
+    );
+    if (hasBlock) {
+      throw new ForbiddenException(
+        'No puedes solicitar experiencias de este usuario',
       );
     }
 
@@ -166,7 +180,19 @@ export class MatchesService {
 
     return this.prisma.match.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        experienceId: true,
+        requesterId: true,
+        hostId: true,
+        status: true,
+        paymentStatus: true,
+        hostConfirmed: true,
+        requesterConfirmed: true,
+        startDate: true,
+        endDate: true,
+        createdAt: true,
+        updatedAt: true,
         experience: {
           select: {
             id: true,
@@ -213,7 +239,19 @@ export class MatchesService {
 
     return this.prisma.match.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        experienceId: true,
+        requesterId: true,
+        hostId: true,
+        status: true,
+        paymentStatus: true,
+        hostConfirmed: true,
+        requesterConfirmed: true,
+        startDate: true,
+        endDate: true,
+        createdAt: true,
+        updatedAt: true,
         experience: {
           select: {
             id: true,
@@ -268,6 +306,9 @@ export class MatchesService {
             verified: true,
             city: true,
             bio: true,
+            hasPartner: true,
+            hasChildren: true,
+            childrenAges: true,
           },
         },
         host: {
@@ -278,6 +319,9 @@ export class MatchesService {
             verified: true,
             city: true,
             bio: true,
+            hasPartner: true,
+            hasChildren: true,
+            childrenAges: true,
           },
         },
         messages: {
@@ -460,7 +504,122 @@ export class MatchesService {
     });
   }
 
-  // Marcar como completado (solo host después de accepted)
+  // Confirmar experiencia completada (sistema bidireccional)
+  async confirmCompletion(id: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    // Verificar que el usuario es parte del match
+    const isHost = match.hostId === userId;
+    const isRequester = match.requesterId === userId;
+
+    if (!isHost && !isRequester) {
+      throw new ForbiddenException('No tienes acceso a esta solicitud');
+    }
+
+    if (match.status !== 'accepted') {
+      throw new BadRequestException(
+        'Solo se pueden confirmar solicitudes aceptadas',
+      );
+    }
+
+    // Verificar si ya confirmó
+    if (isHost && match.hostConfirmed) {
+      throw new BadRequestException('Ya has confirmado esta experiencia');
+    }
+    if (isRequester && match.requesterConfirmed) {
+      throw new BadRequestException('Ya has confirmado esta experiencia');
+    }
+
+    // Actualizar confirmación
+    const updateData: Record<string, boolean> = {};
+    if (isHost) {
+      updateData.hostConfirmed = true;
+    } else {
+      updateData.requesterConfirmed = true;
+    }
+
+    const updatedMatch = await this.prisma.match.update({
+      where: { id },
+      data: updateData,
+    });
+
+    // Verificar si ambos han confirmado
+    const bothConfirmed =
+      (isHost && updatedMatch.hostConfirmed && match.requesterConfirmed) ||
+      (isRequester && match.hostConfirmed && updatedMatch.requesterConfirmed);
+
+    if (bothConfirmed) {
+      // Completar el match automáticamente
+      return this.completeMatch(id);
+    }
+
+    return updatedMatch;
+  }
+
+  // Completar match internamente (cuando ambos confirman)
+  private async completeMatch(id: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+
+    // Verificar saldo de ambos usuarios antes de completar
+    const [hostHasBalance, requesterHasBalance] = await Promise.all([
+      this.walletService.hasEnoughBalance(match.hostId),
+      this.walletService.hasEnoughBalance(match.requesterId),
+    ]);
+
+    if (!hostHasBalance) {
+      throw new BadRequestException(
+        `El anfitrión no tiene saldo suficiente (${PLATFORM_FEE}€) para completar esta operación.`,
+      );
+    }
+
+    if (!requesterHasBalance) {
+      throw new BadRequestException(
+        `El viajero no tiene saldo suficiente (${PLATFORM_FEE}€) para completar esta operación.`,
+      );
+    }
+
+    // Descontar tarifa de plataforma a ambos usuarios
+    await Promise.all([
+      this.walletService.deductPlatformFee(match.hostId, id),
+      this.walletService.deductPlatformFee(match.requesterId, id),
+    ]);
+
+    return this.prisma.match.update({
+      where: { id },
+      data: { status: MatchStatus.COMPLETED },
+      include: {
+        experience: true,
+        requester: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        host: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Marcar como completado (solo host después de accepted) - mantener para compatibilidad
   async complete(id: string, hostId: string) {
     const match = await this.prisma.match.findUnique({
       where: { id },

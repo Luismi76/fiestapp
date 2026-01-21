@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PushService } from '../notifications/push.service';
 
 @Injectable()
 export class RemindersService {
@@ -10,6 +12,8 @@ export class RemindersService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private notificationsService: NotificationsService,
+    private pushService: PushService,
   ) {}
 
   // Run every day at 9:00 AM
@@ -65,7 +69,8 @@ export class RemindersService {
 
       try {
         // Send to requester
-        await this.emailService.sendReminderEmail(
+        await this.sendReminder(
+          match.requester.id,
           match.requester.email,
           match.requester.name,
           match.experience.title,
@@ -77,7 +82,8 @@ export class RemindersService {
         );
 
         // Send to host
-        await this.emailService.sendReminderEmail(
+        await this.sendReminder(
+          match.host.id,
           match.host.email,
           match.host.name,
           match.experience.title,
@@ -108,7 +114,8 @@ export class RemindersService {
 
       try {
         // Send to requester
-        await this.emailService.sendReminderEmail(
+        await this.sendReminder(
+          match.requester.id,
           match.requester.email,
           match.requester.name,
           match.experience.title,
@@ -120,7 +127,8 @@ export class RemindersService {
         );
 
         // Send to host
-        await this.emailService.sendReminderEmail(
+        await this.sendReminder(
+          match.host.id,
           match.host.email,
           match.host.name,
           match.experience.title,
@@ -148,9 +156,74 @@ export class RemindersService {
     this.logger.log('Reminder check complete');
   }
 
+  /**
+   * Envía recordatorio a un usuario (email, notificación in-app, push)
+   */
+  private async sendReminder(
+    userId: string,
+    email: string,
+    name: string,
+    experienceTitle: string,
+    city: string,
+    partnerName: string,
+    date: Date,
+    daysUntil: number,
+    matchId: string,
+  ) {
+    // Check email preferences
+    const shouldSendEmail = await this.notificationsService.shouldSendEmail(
+      userId,
+      'reminders',
+    );
+
+    // Send email if enabled
+    if (shouldSendEmail) {
+      await this.emailService.sendReminderEmail(
+        email,
+        name,
+        experienceTitle,
+        city,
+        partnerName,
+        date,
+        daysUntil,
+        matchId,
+      );
+    }
+
+    // Create in-app notification
+    if (daysUntil === 1) {
+      await this.notificationsService.notifyReminder1Day(
+        userId,
+        matchId,
+        experienceTitle,
+        date,
+      );
+    } else {
+      await this.notificationsService.notifyReminder3Days(
+        userId,
+        matchId,
+        experienceTitle,
+        date,
+      );
+    }
+
+    // Send push notification
+    await this.pushService.pushReminder(userId, experienceTitle, daysUntil, matchId);
+  }
+
   // Manual trigger for testing
   async triggerReminders() {
     await this.sendReminders();
     return { message: 'Reminders sent' };
+  }
+
+  /**
+   * Limpia notificaciones antiguas (cron diario a las 3:00 AM)
+   */
+  @Cron('0 3 * * *')
+  async cleanupOldNotifications() {
+    this.logger.log('Starting notification cleanup...');
+    const result = await this.notificationsService.deleteOldNotifications();
+    this.logger.log(`Deleted ${result.count} old notifications`);
   }
 }

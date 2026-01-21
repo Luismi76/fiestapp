@@ -432,4 +432,131 @@ export class ReviewsService {
       targetUser,
     };
   }
+
+  // ============================================
+  // Respuestas del anfitrion
+  // ============================================
+
+  /**
+   * Responder a una resena (solo el host de la experiencia puede hacerlo)
+   */
+  async respondToReview(reviewId: string, hostId: string, response: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+      include: {
+        experience: {
+          select: { hostId: true },
+        },
+      },
+    });
+
+    if (!review) {
+      throw new NotFoundException('Resena no encontrada');
+    }
+
+    // Solo el host de la experiencia puede responder
+    if (review.experience.hostId !== hostId) {
+      throw new ForbiddenException('Solo el anfitrion puede responder a esta resena');
+    }
+
+    // Solo una respuesta por resena
+    if (review.hostResponse) {
+      throw new BadRequestException('Ya has respondido a esta resena');
+    }
+
+    return this.prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        hostResponse: response,
+        hostResponseAt: new Date(),
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            verified: true,
+          },
+        },
+        target: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        experience: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Actualizar respuesta a una resena
+   */
+  async updateResponse(reviewId: string, hostId: string, response: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+      include: {
+        experience: {
+          select: { hostId: true },
+        },
+      },
+    });
+
+    if (!review) {
+      throw new NotFoundException('Resena no encontrada');
+    }
+
+    if (review.experience.hostId !== hostId) {
+      throw new ForbiddenException('Solo el anfitrion puede editar esta respuesta');
+    }
+
+    if (!review.hostResponse) {
+      throw new BadRequestException('No hay respuesta que editar');
+    }
+
+    return this.prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        hostResponse: response,
+        hostResponseAt: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Eliminar respuesta a una resena
+   */
+  async deleteResponse(reviewId: string, hostId: string) {
+    const review = await this.prisma.review.findUnique({
+      where: { id: reviewId },
+      include: {
+        experience: {
+          select: { hostId: true },
+        },
+      },
+    });
+
+    if (!review) {
+      throw new NotFoundException('Resena no encontrada');
+    }
+
+    if (review.experience.hostId !== hostId) {
+      throw new ForbiddenException('Solo el anfitrion puede eliminar esta respuesta');
+    }
+
+    return this.prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        hostResponse: null,
+        hostResponseAt: null,
+      },
+    });
+  }
 }

@@ -5,6 +5,7 @@ import {
   Min,
   MinLength,
   MaxLength,
+  IsBoolean,
 } from 'class-validator';
 
 export class UpdateProfileDto {
@@ -32,4 +33,17 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  @IsOptional()
+  @IsBoolean({ message: 'hasPartner debe ser verdadero o falso' })
+  hasPartner?: boolean;
+
+  @IsOptional()
+  @IsBoolean({ message: 'hasChildren debe ser verdadero o falso' })
+  hasChildren?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50, { message: 'Las edades de los hijos no pueden tener más de 50 caracteres' })
+  childrenAges?: string;
 }

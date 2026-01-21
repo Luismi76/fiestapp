@@ -1,7 +1,9 @@
 import {
   Controller,
   Get,
+  Post,
   Put,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -47,6 +49,34 @@ export class UsersController {
     @Request() req: AuthenticatedRequest,
   ) {
     return this.usersService.updateProfile(req.user.userId, updateDto);
+  }
+
+  // Obtener lista de usuarios bloqueados (requiere auth)
+  @Get('me/blocked')
+  @UseGuards(JwtAuthGuard)
+  getBlockedUsers(@Request() req: AuthenticatedRequest) {
+    return this.usersService.getBlockedUsers(req.user.userId);
+  }
+
+  // Bloquear usuario (requiere auth)
+  @Post(':id/block')
+  @UseGuards(JwtAuthGuard)
+  blockUser(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.usersService.blockUser(req.user.userId, id, reason);
+  }
+
+  // Desbloquear usuario (requiere auth)
+  @Delete(':id/block')
+  @UseGuards(JwtAuthGuard)
+  unblockUser(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.usersService.unblockUser(req.user.userId, id);
   }
 
   // Obtener perfil público de un usuario (público)

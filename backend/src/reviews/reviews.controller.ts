@@ -130,4 +130,37 @@ export class ReviewsController {
   remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.reviewsService.remove(id, req.user.userId);
   }
+
+  // ============================================
+  // Respuestas del anfitrion
+  // ============================================
+
+  // Responder a una resena (solo host)
+  @Post(':id/respond')
+  @UseGuards(JwtAuthGuard)
+  respondToReview(
+    @Param('id') id: string,
+    @Body('response') response: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.reviewsService.respondToReview(id, req.user.userId, response);
+  }
+
+  // Actualizar respuesta (solo host)
+  @Put(':id/respond')
+  @UseGuards(JwtAuthGuard)
+  updateResponse(
+    @Param('id') id: string,
+    @Body('response') response: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.reviewsService.updateResponse(id, req.user.userId, response);
+  }
+
+  // Eliminar respuesta (solo host)
+  @Delete(':id/respond')
+  @UseGuards(JwtAuthGuard)
+  deleteResponse(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    return this.reviewsService.deleteResponse(id, req.user.userId);
+  }
 }

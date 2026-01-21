@@ -7,7 +7,7 @@ import { usersApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserPublicProfile } from '@/types/user';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
-import BottomNav from '@/components/BottomNav';
+import MainLayout from '@/components/MainLayout';
 import ReputationBadges from '@/components/ReputationBadges';
 
 // Mock profiles para fallback
@@ -198,8 +198,9 @@ export default function PublicProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header with gradient */}
+    <MainLayout>
+      <div className="min-h-screen bg-gray-50 pb-24 md:pb-8">
+        {/* Header with gradient */}
       <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
@@ -512,8 +513,7 @@ export default function PublicProfilePage() {
           </div>
         </div>
       )}
-
-      <BottomNav />
-    </div>
+      </div>
+    </MainLayout>
   );
 }

@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bull';
+import type { Queue } from 'bull';
 import { Resend } from 'resend';
 
 @Injectable()
@@ -7,13 +9,66 @@ export class EmailService {
   private resend: Resend;
   private readonly logger = new Logger(EmailService.name);
   private fromEmail: string;
+  private readonly useQueue: boolean;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @Optional() @InjectQueue('email') private emailQueue?: Queue,
+  ) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
     this.resend = new Resend(apiKey);
     this.fromEmail =
       this.configService.get<string>('RESEND_FROM_EMAIL') ||
       'FiestApp <noreply@fiestapp.com>';
+    this.useQueue = !!emailQueue;
+
+    if (this.useQueue) {
+      this.logger.log('Email queue enabled (Redis connected)');
+    } else {
+      this.logger.log('Email queue disabled (sending synchronously)');
+    }
+  }
+
+  /**
+   * Envía un email directamente o lo encola si hay Redis disponible
+   */
+  private async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+    if (this.useQueue && this.emailQueue) {
+      try {
+        await this.emailQueue.add({ to, subject, html }, {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 1000 },
+          removeOnComplete: true,
+          removeOnFail: false,
+        });
+        this.logger.debug(`Email queued for ${to}`);
+        return true;
+      } catch (error) {
+        this.logger.warn(`Failed to queue email, sending directly: ${error}`);
+        // Fallback to direct sending
+      }
+    }
+
+    // Direct sending
+    try {
+      const { error } = await this.resend.emails.send({
+        from: this.fromEmail,
+        to,
+        subject,
+        html,
+      });
+
+      if (error) {
+        this.logger.error(`Error sending email: ${error.message}`);
+        return false;
+      }
+
+      this.logger.log(`Email sent to ${to}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Failed to send email: ${error}`);
+      return false;
+    }
   }
 
   async sendVerificationEmail(
@@ -26,26 +81,7 @@ export class EmailService {
     const verificationUrl = `${frontendUrl}/verify-email?token=${token}`;
 
     const html = this.getVerificationEmailTemplate(name, verificationUrl);
-
-    try {
-      const { error } = await this.resend.emails.send({
-        from: this.fromEmail,
-        to: email,
-        subject: 'Verifica tu cuenta en FiestApp',
-        html,
-      });
-
-      if (error) {
-        this.logger.error(`Error sending verification email: ${error.message}`);
-        return false;
-      }
-
-      this.logger.log(`Verification email sent to ${email}`);
-      return true;
-    } catch (error) {
-      this.logger.error(`Failed to send verification email: ${error}`);
-      return false;
-    }
+    return this.sendEmail(email, 'Verifica tu cuenta en FiestApp', html);
   }
 
   async sendPasswordResetEmail(
@@ -58,26 +94,7 @@ export class EmailService {
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
 
     const html = this.getPasswordResetEmailTemplate(name, resetUrl);
-
-    try {
-      const { error } = await this.resend.emails.send({
-        from: this.fromEmail,
-        to: email,
-        subject: 'Restablecer contraseña - FiestApp',
-        html,
-      });
-
-      if (error) {
-        this.logger.error(`Error sending password reset email: ${error.message}`);
-        return false;
-      }
-
-      this.logger.log(`Password reset email sent to ${email}`);
-      return true;
-    } catch (error) {
-      this.logger.error(`Failed to send password reset email: ${error}`);
-      return false;
-    }
+    return this.sendEmail(email, 'Restablecer contraseña - FiestApp', html);
   }
 
   private getPasswordResetEmailTemplate(name: string, resetUrl: string): string {
@@ -168,30 +185,12 @@ export class EmailService {
       matchUrl,
     );
 
-    try {
-      const subject =
-        daysUntil === 1
-          ? `Tu experiencia en ${experienceCity} es mañana`
-          : `Tu experiencia en ${experienceCity} es en ${daysUntil} días`;
+    const subject =
+      daysUntil === 1
+        ? `Tu experiencia en ${experienceCity} es mañana`
+        : `Tu experiencia en ${experienceCity} es en ${daysUntil} días`;
 
-      const { error } = await this.resend.emails.send({
-        from: this.fromEmail,
-        to: email,
-        subject,
-        html,
-      });
-
-      if (error) {
-        this.logger.error(`Error sending reminder email: ${error.message}`);
-        return false;
-      }
-
-      this.logger.log(`Reminder email sent to ${email} for match ${matchId}`);
-      return true;
-    } catch (error) {
-      this.logger.error(`Failed to send reminder email: ${error}`);
-      return false;
-    }
+    return this.sendEmail(email, subject, html);
   }
 
   private getReminderEmailTemplate(

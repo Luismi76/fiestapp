@@ -16,6 +16,15 @@ interface AuthenticatedSocket extends Socket {
   userId?: string;
 }
 
+// Simple rate limiter for WebSocket
+interface RateLimitEntry {
+  count: number;
+  resetAt: number;
+}
+
+const MESSAGE_RATE_LIMIT = 30; // 30 mensajes por minuto
+const RATE_LIMIT_WINDOW = 60000; // 1 minuto
+
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -29,6 +38,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private logger = new Logger('ChatGateway');
   private userSockets = new Map<string, Set<string>>(); // userId -> Set<socketId>
+  private messageRateLimits = new Map<string, RateLimitEntry>(); // userId -> rate limit data
 
   constructor(
     private jwtService: JwtService,
@@ -127,6 +137,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { success: true };
   }
 
+  // Check rate limit for a user
+  private checkRateLimit(userId: string): boolean {
+    const now = Date.now();
+    const entry = this.messageRateLimits.get(userId);
+
+    if (!entry || now > entry.resetAt) {
+      // Reset or create new entry
+      this.messageRateLimits.set(userId, {
+        count: 1,
+        resetAt: now + RATE_LIMIT_WINDOW,
+      });
+      return true;
+    }
+
+    if (entry.count >= MESSAGE_RATE_LIMIT) {
+      return false;
+    }
+
+    entry.count++;
+    return true;
+  }
+
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -134,6 +166,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     if (!client.userId) {
       return { success: false, error: 'Not authenticated' };
+    }
+
+    // Check rate limit
+    if (!this.checkRateLimit(client.userId)) {
+      this.logger.warn(`Rate limit exceeded for user ${client.userId}`);
+      return {
+        success: false,
+        error: 'Demasiados mensajes. Espera un momento antes de enviar más.',
+      };
     }
 
     try {

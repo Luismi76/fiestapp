@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import BottomNav from '@/components/BottomNav';
+import MainLayout from '@/components/MainLayout';
 import { experiencesApi, walletApi, WalletInfo } from '@/lib/api';
 import { Experience } from '@/types/experience';
 import { getUploadUrl, getAvatarUrl } from '@/lib/utils';
@@ -189,7 +189,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <MainLayout>
+      <div className="min-h-screen bg-gray-50 pb-24 md:pb-8">
       {/* Hero Header con imagen de fondo */}
       <div className="relative">
         {/* Background con imagen de fiesta */}
@@ -487,8 +488,7 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
-
-      <BottomNav />
-    </div>
+      </div>
+    </MainLayout>
   );
 }

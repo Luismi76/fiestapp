@@ -1,0 +1,60 @@
+# Docker Compose para desarrollo local
+# Uso: docker-compose -f docker-compose.dev.yml up -d
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fiestapp-db-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fiestapp
+      POSTGRES_PASSWORD: fiestapp_dev
+      POSTGRES_DB: fiestapp_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fiestapp -d fiestapp_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fiestapp-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Mailhog para testing de emails en desarrollo
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: fiestapp-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    environment:
+      MH_STORAGE: memory
+
+volumes:
+  postgres_data_dev:
+  redis_data_dev:
+
+# Nota: Backend y Frontend se ejecutan localmente con npm run dev
+# Las variables de entorno para desarrollo:
+#
+# DATABASE_URL=postgresql://fiestapp:fiestapp_dev@localhost:5432/fiestapp_dev
+# REDIS_URL=redis://localhost:6379
+# SMTP_HOST=localhost
+# SMTP_PORT=1025

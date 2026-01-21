@@ -1,13 +1,27 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService, CACHE_KEYS, CACHE_TTL } from '../cache/cache.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cacheService: CacheService,
+  ) {}
 
-  // Obtener perfil público de un usuario
+  // Obtener perfil público de un usuario (cacheado)
   async getPublicProfile(userId: string) {
+    const cached = await this.cacheService.get<any>(CACHE_KEYS.USER_PUBLIC(userId));
+    if (cached) {
+      return cached;
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -16,6 +30,10 @@ export class UsersService {
         avatar: true,
         bio: true,
         city: true,
+        age: true,
+        hasPartner: true,
+        hasChildren: true,
+        childrenAges: true,
         verified: true,
         createdAt: true,
         _count: {
@@ -102,12 +120,17 @@ export class UsersService {
       take: 5,
     });
 
-    return {
+    const result = {
       ...user,
       avgRating: avgRating._avg.rating || 0,
       experiences: experiencesWithRating,
       reviews,
     };
+
+    // Cachear por 5 minutos
+    await this.cacheService.set(CACHE_KEYS.USER_PUBLIC(userId), result, CACHE_TTL.USER_PROFILE);
+
+    return result;
   }
 
   // Actualizar perfil propio
@@ -120,7 +143,7 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: updateDto,
       select: {
@@ -133,8 +156,16 @@ export class UsersService {
         avatar: true,
         verified: true,
         createdAt: true,
+        hasPartner: true,
+        hasChildren: true,
+        childrenAges: true,
       },
     });
+
+    // Invalidar cache del usuario
+    await this.cacheService.invalidateUser(userId);
+
+    return updated;
   }
 
   // Obtener perfil completo propio
@@ -151,6 +182,9 @@ export class UsersService {
         avatar: true,
         verified: true,
         createdAt: true,
+        hasPartner: true,
+        hasChildren: true,
+        childrenAges: true,
         _count: {
           select: {
             experiences: true,
@@ -339,5 +373,146 @@ export class UsersService {
         {} as Record<string, number>,
       ),
     };
+  }
+
+  // Bloquear usuario
+  async blockUser(blockerId: string, blockedId: string, reason?: string) {
+    if (blockerId === blockedId) {
+      throw new BadRequestException('No puedes bloquearte a ti mismo');
+    }
+
+    // Verificar que el usuario a bloquear existe
+    const userToBlock = await this.prisma.user.findUnique({
+      where: { id: blockedId },
+    });
+
+    if (!userToBlock) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Verificar si ya está bloqueado
+    const existingBlock = await this.prisma.blockedUser.findUnique({
+      where: {
+        blockerId_blockedId: {
+          blockerId,
+          blockedId,
+        },
+      },
+    });
+
+    if (existingBlock) {
+      throw new ConflictException('Este usuario ya está bloqueado');
+    }
+
+    return this.prisma.blockedUser.create({
+      data: {
+        blockerId,
+        blockedId,
+        reason,
+      },
+    });
+  }
+
+  // Desbloquear usuario
+  async unblockUser(blockerId: string, blockedId: string) {
+    const block = await this.prisma.blockedUser.findUnique({
+      where: {
+        blockerId_blockedId: {
+          blockerId,
+          blockedId,
+        },
+      },
+    });
+
+    if (!block) {
+      throw new NotFoundException('Este usuario no está bloqueado');
+    }
+
+    await this.prisma.blockedUser.delete({
+      where: {
+        blockerId_blockedId: {
+          blockerId,
+          blockedId,
+        },
+      },
+    });
+
+    return { message: 'Usuario desbloqueado correctamente' };
+  }
+
+  // Obtener lista de usuarios bloqueados
+  async getBlockedUsers(userId: string) {
+    const blockedUsers = await this.prisma.blockedUser.findMany({
+      where: { blockerId: userId },
+      include: {
+        blocked: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            city: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return blockedUsers.map((b) => ({
+      ...b.blocked,
+      blockedAt: b.createdAt,
+      reason: b.reason,
+    }));
+  }
+
+  // Verificar si un usuario está bloqueado
+  async isUserBlocked(blockerId: string, blockedId: string): Promise<boolean> {
+    const block = await this.prisma.blockedUser.findUnique({
+      where: {
+        blockerId_blockedId: {
+          blockerId,
+          blockedId,
+        },
+      },
+    });
+    return !!block;
+  }
+
+  // Verificar si hay bloqueo mutuo (cualquier dirección)
+  async hasBlockBetweenUsers(
+    userId1: string,
+    userId2: string,
+  ): Promise<boolean> {
+    const block = await this.prisma.blockedUser.findFirst({
+      where: {
+        OR: [
+          { blockerId: userId1, blockedId: userId2 },
+          { blockerId: userId2, blockedId: userId1 },
+        ],
+      },
+    });
+    return !!block;
+  }
+
+  // Obtener IDs de usuarios bloqueados (para filtrar en búsquedas)
+  async getBlockedUserIds(userId: string): Promise<string[]> {
+    const blocks = await this.prisma.blockedUser.findMany({
+      where: {
+        OR: [{ blockerId: userId }, { blockedId: userId }],
+      },
+      select: {
+        blockerId: true,
+        blockedId: true,
+      },
+    });
+
+    const blockedIds = new Set<string>();
+    for (const block of blocks) {
+      if (block.blockerId === userId) {
+        blockedIds.add(block.blockedId);
+      } else {
+        blockedIds.add(block.blockerId);
+      }
+    }
+    return Array.from(blockedIds);
   }
 }

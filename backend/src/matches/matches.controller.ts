@@ -102,10 +102,19 @@ export class MatchesController {
     return this.matchesService.cancel(id, req.user.userId);
   }
 
-  // Marcar como completado
+  // Marcar como completado (legacy - solo host)
   @Patch(':id/complete')
   complete(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.matchesService.complete(id, req.user.userId);
+  }
+
+  // Confirmar experiencia completada (sistema bidireccional)
+  @Patch(':id/confirm')
+  confirmCompletion(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.matchesService.confirmCompletion(id, req.user.userId);
   }
 
   // Enviar mensaje

@@ -7,6 +7,10 @@ export interface UserPublicProfile {
   avatar?: string;
   bio?: string;
   city?: string;
+  age?: number;
+  hasPartner?: boolean;
+  hasChildren?: boolean;
+  childrenAges?: string;
   verified: boolean;
   createdAt: string;
   avgRating: number;
@@ -26,6 +30,9 @@ export interface UserFullProfile {
   bio?: string;
   city?: string;
   avatar?: string;
+  hasPartner?: boolean;
+  hasChildren?: boolean;
+  childrenAges?: string;
   verified: boolean;
   createdAt: string;
   avgRating: number;
@@ -49,4 +56,7 @@ export interface UpdateProfileData {
   bio?: string;
   city?: string;
   avatar?: string;
+  hasPartner?: boolean;
+  hasChildren?: boolean;
+  childrenAges?: string;
 }

@@ -14,6 +14,9 @@ interface FormData {
   age: string;
   bio: string;
   city: string;
+  hasPartner: boolean;
+  hasChildren: boolean;
+  childrenAges: string;
 }
 
 export default function EditProfilePage() {
@@ -49,6 +52,9 @@ export default function EditProfilePage() {
           age: profile.age?.toString() || '',
           bio: profile.bio || '',
           city: profile.city || '',
+          hasPartner: profile.hasPartner || false,
+          hasChildren: profile.hasChildren || false,
+          childrenAges: profile.childrenAges || '',
         });
       } catch {
         setError('No se pudo cargar el perfil');
@@ -73,6 +79,9 @@ export default function EditProfilePage() {
         bio: data.bio || undefined,
         city: data.city || undefined,
         age: data.age ? parseInt(data.age, 10) : undefined,
+        hasPartner: data.hasPartner,
+        hasChildren: data.hasChildren,
+        childrenAges: data.childrenAges || undefined,
       };
 
       await usersApi.updateProfile(updateData);
@@ -359,6 +368,64 @@ export default function EditProfilePage() {
             )}
             <p className="text-xs text-gray-400 text-right mt-1">
               Máximo 500 caracteres
+            </p>
+          </div>
+        </div>
+
+        {/* Situación familiar */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-100">
+            <label className="block text-xs font-medium text-gray-500 mb-3">
+              Situación familiar
+            </label>
+            <p className="text-xs text-gray-400 mb-4">
+              Esta información ayuda a encontrar experiencias compatibles
+            </p>
+
+            <div className="space-y-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                  {...register('hasPartner')}
+                />
+                <div>
+                  <span className="text-gray-900 font-medium">Tengo pareja</span>
+                  <p className="text-xs text-gray-400">Viajo o asisto a fiestas con mi pareja</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                  {...register('hasChildren')}
+                />
+                <div>
+                  <span className="text-gray-900 font-medium">Tengo hijos</span>
+                  <p className="text-xs text-gray-400">Viajo o asisto a fiestas con mis hijos</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div className="p-4">
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              Edades de los hijos
+            </label>
+            <input
+              type="text"
+              className="w-full text-gray-900 font-medium focus:outline-none placeholder:text-gray-300"
+              placeholder="Ej: 5, 8, 12"
+              {...register('childrenAges', {
+                maxLength: { value: 50, message: 'Máximo 50 caracteres' },
+              })}
+            />
+            {errors.childrenAges && (
+              <p className="text-red-500 text-xs mt-1">{errors.childrenAges.message}</p>
+            )}
+            <p className="text-xs text-gray-400 mt-1">
+              Opcional. Separa las edades con comas
             </p>
           </div>
         </div>

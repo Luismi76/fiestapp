@@ -4,25 +4,35 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService, CACHE_KEYS, CACHE_TTL } from '../cache/cache.service';
 import { CreateFestivalDto } from './dto/create-festival.dto';
 
 @Injectable()
 export class FestivalsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cacheService: CacheService,
+  ) {}
 
   async findAll() {
-    return this.prisma.festival.findMany({
-      include: {
-        _count: {
-          select: {
-            experiences: true,
+    return this.cacheService.getOrSet(
+      CACHE_KEYS.FESTIVALS_ALL,
+      async () => {
+        return this.prisma.festival.findMany({
+          include: {
+            _count: {
+              select: {
+                experiences: true,
+              },
+            },
           },
-        },
+          orderBy: {
+            name: 'asc',
+          },
+        });
       },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+      CACHE_TTL.FESTIVALS,
+    );
   }
 
   async create(createFestivalDto: CreateFestivalDto) {
@@ -35,7 +45,7 @@ export class FestivalsService {
       throw new ConflictException('Ya existe una festividad con este nombre');
     }
 
-    return this.prisma.festival.create({
+    const festival = await this.prisma.festival.create({
       data: {
         name: createFestivalDto.name,
         city: createFestivalDto.city,
@@ -43,33 +53,44 @@ export class FestivalsService {
         imageUrl: createFestivalDto.imageUrl,
       },
     });
+
+    // Invalidar cache
+    await this.cacheService.invalidateFestivals();
+
+    return festival;
   }
 
   async findOne(id: string) {
-    const festival = await this.prisma.festival.findUnique({
-      where: { id },
-      include: {
-        experiences: {
-          where: { published: true },
+    const festival = await this.cacheService.getOrSet(
+      CACHE_KEYS.FESTIVAL(id),
+      async () => {
+        return this.prisma.festival.findUnique({
+          where: { id },
           include: {
-            host: {
+            experiences: {
+              where: { published: true },
+              include: {
+                host: {
+                  select: {
+                    id: true,
+                    name: true,
+                    avatar: true,
+                    verified: true,
+                  },
+                },
+              },
+              take: 10,
+            },
+            _count: {
               select: {
-                id: true,
-                name: true,
-                avatar: true,
-                verified: true,
+                experiences: true,
               },
             },
           },
-          take: 10,
-        },
-        _count: {
-          select: {
-            experiences: true,
-          },
-        },
+        });
       },
-    });
+      CACHE_TTL.FESTIVALS,
+    );
 
     if (!festival) {
       throw new NotFoundException('Festival no encontrado');
@@ -140,6 +161,9 @@ export class FestivalsService {
         create: festival,
       });
     }
+
+    // Invalidar cache
+    await this.cacheService.invalidateFestivals();
 
     return {
       message: 'Festivales creados correctamente',

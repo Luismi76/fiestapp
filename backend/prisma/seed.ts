@@ -54,6 +54,9 @@ async function main() {
         city: 'Sevilla',
         avatar: CLOUDINARY_IMAGES.user_maria,
         verified: true,
+        hasPartner: true,
+        hasChildren: true,
+        childrenAges: '5, 8',
       },
     }),
     prisma.user.create({
@@ -67,6 +70,8 @@ async function main() {
         city: 'Pamplona',
         avatar: CLOUDINARY_IMAGES.user_carlos,
         verified: true,
+        hasPartner: false,
+        hasChildren: false,
       },
     }),
     prisma.user.create({
@@ -80,6 +85,8 @@ async function main() {
         city: 'Valencia',
         avatar: CLOUDINARY_IMAGES.user_laura,
         verified: true,
+        hasPartner: true,
+        hasChildren: false,
       },
     }),
     prisma.user.create({
@@ -93,6 +100,8 @@ async function main() {
         city: 'Valencia',
         avatar: CLOUDINARY_IMAGES.user_pedro,
         verified: false,
+        hasPartner: false,
+        hasChildren: false,
       },
     }),
     prisma.user.create({
@@ -106,6 +115,9 @@ async function main() {
         city: 'Sevilla',
         avatar: CLOUDINARY_IMAGES.user_juan,
         verified: true,
+        hasPartner: true,
+        hasChildren: true,
+        childrenAges: '15, 18, 21',
       },
     }),
     prisma.user.create({
@@ -119,6 +131,8 @@ async function main() {
         city: 'Cádiz',
         avatar: CLOUDINARY_IMAGES.user_ana,
         verified: true,
+        hasPartner: true,
+        hasChildren: false,
       },
     }),
     prisma.user.create({
@@ -132,6 +146,9 @@ async function main() {
         city: 'Madrid',
         avatar: CLOUDINARY_IMAGES.user_demo,
         verified: false,
+        hasPartner: true,
+        hasChildren: true,
+        childrenAges: '3, 7',
       },
     }),
     prisma.user.create({
@@ -145,6 +162,8 @@ async function main() {
         city: 'Madrid',
         role: 'admin',
         verified: true,
+        hasPartner: false,
+        hasChildren: false,
       },
     }),
   ]);

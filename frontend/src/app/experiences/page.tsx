@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import BottomNav from '@/components/BottomNav';
+import MainLayout from '@/components/MainLayout';
+import ExperienceCard from '@/components/ExperienceCard';
 import { experiencesApi, festivalsApi } from '@/lib/api';
 import { Experience, Festival, ExperienceFilters, SortBy } from '@/types/experience';
 import { getUploadUrl, getAvatarUrl } from '@/lib/utils';
@@ -108,7 +109,8 @@ export default function ExperiencesPage() {
   ].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <MainLayout>
+      <div className="min-h-screen bg-gray-50 pb-24 md:pb-8">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="px-4 py-3">
@@ -305,85 +307,16 @@ export default function ExperiencesPage() {
             <p className="text-sm text-gray-500">{totalResults} experiencias encontradas</p>
 
             {experiences.map((exp) => (
-              <Link
+              <ExperienceCard
                 key={exp.id}
-                href={`/experiences/${exp.id}`}
-                className="block bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="flex">
-                  {/* Imagen */}
-                  <div className="w-32 h-32 flex-shrink-0 relative">
-                    <img
-                      src={getUploadUrl(exp.photos?.[0] || '/images/feria_abril.png')}
-                      alt={exp.title}
-                      className="w-full h-full object-cover"
-                    />
-                    {/* Rating badge */}
-                    {exp.avgRating && exp.avgRating > 0 && (
-                      <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md flex items-center gap-0.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-yellow-500">
-                          <path fillRule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401Z" clipRule="evenodd" />
-                        </svg>
-                        <span className="text-xs font-medium text-gray-700">{exp.avgRating.toFixed(1)}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 p-3 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                          <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.273 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
-                        </svg>
-                        {exp.city}
-                        {exp.festival && (
-                          <>
-                            <span className="text-gray-300">|</span>
-                            <span className="text-primary">{exp.festival.name}</span>
-                          </>
-                        )}
-                      </div>
-                      <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">{exp.title}</h3>
-                    </div>
-
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={getAvatarUrl(exp.host?.avatar)}
-                          alt={exp.host?.name}
-                          className="w-6 h-6 rounded-full object-cover"
-                        />
-                        <span className="text-xs text-gray-500">{exp.host?.name}</span>
-                        {exp.host?.verified && (
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-blue-500">
-                            <path fillRule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                      </div>
-
-                      <div className="text-right">
-                        {exp.type === 'intercambio' ? (
-                          <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">Intercambio</span>
-                        ) : exp.type === 'ambos' ? (
-                          <div className="flex flex-col items-end gap-0.5">
-                            <span className="font-semibold text-primary">{exp.price}EUR</span>
-                            <span className="text-xs text-green-600">o intercambio</span>
-                          </div>
-                        ) : (
-                          <span className="font-semibold text-primary">{exp.price}EUR</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
+                experience={exp}
+                variant="horizontal"
+              />
             ))}
           </div>
         )}
       </div>
-
-      <BottomNav />
-    </div>
+      </div>
+    </MainLayout>
   );
 }

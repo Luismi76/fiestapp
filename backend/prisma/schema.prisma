@@ -17,11 +17,26 @@ model User {
   bio                       String?
   city                      String?
   avatar                    String?
+  hasPartner                Boolean?         // tiene pareja
+  hasChildren               Boolean?         // tiene hijos
+  childrenAges              String?          // edades de los hijos (ej: "5, 8, 12")
   verified                  Boolean          @default(false) // email verified
   emailVerificationToken    String?
   emailVerificationExpires  DateTime?
   passwordResetToken        String?
   passwordResetExpires      DateTime?
+  twoFactorSecret           String?          // Secret para TOTP 2FA
+  twoFactorEnabled          Boolean          @default(false)
+  // Sistema de strikes y bans
+  strikes                   Int              @default(0)
+  bannedAt                  DateTime?
+  banReason                 String?
+  // Sistema de referidos
+  referralCode              String?          @unique
+  referredById              String?
+  referredBy                User?            @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals                 User[]           @relation("UserReferrals")
+  referralCreditsEarned     Float            @default(0)
   createdAt                 DateTime         @default(now())
   updatedAt                 DateTime         @updatedAt
   experiences        Experience[]
@@ -35,6 +50,14 @@ model User {
   wallet             Wallet?
   favorites          Favorite[]
   reports            Report[]
+  blockedUsers            BlockedUser[]            @relation("UserBlocks")
+  blockedByUsers          BlockedUser[]            @relation("UserBlockedBy")
+  notifications           Notification[]
+  pushSubscriptions       PushSubscription[]
+  notificationPreferences NotificationPreference?
+  badges                  UserBadge[]
+  discountUsages          DiscountUsage[]
+  auditLogs               AuditLog[]
 
   @@map("users")
 }
@@ -79,6 +102,8 @@ model Experience {
   highlights   String[]
   capacity     Int                      @default(1)
   published    Boolean                  @default(true)
+  avgRating    Float                    @default(0)
+  reviewCount  Int                      @default(0)
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
   availability ExperienceAvailability[]
@@ -88,6 +113,12 @@ model Experience {
   reviews      Review[]
   favorites    Favorite[]
 
+  @@index([festivalId])
+  @@index([hostId])
+  @@index([type])
+  @@index([published])
+  @@index([city])
+  @@index([createdAt])
   @@map("experiences")
 }
 
@@ -110,6 +141,8 @@ model Match {
   hostId                String
   status                String        @default("pending")
   paymentStatus         String?       // pending, held, released, refunded
+  hostConfirmed         Boolean       @default(false)    // anfitrión ha confirmado
+  requesterConfirmed    Boolean       @default(false)    // viajero ha confirmado
   startDate             DateTime?
   endDate               DateTime?
   reminderOneDaySent    Boolean       @default(false)
@@ -123,6 +156,12 @@ model Match {
   transactions          Transaction[]
 
   @@unique([experienceId, requesterId])
+  @@index([experienceId])
+  @@index([requesterId])
+  @@index([hostId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([startDate])
   @@map("matches")
 }
 
@@ -136,6 +175,9 @@ model Message {
   match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
   sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
+  @@index([matchId])
+  @@index([createdAt])
+  @@index([matchId, createdAt])
   @@map("messages")
 }
 
@@ -154,6 +196,11 @@ model Transaction {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   match       Match?   @relation(fields: [matchId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, createdAt])
   @@map("transactions")
 }
 
@@ -169,17 +216,19 @@ model Wallet {
 }
 
 model Review {
-  id           String     @id @default(uuid())
-  experienceId String
-  authorId     String
-  targetId     String
-  rating       Int
-  comment      String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  author       User       @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
-  target       User       @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  id              String     @id @default(uuid())
+  experienceId    String
+  authorId        String
+  targetId        String
+  rating          Int
+  comment         String?
+  hostResponse    String?    // Respuesta del anfitrion
+  hostResponseAt  DateTime?  // Fecha de la respuesta
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  author          User       @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  experience      Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  target          User       @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
 
   @@unique([experienceId, authorId])
   @@map("reviews")
@@ -212,4 +261,159 @@ model Report {
   reporter      User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 
   @@map("reports")
+}
+
+model BlockedUser {
+  id          String   @id @default(uuid())
+  blockerId   String
+  blockedId   String
+  reason      String?
+  createdAt   DateTime @default(now())
+  blocker     User     @relation("UserBlocks", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked     User     @relation("UserBlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@map("blocked_users")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // match_request, match_accepted, match_rejected, new_message, reminder, review_request, system
+  title     String
+  message   String
+  data      Json?    // Datos adicionales (matchId, experienceId, etc.)
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model PushSubscription {
+  id         String   @id @default(uuid())
+  userId     String
+  endpoint   String   @unique
+  p256dh     String   // Clave pública para encriptación
+  auth       String   // Token de autenticación
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model NotificationPreference {
+  id                   String  @id @default(uuid())
+  userId               String  @unique
+  // Email preferences
+  emailNewMatch        Boolean @default(true)
+  emailMatchAccepted   Boolean @default(true)
+  emailMatchRejected   Boolean @default(true)
+  emailNewMessage      Boolean @default(true)
+  emailReminders       Boolean @default(true)
+  emailReviewRequest   Boolean @default(true)
+  emailMarketing       Boolean @default(false)
+  // Push preferences
+  pushNewMatch         Boolean @default(true)
+  pushMatchAccepted    Boolean @default(true)
+  pushNewMessage       Boolean @default(true)
+  pushReminders        Boolean @default(true)
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+// ============================================
+// FASE 5: Funcionalidades de Negocio
+// ============================================
+
+model Badge {
+  id          String      @id @default(uuid())
+  code        String      @unique // verificado, anfitrion_estrella, viajero_frecuente, primera_fiesta, perfil_completo
+  name        String
+  description String
+  icon        String      // emoji o URL del icono
+  criteria    Json?       // Criterios para obtener el badge (ej: {"minReviews": 5, "minRating": 5})
+  category    String      @default("achievement") // achievement, verification, milestone
+  sortOrder   Int         @default(0)
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  users       UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  id        String   @id @default(uuid())
+  userId    String
+  badgeId   String
+  earnedAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+model DiscountCode {
+  id          String          @id @default(uuid())
+  code        String          @unique
+  type        String          // percentage, fixed
+  value       Float           // Porcentaje o cantidad fija
+  minAmount   Float?          // Monto minimo para aplicar
+  maxUses     Int?            // Usos maximos totales
+  maxUsesPerUser Int          @default(1) // Usos maximos por usuario
+  usedCount   Int             @default(0)
+  validFrom   DateTime        @default(now())
+  expiresAt   DateTime?
+  active      Boolean         @default(true)
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  usages      DiscountUsage[]
+
+  @@map("discount_codes")
+}
+
+model DiscountUsage {
+  id             String       @id @default(uuid())
+  discountCodeId String
+  userId         String
+  amount         Float        // Monto descontado
+  transactionId  String?      // ID de la transaccion donde se aplico
+  usedAt         DateTime     @default(now())
+  discountCode   DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([discountCodeId])
+  @@index([userId])
+  @@map("discount_usages")
+}
+
+// ============================================
+// FASE 6: Admin y Analiticas
+// ============================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String?  // Usuario que realizo la accion (null si fue sistema)
+  action      String   // login, logout, create, update, delete, ban, unban, etc.
+  entity      String   // user, experience, match, transaction, report, etc.
+  entityId    String?  // ID de la entidad afectada
+  data        Json?    // Datos adicionales (cambios realizados, valores anteriores, etc.)
+  ipAddress   String?  // Direccion IP del usuario
+  userAgent   String?  // User agent del navegador
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

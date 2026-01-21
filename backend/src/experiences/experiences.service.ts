@@ -4,12 +4,16 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService, CACHE_KEYS, CACHE_TTL } from '../cache/cache.service';
 import { CreateExperienceDto } from './dto/create-experience.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
 
 @Injectable()
 export class ExperiencesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cacheService: CacheService,
+  ) {}
 
   async create(createDto: CreateExperienceDto, userId: string) {
     // Verificar que el festival existe
@@ -70,6 +74,9 @@ export class ExperiencesService {
       return exp;
     });
 
+    // Invalidar cache de experiencias
+    await this.cacheService.invalidateExperiences();
+
     return experience;
   }
 
@@ -83,6 +90,9 @@ export class ExperiencesService {
     sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'rating';
     page?: number;
     limit?: number;
+    // Filtros de compatibilidad familiar
+    hostHasPartner?: boolean;
+    hostHasChildren?: boolean;
   }) {
     const {
       festivalId,
@@ -94,6 +104,8 @@ export class ExperiencesService {
       sortBy = 'newest',
       page = 1,
       limit = 10,
+      hostHasPartner,
+      hostHasChildren,
     } = options || {};
 
     const where: Record<string, unknown> = {
@@ -135,6 +147,17 @@ export class ExperiencesService {
       ];
     }
 
+    // Filtros de compatibilidad familiar
+    if (hostHasPartner !== undefined || hostHasChildren !== undefined) {
+      where.host = {};
+      if (hostHasPartner !== undefined) {
+        (where.host as Record<string, boolean>).hasPartner = hostHasPartner;
+      }
+      if (hostHasChildren !== undefined) {
+        (where.host as Record<string, boolean>).hasChildren = hostHasChildren;
+      }
+    }
+
     // Ordenacion
     let orderBy: Record<string, string> | Record<string, string>[];
     switch (sortBy) {
@@ -166,6 +189,9 @@ export class ExperiencesService {
               name: true,
               avatar: true,
               verified: true,
+              hasPartner: true,
+              hasChildren: true,
+              childrenAges: true,
             },
           },
           festival: {
@@ -223,16 +249,27 @@ export class ExperiencesService {
   }
 
   async getCities(): Promise<string[]> {
-    const cities = await this.prisma.experience.findMany({
-      where: { published: true },
-      select: { city: true },
-      distinct: ['city'],
-      orderBy: { city: 'asc' },
-    });
-    return cities.map((c) => c.city);
+    return this.cacheService.getOrSet(
+      'experiences:cities',
+      async () => {
+        const cities = await this.prisma.experience.findMany({
+          where: { published: true },
+          select: { city: true },
+          distinct: ['city'],
+          orderBy: { city: 'asc' },
+        });
+        return cities.map((c) => c.city);
+      },
+      CACHE_TTL.EXPERIENCES_LIST,
+    );
   }
 
   async findOne(id: string) {
+    const cached = await this.cacheService.get<any>(CACHE_KEYS.EXPERIENCE(id));
+    if (cached) {
+      return cached;
+    }
+
     const experience = await this.prisma.experience.findUnique({
       where: { id },
       include: {
@@ -244,6 +281,9 @@ export class ExperiencesService {
             verified: true,
             bio: true,
             city: true,
+            hasPartner: true,
+            hasChildren: true,
+            childrenAges: true,
           },
         },
         festival: true,
@@ -298,11 +338,16 @@ export class ExperiencesService {
     // Transformar availability a array de fechas
     const availabilityDates = experience.availability.map((a) => a.date);
 
-    return {
+    const result = {
       ...experience,
       availability: availabilityDates,
       avgRating: avgRating._avg.rating || 0,
     };
+
+    // Cachear por 5 minutos
+    await this.cacheService.set(CACHE_KEYS.EXPERIENCE(id), result, CACHE_TTL.EXPERIENCE_DETAIL);
+
+    return result;
   }
 
   async findByHost(hostId: string) {
@@ -419,6 +464,9 @@ export class ExperiencesService {
       return updated;
     });
 
+    // Invalidar cache
+    await this.cacheService.invalidateExperience(id);
+
     return result;
   }
 
@@ -441,6 +489,9 @@ export class ExperiencesService {
       where: { id },
     });
 
+    // Invalidar cache
+    await this.cacheService.invalidateExperiences();
+
     return { message: 'Experiencia eliminada correctamente' };
   }
 
@@ -459,12 +510,17 @@ export class ExperiencesService {
       );
     }
 
-    return this.prisma.experience.update({
+    const updated = await this.prisma.experience.update({
       where: { id },
       data: {
         published: !experience.published,
       },
     });
+
+    // Invalidar cache
+    await this.cacheService.invalidateExperience(id);
+
+    return updated;
   }
 
   // Obtener ocupación por fechas para una experiencia

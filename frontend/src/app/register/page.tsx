@@ -13,6 +13,9 @@ const registerSchema = z.object({
   email: z.string().email('Email inválido'),
   age: z.coerce.number().min(18, 'Debes ser mayor de 18 años'),
   city: z.string().min(2, 'La ciudad es requerida'),
+  hasPartner: z.boolean().optional(),
+  hasChildren: z.boolean().optional(),
+  childrenAges: z.string().optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   confirmPassword: z.string(),
 }).refine(data => data.password === data.confirmPassword, {
@@ -196,6 +199,41 @@ export default function RegisterPage() {
                 {errors.city && (
                   <p className="text-red-500 text-xs mt-1">{errors.city.message}</p>
                 )}
+              </div>
+            </div>
+
+            {/* Family situation */}
+            <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
+              <label className="block text-sm font-medium text-gray-700">Situación familiar <span className="text-gray-400 font-normal">(opcional)</span></label>
+
+              {/* Checkboxes */}
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    {...register('hasPartner')}
+                    type="checkbox"
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Tengo pareja</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    {...register('hasChildren')}
+                    type="checkbox"
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700">Tengo hijos</span>
+                </label>
+              </div>
+
+              {/* Children Ages - optional */}
+              <div>
+                <input
+                  {...register('childrenAges')}
+                  type="text"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                  placeholder="Edades de los hijos (ej: 5, 8, 12)"
+                />
               </div>
             </div>
 

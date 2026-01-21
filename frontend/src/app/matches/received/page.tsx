@@ -7,7 +7,7 @@ import { matchesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Match, MatchStatus } from '@/types/match';
 import { getAvatarUrl } from '@/lib/utils';
-import BottomNav from '@/components/BottomNav';
+import MainLayout from '@/components/MainLayout';
 
 // Mock data for fallback
 const mockReceivedMatches: Match[] = [
@@ -248,8 +248,9 @@ export default function ReceivedMatchesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
+    <MainLayout>
+      <div className="min-h-screen bg-gray-50 pb-24 md:pb-8">
+        {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="flex items-center justify-between px-4 h-14">
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
@@ -455,8 +456,7 @@ export default function ReceivedMatchesPage() {
           })}
         </div>
       )}
-
-      <BottomNav />
-    </div>
+      </div>
+    </MainLayout>
   );
 }

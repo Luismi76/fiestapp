@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -19,6 +21,15 @@ import { ChatModule } from './chat/chat.module';
 import { RemindersModule } from './reminders/reminders.module';
 import { AdminModule } from './admin/admin.module';
 import { ReportsModule } from './reports/reports.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { BadgesModule } from './badges/badges.module';
+import { DiscountsModule } from './discounts/discounts.module';
+import { ReferralsModule } from './referrals/referrals.module';
+import { AuditModule } from './audit/audit.module';
+import { AuditInterceptor } from './audit/audit.interceptor';
+import { CacheConfigModule } from './cache/cache.module';
+import { SentryModule } from './sentry/sentry.module';
+import { SentryExceptionFilter } from './sentry/sentry-exception.filter';
 
 @Module({
   imports: [
@@ -26,6 +37,24 @@ import { ReportsModule } from './reports/reports.module';
       isGlobal: true,
     }),
     ScheduleModule.forRoot(),
+    // Rate Limiting global: 100 peticiones por minuto
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000, // 1 segundo
+        limit: 10, // 10 peticiones por segundo
+      },
+      {
+        name: 'medium',
+        ttl: 60000, // 1 minuto
+        limit: 100, // 100 peticiones por minuto
+      },
+      {
+        name: 'long',
+        ttl: 3600000, // 1 hora
+        limit: 1000, // 1000 peticiones por hora
+      },
+    ]),
     StorageModule,
     PrismaModule,
     AuthModule,
@@ -42,8 +71,32 @@ import { ReportsModule } from './reports/reports.module';
     RemindersModule,
     AdminModule,
     ReportsModule,
+    NotificationsModule,
+    BadgesModule,
+    DiscountsModule,
+    ReferralsModule,
+    AuditModule,
+    CacheConfigModule,
+    SentryModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Aplicar rate limiting globalmente
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    // Interceptor de auditoria para loggear acciones criticas
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
+    // Filtro global de excepciones con Sentry
+    {
+      provide: APP_FILTER,
+      useClass: SentryExceptionFilter,
+    },
+  ],
 })
 export class AppModule {}

@@ -52,6 +52,8 @@ export class ExperiencesController {
     @Query('sortBy') sortBy?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('hostHasPartner') hostHasPartner?: string,
+    @Query('hostHasChildren') hostHasChildren?: string,
   ) {
     return this.experiencesService.findAll({
       festivalId,
@@ -63,6 +65,8 @@ export class ExperiencesController {
       sortBy: sortBy as 'newest' | 'price_asc' | 'price_desc' | 'rating',
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
+      hostHasPartner: hostHasPartner === 'true' ? true : hostHasPartner === 'false' ? false : undefined,
+      hostHasChildren: hostHasChildren === 'true' ? true : hostHasChildren === 'false' ? false : undefined,
     });
   }
 
