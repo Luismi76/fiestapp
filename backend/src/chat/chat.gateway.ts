@@ -117,15 +117,29 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         id: matchId,
         OR: [{ hostId: client.userId }, { requesterId: client.userId }],
       },
+      include: {
+        experience: {
+          select: { price: true },
+        },
+      },
     });
 
-    if (match) {
-      client.join(`match:${matchId}`);
-      this.logger.log(`User ${client.userId} joined match room ${matchId}`);
-      return { success: true };
+    if (!match) {
+      return { success: false, error: 'No access to this match' };
     }
 
-    return { success: false, error: 'No access to this match' };
+    // If experience has a price, payment must be held before joining chat
+    if (match.experience.price > 0 && match.paymentStatus !== 'held') {
+      return {
+        success: false,
+        error: 'Debes completar el pago mínimo antes de poder acceder al chat.',
+        requiresPayment: true,
+      };
+    }
+
+    client.join(`match:${matchId}`);
+    this.logger.log(`User ${client.userId} joined match room ${matchId}`);
+    return { success: true };
   }
 
   @SubscribeMessage('leaveMatch')
@@ -178,17 +192,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      // Verify user is part of this match
+      // Verify user is part of this match and get experience details
       const match = await this.prisma.match.findFirst({
         where: {
           id: data.matchId,
           OR: [{ hostId: client.userId }, { requesterId: client.userId }],
           status: { notIn: ['rejected', 'cancelled'] },
         },
+        include: {
+          experience: {
+            select: { price: true },
+          },
+        },
       });
 
       if (!match) {
         return { success: false, error: 'No access to this match' };
+      }
+
+      // If experience has a price, payment must be held before chatting
+      if (match.experience.price > 0 && match.paymentStatus !== 'held') {
+        return {
+          success: false,
+          error: 'Debes completar el pago mínimo antes de poder usar el chat.',
+          requiresPayment: true,
+        };
       }
 
       // Create message in database

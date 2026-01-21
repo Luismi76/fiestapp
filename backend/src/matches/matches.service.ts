@@ -675,6 +675,11 @@ export class MatchesService {
   async sendMessage(matchId: string, senderId: string, content: string) {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
+      include: {
+        experience: {
+          select: { price: true },
+        },
+      },
     });
 
     if (!match) {
@@ -690,6 +695,13 @@ export class MatchesService {
     if (match.status === 'rejected' || match.status === 'cancelled') {
       throw new BadRequestException(
         'No puedes enviar mensajes en esta solicitud',
+      );
+    }
+
+    // Si la experiencia tiene precio, el pago debe estar retenido
+    if (match.experience.price > 0 && match.paymentStatus !== 'held') {
+      throw new BadRequestException(
+        'Debes completar el pago mínimo antes de poder usar el chat',
       );
     }
 
