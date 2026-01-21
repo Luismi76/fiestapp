@@ -10,14 +10,12 @@ import { CaptchaService } from './services/captcha.service';
 import { TwoFactorService } from './services/two-factor.service';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { PrismaModule } from '../prisma/prisma.module';
-import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
     PrismaModule,
     PassportModule,
     ConfigModule,
-    EmailModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

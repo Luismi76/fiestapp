@@ -30,6 +30,7 @@ import { AuditInterceptor } from './audit/audit.interceptor';
 import { CacheConfigModule } from './cache/cache.module';
 import { SentryModule } from './sentry/sentry.module';
 import { SentryExceptionFilter } from './sentry/sentry-exception.filter';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { SentryExceptionFilter } from './sentry/sentry-exception.filter';
       isGlobal: true,
     }),
     ScheduleModule.forRoot(),
+    EmailModule,
     // Rate Limiting global: 100 peticiones por minuto
     ThrottlerModule.forRoot([
       {
