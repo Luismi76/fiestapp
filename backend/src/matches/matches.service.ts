@@ -66,7 +66,7 @@ export class MatchesService {
       );
     }
 
-    // Verificar que no existe ya un match pendiente o aceptado
+    // Verificar si existe un match previo
     const existingMatch = await this.prisma.match.findUnique({
       where: {
         experienceId_requesterId: {
@@ -77,6 +77,7 @@ export class MatchesService {
     });
 
     if (existingMatch) {
+      // Si está pendiente o aceptado, no permitir crear otro
       if (
         existingMatch.status === 'pending' ||
         existingMatch.status === 'accepted'
@@ -85,6 +86,57 @@ export class MatchesService {
           'Ya tienes una solicitud activa para esta experiencia',
         );
       }
+
+      // Si está en estado terminal (rejected/cancelled/completed), reactivar el match
+      const reactivatedMatch = await this.prisma.match.update({
+        where: { id: existingMatch.id },
+        data: {
+          status: 'pending',
+          paymentStatus: null,
+          hostConfirmed: false,
+          requesterConfirmed: false,
+          startDate: createDto.startDate ? new Date(createDto.startDate) : null,
+          endDate: createDto.endDate ? new Date(createDto.endDate) : null,
+          updatedAt: new Date(),
+        },
+        include: {
+          experience: {
+            include: {
+              festival: true,
+            },
+          },
+          requester: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+              verified: true,
+              city: true,
+            },
+          },
+          host: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true,
+              verified: true,
+            },
+          },
+        },
+      });
+
+      // Crear mensaje inicial si se proporciona
+      if (createDto.message) {
+        await this.prisma.message.create({
+          data: {
+            matchId: reactivatedMatch.id,
+            senderId: requesterId,
+            content: createDto.message,
+          },
+        });
+      }
+
+      return reactivatedMatch;
     }
 
     // Verificar capacidad si hay fechas seleccionadas
