@@ -3,12 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { matchesApi, reviewsApi, paymentsApi, PaymentStatus } from '@/lib/api';
+import { matchesApi, reviewsApi, walletApi, WalletInfo } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchDetail, MatchStatus, Message } from '@/types/match';
 import { CanReviewResponse } from '@/types/review';
 import ReviewForm from '@/components/ReviewForm';
-import PaymentModal from '@/components/PaymentModal';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import { useSocket, useSocketEvent } from '@/hooks/useSocket';
 
@@ -269,9 +268,9 @@ export default function MatchDetailPage() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
-  // Payment state
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  // Wallet state (for chat access)
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [walletError, setWalletError] = useState('');
 
   // For mock data, assume user is the host for IDs 1-3 and requester for IDs 10+
   const mockUserId = match ? (parseInt(match.id) < 10 ? match.hostId : 'me') : null;
@@ -287,13 +286,13 @@ export default function MatchDetailPage() {
         setMatch(data);
         setUseMockData(false);
 
-        // Check payment status
+        // Check wallet balance for chat access
         if (data.status === 'pending' || data.status === 'accepted') {
           try {
-            const payment = await paymentsApi.getPaymentStatus(id);
-            setPaymentStatus(payment);
+            const wallet = await walletApi.getWallet();
+            setWalletInfo(wallet);
           } catch {
-            // Ignore payment status errors
+            // Ignore wallet errors
           }
         }
 
@@ -418,6 +417,8 @@ export default function MatchDetailPage() {
     }
 
     setSending(true);
+    setError(''); // Clear previous errors
+    setWalletError('');
     try {
       // Try WebSocket first if connected
       if (isConnected) {
@@ -450,8 +451,19 @@ export default function MatchDetailPage() {
           messages: [...prev.messages, message],
         } : prev);
       }
-    } catch {
-      setError('No se pudo enviar el mensaje');
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err?.message || 'No se pudo enviar el mensaje';
+      // Check if it's a wallet balance error
+      if (errorMessage.includes('monedero') || errorMessage.includes('saldo')) {
+        setWalletError(errorMessage);
+        // Refresh wallet info
+        try {
+          const wallet = await walletApi.getWallet();
+          setWalletInfo(wallet);
+        } catch {}
+      } else {
+        setError(errorMessage);
+      }
       // Restore message on error
       setNewMessage(messageContent);
     } finally {
@@ -670,47 +682,35 @@ export default function MatchDetailPage() {
       {/* Action buttons based on status */}
       {match.status === 'pending' && isHost && (
         <div className="mx-4 mt-4 space-y-3">
-          {/* Payment status for host */}
-          {paymentStatus?.requiresPayment && (
-            <div className={`rounded-xl p-4 ${paymentStatus.paymentStatus === 'held' ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'}`}>
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${paymentStatus.paymentStatus === 'held' ? 'bg-emerald-100' : 'bg-amber-100'}`}>
-                  {paymentStatus.paymentStatus === 'held' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-emerald-600">
-                      <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600">
-                      <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clipRule="evenodd" />
-                    </svg>
-                  )}
+          {/* Wallet balance warning for host */}
+          {walletInfo && !walletInfo.canOperate && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600">
+                    <path d="M2.273 5.625A4.483 4.483 0 0 1 5.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 3H5.25a3 3 0 0 0-2.977 2.625ZM2.273 8.625A4.483 4.483 0 0 1 5.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 6H5.25a3 3 0 0 0-2.977 2.625ZM5.25 9a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H15a.75.75 0 0 0-.75.75 2.25 2.25 0 0 1-4.5 0A.75.75 0 0 0 9 9H5.25Z" />
+                  </svg>
                 </div>
                 <div>
-                  {paymentStatus.paymentStatus === 'held' ? (
-                    <>
-                      <p className="font-medium text-emerald-800">Pago recibido</p>
-                      <p className="text-sm text-emerald-600">
-                        El viajero ha pagado {paymentStatus.amount}€. Puedes aceptar la solicitud.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-medium text-amber-800">Esperando pago</p>
-                      <p className="text-sm text-amber-600">
-                        El viajero debe pagar {paymentStatus.amount}€ antes de que puedas aceptar.
-                      </p>
-                    </>
-                  )}
+                  <p className="font-medium text-amber-800">Saldo insuficiente</p>
+                  <p className="text-sm text-amber-600">
+                    Necesitas {walletInfo.platformFee}€ en tu monedero para usar el chat. Saldo actual: {walletInfo.balance.toFixed(2)}€
+                  </p>
                 </div>
               </div>
+              <Link
+                href="/wallet"
+                className="block w-full py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors text-center"
+              >
+                Recargar monedero
+              </Link>
             </div>
           )}
 
           <div className="flex gap-2">
             <button
               onClick={handleAccept}
-              disabled={paymentStatus?.requiresPayment && paymentStatus.paymentStatus !== 'held'}
-              className="flex-1 py-3 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition-colors shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition-colors shadow-md flex items-center justify-center gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                 <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
@@ -732,37 +732,33 @@ export default function MatchDetailPage() {
 
       {match.status === 'pending' && !isHost && (
         <div className="mx-4 mt-4 space-y-3">
-          {/* Payment section for requester */}
-          {paymentStatus?.requiresPayment && paymentStatus.paymentStatus !== 'held' && (
+          {/* Wallet balance warning for requester */}
+          {walletInfo && !walletInfo.canOperate && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600">
-                    <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clipRule="evenodd" />
+                    <path d="M2.273 5.625A4.483 4.483 0 0 1 5.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 3H5.25a3 3 0 0 0-2.977 2.625ZM2.273 8.625A4.483 4.483 0 0 1 5.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 6H5.25a3 3 0 0 0-2.977 2.625ZM5.25 9a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H15a.75.75 0 0 0-.75.75 2.25 2.25 0 0 1-4.5 0A.75.75 0 0 0 9 9H5.25Z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="font-medium text-amber-800">Pago pendiente</p>
+                  <p className="font-medium text-amber-800">Saldo insuficiente</p>
                   <p className="text-sm text-amber-600">
-                    Completa el pago de {paymentStatus.amount}€ para que el anfitrión pueda aceptar
+                    Necesitas {walletInfo.platformFee}€ en tu monedero para usar el chat. Saldo actual: {walletInfo.balance.toFixed(2)}€
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className="w-full py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+              <Link
+                href="/wallet"
+                className="block w-full py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors text-center"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                  <path d="M4.5 3.75a3 3 0 0 0-3 3v.75h21v-.75a3 3 0 0 0-3-3h-15Z" />
-                  <path fillRule="evenodd" d="M1.5 9.75v6.75a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-6.75H1.5Zm6 3.75a.75.75 0 0 1 .75-.75h6a.75.75 0 0 1 0 1.5h-6a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
-                </svg>
-                Pagar {paymentStatus.amount}€
-              </button>
+                Recargar monedero
+              </Link>
             </div>
           )}
 
-          {/* Payment confirmed */}
-          {paymentStatus?.paymentStatus === 'held' && (
+          {/* Wallet OK */}
+          {walletInfo && walletInfo.canOperate && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
@@ -771,9 +767,9 @@ export default function MatchDetailPage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="font-medium text-emerald-800">Pago confirmado</p>
+                  <p className="font-medium text-emerald-800">Saldo disponible</p>
                   <p className="text-sm text-emerald-600">
-                    Tu pago de {paymentStatus.amount}€ está retenido. Esperando respuesta del anfitrión.
+                    Tienes {walletInfo.balance.toFixed(2)}€. Al completar la experiencia se cobrarán {walletInfo.platformFee}€ de comisión.
                   </p>
                 </div>
               </div>
@@ -928,6 +924,43 @@ export default function MatchDetailPage() {
               {isConnected ? '● En línea' : '○ Conectando...'}
             </div>
           )}
+          {/* Wallet error message */}
+          {walletError && (
+            <div className="mx-4 mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5">
+                  <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm text-amber-800">{walletError}</p>
+                  <Link href="/wallet" className="text-sm text-amber-600 underline hover:text-amber-700">
+                    Ir al monedero
+                  </Link>
+                </div>
+                <button onClick={() => setWalletError('')} className="text-amber-600 hover:text-amber-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+          {/* General error message */}
+          {error && !walletError && (
+            <div className="mx-4 mt-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-red-600 flex-shrink-0">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm text-red-800 flex-1">{error}</p>
+                <button onClick={() => setError('')} className="text-red-600 hover:text-red-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
           <form onSubmit={handleSendMessage} className="p-4 pt-2">
             <div className="flex items-center gap-3">
               <input
@@ -992,20 +1025,6 @@ export default function MatchDetailPage() {
         </div>
       )}
 
-      {/* Payment Modal */}
-      {showPaymentModal && match && paymentStatus?.amount && (
-        <PaymentModal
-          matchId={match.id}
-          amount={paymentStatus.amount}
-          experienceTitle={match.experience.title}
-          onSuccess={async () => {
-            // Refresh payment status
-            const payment = await paymentsApi.getPaymentStatus(match.id);
-            setPaymentStatus(payment);
-          }}
-          onClose={() => setShowPaymentModal(false)}
-        />
-      )}
     </div>
   );
 }

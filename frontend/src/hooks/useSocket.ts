@@ -68,7 +68,7 @@ export function useSocket(): UseSocketReturn {
   }, [user]);
 
   const sendMessage = useCallback(async (matchId: string, content: string): Promise<Message | null> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       if (!socketRef.current?.connected) {
         resolve(null);
         return;
@@ -77,9 +77,12 @@ export function useSocket(): UseSocketReturn {
       socketRef.current.emit(
         'sendMessage',
         { matchId, content },
-        (response: { success: boolean; message?: Message; error?: string }) => {
+        (response: { success: boolean; message?: Message; error?: string; requiresTopUp?: boolean }) => {
           if (response.success && response.message) {
             resolve(response.message);
+          } else if (response.requiresTopUp) {
+            // Reject with the error message so the UI can show wallet error
+            reject(new Error(response.error || 'Saldo insuficiente en el monedero'));
           } else {
             console.error('Failed to send message:', response.error);
             resolve(null);
