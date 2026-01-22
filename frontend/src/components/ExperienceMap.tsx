@@ -413,7 +413,7 @@ export default function ExperienceMap({
         }
         .leaflet-marker-icon:hover {
           transform: scale(1.1) !important;
-          z-index: 1000 !important;
+          z-index: 500 !important;
         }
       `}</style>
       <link
