@@ -60,17 +60,18 @@ const encodeSvgForDataUri = (svg: string): string => {
 };
 
 // Custom marker icons as SVG data URIs
-const createMarkerIcon = (type: string, count?: number) => {
+const createMarkerIcon = (type: string | undefined | null, count?: number) => {
+  const defaultColor = { bg: '#8B5CF6', border: '#7C3AED' }; // purple as default
   const colors: Record<string, { bg: string; border: string }> = {
     intercambio: { bg: '#10B981', border: '#059669' }, // green
     pago: { bg: '#FF6B35', border: '#E55A2B' }, // primary orange
-    mixto: { bg: '#8B5CF6', border: '#7C3AED' }, // purple
-    ambos: { bg: '#8B5CF6', border: '#7C3AED' }, // purple (same as mixto)
+    mixto: defaultColor, // purple
+    ambos: defaultColor, // purple (same as mixto)
     cluster: { bg: '#3B82F6', border: '#2563EB' }, // blue
   };
 
-  // Fallback to mixto color if type not found
-  const { bg, border } = colors[type] || colors.mixto;
+  // Fallback to default color if type not found or undefined/null
+  const { bg, border } = (type && colors[type]) ? colors[type] : defaultColor;
 
   if (type === 'cluster' && count) {
     // Cluster icon with count
@@ -277,13 +278,14 @@ export default function ExperienceMap({
     return Object.entries(experiencesByLocation).map(([key, exps]) => {
       const [lat, lng] = key.split(',').map(Number);
       // Determine marker type - normalize 'ambos' to 'mixto', handle multiple experiences
-      const getMarkerType = () => {
+      const getMarkerType = (): string => {
         if (exps.length > 1) {
           const hasIntercambio = exps.some(e => e.type === 'intercambio');
           const hasPago = exps.some(e => e.type === 'pago' || e.type === 'ambos');
           if (hasIntercambio && hasPago) return 'mixto';
         }
-        const type = exps[0].type;
+        const type = exps[0]?.type;
+        if (!type) return 'mixto'; // Default fallback
         // Normalize 'ambos' to 'mixto'
         return type === 'ambos' ? 'mixto' : type;
       };
