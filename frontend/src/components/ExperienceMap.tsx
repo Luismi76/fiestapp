@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Experience } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
-import Link from 'next/link';
 
 // Spanish city coordinates
 const CITY_COORDINATES: Record<string, [number, number]> = {
@@ -137,6 +137,7 @@ export default function ExperienceMap({
   filter = 'all',
   showClustering = true,
 }: ExperienceMapProps) {
+  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([40.4168, -3.7038]);
@@ -315,11 +316,13 @@ export default function ExperienceMap({
               </div>
               <div className="space-y-2 max-h-[250px] overflow-y-auto custom-scrollbar">
                 {exps.slice(0, 6).map(exp => (
-                  <Link
+                  <div
                     key={exp.id}
-                    href={`/experiences/${exp.id}`}
-                    className="flex items-center gap-3 p-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all duration-200 group"
-                    onClick={() => onExperienceClick?.(exp)}
+                    className="flex items-center gap-3 p-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all duration-200 group cursor-pointer"
+                    onClick={() => {
+                      onExperienceClick?.(exp);
+                      router.push(`/experiences/${exp.id}`);
+                    }}
                   >
                     <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 ring-2 ring-white shadow-sm">
                       <img
@@ -357,7 +360,7 @@ export default function ExperienceMap({
                     <svg className="w-5 h-5 text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
-                  </Link>
+                  </div>
                 ))}
                 {exps.length > 6 && (
                   <div className="text-center py-2">
