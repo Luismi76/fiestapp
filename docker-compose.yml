@@ -36,7 +36,7 @@ services:
     container_name: fiestapp-translate
     restart: unless-stopped
     environment:
-      LT_LOAD_ONLY: es,en,fr,de,it,pt,ca
+      LT_LOAD_ONLY: es,en,fr,de,it,pt,ca,eu,gl
       LT_DISABLE_WEB_UI: "true"
     volumes:
       - libretranslate_data:/home/libretranslate/.local
