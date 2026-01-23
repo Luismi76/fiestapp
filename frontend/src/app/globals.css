@@ -874,3 +874,19 @@ textarea:focus-visible {
 .font-loading body {
   font-family: system-ui, sans-serif;
 }
+
+/* ============================================
+   HIDE STRIPE TEST MODE WIDGET
+   ============================================ */
+/* Hide Stripe test mode badge and floating widgets */
+iframe[name^="__privateStripeMetricsController"],
+iframe[name^="__stripeJSPrivate"],
+#__stripe-link-container,
+.__PrivateStripeElement-Info,
+[data-stripe-test-mode],
+div[style*="z-index: 2147483647"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
