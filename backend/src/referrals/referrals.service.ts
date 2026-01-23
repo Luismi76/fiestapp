@@ -53,7 +53,9 @@ export class ReferralsService {
   /**
    * Valida un codigo de referido y retorna el usuario referidor
    */
-  async validateReferralCode(code: string): Promise<{ valid: boolean; referrerId?: string; referrerName?: string }> {
+  async validateReferralCode(
+    code: string,
+  ): Promise<{ valid: boolean; referrerId?: string; referrerName?: string }> {
     if (!code) {
       return { valid: false };
     }
@@ -77,7 +79,10 @@ export class ReferralsService {
   /**
    * Registra una referencia durante el registro de usuario
    */
-  async registerReferral(newUserId: string, referralCode: string): Promise<boolean> {
+  async registerReferral(
+    newUserId: string,
+    referralCode: string,
+  ): Promise<boolean> {
     const validation = await this.validateReferralCode(referralCode);
 
     if (!validation.valid) {
@@ -103,7 +108,9 @@ export class ReferralsService {
       data: { referredUserId: newUserId },
     });
 
-    this.logger.log(`Referral registered: ${newUserId} referred by ${validation.referrerId}`);
+    this.logger.log(
+      `Referral registered: ${newUserId} referred by ${validation.referrerId}`,
+    );
     return true;
   }
 
@@ -175,7 +182,9 @@ export class ReferralsService {
       data: { amount: REFERRAL_CREDIT, referredUserId },
     });
 
-    this.logger.log(`Referral credit awarded: ${REFERRAL_CREDIT}€ to ${referrer.id} for ${referredUserId}`);
+    this.logger.log(
+      `Referral credit awarded: ${REFERRAL_CREDIT}€ to ${referrer.id} for ${referredUserId}`,
+    );
     return true;
   }
 
@@ -232,8 +241,12 @@ export class ReferralsService {
       referralCode,
       referralLink,
       totalReferrals: referrals.length,
-      completedReferrals: referrals.filter((r) => r._count.matchesAsRequester > 0).length,
-      pendingReferrals: referrals.filter((r) => r._count.matchesAsRequester === 0).length,
+      completedReferrals: referrals.filter(
+        (r) => r._count.matchesAsRequester > 0,
+      ).length,
+      pendingReferrals: referrals.filter(
+        (r) => r._count.matchesAsRequester === 0,
+      ).length,
       totalCreditsEarned: referralCredits._sum.amount || 0,
       creditPerReferral: REFERRAL_CREDIT,
       referrals: referrals.map((r) => ({

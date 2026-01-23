@@ -12,27 +12,33 @@ import { CreateReportDto } from './dto/create-report.dto';
 export const RESPONSE_TEMPLATES = {
   resolved_warning: {
     title: 'Tu reporte ha sido resuelto',
-    message: 'Hemos revisado tu reporte y hemos tomado las medidas necesarias. El usuario ha recibido una advertencia.',
+    message:
+      'Hemos revisado tu reporte y hemos tomado las medidas necesarias. El usuario ha recibido una advertencia.',
   },
   resolved_strike: {
     title: 'Tu reporte ha sido resuelto',
-    message: 'Hemos revisado tu reporte y hemos tomado las medidas necesarias. El usuario ha recibido un strike.',
+    message:
+      'Hemos revisado tu reporte y hemos tomado las medidas necesarias. El usuario ha recibido un strike.',
   },
   resolved_ban: {
     title: 'Tu reporte ha sido resuelto',
-    message: 'Hemos revisado tu reporte y hemos tomado medidas contundentes. El usuario ha sido suspendido de la plataforma.',
+    message:
+      'Hemos revisado tu reporte y hemos tomado medidas contundentes. El usuario ha sido suspendido de la plataforma.',
   },
   resolved_content_removed: {
     title: 'Tu reporte ha sido resuelto',
-    message: 'Hemos revisado tu reporte y el contenido inapropiado ha sido eliminado.',
+    message:
+      'Hemos revisado tu reporte y el contenido inapropiado ha sido eliminado.',
   },
   dismissed_no_violation: {
     title: 'Reporte revisado',
-    message: 'Hemos revisado tu reporte pero no hemos encontrado una violacion de nuestras normas de comunidad.',
+    message:
+      'Hemos revisado tu reporte pero no hemos encontrado una violacion de nuestras normas de comunidad.',
   },
   dismissed_insufficient_evidence: {
     title: 'Reporte revisado',
-    message: 'Hemos revisado tu reporte pero no hemos podido verificar la infraccion con la informacion proporcionada.',
+    message:
+      'Hemos revisado tu reporte pero no hemos podido verificar la infraccion con la informacion proporcionada.',
   },
 };
 
@@ -248,7 +254,9 @@ export class ReportsService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          reporter: { select: { id: true, name: true, email: true, avatar: true } },
+          reporter: {
+            select: { id: true, name: true, email: true, avatar: true },
+          },
         },
       }),
       this.prisma.report.count({ where }),
@@ -306,8 +314,10 @@ export class ReportsService {
     if (filters.priority) {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
       enrichedReports.sort((a, b) => {
-        if (a.priority === filters.priority && b.priority !== filters.priority) return -1;
-        if (b.priority === filters.priority && a.priority !== filters.priority) return 1;
+        if (a.priority === filters.priority && b.priority !== filters.priority)
+          return -1;
+        if (b.priority === filters.priority && a.priority !== filters.priority)
+          return 1;
         return priorityOrder[a.priority] - priorityOrder[b.priority];
       });
     }
@@ -361,7 +371,7 @@ export class ReportsService {
     }
 
     let reportedEntity: any = null;
-    let context: any = {};
+    const context: any = {};
 
     if (report.reportedType === 'user') {
       reportedEntity = await this.prisma.user.findUnique({
@@ -477,8 +487,17 @@ export class ReportsService {
     }
 
     // Aplicar accion si es necesario
-    if (resolution.action && resolution.action !== 'none' && report.reportedType === 'user') {
-      await this.applyAction(report.reportedId, resolution.action, adminId, reportId);
+    if (
+      resolution.action &&
+      resolution.action !== 'none' &&
+      report.reportedType === 'user'
+    ) {
+      await this.applyAction(
+        report.reportedId,
+        resolution.action,
+        adminId,
+        reportId,
+      );
     }
 
     // Actualizar reporte
@@ -500,7 +519,10 @@ export class ReportsService {
       userId: report.reporterId,
       type: 'system',
       title: template?.title || 'Tu reporte ha sido revisado',
-      message: resolution.customMessage || template?.message || 'Gracias por tu reporte. Ha sido revisado por nuestro equipo.',
+      message:
+        resolution.customMessage ||
+        template?.message ||
+        'Gracias por tu reporte. Ha sido revisado por nuestro equipo.',
       data: { reportId, status: resolution.status },
     });
 
@@ -536,7 +558,8 @@ export class ReportsService {
         userId,
         type: 'system',
         title: 'Advertencia de la comunidad',
-        message: 'Has recibido una advertencia por comportamiento inapropiado. Por favor, revisa las normas de la comunidad.',
+        message:
+          'Has recibido una advertencia por comportamiento inapropiado. Por favor, revisa las normas de la comunidad.',
         data: { reason: 'report', reportId },
       });
     } else if (action === 'strike') {
@@ -562,10 +585,12 @@ export class ReportsService {
         await this.notificationsService.create({
           userId,
           type: 'system',
-          title: newStrikes >= 3 ? 'Cuenta suspendida' : 'Has recibido un strike',
-          message: newStrikes >= 3
-            ? 'Tu cuenta ha sido suspendida por acumular 3 strikes.'
-            : `Has recibido un strike (${newStrikes}/3) debido a un reporte de la comunidad.`,
+          title:
+            newStrikes >= 3 ? 'Cuenta suspendida' : 'Has recibido un strike',
+          message:
+            newStrikes >= 3
+              ? 'Tu cuenta ha sido suspendida por acumular 3 strikes.'
+              : `Has recibido un strike (${newStrikes}/3) debido a un reporte de la comunidad.`,
           data: { strikes: newStrikes },
         });
       }
@@ -582,7 +607,8 @@ export class ReportsService {
         userId,
         type: 'system',
         title: 'Cuenta suspendida',
-        message: 'Tu cuenta ha sido suspendida debido a un reporte de la comunidad.',
+        message:
+          'Tu cuenta ha sido suspendida debido a un reporte de la comunidad.',
       });
     }
 
@@ -610,42 +636,37 @@ export class ReportsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const [
-      byStatus,
-      byType,
-      byReason,
-      resolutionTime,
-      recentTrends,
-    ] = await Promise.all([
-      // Por estado
-      this.prisma.report.groupBy({
-        by: ['status'],
-        _count: { status: true },
-      }),
-      // Por tipo de entidad
-      this.prisma.report.groupBy({
-        by: ['reportedType'],
-        _count: { reportedType: true },
-      }),
-      // Por razon
-      this.prisma.report.groupBy({
-        by: ['reason'],
-        _count: { reason: true },
-      }),
-      // Tiempo promedio de resolucion
-      this.prisma.report.findMany({
-        where: {
-          resolvedAt: { not: null },
-          createdAt: { gte: startDate },
-        },
-        select: { createdAt: true, resolvedAt: true },
-      }),
-      // Tendencia diaria
-      this.prisma.report.findMany({
-        where: { createdAt: { gte: startDate } },
-        select: { createdAt: true },
-      }),
-    ]);
+    const [byStatus, byType, byReason, resolutionTime, recentTrends] =
+      await Promise.all([
+        // Por estado
+        this.prisma.report.groupBy({
+          by: ['status'],
+          _count: { status: true },
+        }),
+        // Por tipo de entidad
+        this.prisma.report.groupBy({
+          by: ['reportedType'],
+          _count: { reportedType: true },
+        }),
+        // Por razon
+        this.prisma.report.groupBy({
+          by: ['reason'],
+          _count: { reason: true },
+        }),
+        // Tiempo promedio de resolucion
+        this.prisma.report.findMany({
+          where: {
+            resolvedAt: { not: null },
+            createdAt: { gte: startDate },
+          },
+          select: { createdAt: true, resolvedAt: true },
+        }),
+        // Tendencia diaria
+        this.prisma.report.findMany({
+          where: { createdAt: { gte: startDate } },
+          select: { createdAt: true },
+        }),
+      ]);
 
     // Calcular tiempo promedio de resolucion en horas
     let avgResolutionHours = 0;
@@ -665,9 +686,18 @@ export class ReportsService {
     });
 
     return {
-      byStatus: byStatus.map((s) => ({ status: s.status, count: s._count.status })),
-      byType: byType.map((t) => ({ type: t.reportedType, count: t._count.reportedType })),
-      byReason: byReason.map((r) => ({ reason: r.reason, count: r._count.reason })),
+      byStatus: byStatus.map((s) => ({
+        status: s.status,
+        count: s._count.status,
+      })),
+      byType: byType.map((t) => ({
+        type: t.reportedType,
+        count: t._count.reportedType,
+      })),
+      byReason: byReason.map((r) => ({
+        reason: r.reason,
+        count: r._count.reason,
+      })),
       avgResolutionHours,
       dailyTrends: Array.from(dailyTrends.entries())
         .map(([date, count]) => ({ date, count }))

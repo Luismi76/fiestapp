@@ -94,9 +94,7 @@ describe('AppController (e2e)', () => {
     });
 
     it('/api/auth/me (GET) should require authentication', () => {
-      return request(app.getHttpServer())
-        .get('/api/auth/me')
-        .expect(401);
+      return request(app.getHttpServer()).get('/api/auth/me').expect(401);
     });
   });
 

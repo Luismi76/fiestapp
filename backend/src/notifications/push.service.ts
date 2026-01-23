@@ -35,7 +35,9 @@ export class PushService {
   ) {
     const vapidPublicKey = this.configService.get<string>('VAPID_PUBLIC_KEY');
     const vapidPrivateKey = this.configService.get<string>('VAPID_PRIVATE_KEY');
-    const vapidEmail = this.configService.get<string>('VAPID_EMAIL') || 'mailto:info@fiestapp.es';
+    const vapidEmail =
+      this.configService.get<string>('VAPID_EMAIL') ||
+      'mailto:info@fiestapp.es';
 
     if (vapidPublicKey && vapidPrivateKey) {
       webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
@@ -192,7 +194,10 @@ export class PushService {
     experienceTitle: string,
     matchId: string,
   ): Promise<void> {
-    const shouldSend = await this.notificationsService.shouldSendPush(hostId, 'newMatch');
+    const shouldSend = await this.notificationsService.shouldSendPush(
+      hostId,
+      'newMatch',
+    );
     if (!shouldSend) return;
 
     await this.sendToUser(hostId, {
@@ -203,9 +208,7 @@ export class PushService {
         matchId,
         url: `/matches/${matchId}`,
       },
-      actions: [
-        { action: 'view', title: 'Ver solicitud' },
-      ],
+      actions: [{ action: 'view', title: 'Ver solicitud' }],
     });
   }
 
@@ -218,7 +221,10 @@ export class PushService {
     experienceTitle: string,
     matchId: string,
   ): Promise<void> {
-    const shouldSend = await this.notificationsService.shouldSendPush(requesterId, 'matchAccepted');
+    const shouldSend = await this.notificationsService.shouldSendPush(
+      requesterId,
+      'matchAccepted',
+    );
     if (!shouldSend) return;
 
     await this.sendToUser(requesterId, {
@@ -245,22 +251,24 @@ export class PushService {
     messagePreview: string,
     matchId: string,
   ): Promise<void> {
-    const shouldSend = await this.notificationsService.shouldSendPush(receiverId, 'newMessage');
+    const shouldSend = await this.notificationsService.shouldSendPush(
+      receiverId,
+      'newMessage',
+    );
     if (!shouldSend) return;
 
     await this.sendToUser(receiverId, {
       title: senderName,
-      body: messagePreview.length > 100
-        ? messagePreview.substring(0, 100) + '...'
-        : messagePreview,
+      body:
+        messagePreview.length > 100
+          ? messagePreview.substring(0, 100) + '...'
+          : messagePreview,
       data: {
         type: 'new_message',
         matchId,
         url: `/matches/${matchId}`,
       },
-      actions: [
-        { action: 'reply', title: 'Responder' },
-      ],
+      actions: [{ action: 'reply', title: 'Responder' }],
     });
   }
 
@@ -273,7 +281,10 @@ export class PushService {
     daysUntil: number,
     matchId: string,
   ): Promise<void> {
-    const shouldSend = await this.notificationsService.shouldSendPush(userId, 'reminders');
+    const shouldSend = await this.notificationsService.shouldSendPush(
+      userId,
+      'reminders',
+    );
     if (!shouldSend) return;
 
     const timeText = daysUntil === 1 ? 'mañana' : `en ${daysUntil} días`;
@@ -286,6 +297,56 @@ export class PushService {
         matchId,
         url: `/matches/${matchId}`,
       },
+    });
+  }
+
+  /**
+   * Envía notificación push de cargo por acuerdo
+   */
+  async pushWalletCharged(
+    userId: string,
+    amount: number,
+    experienceTitle: string,
+    matchId: string,
+    newBalance: number,
+  ): Promise<void> {
+    await this.sendToUser(userId, {
+      title: 'Acuerdo cerrado',
+      body: `-${amount.toFixed(2)}€ por "${experienceTitle}". Saldo: ${newBalance.toFixed(2)}€`,
+      data: {
+        type: 'wallet_charged',
+        matchId,
+        amount,
+        newBalance,
+        url: `/wallet`,
+      },
+      actions: [{ action: 'view', title: 'Ver monedero' }],
+    });
+  }
+
+  /**
+   * Envía notificación push de saldo bajo
+   */
+  async pushLowBalance(
+    userId: string,
+    currentBalance: number,
+    operationsLeft: number,
+  ): Promise<void> {
+    const body =
+      operationsLeft === 0
+        ? `Saldo: ${currentBalance.toFixed(2)}€. Recarga para poder operar.`
+        : `Saldo: ${currentBalance.toFixed(2)}€ (${operationsLeft} operación${operationsLeft > 1 ? 'es' : ''} restante${operationsLeft > 1 ? 's' : ''})`;
+
+    await this.sendToUser(userId, {
+      title: 'Saldo bajo',
+      body,
+      data: {
+        type: 'wallet_low_balance',
+        currentBalance,
+        operationsLeft,
+        url: `/wallet`,
+      },
+      actions: [{ action: 'topup', title: 'Recargar' }],
     });
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -59,11 +63,30 @@ export class AdminService {
       }),
     ]);
 
-    // Revenue stats
-    const transactions = await this.prisma.transaction.aggregate({
-      where: { status: 'completed' },
-      _sum: { amount: true },
-    });
+    // Revenue stats - desglosado
+    const [platformFees, topups, totalWalletBalance] = await Promise.all([
+      // Comisiones de plataforma (1.5€ por acuerdo) - valores negativos, tomamos el absoluto
+      this.prisma.transaction.aggregate({
+        where: { type: 'platform_fee', status: 'completed' },
+        _sum: { amount: true },
+        _count: { amount: true },
+      }),
+      // Recargas de usuarios
+      this.prisma.transaction.aggregate({
+        where: { type: 'topup', status: 'completed' },
+        _sum: { amount: true },
+        _count: { amount: true },
+      }),
+      // Saldo total en monederos
+      this.prisma.wallet.aggregate({
+        _sum: { balance: true },
+      }),
+    ]);
+
+    // Las comisiones se guardan como negativas (-1.5€), así que tomamos el valor absoluto
+    const platformRevenue = Math.abs(platformFees._sum.amount || 0);
+    // Cada acuerdo genera 2 transacciones (host + guest), así que dividimos entre 2
+    const agreementsClosed = Math.floor((platformFees._count.amount || 0) / 2);
 
     return {
       users: {
@@ -82,7 +105,14 @@ export class AdminService {
         completed: completedMatches,
       },
       reviews: totalReviews,
-      revenue: transactions._sum.amount || 0,
+      // Desglose financiero
+      revenue: {
+        platformCommissions: platformRevenue,
+        agreementsClosed,
+        userTopups: topups._sum.amount || 0,
+        topupsCount: topups._count.amount || 0,
+        totalWalletBalance: totalWalletBalance._sum.balance || 0,
+      },
       recentUsers,
       recentExperiences,
     };
@@ -274,7 +304,10 @@ export class AdminService {
   /**
    * Añade un strike a un usuario
    */
-  async addStrike(userId: string, reason: string): Promise<{ strikes: number; banned: boolean }> {
+  async addStrike(
+    userId: string,
+    reason: string,
+  ): Promise<{ strikes: number; banned: boolean }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, strikes: true, bannedAt: true, name: true },
@@ -523,7 +556,8 @@ export class AdminService {
   }
 
   /**
-   * Obtiene datos para grafica de ingresos por mes
+   * Obtiene datos para grafica de comisiones de plataforma por mes
+   * Solo cuenta las comisiones (platform_fee), no las recargas
    */
   async getRevenueChartData(months = 12) {
     const startDate = new Date();
@@ -531,10 +565,12 @@ export class AdminService {
     startDate.setDate(1);
     startDate.setHours(0, 0, 0, 0);
 
+    // Solo transacciones de comision de plataforma (ingresos reales)
     const transactions = await this.prisma.transaction.findMany({
       where: {
         createdAt: { gte: startDate },
         status: 'completed',
+        type: 'platform_fee', // Solo comisiones
       },
       select: { createdAt: true, amount: true },
       orderBy: { createdAt: 'asc' },
@@ -552,7 +588,8 @@ export class AdminService {
     transactions.forEach((t) => {
       const key = `${t.createdAt.getFullYear()}-${String(t.createdAt.getMonth() + 1).padStart(2, '0')}`;
       if (grouped.has(key)) {
-        grouped.set(key, (grouped.get(key) || 0) + t.amount);
+        // Las comisiones se guardan como negativas, tomamos valor absoluto
+        grouped.set(key, (grouped.get(key) || 0) + Math.abs(t.amount));
       }
     });
 
@@ -566,13 +603,14 @@ export class AdminService {
    * Obtiene estadisticas de matches (completados vs cancelados)
    */
   async getMatchesStats() {
-    const [completed, cancelled, pending, accepted, rejected] = await Promise.all([
-      this.prisma.match.count({ where: { status: 'completed' } }),
-      this.prisma.match.count({ where: { status: 'cancelled' } }),
-      this.prisma.match.count({ where: { status: 'pending' } }),
-      this.prisma.match.count({ where: { status: 'accepted' } }),
-      this.prisma.match.count({ where: { status: 'rejected' } }),
-    ]);
+    const [completed, cancelled, pending, accepted, rejected] =
+      await Promise.all([
+        this.prisma.match.count({ where: { status: 'completed' } }),
+        this.prisma.match.count({ where: { status: 'cancelled' } }),
+        this.prisma.match.count({ where: { status: 'pending' } }),
+        this.prisma.match.count({ where: { status: 'accepted' } }),
+        this.prisma.match.count({ where: { status: 'rejected' } }),
+      ]);
 
     const total = completed + cancelled + pending + accepted + rejected;
     const completionRate = total > 0 ? (completed / total) * 100 : 0;
@@ -612,9 +650,10 @@ export class AdminService {
 
     // Calcular rating y ordenar
     const withRating = experiences.map((e) => {
-      const avgRating = e.reviews.length > 0
-        ? e.reviews.reduce((sum, r) => sum + r.rating, 0) / e.reviews.length
-        : 0;
+      const avgRating =
+        e.reviews.length > 0
+          ? e.reviews.reduce((sum, r) => sum + r.rating, 0) / e.reviews.length
+          : 0;
 
       return {
         id: e.id,
@@ -628,9 +667,7 @@ export class AdminService {
       };
     });
 
-    return withRating
-      .sort((a, b) => b.avgRating - a.avgRating)
-      .slice(0, limit);
+    return withRating.sort((a, b) => b.avgRating - a.avgRating).slice(0, limit);
   }
 
   /**
@@ -659,9 +696,11 @@ export class AdminService {
 
     // Calcular rating promedio para cada host
     const hostsWithRating = hosts.map((host) => {
-      const avgRating = host.reviewsReceived.length > 0
-        ? host.reviewsReceived.reduce((sum, r) => sum + r.rating, 0) / host.reviewsReceived.length
-        : 0;
+      const avgRating =
+        host.reviewsReceived.length > 0
+          ? host.reviewsReceived.reduce((sum, r) => sum + r.rating, 0) /
+            host.reviewsReceived.length
+          : 0;
 
       return {
         id: host.id,
@@ -693,23 +732,24 @@ export class AdminService {
     startDate.setDate(startDate.getDate() - days);
 
     // Usuarios que han hecho login o han tenido actividad
-    const [usersWithMatches, usersWithMessages, usersWithReviews] = await Promise.all([
-      this.prisma.match.findMany({
-        where: { createdAt: { gte: startDate } },
-        select: { requesterId: true },
-        distinct: ['requesterId'],
-      }),
-      this.prisma.message.findMany({
-        where: { createdAt: { gte: startDate } },
-        select: { senderId: true },
-        distinct: ['senderId'],
-      }),
-      this.prisma.review.findMany({
-        where: { createdAt: { gte: startDate } },
-        select: { authorId: true },
-        distinct: ['authorId'],
-      }),
-    ]);
+    const [usersWithMatches, usersWithMessages, usersWithReviews] =
+      await Promise.all([
+        this.prisma.match.findMany({
+          where: { createdAt: { gte: startDate } },
+          select: { requesterId: true },
+          distinct: ['requesterId'],
+        }),
+        this.prisma.message.findMany({
+          where: { createdAt: { gte: startDate } },
+          select: { senderId: true },
+          distinct: ['senderId'],
+        }),
+        this.prisma.review.findMany({
+          where: { createdAt: { gte: startDate } },
+          select: { authorId: true },
+          distinct: ['authorId'],
+        }),
+      ]);
 
     const activeUserIds = new Set([
       ...usersWithMatches.map((m) => m.requesterId),
@@ -757,8 +797,12 @@ export class AdminService {
       }),
     ]);
 
-    const registrationToMatchRate = totalUsers > 0 ? (usersWithMatches / totalUsers) * 100 : 0;
-    const matchToCompletionRate = usersWithMatches > 0 ? (usersWithCompletedMatches / usersWithMatches) * 100 : 0;
+    const registrationToMatchRate =
+      totalUsers > 0 ? (usersWithMatches / totalUsers) * 100 : 0;
+    const matchToCompletionRate =
+      usersWithMatches > 0
+        ? (usersWithCompletedMatches / usersWithMatches) * 100
+        : 0;
 
     return {
       totalUsers,
@@ -1013,12 +1057,14 @@ export class AdminService {
   /**
    * Exporta usuarios a CSV
    */
-  async exportUsersToCSV(filters: {
-    verified?: boolean;
-    banned?: boolean;
-    dateFrom?: Date;
-    dateTo?: Date;
-  } = {}): Promise<string> {
+  async exportUsersToCSV(
+    filters: {
+      verified?: boolean;
+      banned?: boolean;
+      dateFrom?: Date;
+      dateTo?: Date;
+    } = {},
+  ): Promise<string> {
     const where: any = {};
 
     if (filters.verified !== undefined) {

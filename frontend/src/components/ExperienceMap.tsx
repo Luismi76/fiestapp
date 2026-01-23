@@ -99,7 +99,7 @@ export default function ExperienceMap({
   // Filter experiences
   const filteredExperiences = experiences.filter(exp => {
     if (filter === 'all') return true;
-    if (filter === 'mixto') return exp.type === 'mixto' || exp.type === 'ambos';
+    if (filter === 'mixto') return exp.type === 'ambos';
     return exp.type === filter;
   });
 

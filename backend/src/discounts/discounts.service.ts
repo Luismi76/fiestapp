@@ -137,7 +137,10 @@ export class DiscountsService {
     }
 
     if (discount.maxUses && discount.usedCount >= discount.maxUses) {
-      return { valid: false, message: 'Este codigo ha alcanzado su limite de usos' };
+      return {
+        valid: false,
+        message: 'Este codigo ha alcanzado su limite de usos',
+      };
     }
 
     if (discount.minAmount && amount < discount.minAmount) {
@@ -156,13 +159,17 @@ export class DiscountsService {
     });
 
     if (userUsages >= discount.maxUsesPerUser) {
-      return { valid: false, message: 'Ya has usado este codigo el maximo de veces permitido' };
+      return {
+        valid: false,
+        message: 'Ya has usado este codigo el maximo de veces permitido',
+      };
     }
 
     // Calcular descuento
     let discountAmount: number;
     if (discount.type === 'percentage') {
-      discountAmount = Math.round((amount * discount.value) / 100 * 100) / 100;
+      discountAmount =
+        Math.round(((amount * discount.value) / 100) * 100) / 100;
     } else {
       discountAmount = Math.min(discount.value, amount);
     }
@@ -232,9 +239,13 @@ export class DiscountsService {
         ...(data.value !== undefined && { value: data.value }),
         ...(data.minAmount !== undefined && { minAmount: data.minAmount }),
         ...(data.maxUses !== undefined && { maxUses: data.maxUses }),
-        ...(data.maxUsesPerUser !== undefined && { maxUsesPerUser: data.maxUsesPerUser }),
+        ...(data.maxUsesPerUser !== undefined && {
+          maxUsesPerUser: data.maxUsesPerUser,
+        }),
         ...(data.expiresAt !== undefined && { expiresAt: data.expiresAt }),
-        ...(data.description !== undefined && { description: data.description }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
       },
     });
   }

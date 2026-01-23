@@ -72,10 +72,7 @@ export class UsersController {
   // Desbloquear usuario (requiere auth)
   @Delete(':id/block')
   @UseGuards(JwtAuthGuard)
-  unblockUser(
-    @Param('id') id: string,
-    @Request() req: AuthenticatedRequest,
-  ) {
+  unblockUser(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.usersService.unblockUser(req.user.userId, id);
   }
 

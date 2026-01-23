@@ -11,7 +11,10 @@ import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService, PLATFORM_FEE } from '../wallet/wallet.service';
+import { LocationService } from './location.service';
+import { TranslationService } from './translation.service';
 import { Logger } from '@nestjs/common';
+import { MessageType } from '@prisma/client';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -45,22 +48,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private jwtService: JwtService,
     private prisma: PrismaService,
     private walletService: WalletService,
+    private locationService: LocationService,
+    private translationService: TranslationService,
   ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
+      this.logger.log(`[handleConnection] New connection attempt: ${client.id}`);
+
       const token =
         client.handshake.auth?.token ||
         client.handshake.headers?.authorization?.replace('Bearer ', '');
 
       if (!token) {
-        this.logger.warn(`Client ${client.id} connected without token`);
+        this.logger.warn(`[handleConnection] Client ${client.id} connected without token`);
         client.disconnect();
         return;
       }
 
-      const payload = this.jwtService.verify(token);
+      this.logger.log(`[handleConnection] Token found for ${client.id}, verifying...`);
+
+      let payload;
+      try {
+        payload = this.jwtService.verify(token);
+      } catch (jwtError) {
+        this.logger.error(`[handleConnection] JWT verification failed for ${client.id}: ${jwtError}`);
+        client.disconnect();
+        return;
+      }
+
       const userId = payload.sub as string;
+      this.logger.log(`[handleConnection] JWT verified, userId: ${userId}`);
       client.userId = userId;
 
       // Track socket connection for this user
@@ -78,17 +96,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           OR: [{ hostId: client.userId }, { requesterId: client.userId }],
           status: { in: ['pending', 'accepted'] },
         },
-        select: { id: true },
+        select: { id: true, hostId: true, requesterId: true, status: true },
       });
+
+      this.logger.log(`[handleConnection] User ${client.userId} has ${matches.length} active matches`);
 
       for (const match of matches) {
         client.join(`match:${match.id}`);
+        this.logger.log(`[handleConnection] User ${client.userId} (socket ${client.id}) joined match:${match.id}`);
       }
 
-      this.logger.log(`User ${client.userId} connected with socket ${client.id}`);
+      this.logger.log(
+        `User ${client.userId} connected with socket ${client.id}. Auto-joined ${matches.length} match rooms.`,
+      );
       client.emit('connected', { userId: client.userId });
     } catch (error) {
-      this.logger.error(`Connection error: ${error}`);
+      this.logger.error(`[handleConnection] CRITICAL ERROR for ${client.id}:`, error);
+      this.logger.error(`[handleConnection] Error stack:`, error instanceof Error ? error.stack : 'no stack');
       client.disconnect();
     }
   }
@@ -102,7 +126,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           this.userSockets.delete(client.userId);
         }
       }
-      this.logger.log(`User ${client.userId} disconnected (socket ${client.id})`);
+      this.logger.log(
+        `User ${client.userId} disconnected (socket ${client.id})`,
+      );
     }
   }
 
@@ -111,34 +137,55 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() matchId: string,
   ) {
-    if (!client.userId) return;
+    this.logger.log(`[joinMatch] User ${client.userId} requesting to join match ${matchId}`);
 
-    // Verify user is part of this match
-    const match = await this.prisma.match.findFirst({
-      where: {
-        id: matchId,
-        OR: [{ hostId: client.userId }, { requesterId: client.userId }],
-      },
-    });
-
-    if (!match) {
-      return { success: false, error: 'No access to this match' };
+    if (!client.userId) {
+      this.logger.warn(`[joinMatch] No userId on client`);
+      return { success: false, error: 'Not authenticated' };
     }
 
-    // Verify user has enough balance to use chat
-    const hasBalance = await this.walletService.hasEnoughBalance(client.userId);
-    if (!hasBalance) {
-      return {
-        success: false,
-        error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para acceder al chat. Recarga tu saldo.`,
-        requiresTopUp: true,
-        requiredAmount: PLATFORM_FEE,
-      };
-    }
+    try {
+      // Verify user is part of this match
+      const match = await this.prisma.match.findFirst({
+        where: {
+          id: matchId,
+          OR: [{ hostId: client.userId }, { requesterId: client.userId }],
+        },
+      });
 
-    client.join(`match:${matchId}`);
-    this.logger.log(`User ${client.userId} joined match room ${matchId}`);
-    return { success: true };
+      if (!match) {
+        this.logger.warn(`[joinMatch] User ${client.userId} has no access to match ${matchId}`);
+        return { success: false, error: 'No access to this match' };
+      }
+
+      this.logger.log(`[joinMatch] Match found, checking balance...`);
+
+      // Verify user has enough balance to use chat
+      const hasBalance = await this.walletService.hasEnoughBalance(client.userId);
+      if (!hasBalance) {
+        this.logger.warn(`[joinMatch] User ${client.userId} has insufficient balance`);
+        return {
+          success: false,
+          error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para acceder al chat. Recarga tu saldo.`,
+          requiresTopUp: true,
+          requiredAmount: PLATFORM_FEE,
+        };
+      }
+
+      this.logger.log(`[joinMatch] Balance OK, joining room...`);
+      client.join(`match:${matchId}`);
+
+      // Debug: check sockets in room after joining (use optional chaining for safety)
+      const room = this.server?.sockets?.adapter?.rooms?.get(`match:${matchId}`);
+      const socketsInRoom = room ? Array.from(room) : [];
+      this.logger.log(`[joinMatch] User ${client.userId} (socket ${client.id}) joined match:${matchId}`);
+      this.logger.log(`[joinMatch] Sockets in room: ${socketsInRoom.length}`);
+
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`[joinMatch] Error for user ${client.userId} joining match ${matchId}:`, error);
+      return { success: false, error: 'Error joining match' };
+    }
   }
 
   @SubscribeMessage('leaveMatch')
@@ -205,7 +252,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Verify user has enough balance to use chat
-      const hasBalance = await this.walletService.hasEnoughBalance(client.userId);
+      const hasBalance = await this.walletService.hasEnoughBalance(
+        client.userId,
+      );
       if (!hasBalance) {
         return {
           success: false,
@@ -239,17 +288,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data: { updatedAt: new Date() },
       });
 
+      // Get the other user info
+      const otherUserId =
+        match.hostId === client.userId ? match.requesterId : match.hostId;
+
+      this.logger.log(`[sendMessage] Broadcasting to match:${data.matchId}, other user: ${otherUserId}`);
+
       // Broadcast message to all users in the match room
       this.server.to(`match:${data.matchId}`).emit('newMessage', message);
 
-      // Also notify the other user specifically (for badge updates)
-      const otherUserId =
-        match.hostId === client.userId ? match.requesterId : match.hostId;
+      // ALSO emit directly to the other user's personal room as backup
+      this.server.to(`user:${otherUserId}`).emit('newMessage', message);
+
+      // Notification for badge updates
       this.server.to(`user:${otherUserId}`).emit('messageNotification', {
         matchId: data.matchId,
         message,
       });
 
+      this.logger.log(`[sendMessage] Message sent successfully`);
       return { success: true, message };
     } catch (error) {
       this.logger.error(`Error sending message: ${error}`);
@@ -298,5 +355,248 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // Method to send notification to a specific user
   notifyUser(userId: string, event: string, data: unknown) {
     this.server.to(`user:${userId}`).emit(event, data);
+  }
+
+  // Enviar mensaje de voz
+  @SubscribeMessage('sendVoiceMessage')
+  async handleSendVoiceMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody()
+    data: { matchId: string; voiceUrl: string; duration: number },
+  ) {
+    if (!client.userId) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    // Check rate limit
+    if (!this.checkRateLimit(client.userId)) {
+      return {
+        success: false,
+        error: 'Demasiados mensajes. Espera un momento antes de enviar más.',
+      };
+    }
+
+    try {
+      // Verify user is part of this match
+      const match = await this.prisma.match.findFirst({
+        where: {
+          id: data.matchId,
+          OR: [{ hostId: client.userId }, { requesterId: client.userId }],
+          status: { notIn: ['rejected', 'cancelled'] },
+        },
+      });
+
+      if (!match) {
+        return { success: false, error: 'No access to this match' };
+      }
+
+      // Verify balance
+      const hasBalance = await this.walletService.hasEnoughBalance(client.userId);
+      if (!hasBalance) {
+        return {
+          success: false,
+          error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para usar el chat.`,
+          requiresTopUp: true,
+        };
+      }
+
+      // Create voice message
+      const message = await this.prisma.message.create({
+        data: {
+          matchId: data.matchId,
+          senderId: client.userId,
+          content: '🎤 Mensaje de voz',
+          type: MessageType.VOICE,
+          voiceUrl: data.voiceUrl,
+          voiceDuration: data.duration,
+        },
+        include: {
+          sender: {
+            select: { id: true, name: true, avatar: true },
+          },
+        },
+      });
+
+      // Update match
+      await this.prisma.match.update({
+        where: { id: data.matchId },
+        data: { updatedAt: new Date() },
+      });
+
+      // Broadcast
+      this.server.to(`match:${data.matchId}`).emit('newMessage', message);
+
+      // Notify other user
+      const otherUserId =
+        match.hostId === client.userId ? match.requesterId : match.hostId;
+      this.server.to(`user:${otherUserId}`).emit('messageNotification', {
+        matchId: data.matchId,
+        message,
+      });
+
+      return { success: true, message };
+    } catch (error) {
+      this.logger.error(`Error sending voice message: ${error}`);
+      return { success: false, error: 'Failed to send voice message' };
+    }
+  }
+
+  // Enviar mensaje de ubicación
+  @SubscribeMessage('sendLocationMessage')
+  async handleSendLocationMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody()
+    data: {
+      matchId: string;
+      latitude: number;
+      longitude: number;
+      locationName?: string;
+    },
+  ) {
+    if (!client.userId) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    if (!this.checkRateLimit(client.userId)) {
+      return {
+        success: false,
+        error: 'Demasiados mensajes. Espera un momento antes de enviar más.',
+      };
+    }
+
+    try {
+      // Verify user is part of this match
+      const match = await this.prisma.match.findFirst({
+        where: {
+          id: data.matchId,
+          OR: [{ hostId: client.userId }, { requesterId: client.userId }],
+          status: { notIn: ['rejected', 'cancelled'] },
+        },
+      });
+
+      if (!match) {
+        return { success: false, error: 'No access to this match' };
+      }
+
+      // Verify balance
+      const hasBalance = await this.walletService.hasEnoughBalance(client.userId);
+      if (!hasBalance) {
+        return {
+          success: false,
+          error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para usar el chat.`,
+          requiresTopUp: true,
+        };
+      }
+
+      // Get location name if not provided
+      let locationName = data.locationName;
+      if (!locationName) {
+        locationName = await this.locationService.reverseGeocode(
+          data.latitude,
+          data.longitude,
+        );
+      }
+
+      // Create location message
+      const message = await this.prisma.message.create({
+        data: {
+          matchId: data.matchId,
+          senderId: client.userId,
+          content: `📍 ${locationName}`,
+          type: MessageType.LOCATION,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          locationName,
+        },
+        include: {
+          sender: {
+            select: { id: true, name: true, avatar: true },
+          },
+        },
+      });
+
+      // Update match
+      await this.prisma.match.update({
+        where: { id: data.matchId },
+        data: { updatedAt: new Date() },
+      });
+
+      // Broadcast
+      this.server.to(`match:${data.matchId}`).emit('newMessage', message);
+
+      // Notify other user
+      const otherUserId =
+        match.hostId === client.userId ? match.requesterId : match.hostId;
+      this.server.to(`user:${otherUserId}`).emit('messageNotification', {
+        matchId: data.matchId,
+        message,
+      });
+
+      return { success: true, message };
+    } catch (error) {
+      this.logger.error(`Error sending location message: ${error}`);
+      return { success: false, error: 'Failed to send location message' };
+    }
+  }
+
+  // Solicitar traducción de un mensaje
+  @SubscribeMessage('requestTranslation')
+  async handleRequestTranslation(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { messageId: string; targetLang: string },
+  ) {
+    if (!client.userId) {
+      return { success: false, error: 'Not authenticated' };
+    }
+
+    try {
+      const result = await this.translationService.translateMessage(
+        data.messageId,
+        data.targetLang,
+      );
+
+      // Emit translation result to the requesting user
+      client.emit('messageTranslated', {
+        messageId: data.messageId,
+        translation: result.translatedText,
+        originalLang: result.detectedLanguage,
+        targetLang: data.targetLang,
+      });
+
+      return { success: true, ...result };
+    } catch (error) {
+      this.logger.error(`Error translating message: ${error}`);
+      return { success: false, error: 'Failed to translate message' };
+    }
+  }
+
+  // Enviar respuesta rápida (simplemente un mensaje de texto normal)
+  @SubscribeMessage('sendQuickReply')
+  async handleSendQuickReply(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { matchId: string; text: string },
+  ) {
+    // Reutilizar la lógica de sendMessage
+    return this.handleSendMessage(client, {
+      matchId: data.matchId,
+      content: data.text,
+    });
+  }
+
+  /**
+   * Método público para emitir un nuevo mensaje desde el controller REST.
+   * Útil para mensajes de voz que se suben via HTTP pero deben notificarse via WebSocket.
+   */
+  emitNewMessage(matchId: string, message: unknown, senderId: string, otherUserId: string) {
+    // Emitir a la sala del match
+    this.server.to(`match:${matchId}`).emit('newMessage', message);
+
+    // Notificar al otro usuario para actualizar badges
+    this.server.to(`user:${otherUserId}`).emit('messageNotification', {
+      matchId,
+      message,
+    });
+
+    this.logger.log(`[emitNewMessage] Emitted to match:${matchId} and user:${otherUserId}`);
   }
 }

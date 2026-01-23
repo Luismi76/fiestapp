@@ -208,7 +208,12 @@ export class RemindersService {
     }
 
     // Send push notification
-    await this.pushService.pushReminder(userId, experienceTitle, daysUntil, matchId);
+    await this.pushService.pushReminder(
+      userId,
+      experienceTitle,
+      daysUntil,
+      matchId,
+    );
   }
 
   // Manual trigger for testing

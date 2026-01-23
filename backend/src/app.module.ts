@@ -31,6 +31,7 @@ import { CacheConfigModule } from './cache/cache.module';
 import { SentryModule } from './sentry/sentry.module';
 import { SentryExceptionFilter } from './sentry/sentry-exception.filter';
 import { EmailModule } from './email/email.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { EmailModule } from './email/email.module';
     AuditModule,
     CacheConfigModule,
     SentryModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [

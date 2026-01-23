@@ -2,16 +2,18 @@ import { Module, forwardRef } from '@nestjs/common';
 import { MatchesService } from './matches.service';
 import { MatchesController } from './matches.controller';
 import { PrismaModule } from '../prisma/prisma.module';
-import { PaymentsModule } from '../payments/payments.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { ExperiencesModule } from '../experiences/experiences.module';
 
 @Module({
   imports: [
     PrismaModule,
-    forwardRef(() => PaymentsModule),
     WalletModule,
     forwardRef(() => UsersModule),
+    NotificationsModule,
+    ExperiencesModule,
   ],
   controllers: [MatchesController],
   providers: [MatchesService],

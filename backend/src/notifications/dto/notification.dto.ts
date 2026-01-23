@@ -1,4 +1,11 @@
-import { IsBoolean, IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 
 export enum NotificationType {
   MATCH_REQUEST = 'match_request',
@@ -11,6 +18,7 @@ export enum NotificationType {
   REVIEW_REQUEST = 'review_request',
   BADGE_EARNED = 'badge_earned',
   WALLET_CHARGED = 'wallet_charged',
+  WALLET_LOW_BALANCE = 'wallet_low_balance',
   REFERRAL_SIGNUP = 'referral_signup',
   REFERRAL_CREDIT = 'referral_credit',
   SYSTEM = 'system',

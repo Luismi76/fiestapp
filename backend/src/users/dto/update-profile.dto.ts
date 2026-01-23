@@ -44,6 +44,8 @@ export class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(50, { message: 'Las edades de los hijos no pueden tener más de 50 caracteres' })
+  @MaxLength(50, {
+    message: 'Las edades de los hijos no pueden tener más de 50 caracteres',
+  })
   childrenAges?: string;
 }

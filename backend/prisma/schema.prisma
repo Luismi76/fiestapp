@@ -58,6 +58,10 @@ model User {
   badges                  UserBadge[]
   discountUsages          DiscountUsage[]
   auditLogs               AuditLog[]
+  favoriteFestivals       FavoriteFestival[]
+  searchHistory           SearchHistory[]
+  quickReplies            QuickReply[]
+  preferredLang           String?            @default("es")
 
   @@map("users")
 }
@@ -75,43 +79,55 @@ model UserPreference {
 }
 
 model Festival {
-  id          String       @id @default(uuid())
-  name        String       @unique
-  city        String
-  startDate   DateTime?
-  endDate     DateTime?
-  description String?
-  imageUrl    String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  experiences Experience[]
+  id           String             @id @default(uuid())
+  name         String             @unique
+  city         String
+  startDate    DateTime?
+  endDate      DateTime?
+  description  String?
+  imageUrl     String?
+  region       String?            // Comunidad autonoma: "Andalucia", "Cataluna", etc.
+  festivalType String?            // "religioso", "tradicional", "gastronomico", "musical"
+  latitude     Float?
+  longitude    Float?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  experiences  Experience[]
+  favoritedBy  FavoriteFestival[]
 
   @@map("festivals")
 }
 
 model Experience {
-  id           String                   @id @default(uuid())
-  title        String
-  description  String
-  festivalId   String
-  city         String
-  price        Float?
-  type         String
-  hostId       String
-  photos       String[]
-  highlights   String[]
-  capacity     Int                      @default(1)
-  published    Boolean                  @default(true)
-  avgRating    Float                    @default(0)
-  reviewCount  Int                      @default(0)
-  createdAt    DateTime                 @default(now())
-  updatedAt    DateTime                 @updatedAt
-  availability ExperienceAvailability[]
-  festival     Festival                 @relation(fields: [festivalId], references: [id])
-  host         User                     @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  matches      Match[]
-  reviews      Review[]
-  favorites    Favorite[]
+  id              String                   @id @default(uuid())
+  title           String
+  description     String
+  festivalId      String
+  city            String
+  price           Float?
+  type            String
+  hostId          String
+  photos          String[]
+  highlights      String[]
+  capacity        Int                      @default(1)
+  published       Boolean                  @default(true)
+  avgRating       Float                    @default(0)
+  reviewCount     Int                      @default(0)
+  // Campos para busqueda avanzada (FASE 3)
+  languages       String[]                 // Idiomas que habla el host: ["es", "en", "fr"]
+  accessibility   String[]                 // Opciones: ["wheelchair", "hearing_aid", "visual_aid"]
+  // Campos para grupos (FASE 4)
+  minParticipants Int                      @default(1)
+  maxParticipants Int?                     // null = usa capacity
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  availability    ExperienceAvailability[]
+  festival        Festival                 @relation(fields: [festivalId], references: [id])
+  host            User                     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  matches         Match[]
+  reviews         Review[]
+  favorites       Favorite[]
+  groupPricing    GroupPricing[]
 
   @@index([festivalId])
   @@index([hostId])
@@ -141,12 +157,16 @@ model Match {
   hostId                String
   status                String        @default("pending")
   paymentStatus         String?       // pending, held, released, refunded
-  hostConfirmed         Boolean       @default(false)    // anfitrión ha confirmado
+  hostConfirmed         Boolean       @default(false)    // anfitrion ha confirmado
   requesterConfirmed    Boolean       @default(false)    // viajero ha confirmado
   startDate             DateTime?
   endDate               DateTime?
   reminderOneDaySent    Boolean       @default(false)
   reminderThreeDaysSent Boolean       @default(false)
+  // Campos para grupos (FASE 4)
+  participants          Int           @default(1)
+  participantNames      String[]      // Nombres opcionales de los participantes
+  totalPrice            Float?        // Precio total calculado
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   experience            Experience    @relation(fields: [experienceId], references: [id], onDelete: Cascade)
@@ -166,14 +186,23 @@ model Match {
 }
 
 model Message {
-  id        String   @id @default(uuid())
-  matchId   String
-  senderId  String
-  content   String
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  id            String      @id @default(uuid())
+  matchId       String
+  senderId      String
+  content       String
+  read          Boolean     @default(false)
+  // Campos para chat mejorado (FASE 5)
+  type          MessageType @default(TEXT)
+  voiceUrl      String?     // URL del audio en Cloudinary
+  voiceDuration Int?        // Duracion en segundos
+  latitude      Float?      // Para ubicacion
+  longitude     Float?      // Para ubicacion
+  locationName  String?     // Nombre del lugar
+  originalLang  String?     // Codigo de idioma original
+  translations  Json?       // Cache de traducciones {"es": "...", "en": "..."}
+  createdAt     DateTime    @default(now())
+  match         Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([matchId])
   @@index([createdAt])
@@ -185,6 +214,7 @@ model Transaction {
   id          String   @id @default(uuid())
   userId      String
   matchId     String?
+  otherUserId String?  // ID del otro usuario en transacciones de platform_fee
   type        String
   amount      Float
   status      String   @default("pending")
@@ -235,15 +265,40 @@ model Review {
 }
 
 model Favorite {
-  id           String     @id @default(uuid())
+  id           String          @id @default(uuid())
   userId       String
   experienceId String
-  createdAt    DateTime   @default(now())
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  experience   Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  createdAt    DateTime        @default(now())
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experience   Experience      @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  alert        FavoriteAlert?
 
   @@unique([userId, experienceId])
   @@map("favorites")
+}
+
+// Alertas de disponibilidad para favoritos
+model FavoriteAlert {
+  id           String    @id @default(uuid())
+  favoriteId   String    @unique
+  enabled      Boolean   @default(true)
+  lastNotified DateTime?
+  favorite     Favorite  @relation(fields: [favoriteId], references: [id], onDelete: Cascade)
+
+  @@map("favorite_alerts")
+}
+
+// Favoritos de festivales
+model FavoriteFestival {
+  id         String   @id @default(uuid())
+  userId     String
+  festivalId String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  festival   Festival @relation(fields: [festivalId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, festivalId])
+  @@map("favorite_festivals")
 }
 
 model Report {
@@ -416,4 +471,60 @@ model AuditLog {
   @@index([entity])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ============================================
+// FASE 3: Mejoras en Busqueda
+// ============================================
+
+model SearchHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  query     String
+  filters   Json?    // Filtros aplicados
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("search_history")
+}
+
+// ============================================
+// FASE 4: Experiencias Grupales
+// ============================================
+
+model GroupPricing {
+  id             String     @id @default(uuid())
+  experienceId   String
+  minPeople      Int        // Desde X personas
+  maxPeople      Int?       // Hasta Y personas (null = sin limite)
+  pricePerPerson Float      // Precio por persona en este rango
+  experience     Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+
+  @@index([experienceId])
+  @@map("group_pricing")
+}
+
+// ============================================
+// FASE 5: Chat Mejorado
+// ============================================
+
+enum MessageType {
+  TEXT
+  VOICE
+  LOCATION
+  QUICK_REPLY
+}
+
+model QuickReply {
+  id        String   @id @default(uuid())
+  userId    String
+  text      String
+  emoji     String?  // Emoji opcional para identificar
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("quick_replies")
 }

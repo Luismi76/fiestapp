@@ -72,7 +72,8 @@ export class CaptchaService {
     );
 
     if (!response.data.success) {
-      const errors = response.data['error-codes']?.join(', ') || 'Unknown error';
+      const errors =
+        response.data['error-codes']?.join(', ') || 'Unknown error';
       console.warn(`hCaptcha verification failed: ${errors}`);
       throw new BadRequestException(
         'Verificación de CAPTCHA fallida. Por favor, inténtalo de nuevo.',
@@ -97,7 +98,8 @@ export class CaptchaService {
     );
 
     if (!response.data.success) {
-      const errors = response.data['error-codes']?.join(', ') || 'Unknown error';
+      const errors =
+        response.data['error-codes']?.join(', ') || 'Unknown error';
       console.warn(`reCAPTCHA verification failed: ${errors}`);
       throw new BadRequestException(
         'Verificación de CAPTCHA fallida. Por favor, inténtalo de nuevo.',

@@ -11,11 +11,11 @@ export interface FinancialSummary {
   totalTransactions: number;
   avgTransactionAmount: number;
   revenueByType: {
-    payment: number;    // Pagos de experiencias
-    wallet_topup: number;  // Recargas de wallet
-    commission: number;    // Comisiones
+    payment: number; // Pagos de experiencias
+    wallet_topup: number; // Recargas de wallet
+    commission: number; // Comisiones
     referral_credit: number; // Creditos de referidos
-    refund: number;        // Reembolsos
+    refund: number; // Reembolsos
   };
   transactionsByStatus: {
     completed: number;
@@ -32,7 +32,9 @@ export class FinancialReportService {
   /**
    * Obtiene resumen financiero general
    */
-  async getFinancialSummary(filters?: FinancialReportFilters): Promise<FinancialSummary> {
+  async getFinancialSummary(
+    filters?: FinancialReportFilters,
+  ): Promise<FinancialSummary> {
     const where: any = {};
 
     if (filters?.startDate || filters?.endDate) {
@@ -71,7 +73,8 @@ export class FinancialReportService {
     };
     byType.forEach((t) => {
       if (t.type in revenueByType) {
-        revenueByType[t.type as keyof typeof revenueByType] = t._sum.amount || 0;
+        revenueByType[t.type as keyof typeof revenueByType] =
+          t._sum.amount || 0;
       }
     });
 
@@ -84,7 +87,8 @@ export class FinancialReportService {
     };
     byStatus.forEach((s) => {
       if (s.status in transactionsByStatus) {
-        transactionsByStatus[s.status as keyof typeof transactionsByStatus] = s._count.status;
+        transactionsByStatus[s.status as keyof typeof transactionsByStatus] =
+          s._count.status;
       }
     });
 
@@ -231,7 +235,16 @@ export class FinancialReportService {
     });
 
     // Generar CSV
-    const headers = ['ID', 'Fecha', 'Usuario', 'Email', 'Tipo', 'Monto', 'Estado', 'Descripcion'];
+    const headers = [
+      'ID',
+      'Fecha',
+      'Usuario',
+      'Email',
+      'Tipo',
+      'Monto',
+      'Estado',
+      'Descripcion',
+    ];
     const rows = transactions.map((t) => [
       t.id,
       t.createdAt.toISOString(),

@@ -62,11 +62,7 @@ export class AuditService {
   /**
    * Obtiene logs de auditoria con filtros y paginacion
    */
-  async getLogs(
-    page = 1,
-    limit = 50,
-    filters?: AuditLogFilters,
-  ) {
+  async getLogs(page = 1, limit = 50, filters?: AuditLogFilters) {
     const skip = (page - 1) * limit;
     const where: any = {};
 
@@ -173,38 +169,34 @@ export class AuditService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const [
-      totalLogs,
-      logsByAction,
-      logsByEntity,
-      recentActivity,
-    ] = await Promise.all([
-      this.prisma.auditLog.count({
-        where: { createdAt: { gte: startDate } },
-      }),
-      this.prisma.auditLog.groupBy({
-        by: ['action'],
-        where: { createdAt: { gte: startDate } },
-        _count: { action: true },
-        orderBy: { _count: { action: 'desc' } },
-        take: 10,
-      }),
-      this.prisma.auditLog.groupBy({
-        by: ['entity'],
-        where: { createdAt: { gte: startDate } },
-        _count: { entity: true },
-        orderBy: { _count: { entity: 'desc' } },
-        take: 10,
-      }),
-      this.prisma.auditLog.findMany({
-        where: { createdAt: { gte: startDate } },
-        orderBy: { createdAt: 'desc' },
-        take: 20,
-        include: {
-          user: { select: { name: true, email: true } },
-        },
-      }),
-    ]);
+    const [totalLogs, logsByAction, logsByEntity, recentActivity] =
+      await Promise.all([
+        this.prisma.auditLog.count({
+          where: { createdAt: { gte: startDate } },
+        }),
+        this.prisma.auditLog.groupBy({
+          by: ['action'],
+          where: { createdAt: { gte: startDate } },
+          _count: { action: true },
+          orderBy: { _count: { action: 'desc' } },
+          take: 10,
+        }),
+        this.prisma.auditLog.groupBy({
+          by: ['entity'],
+          where: { createdAt: { gte: startDate } },
+          _count: { entity: true },
+          orderBy: { _count: { entity: 'desc' } },
+          take: 10,
+        }),
+        this.prisma.auditLog.findMany({
+          where: { createdAt: { gte: startDate } },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+          include: {
+            user: { select: { name: true, email: true } },
+          },
+        }),
+      ]);
 
     return {
       totalLogs,
@@ -246,7 +238,11 @@ export class AuditService {
     });
   }
 
-  async logProfileUpdate(userId: string, changes: Record<string, unknown>, ipAddress?: string) {
+  async logProfileUpdate(
+    userId: string,
+    changes: Record<string, unknown>,
+    ipAddress?: string,
+  ) {
     return this.log({
       userId,
       action: 'update_profile',

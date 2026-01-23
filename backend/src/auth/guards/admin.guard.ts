@@ -24,7 +24,9 @@ export class AdminGuard implements CanActivate {
     });
 
     if (!dbUser || dbUser.role !== 'admin') {
-      throw new ForbiddenException('Acceso denegado: se requiere rol de administrador');
+      throw new ForbiddenException(
+        'Acceso denegado: se requiere rol de administrador',
+      );
     }
 
     return true;

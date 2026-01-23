@@ -45,7 +45,16 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
-    const { email, password, name, age, city, hasPartner, hasChildren, childrenAges } = registerDto;
+    const {
+      email,
+      password,
+      name,
+      age,
+      city,
+      hasPartner,
+      hasChildren,
+      childrenAges,
+    } = registerDto;
 
     this.log(`Attempting registration for: ${email}`);
 
@@ -194,6 +203,7 @@ export class AuthService {
         name: user.name,
         avatar: user.avatar ?? undefined,
         verified: user.verified,
+        role: user.role,
         city: user.city ?? undefined,
         age: user.age ?? undefined,
         bio: user.bio ?? undefined,
@@ -253,6 +263,7 @@ export class AuthService {
         name: user.name,
         avatar: user.avatar ?? undefined,
         verified: user.verified,
+        role: user.role,
         city: user.city ?? undefined,
         age: user.age ?? undefined,
         bio: user.bio ?? undefined,
@@ -291,7 +302,9 @@ export class AuthService {
 
     if (user.verified) {
       this.log(`Email already verified for ${user.email}`);
-      return { message: 'Tu email ya ha sido verificado. Puedes iniciar sesion.' };
+      return {
+        message: 'Tu email ya ha sido verificado. Puedes iniciar sesion.',
+      };
     }
 
     await this.prisma.user.update({
@@ -336,7 +349,8 @@ export class AuthService {
       user.emailVerificationExpires &&
       user.emailVerificationExpires > new Date(Date.now() - 60 * 1000)
     ) {
-      const lastSent = user.emailVerificationExpires.getTime() - 24 * 60 * 60 * 1000;
+      const lastSent =
+        user.emailVerificationExpires.getTime() - 24 * 60 * 60 * 1000;
       const timeSinceLastSent = Date.now() - lastSent;
       if (timeSinceLastSent < 60 * 1000) {
         this.log(`Resend failed: Too soon for ${email}`);
@@ -382,6 +396,7 @@ export class AuthService {
         bio: true,
         age: true,
         verified: true,
+        role: true,
         hasPartner: true,
         hasChildren: true,
         childrenAges: true,
@@ -404,7 +419,8 @@ export class AuthService {
 
     // Siempre devolver el mismo mensaje por seguridad
     const successMessage = {
-      message: 'Si el email existe, recibirás un enlace para restablecer tu contraseña.',
+      message:
+        'Si el email existe, recibirás un enlace para restablecer tu contraseña.',
     };
 
     if (!user) {
@@ -422,13 +438,20 @@ export class AuthService {
       },
     });
 
-    await this.emailService.sendPasswordResetEmail(email, resetToken, user.name);
+    await this.emailService.sendPasswordResetEmail(
+      email,
+      resetToken,
+      user.name,
+    );
     this.log(`Password reset email sent to ${email}`);
 
     return successMessage;
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
     this.log(`Reset password attempt with token: ${token}`);
 
     const user = await this.prisma.user.findFirst({
@@ -444,7 +467,9 @@ export class AuthService {
 
     if (user.passwordResetExpires && user.passwordResetExpires < new Date()) {
       this.log(`Reset failed: Token expired for ${user.email}`);
-      throw new BadRequestException('El token ha expirado. Solicita uno nuevo.');
+      throw new BadRequestException(
+        'El token ha expirado. Solicita uno nuevo.',
+      );
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -459,7 +484,10 @@ export class AuthService {
     });
 
     this.log(`Password reset successful for ${user.email}`);
-    return { message: 'Contraseña actualizada correctamente. Ya puedes iniciar sesión.' };
+    return {
+      message:
+        'Contraseña actualizada correctamente. Ya puedes iniciar sesión.',
+    };
   }
 
   async googleLogin(googleUser: GoogleUser): Promise<AuthResponseDto> {
@@ -538,6 +566,7 @@ export class AuthService {
         name: user.name,
         avatar: user.avatar ?? undefined,
         verified: user.verified,
+        role: user.role,
         city: user.city ?? undefined,
         age: user.age ?? undefined,
         bio: user.bio ?? undefined,

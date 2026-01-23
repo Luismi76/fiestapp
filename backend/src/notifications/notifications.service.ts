@@ -150,7 +150,9 @@ export class NotificationsService {
   /**
    * Obtiene las preferencias de notificación del usuario
    */
-  async getPreferences(userId: string): Promise<NotificationPreferencesResponseDto> {
+  async getPreferences(
+    userId: string,
+  ): Promise<NotificationPreferencesResponseDto> {
     let preferences = await this.prisma.notificationPreference.findUnique({
       where: { userId },
     });
@@ -210,7 +212,14 @@ export class NotificationsService {
    */
   async shouldSendEmail(
     userId: string,
-    type: 'newMatch' | 'matchAccepted' | 'matchRejected' | 'newMessage' | 'reminders' | 'reviewRequest' | 'marketing',
+    type:
+      | 'newMatch'
+      | 'matchAccepted'
+      | 'matchRejected'
+      | 'newMessage'
+      | 'reminders'
+      | 'reviewRequest'
+      | 'marketing',
   ): Promise<boolean> {
     const preferences = await this.getPreferences(userId);
 
@@ -368,6 +377,45 @@ export class NotificationsService {
       title: 'Deja tu opinión',
       message: `Cuéntanos tu experiencia en "${experienceTitle}"`,
       data: { matchId },
+    });
+  }
+
+  /**
+   * Notifica cargo por acuerdo cerrado
+   */
+  async notifyWalletCharged(
+    userId: string,
+    amount: number,
+    experienceTitle: string,
+    matchId: string,
+    newBalance: number,
+  ) {
+    return this.create({
+      userId,
+      type: NotificationType.WALLET_CHARGED,
+      title: 'Acuerdo cerrado',
+      message: `Se han descontado ${amount.toFixed(2)}€ de tu monedero por "${experienceTitle}". Saldo actual: ${newBalance.toFixed(2)}€`,
+      data: { matchId, amount, newBalance },
+    });
+  }
+
+  /**
+   * Notifica saldo bajo en el monedero
+   */
+  async notifyLowBalance(
+    userId: string,
+    currentBalance: number,
+    operationsLeft: number,
+  ) {
+    return this.create({
+      userId,
+      type: NotificationType.WALLET_LOW_BALANCE,
+      title: 'Saldo bajo',
+      message:
+        operationsLeft === 0
+          ? `Tu monedero tiene ${currentBalance.toFixed(2)}€. Recarga para poder cerrar acuerdos.`
+          : `Tu monedero tiene ${currentBalance.toFixed(2)}€ (${operationsLeft} operación${operationsLeft > 1 ? 'es' : ''} restante${operationsLeft > 1 ? 's' : ''}).`,
+      data: { currentBalance, operationsLeft },
     });
   }
 }

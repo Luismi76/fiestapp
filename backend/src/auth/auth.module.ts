@@ -28,7 +28,14 @@ import { PrismaModule } from '../prisma/prisma.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, CaptchaService, TwoFactorService, GoogleAuthGuard],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    GoogleStrategy,
+    CaptchaService,
+    TwoFactorService,
+    GoogleAuthGuard,
+  ],
   exports: [AuthService, CaptchaService, TwoFactorService],
 })
 export class AuthModule {}

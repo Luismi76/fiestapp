@@ -3,13 +3,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { matchesApi, reviewsApi, walletApi, WalletInfo } from '@/lib/api';
+import { matchesApi, reviewsApi, walletApi, chatApi, quickRepliesApi, WalletInfo } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { MatchDetail, MatchStatus, Message } from '@/types/match';
 import { CanReviewResponse } from '@/types/review';
 import ReviewForm from '@/components/ReviewForm';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import { useSocket, useSocketEvent } from '@/hooks/useSocket';
+import VoiceMessage from '@/components/chat/VoiceMessage';
+import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
+import LocationMessage from '@/components/chat/LocationMessage';
+import LocationPicker from '@/components/chat/LocationPicker';
+import QuickRepliesDrawer from '@/components/chat/QuickRepliesDrawer';
+import TranslateButton from '@/components/chat/TranslateButton';
 
 // Mock match details for fallback
 const mockMatchDetails: Record<string, MatchDetail> = {
@@ -272,10 +278,111 @@ export default function MatchDetailPage() {
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
   const [walletError, setWalletError] = useState('');
 
+  // Chat enhanced features state
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [userQuickReplies, setUserQuickReplies] = useState<{ id: string; text: string; emoji: string | null }[]>([]);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+
   // For mock data, assume user is the host for IDs 1-3 and requester for IDs 10+
   const mockUserId = match ? (parseInt(match.id) < 10 ? match.hostId : 'me') : null;
   const isHost = useMockData ? (match ? parseInt(match.id) < 10 : false) : user?.id === match?.hostId;
   const otherUser = isHost ? match?.requester : match?.host;
+
+  // Load user quick replies
+  useEffect(() => {
+    if (user) {
+      quickRepliesApi.getUserReplies().then(setUserQuickReplies).catch(console.error);
+    }
+  }, [user]);
+
+  // Handle translation
+  const handleTranslate = async (messageId: string, targetLang: string) => {
+    const result = await chatApi.translateMessage(messageId, targetLang);
+    return result;
+  };
+
+  // Voice recorder hook - WhatsApp style (hold to record, release to send)
+  const voiceRecorder = useVoiceRecorder({
+    maxDuration: 60,
+    onRecordingComplete: async (audioBlob, duration) => {
+      if (!match) return;
+      setSending(true);
+      try {
+        await chatApi.uploadVoice(audioBlob, match.id);
+        // Message will appear via WebSocket
+      } catch (err: unknown) {
+        console.error('Error sending voice:', err);
+        if (err && typeof err === 'object' && 'response' in err) {
+          const axiosError = err as { response?: { data?: unknown; status?: number } };
+          const errorMessage = typeof axiosError.response?.data === 'object' && axiosError.response?.data !== null && 'message' in axiosError.response.data
+            ? String((axiosError.response.data as { message: unknown }).message)
+            : 'No se pudo enviar el audio';
+          setVoiceError(errorMessage);
+          setTimeout(() => setVoiceError(null), 3000);
+        } else {
+          setVoiceError('No se pudo enviar el audio');
+          setTimeout(() => setVoiceError(null), 3000);
+        }
+      } finally {
+        setSending(false);
+      }
+    },
+    onError: (err) => {
+      setVoiceError(err);
+      setTimeout(() => setVoiceError(null), 3000);
+    },
+  });
+
+  // Start/stop voice recording (WhatsApp style)
+  const handleVoiceStart = () => {
+    if (!sending && voiceRecorder.isSupported) {
+      voiceRecorder.start();
+    }
+  };
+
+  const handleVoiceEnd = () => {
+    if (voiceRecorder.state === 'recording') {
+      voiceRecorder.stop();
+    }
+  };
+
+  const handleVoiceCancel = () => {
+    if (voiceRecorder.state === 'recording') {
+      voiceRecorder.cancel();
+    }
+  };
+
+  // Handle location send
+  const handleSendLocation = async (location: { latitude: number; longitude: number; name?: string }) => {
+    if (!match) return;
+    setShowLocationPicker(false);
+    setSending(true);
+    try {
+      if (isConnected && socket) {
+        socket.emit('sendLocationMessage', {
+          matchId: match.id,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          locationName: location.name,
+        });
+      } else {
+        // Fallback to REST (would need endpoint)
+        setError('Necesitas conexión en tiempo real para enviar ubicación');
+      }
+    } catch (err) {
+      console.error('Error sending location:', err);
+      setError('No se pudo enviar la ubicación');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Handle quick reply select
+  const handleQuickReplySelect = (text: string) => {
+    setNewMessage(text);
+    setShowQuickReplies(false);
+  };
 
   useEffect(() => {
     const fetchMatch = async () => {
@@ -335,19 +442,28 @@ export default function MatchDetailPage() {
 
   // Handle incoming messages via WebSocket
   const handleNewMessage = useCallback((message: Message) => {
+    console.log('[handleNewMessage] Received:', message);
+    console.log('[handleNewMessage] Current match?.id:', match?.id);
+    console.log('[handleNewMessage] Message matchId:', message.matchId);
+
     if (match && message.matchId === match.id) {
+      console.log('[handleNewMessage] Adding message to state');
       setMatch(prev => {
         if (!prev) return prev;
         // Check if message already exists
         if (prev.messages.some(m => m.id === message.id)) {
+          console.log('[handleNewMessage] Message already exists, skipping');
           return prev;
         }
+        console.log('[handleNewMessage] Message added, new count:', prev.messages.length + 1);
         return {
           ...prev,
           messages: [...prev.messages, message],
         };
       });
       markAsRead(match.id);
+    } else {
+      console.log('[handleNewMessage] Message ignored - match mismatch');
     }
   }, [match?.id, markAsRead]);
 
@@ -380,12 +496,31 @@ export default function MatchDetailPage() {
   }, []);
 
   // Handle input change with typing indicator
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value);
     if (match && isConnected && e.target.value.length > 0) {
       setTyping(match.id, true);
     }
   };
+
+  // Handle key down for Enter to send
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (newMessage.trim() && !sending) {
+        handleSendMessage(e as unknown as React.FormEvent);
+      }
+    }
+  };
+
+  // Auto-resize textarea
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [newMessage]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -554,6 +689,33 @@ export default function MatchDetailPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const formatMessageDate = (date: string) => {
+    const msgDate = new Date(date);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (msgDate.toDateString() === today.toDateString()) {
+      return 'Hoy';
+    } else if (msgDate.toDateString() === yesterday.toDateString()) {
+      return 'Ayer';
+    } else {
+      return msgDate.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      });
+    }
+  };
+
+  // Check if we should show date separator
+  const shouldShowDateSeparator = (currentIndex: number) => {
+    if (currentIndex === 0) return true;
+    const currentDate = new Date(match!.messages[currentIndex].createdAt).toDateString();
+    const prevDate = new Date(match!.messages[currentIndex - 1].createdAt).toDateString();
+    return currentDate !== prevDate;
   };
 
   if (loading) {
@@ -852,76 +1014,155 @@ export default function MatchDetailPage() {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {match.messages.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400">
+            <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-blue-400">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
               </svg>
             </div>
-            <p className="text-gray-500 text-sm">No hay mensajes aún</p>
-            <p className="text-gray-400 text-xs mt-1">¡Inicia la conversación!</p>
+            <h3 className="font-semibold text-gray-700 mb-1">No hay mensajes aún</h3>
+            <p className="text-gray-400 text-sm">¡Inicia la conversación con {otherUser?.name}!</p>
           </div>
         ) : (
           match.messages.map((message, index) => {
             const isMe = message.senderId === currentUserId;
             const showAvatar = !isMe && (index === 0 || match.messages[index - 1].senderId !== message.senderId);
+            const isLastFromSender = index === match.messages.length - 1 || match.messages[index + 1].senderId !== message.senderId;
+            const showDateSeparator = shouldShowDateSeparator(index);
 
             return (
-              <div
-                key={message.id}
-                className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}
-              >
-                {/* Avatar for other user */}
-                {!isMe && (
-                  <div className={`w-8 h-8 flex-shrink-0 ${showAvatar ? '' : 'invisible'}`}>
-                    <img
-                      src={getAvatarSrc(otherUser?.avatar)}
-                      alt=""
-                      className="w-full h-full rounded-full object-cover"
-                    />
+              <div key={message.id}>
+                {/* Date separator */}
+                {showDateSeparator && (
+                  <div className="flex items-center justify-center my-4">
+                    <div className="bg-gray-100 text-gray-500 text-xs font-medium px-3 py-1 rounded-full">
+                      {formatMessageDate(message.createdAt)}
+                    </div>
                   </div>
                 )}
 
-                {/* Message bubble */}
                 <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                    isMe
-                      ? 'bg-blue-500 text-white rounded-br-md'
-                      : 'bg-white text-gray-900 shadow-sm rounded-bl-md'
+                  className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2 ${
+                    isLastFromSender ? 'mb-2' : 'mb-0.5'
                   }`}
                 >
-                  <p className="text-sm leading-relaxed">{message.content}</p>
-                  <p className={`text-[10px] mt-1 ${isMe ? 'text-blue-100' : 'text-gray-400'}`}>
-                    {formatMessageTime(message.createdAt)}
-                  </p>
+                  {/* Avatar for other user */}
+                  {!isMe && (
+                    <div className={`w-7 h-7 flex-shrink-0 ${showAvatar ? '' : 'invisible'}`}>
+                      <img
+                        src={getAvatarSrc(otherUser?.avatar)}
+                        alt=""
+                        className="w-full h-full rounded-full object-cover ring-2 ring-white shadow-sm"
+                      />
+                    </div>
+                  )}
+
+                  {/* Message bubble */}
+                  <div className={`max-w-[75%] group relative`}>
+                    {/* Voice message */}
+                    {message.type === 'VOICE' && message.voiceUrl ? (
+                      <VoiceMessage
+                        url={message.voiceUrl}
+                        duration={message.voiceDuration || 0}
+                        isOwn={isMe}
+                      />
+                    ) : message.type === 'LOCATION' && message.latitude && message.longitude ? (
+                      /* Location message */
+                      <LocationMessage
+                        latitude={message.latitude}
+                        longitude={message.longitude}
+                        locationName={message.locationName}
+                        isOwn={isMe}
+                      />
+                    ) : (
+                      /* Text message */
+                      <div
+                        className={`px-4 py-2.5 ${
+                          isMe
+                            ? `bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md ${
+                                isLastFromSender ? 'rounded-2xl rounded-br-md' : 'rounded-2xl'
+                              }`
+                            : `bg-white text-gray-900 shadow-sm border border-gray-100 ${
+                                isLastFromSender ? 'rounded-2xl rounded-bl-md' : 'rounded-2xl'
+                              }`
+                        }`}
+                      >
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
+                      </div>
+                    )}
+                    {/* Translate button for non-own messages */}
+                    {!isMe && message.type !== 'VOICE' && message.type !== 'LOCATION' && message.content && (
+                      <TranslateButton
+                        messageId={message.id}
+                        originalText={message.content}
+                        originalLang={message.originalLang}
+                        translations={message.translations as Record<string, string> | undefined}
+                        onTranslate={handleTranslate}
+                        compact
+                      />
+                    )}
+                    {/* Timestamp and read status */}
+                    <div className={`flex items-center gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      <span className={`text-[10px] ${isMe ? 'text-gray-400' : 'text-gray-400'}`}>
+                        {formatMessageTime(message.createdAt)}
+                      </span>
+                      {isMe && (
+                        <span className="text-[10px]">
+                          {message.read ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-blue-500">
+                              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-gray-400">
+                              <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Spacer for alignment when I'm the sender */}
+                  {isMe && <div className="w-7 flex-shrink-0" />}
                 </div>
               </div>
             );
           })
         )}
-        <div ref={messagesEndRef} />
-      </div>
 
-      {/* Message Input */}
-      {canSendMessages ? (
-        <div className="bg-white border-t border-gray-100">
-          {/* Typing indicator */}
-          {otherUserTyping && (
-            <div className="px-4 pt-2 flex items-center gap-2 text-sm text-gray-500">
+        {/* Typing indicator in messages area */}
+        {otherUserTyping && (
+          <div className="flex items-end gap-2">
+            <div className="w-7 h-7 flex-shrink-0">
+              <img
+                src={getAvatarSrc(otherUser?.avatar)}
+                alt=""
+                className="w-full h-full rounded-full object-cover ring-2 ring-white shadow-sm"
+              />
+            </div>
+            <div className="bg-white shadow-sm border border-gray-100 rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex gap-1">
                 <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                 <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                 <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <span>{otherUser?.name} está escribiendo...</span>
             </div>
-          )}
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Message Input */}
+      {canSendMessages ? (
+        <div className="bg-white border-t border-gray-100 shadow-lg">
           {/* Connection status */}
           {!useMockData && (
-            <div className={`px-4 pt-1 text-[10px] ${isConnected ? 'text-green-500' : 'text-gray-400'}`}>
-              {isConnected ? '● En línea' : '○ Conectando...'}
+            <div className={`px-4 pt-2 flex items-center gap-1.5 text-[11px] ${isConnected ? 'text-emerald-600' : 'text-gray-400'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
+              {isConnected ? 'Conectado' : 'Conectando...'}
             </div>
           )}
           {/* Wallet error message */}
@@ -961,30 +1202,122 @@ export default function MatchDetailPage() {
               </div>
             </div>
           )}
-          <form onSubmit={handleSendMessage} className="p-4 pt-2">
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={handleInputChange}
-                placeholder="Escribe un mensaje..."
-                className="flex-1 px-4 py-3 bg-gray-100 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                disabled={sending}
-              />
+          <form onSubmit={handleSendMessage} className="p-3">
+            {/* Action buttons row */}
+            <div className="flex items-center gap-1 mb-2 px-1">
               <button
-                type="submit"
-                className="w-11 h-11 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-                disabled={!newMessage.trim() || sending}
+                type="button"
+                onClick={() => setShowQuickReplies(true)}
+                className="p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+                title="Respuestas rápidas"
               >
-                {sending ? (
-                  <div className="spinner spinner-sm border-white border-t-transparent" />
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                    <path d="M3.105 2.288a.75.75 0 0 0-.826.95l1.414 4.926A1.5 1.5 0 0 0 5.135 9.25h6.115a.75.75 0 0 1 0 1.5H5.135a1.5 1.5 0 0 0-1.442 1.086l-1.414 4.926a.75.75 0 0 0 .826.95 28.897 28.897 0 0 0 15.293-7.155.75.75 0 0 0 0-1.114A28.897 28.897 0 0 0 3.105 2.288Z" />
-                  </svg>
-                )}
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowLocationPicker(true)}
+                className="p-2 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
+                title="Compartir ubicación"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                </svg>
               </button>
             </div>
+            {/* Recording indicator */}
+            {voiceRecorder.state === 'recording' && (
+              <div className="flex items-center gap-3 bg-red-50 rounded-2xl p-3 mb-2">
+                <button
+                  type="button"
+                  onClick={handleVoiceCancel}
+                  className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-300"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-sm font-medium text-red-600">
+                  {Math.floor(voiceRecorder.duration / 60)}:{(voiceRecorder.duration % 60).toString().padStart(2, '0')}
+                </span>
+                <div className="flex-1 h-1 bg-red-200 rounded-full overflow-hidden">
+                  <div className="h-full bg-red-500 transition-all" style={{ width: `${(voiceRecorder.duration / 60) * 100}%` }} />
+                </div>
+                <span className="text-xs text-gray-500">Suelta para enviar</span>
+              </div>
+            )}
+
+            {/* Voice error message */}
+            {voiceError && (
+              <div className="text-xs text-red-500 text-center mb-2">{voiceError}</div>
+            )}
+
+            <div className="flex items-end gap-2 bg-gray-100 rounded-2xl p-1.5 pl-4">
+              <textarea
+                ref={textareaRef}
+                value={newMessage}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Escribe un mensaje..."
+                rows={1}
+                className="flex-1 bg-transparent text-sm resize-none focus:outline-none py-2.5 max-h-[120px] placeholder-gray-400"
+                style={{ minHeight: '40px' }}
+                disabled={sending || voiceRecorder.state === 'recording'}
+              />
+
+              {/* Send button (when text) or Mic button (when empty) */}
+              {newMessage.trim() ? (
+                <button
+                  type="submit"
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                    !sending
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md hover:shadow-lg hover:scale-105'
+                      : 'bg-gray-300 text-gray-500'
+                  }`}
+                  disabled={sending}
+                >
+                  {sending ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                      <path d="M3.105 2.288a.75.75 0 0 0-.826.95l1.414 4.926A1.5 1.5 0 0 0 5.135 9.25h6.115a.75.75 0 0 1 0 1.5H5.135a1.5 1.5 0 0 0-1.442 1.086l-1.414 4.926a.75.75 0 0 0 .826.95 28.897 28.897 0 0 0 15.293-7.155.75.75 0 0 0 0-1.114A28.897 28.897 0 0 0 3.105 2.288Z" />
+                    </svg>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onMouseDown={handleVoiceStart}
+                  onMouseUp={handleVoiceEnd}
+                  onMouseLeave={handleVoiceEnd}
+                  onTouchStart={handleVoiceStart}
+                  onTouchEnd={handleVoiceEnd}
+                  disabled={sending || !voiceRecorder.isSupported}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                    voiceRecorder.state === 'recording'
+                      ? 'bg-red-500 text-white scale-110'
+                      : sending
+                        ? 'bg-gray-300 text-gray-500'
+                        : 'bg-gradient-to-br from-primary to-primary/80 text-white shadow-md hover:shadow-lg hover:scale-105'
+                  }`}
+                  title={voiceRecorder.isSupported ? 'Mantén pulsado para grabar' : 'Tu navegador no soporta grabación'}
+                >
+                  {sending ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+                    </svg>
+                  )}
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-gray-400 text-center mt-1.5">
+              {newMessage.trim() ? 'Enter enviar, Shift+Enter nueva línea' : 'Mantén 🎤 para grabar voz'}
+            </p>
           </form>
         </div>
       ) : (
@@ -1024,6 +1357,30 @@ export default function MatchDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Location Picker Modal */}
+      {showLocationPicker && (
+        <LocationPicker
+          onSelect={handleSendLocation}
+          onCancel={() => setShowLocationPicker(false)}
+        />
+      )}
+
+      {/* Quick Replies Drawer */}
+      <QuickRepliesDrawer
+        isOpen={showQuickReplies}
+        onClose={() => setShowQuickReplies(false)}
+        onSelect={handleQuickReplySelect}
+        userReplies={userQuickReplies}
+        onAddReply={async (text, emoji) => {
+          const newReply = await quickRepliesApi.create(text, emoji);
+          setUserQuickReplies(prev => [...prev, newReply]);
+        }}
+        onDeleteReply={async (id) => {
+          await quickRepliesApi.delete(id);
+          setUserQuickReplies(prev => prev.filter(r => r.id !== id));
+        }}
+      />
 
     </div>
   );

@@ -57,11 +57,13 @@ export class WalletController {
     @Request() req: AuthenticatedRequest,
     @Query('page') page = '1',
     @Query('limit') limit = '20',
+    @Query('type') type?: string,
   ) {
     return this.walletService.getTransactionHistory(
       req.user.userId,
       parseInt(page),
       parseInt(limit),
+      type,
     );
   }
 

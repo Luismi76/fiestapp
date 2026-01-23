@@ -69,7 +69,8 @@ export class BadgesController {
   async checkBadges(@Request() req) {
     const awarded = await this.badgesService.checkAndAwardBadges(req.user.id);
     return {
-      message: awarded.length > 0 ? 'Badges otorgados!' : 'No hay nuevos badges',
+      message:
+        awarded.length > 0 ? 'Badges otorgados!' : 'No hay nuevos badges',
       awarded,
     };
   }

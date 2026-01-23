@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { matchesApi } from '@/lib/api';
+import { matchesApi, walletApi, WalletInfo } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Match, MatchStatus } from '@/types/match';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import BottomNav from '@/components/BottomNav';
+import ConfirmModal from '@/components/ConfirmModal';
+import { useToast } from '@/components/ui/Toast';
 
 // Mock data for fallback
 const mockSentMatches: Match[] = [
@@ -35,12 +37,18 @@ const mockSentMatches: Match[] = [
     },
     host: {
       id: '1',
-      name: 'María García',
+      name: 'Maria Garcia',
       avatar: '/images/user_maria.png',
       verified: true,
       city: 'Sevilla',
     },
     _count: { messages: 8 },
+    unreadCount: 1,
+    lastMessage: {
+      content: 'Hola! Me alegra que te interese. Para que fechas vienes a Sevilla?',
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      senderId: '1',
+    },
   },
   {
     id: '11',
@@ -56,7 +64,7 @@ const mockSentMatches: Match[] = [
       city: 'Pamplona',
       type: 'intercambio',
       photos: ['/images/san_fermin.png'],
-      festival: { id: '2', name: 'San Fermín', city: 'Pamplona' },
+      festival: { id: '2', name: 'San Fermin', city: 'Pamplona' },
     } as any,
     requester: {
       id: 'me',
@@ -65,12 +73,18 @@ const mockSentMatches: Match[] = [
     },
     host: {
       id: '2',
-      name: 'Carlos Martínez',
+      name: 'Carlos Martinez',
       avatar: '/images/user_carlos.png',
       verified: true,
       city: 'Pamplona',
     },
-    _count: { messages: 0 },
+    _count: { messages: 1 },
+    unreadCount: 0,
+    lastMessage: {
+      content: 'Hola Carlos! Me interesa mucho tu experiencia.',
+      createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
+      senderId: 'me',
+    },
   },
   {
     id: '12',
@@ -82,11 +96,11 @@ const mockSentMatches: Match[] = [
     hostId: '6',
     experience: {
       id: '6',
-      title: 'Carnaval gaditano auténtico',
-      city: 'Cádiz',
+      title: 'Carnaval gaditano autentico',
+      city: 'Cadiz',
       type: 'intercambio',
       photos: ['/images/carnaval.png'],
-      festival: { id: '6', name: 'Carnaval de Cádiz', city: 'Cádiz' },
+      festival: { id: '6', name: 'Carnaval de Cadiz', city: 'Cadiz' },
     } as any,
     requester: {
       id: 'me',
@@ -95,12 +109,18 @@ const mockSentMatches: Match[] = [
     },
     host: {
       id: '6',
-      name: 'Ana López',
+      name: 'Ana Lopez',
       avatar: '/images/user_ana.png',
       verified: true,
-      city: 'Cádiz',
+      city: 'Cadiz',
     },
     _count: { messages: 15 },
+    unreadCount: 0,
+    lastMessage: {
+      content: 'Fue increible! Muchas gracias por todo!',
+      createdAt: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000).toISOString(),
+      senderId: 'me',
+    },
   },
 ];
 
@@ -115,10 +135,19 @@ const statusConfig: Record<MatchStatus, { label: string; bg: string; text: strin
 export default function SentMatchesPage() {
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { success: showSuccess, error: showError } = useToast();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<MatchStatus | 'all'>('all');
   const [useMockData, setUseMockData] = useState(false);
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+
+  // Modal state
+  const [cancelModal, setCancelModal] = useState<{ isOpen: boolean; match: Match | null }>({ isOpen: false, match: null });
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Animation state
+  const [animatingCards, setAnimatingCards] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -144,31 +173,64 @@ export default function SentMatchesPage() {
     fetchMatches();
   }, [filter]);
 
+  // Fetch wallet info
+  useEffect(() => {
+    const fetchWallet = async () => {
+      try {
+        const wallet = await walletApi.getWallet();
+        setWalletInfo(wallet);
+      } catch {
+        // Ignore wallet errors
+      }
+    };
+    fetchWallet();
+  }, []);
+
   const filteredMatches = useMockData && filter !== 'all'
     ? matches.filter(m => m.status === filter)
     : matches;
 
-  const handleCancel = async (matchId: string, e: React.MouseEvent) => {
+  // Open cancel modal
+  const openCancelModal = (match: Match, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm('¿Estás seguro de que quieres cancelar esta solicitud?')) {
-      return;
-    }
+    setCancelModal({ isOpen: true, match });
+  };
 
-    if (useMockData) {
-      setMatches(matches.map(m =>
-        m.id === matchId ? { ...m, status: 'cancelled' as MatchStatus } : m
-      ));
-      return;
-    }
+  // Confirm cancel
+  const handleCancelConfirm = async () => {
+    if (!cancelModal.match) return;
+    const matchId = cancelModal.match.id;
+    const experienceTitle = cancelModal.match.experience.title;
+
+    setActionLoading(true);
 
     try {
-      await matchesApi.cancel(matchId);
-      setMatches(matches.map(m =>
-        m.id === matchId ? { ...m, status: 'cancelled' as MatchStatus } : m
-      ));
-    } catch (err) {
-      console.error('Error cancelling match:', err);
+      if (!useMockData) {
+        await matchesApi.cancel(matchId);
+      }
+
+      // Close modal first
+      setCancelModal({ isOpen: false, match: null });
+      setActionLoading(false);
+
+      // Start animation
+      setAnimatingCards({ ...animatingCards, [matchId]: true });
+
+      // Update match after animation
+      setTimeout(() => {
+        setMatches(matches.map(m =>
+          m.id === matchId ? { ...m, status: 'cancelled' as MatchStatus } : m
+        ));
+        setAnimatingCards(prev => ({ ...prev, [matchId]: false }));
+        showSuccess('Solicitud cancelada', `Has cancelado tu solicitud para "${experienceTitle}"`);
+      }, 400);
+
+    } catch (err: any) {
+      setActionLoading(false);
+      setCancelModal({ isOpen: false, match: null });
+      const errorMsg = err?.response?.data?.message || 'No se pudo cancelar la solicitud';
+      showError('Error', errorMsg);
     }
   };
 
@@ -295,12 +357,16 @@ export default function SentMatchesPage() {
           {filteredMatches.map((match) => {
             const config = statusConfig[match.status];
             const imageSrc = getImageSrc(match.experience.photos);
+            const isAnimating = animatingCards[match.id];
 
             return (
               <Link
                 key={match.id}
                 href={`/matches/${match.id}`}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm block hover:shadow-md transition-all active:scale-[0.98]"
+                className={`
+                  bg-white rounded-2xl overflow-hidden shadow-sm block hover:shadow-md transition-all active:scale-[0.98]
+                  ${isAnimating ? 'transform scale-95 opacity-0 bg-gray-100 border-2 border-gray-300 duration-400' : ''}
+                `}
               >
                 <div className="flex">
                   {/* Experience thumbnail */}
@@ -318,53 +384,67 @@ export default function SentMatchesPage() {
                         </span>
                       </div>
                     )}
-                    {/* Status overlay */}
-                    <div className="absolute top-2 left-2">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${config.bg} ${config.text} backdrop-blur-sm`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
-                        {config.label}
-                      </span>
-                    </div>
                   </div>
 
                   {/* Content */}
                   <div className="flex-1 p-3 min-w-0 flex flex-col">
-                    {/* Experience title */}
-                    <h3 className="font-semibold text-gray-900 line-clamp-1 text-sm">
-                      {match.experience.title}
-                    </h3>
-
-                    {/* Festival badge */}
-                    <p className="text-xs text-blue-600 font-medium mt-1">
-                      {match.experience.festival?.name || 'Festividad'}
-                    </p>
+                    {/* Experience title and unread badge */}
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className={`font-semibold line-clamp-1 text-sm ${match.unreadCount && match.unreadCount > 0 ? 'text-gray-900' : 'text-gray-700'}`}>
+                        {match.experience.title}
+                      </h3>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-xs text-gray-400">{formatTimeAgo(match.lastMessage?.createdAt || match.createdAt)}</span>
+                        {match.unreadCount && match.unreadCount > 0 && (
+                          <span className="w-5 h-5 bg-blue-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                            {match.unreadCount > 9 ? '9+' : match.unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
                     {/* Host info */}
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className="w-7 h-7 rounded-full overflow-hidden ring-2 ring-white shadow-sm">
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <div className="w-6 h-6 rounded-full overflow-hidden ring-2 ring-white shadow-sm">
                         <img
                           src={getAvatarSrc(match.host.avatar)}
                           alt={match.host.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm text-gray-700">{match.host.name}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-600">{match.host.name}</span>
                         {match.host.verified && (
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-blue-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-blue-500">
                             <path fillRule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
                           </svg>
                         )}
                       </div>
                     </div>
 
+                    {/* Last message preview */}
+                    {match.lastMessage ? (
+                      <p className={`text-sm mt-1.5 line-clamp-1 ${match.unreadCount && match.unreadCount > 0 ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>
+                        {match.lastMessage.senderId === 'me' && <span className="text-gray-400">Tu: </span>}
+                        {match.lastMessage.content}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-400 mt-1.5 italic">
+                        Sin mensajes aun
+                      </p>
+                    )}
+
                     {/* Bottom row */}
                     <div className="flex items-center justify-between mt-auto pt-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-400">{formatTimeAgo(match.createdAt)}</span>
+                      <div className="flex items-center gap-2">
+                        {/* Status badge */}
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${config.bg} ${config.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
+                          {config.label}
+                        </span>
                         {match._count?.messages && match._count.messages > 0 && (
                           <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
                               <path d="M1 8.74c0 .983.713 1.825 1.69 1.943.764.092 1.534.164 2.31.216v2.351a.75.75 0 0 0 1.28.53l2.51-2.51c.182-.181.427-.29.686-.31a44.74 44.74 0 0 0 3.834-.449C14.287 10.565 15 9.723 15 8.74V4.26c0-.983-.713-1.825-1.69-1.943a44.507 44.507 0 0 0-10.62 0C1.713 2.435 1 3.277 1 4.26v4.482Z" />
                             </svg>
                             {match._count.messages}
@@ -375,9 +455,12 @@ export default function SentMatchesPage() {
                       {/* Cancel button for pending */}
                       {match.status === 'pending' ? (
                         <button
-                          onClick={(e) => handleCancel(match.id, e)}
-                          className="text-xs text-red-500 font-medium hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                          onClick={(e) => openCancelModal(match, e)}
+                          className="h-8 px-3 flex items-center justify-center gap-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-medium text-xs transition-all"
                         >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
+                            <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
+                          </svg>
                           Cancelar
                         </button>
                       ) : (
@@ -393,6 +476,53 @@ export default function SentMatchesPage() {
           })}
         </div>
       )}
+
+      {/* Cancel Confirmation Modal */}
+      <ConfirmModal
+        isOpen={cancelModal.isOpen}
+        onClose={() => setCancelModal({ isOpen: false, match: null })}
+        onConfirm={handleCancelConfirm}
+        title="Cancelar solicitud"
+        variant="warning"
+        confirmText="Cancelar solicitud"
+        cancelText="Volver"
+        isLoading={actionLoading}
+        message={
+          <div className="space-y-3">
+            {cancelModal.match && (
+              <>
+                <p>
+                  Vas a cancelar tu solicitud para la experiencia:
+                </p>
+                <div className="bg-gray-50 rounded-lg p-3 text-left">
+                  <p className="font-medium text-gray-900">{cancelModal.match.experience.title}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Anfitrion: {cancelModal.match.host.name} - {cancelModal.match.experience.city}
+                  </p>
+                </div>
+                {/* Wallet info */}
+                {walletInfo && cancelModal.match.experience.type === 'pago' && cancelModal.match.experience.price && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-left">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-blue-600">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clipRule="evenodd" />
+                      </svg>
+                      <span className="font-medium text-blue-800 text-sm">Informacion</span>
+                    </div>
+                    <p className="text-xs text-blue-700">
+                      El precio de la experiencia es de <strong>{cancelModal.match.experience.price} EUR</strong>.
+                      No se realizara ningun cargo al cancelar.
+                    </p>
+                  </div>
+                )}
+                <p className="text-xs text-gray-500">
+                  El anfitrion sera notificado de la cancelacion. Podras volver a solicitar esta experiencia en el futuro.
+                </p>
+              </>
+            )}
+          </div>
+        }
+      />
 
       <BottomNav />
     </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { usersApi } from '@/lib/api';
+import { usersApi, walletApi, WalletInfo } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserPublicProfile } from '@/types/user';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
@@ -108,8 +108,9 @@ const getExperienceImage = (exp: any) => {
 export default function PublicProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, logout } = useAuth();
   const [profile, setProfile] = useState<UserPublicProfile | null>(null);
+  const [wallet, setWallet] = useState<WalletInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -145,6 +146,21 @@ export default function PublicProfilePage() {
       fetchProfile();
     }
   }, [params.id, currentUser?.id]);
+
+  // Fetch wallet data for own profile
+  useEffect(() => {
+    const fetchWallet = async () => {
+      if (isOwnProfile && currentUser) {
+        try {
+          const walletData = await walletApi.getWallet();
+          setWallet(walletData);
+        } catch (err) {
+          console.error('Error fetching wallet:', err);
+        }
+      }
+    };
+    fetchWallet();
+  }, [isOwnProfile, currentUser]);
 
   if (loading) {
     return (
@@ -298,17 +314,27 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* Reputation Badges */}
+      {/* Reputation Badges - Enhanced Section */}
       <div className="px-4 mt-4">
-        <ReputationBadges
-          verified={profile.verified}
-          createdAt={profile.createdAt}
-          experiencesCount={profile._count.experiences}
-          reviewsCount={profile._count.reviewsReceived}
-          avgRating={profile.avgRating}
-          size="md"
-          showAll
-        />
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-5">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-amber-500">
+                <path fillRule="evenodd" d="M10 2a.75.75 0 0 1 .75.75v.258a33.186 33.186 0 0 1 6.668.83.75.75 0 0 1-.336 1.461 31.28 31.28 0 0 0-1.103-.232l1.702 7.545a.75.75 0 0 1-.387.832A4.981 4.981 0 0 1 15 14c-.825 0-1.606-.2-2.294-.556a.75.75 0 0 1-.387-.832l1.77-7.849a31.743 31.743 0 0 0-3.339-.254v11.505l5.03.66a.75.75 0 1 1-.196 1.487l-5.585-.734a.75.75 0 0 1-.653-.733V4.483c-1.12.035-2.23.13-3.339.254l1.77 7.849a.75.75 0 0 1-.387.832A4.981 4.981 0 0 1 5 14a4.98 4.98 0 0 1-2.294-.556.75.75 0 0 1-.387-.832l1.702-7.545c-.372.06-.742.126-1.103.232a.75.75 0 0 1-.336-1.461 33.186 33.186 0 0 1 6.668-.83V2.75A.75.75 0 0 1 10 2Zm0 10.5a.75.75 0 0 1 .75.75v.906a.75.75 0 1 1-1.5 0v-.906a.75.75 0 0 1 .75-.75Z" clipRule="evenodd" />
+              </svg>
+              Insignias de Reputacion
+            </h2>
+            <ReputationBadges
+              verified={profile.verified}
+              createdAt={profile.createdAt}
+              experiencesCount={profile._count.experiences}
+              reviewsCount={profile._count.reviewsReceived}
+              avgRating={profile.avgRating}
+              size="md"
+              showAll
+            />
+          </div>
+        </div>
       </div>
 
       {/* Bio */}
@@ -484,6 +510,127 @@ export default function PublicProfilePage() {
           >
             Ver experiencias de {profile.name.split(' ')[0]}
           </Link>
+        </div>
+      )}
+
+      {/* Wallet Card (only for own profile) */}
+      {isOwnProfile && currentUser && (
+        <div className="px-4 mt-6">
+          <Link
+            href="/wallet"
+            className="block bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg overflow-hidden hover:from-orange-600 hover:to-orange-700 transition-all"
+          >
+            <div className="p-5 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 text-white">
+                    <path d="M2.273 5.625A4.483 4.483 0 0 1 5.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 3H5.25a3 3 0 0 0-2.977 2.625ZM2.273 8.625A4.483 4.483 0 0 1 5.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 6H5.25a3 3 0 0 0-2.977 2.625ZM5.25 9a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H15v.75a.75.75 0 0 1-.75.75h-4.5a.75.75 0 0 1-.75-.75V9H5.25Z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-white/80 text-sm">Mi Monedero</p>
+                  <p className="text-white text-2xl font-bold">
+                    {wallet ? `${wallet.balance.toFixed(2)}€` : '...'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {wallet && (
+                  <div className="text-right">
+                    <p className="text-white/80 text-xs">Operaciones</p>
+                    <p className="text-white font-bold text-lg">{wallet.operationsAvailable}</p>
+                  </div>
+                )}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-6 h-6 text-white/60">
+                  <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+            {wallet && !wallet.canOperate && (
+              <div className="bg-white/10 px-5 py-2 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-yellow-300">
+                  <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+                </svg>
+                <span className="text-white/90 text-sm">Saldo insuficiente - Recarga para operar</span>
+              </div>
+            )}
+          </Link>
+        </div>
+      )}
+
+      {/* Account Settings (only for own profile) */}
+      {isOwnProfile && currentUser && (
+        <div className="px-4 mt-6">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="p-5">
+              <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-500">
+                  <path fillRule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .206 1.25l-1.18 2.045a1 1 0 0 1-1.187.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.114a7.05 7.05 0 0 1 0-2.227L1.821 7.773a1 1 0 0 1-.206-1.25l1.18-2.045a1 1 0 0 1 1.187-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+                </svg>
+                Cuenta
+              </h2>
+
+              {/* Email */}
+              <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-blue-500">
+                      <path d="M3 4a2 2 0 0 0-2 2v1.161l8.441 4.221a1.25 1.25 0 0 0 1.118 0L19 7.162V6a2 2 0 0 0-2-2H3Z" />
+                      <path d="m19 8.839-7.77 3.885a2.75 2.75 0 0 1-2.46 0L1 8.839V14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.839Z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="font-medium text-gray-900">{currentUser.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Role badge if admin */}
+              {currentUser.role === 'admin' && (
+                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-purple-500">
+                        <path fillRule="evenodd" d="M9.661 2.237a.531.531 0 0 1 .678 0 11.947 11.947 0 0 0 7.078 2.749.5.5 0 0 1 .479.425c.069.52.104 1.05.104 1.59 0 5.162-3.26 9.563-7.834 11.256a.48.48 0 0 1-.332 0C5.26 16.564 2 12.163 2 7c0-.538.035-1.069.104-1.589a.5.5 0 0 1 .48-.425 11.947 11.947 0 0 0 7.077-2.75Zm4.196 5.954a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Rol</p>
+                      <p className="font-medium text-purple-600">Administrador</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Admin Panel button */}
+              {currentUser.role === 'admin' && (
+                <Link
+                  href="/admin"
+                  className="w-full mt-4 py-3 bg-purple-500 text-white font-semibold rounded-xl hover:bg-purple-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                    <path fillRule="evenodd" d="M8.34 1.804A1 1 0 0 1 9.32 1h1.36a1 1 0 0 1 .98.804l.295 1.473c.497.144.971.342 1.416.587l1.25-.834a1 1 0 0 1 1.262.125l.962.962a1 1 0 0 1 .125 1.262l-.834 1.25c.245.445.443.919.587 1.416l1.473.295a1 1 0 0 1 .804.98v1.36a1 1 0 0 1-.804.98l-1.473.295a6.95 6.95 0 0 1-.587 1.416l.834 1.25a1 1 0 0 1-.125 1.262l-.962.962a1 1 0 0 1-1.262.125l-1.25-.834a6.953 6.953 0 0 1-1.416.587l-.295 1.473a1 1 0 0 1-.98.804H9.32a1 1 0 0 1-.98-.804l-.295-1.473a6.957 6.957 0 0 1-1.416-.587l-1.25.834a1 1 0 0 1-1.262-.125l-.962-.962a1 1 0 0 1-.125-1.262l.834-1.25a6.957 6.957 0 0 1-.587-1.416l-1.473-.295A1 1 0 0 1 1 10.68V9.32a1 1 0 0 1 .804-.98l1.473-.295c.144-.497.342-.971.587-1.416l-.834-1.25a1 1 0 0 1 .125-1.262l.962-.962A1 1 0 0 1 5.38 3.03l1.25.834a6.957 6.957 0 0 1 1.416-.587l.294-1.473ZM13 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" clipRule="evenodd" />
+                  </svg>
+                  Panel de Administración
+                </Link>
+              )}
+
+              {/* Logout button */}
+              <button
+                onClick={() => {
+                  logout();
+                }}
+                className="w-full mt-4 py-3 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                  <path fillRule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M19 10a.75.75 0 0 0-.75-.75H8.704l1.048-.943a.75.75 0 1 0-1.004-1.114l-2.5 2.25a.75.75 0 0 0 0 1.114l2.5 2.25a.75.75 0 1 0 1.004-1.114l-1.048-.943h9.546A.75.75 0 0 0 19 10Z" clipRule="evenodd" />
+                </svg>
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

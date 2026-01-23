@@ -10,7 +10,8 @@ export class SentryModule implements OnModuleInit {
 
   onModuleInit() {
     const dsn = this.configService.get<string>('SENTRY_DSN');
-    const environment = this.configService.get<string>('NODE_ENV') || 'development';
+    const environment =
+      this.configService.get<string>('NODE_ENV') || 'development';
 
     // Solo inicializar Sentry si hay DSN configurado
     if (!dsn) {
@@ -21,9 +22,7 @@ export class SentryModule implements OnModuleInit {
     Sentry.init({
       dsn,
       environment,
-      integrations: [
-        nodeProfilingIntegration(),
-      ],
+      integrations: [nodeProfilingIntegration()],
       // Performance monitoring
       tracesSampleRate: environment === 'production' ? 0.1 : 1.0,
       // Profiling

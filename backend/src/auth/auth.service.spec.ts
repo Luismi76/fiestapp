@@ -97,9 +97,14 @@ describe('AuthService', () => {
     };
 
     it('should throw UnauthorizedException if email already exists', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({ id: '1', email: registerDto.email });
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        email: registerDto.email,
+      });
 
-      await expect(service.register(registerDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.register(registerDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
       expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
         where: { email: registerDto.email },
       });
@@ -109,14 +114,20 @@ describe('AuthService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashedPassword');
 
-      const newUser = { id: '1', email: registerDto.email, name: registerDto.name };
+      const newUser = {
+        id: '1',
+        email: registerDto.email,
+        name: registerDto.name,
+      };
       mockPrismaService.$transaction.mockImplementation(async (callback) => {
         const mockTx = {
           user: {
             create: jest.fn().mockResolvedValue(newUser),
           },
           wallet: {
-            create: jest.fn().mockResolvedValue({ id: '1', userId: newUser.id }),
+            create: jest
+              .fn()
+              .mockResolvedValue({ id: '1', userId: newUser.id }),
           },
         };
         return callback(mockTx);
@@ -140,7 +151,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if password is invalid', async () => {
@@ -152,7 +165,9 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException if user is banned', async () => {
@@ -166,7 +181,9 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      await expect(service.login(loginDto)).rejects.toThrow('Tu cuenta ha sido suspendida');
+      await expect(service.login(loginDto)).rejects.toThrow(
+        'Tu cuenta ha sido suspendida',
+      );
     });
 
     it('should throw UnauthorizedException if email not verified', async () => {
@@ -178,7 +195,9 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      await expect(service.login(loginDto)).rejects.toThrow('Por favor, verifica tu email');
+      await expect(service.login(loginDto)).rejects.toThrow(
+        'Por favor, verifica tu email',
+      );
     });
 
     it('should return access token for valid credentials', async () => {
@@ -226,7 +245,9 @@ describe('AuthService', () => {
     it('should throw BadRequestException if token is invalid', async () => {
       mockPrismaService.user.findFirst.mockResolvedValue(null);
 
-      await expect(service.verifyEmail('invalid-token')).rejects.toThrow(BadRequestException);
+      await expect(service.verifyEmail('invalid-token')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw BadRequestException if token is expired', async () => {
@@ -237,7 +258,9 @@ describe('AuthService', () => {
         verified: false,
       });
 
-      await expect(service.verifyEmail('expired-token')).rejects.toThrow(BadRequestException);
+      await expect(service.verifyEmail('expired-token')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should return success message if already verified', async () => {
@@ -302,9 +325,9 @@ describe('AuthService', () => {
     it('should throw BadRequestException if token is invalid', async () => {
       mockPrismaService.user.findFirst.mockResolvedValue(null);
 
-      await expect(service.resetPassword('invalid-token', 'NewPassword123!')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.resetPassword('invalid-token', 'NewPassword123!'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw BadRequestException if token is expired', async () => {
@@ -314,9 +337,9 @@ describe('AuthService', () => {
         passwordResetExpires: new Date(Date.now() - 1000),
       });
 
-      await expect(service.resetPassword('expired-token', 'NewPassword123!')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.resetPassword('expired-token', 'NewPassword123!'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should reset password successfully', async () => {
@@ -328,7 +351,10 @@ describe('AuthService', () => {
       (bcrypt.hash as jest.Mock).mockResolvedValue('newHashedPassword');
       mockPrismaService.user.update.mockResolvedValue({});
 
-      const result = await service.resetPassword('valid-token', 'NewPassword123!');
+      const result = await service.resetPassword(
+        'valid-token',
+        'NewPassword123!',
+      );
 
       expect(result.message).toContain('actualizada correctamente');
       expect(mockPrismaService.user.update).toHaveBeenCalled();
@@ -339,7 +365,9 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.validateUser('invalid-id')).rejects.toThrow(UnauthorizedException);
+      await expect(service.validateUser('invalid-id')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should return user data for valid id', async () => {

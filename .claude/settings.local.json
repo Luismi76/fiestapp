@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"D:\\\\Proyectos\\\\fiestapp\\\\backend\\\\prisma\"\" | grep -E \"schema)",
+      "Bash(migration \")"
+    ]
+  }
+}

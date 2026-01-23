@@ -62,10 +62,7 @@ export class AdminController {
   }
 
   @Post('users/:id/role')
-  setUserRole(
-    @Param('id') id: string,
-    @Body('role') role: 'user' | 'admin',
-  ) {
+  setUserRole(@Param('id') id: string, @Body('role') role: 'user' | 'admin') {
     return this.adminService.setUserRole(id, role);
   }
 
@@ -91,10 +88,7 @@ export class AdminController {
   // ============================================
 
   @Post('users/:id/strike')
-  addStrike(
-    @Param('id') id: string,
-    @Body('reason') reason: string,
-  ) {
+  addStrike(@Param('id') id: string, @Body('reason') reason: string) {
     return this.adminService.addStrike(id, reason);
   }
 
@@ -104,10 +98,7 @@ export class AdminController {
   }
 
   @Post('users/:id/ban')
-  banUser(
-    @Param('id') id: string,
-    @Body('reason') reason: string,
-  ) {
+  banUser(@Param('id') id: string, @Body('reason') reason: string) {
     return this.adminService.banUser(id, reason);
   }
 
@@ -117,10 +108,7 @@ export class AdminController {
   }
 
   @Get('users/banned')
-  getBannedUsers(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
+  getBannedUsers(@Query('page') page?: string, @Query('limit') limit?: string) {
     return this.adminService.getBannedUsers(
       page ? parseInt(page) : 1,
       limit ? parseInt(limit) : 20,
@@ -225,7 +213,9 @@ export class AdminController {
 
   @Get('charts/revenue')
   getRevenueChartData(@Query('months') months?: string) {
-    return this.adminService.getRevenueChartData(months ? parseInt(months) : 12);
+    return this.adminService.getRevenueChartData(
+      months ? parseInt(months) : 12,
+    );
   }
 
   @Get('stats/matches')
@@ -268,7 +258,8 @@ export class AdminController {
     @Query('role') role?: 'user' | 'admin',
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
-    @Query('orderBy') orderBy?: 'createdAt' | 'name' | 'email' | 'matches' | 'revenue',
+    @Query('orderBy')
+    orderBy?: 'createdAt' | 'name' | 'email' | 'matches' | 'revenue',
     @Query('orderDir') orderDir?: 'asc' | 'desc',
   ) {
     return this.adminService.getUsersAdvanced(

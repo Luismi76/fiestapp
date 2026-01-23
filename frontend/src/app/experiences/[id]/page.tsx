@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { experiencesApi, matchesApi, favoritesApi } from '@/lib/api';
+import { experiencesApi, matchesApi, favoritesApi, GroupPriceResult } from '@/lib/api';
 import { ExperienceDetail, DateOccupancy } from '@/types/experience';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import ShareButton from '@/components/ShareButton';
 import ImageGallery from '@/components/ImageGallery';
+import ParticipantSelector from '@/components/ParticipantSelector';
 
 // Helper to generate availability dates for mock data
 const generateMockAvailability = (baseMonth: number, count: number): Date[] => {
@@ -247,6 +248,9 @@ export default function ExperienceDetailPage() {
   const [occupancy, setOccupancy] = useState<DateOccupancy[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [participants, setParticipants] = useState(1);
+  const [participantNames, setParticipantNames] = useState<string[]>([]);
+  const [priceResult, setPriceResult] = useState<GroupPriceResult | null>(null);
 
   useEffect(() => {
     const fetchExperience = async () => {
@@ -318,6 +322,11 @@ export default function ExperienceDetailPage() {
     setShowModal(true);
   };
 
+  const handleParticipantsChange = useCallback((count: number, result: GroupPriceResult | null) => {
+    setParticipants(count);
+    setPriceResult(result);
+  }, []);
+
   const handleSubmitRequest = async () => {
     if (!experience) return;
     if (useMockData) {
@@ -340,6 +349,10 @@ export default function ExperienceDetailPage() {
         message: message.trim() || undefined,
         startDate: dateRange.start ? dateRange.start.toISOString() : undefined,
         endDate: dateRange.end ? dateRange.end.toISOString() : undefined,
+        participants: participants > 1 ? participants : undefined,
+        participantNames: participantNames.filter(n => n.trim()).length > 0
+          ? participantNames.filter(n => n.trim())
+          : undefined,
       });
       setShowModal(false);
       router.push(`/matches/${match.id}`);
@@ -682,8 +695,13 @@ export default function ExperienceDetailPage() {
           <div className="flex-shrink-0">
             {experience.price ? (
               <div>
-                <span className="text-2xl font-bold">{experience.price}€</span>
-                <span className="text-gray-500 text-sm">/persona</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold">{experience.price}€</span>
+                  <span className="text-gray-500 text-sm">/persona</span>
+                </div>
+                {experience.maxParticipants && experience.maxParticipants > 1 && (
+                  <p className="text-xs text-green-600">Descuento grupos</p>
+                )}
               </div>
             ) : (
               <div className="text-teal-600 font-bold text-lg">Intercambio</div>
@@ -704,7 +722,7 @@ export default function ExperienceDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">Solicitar experiencia</h2>
               <button
-                onClick={() => { setShowModal(false); setDateRange({ start: null, end: null }); setMessage(''); setSubmitError(''); }}
+                onClick={() => { setShowModal(false); setDateRange({ start: null, end: null }); setMessage(''); setSubmitError(''); setParticipants(1); setParticipantNames([]); setPriceResult(null); }}
                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
@@ -725,7 +743,14 @@ export default function ExperienceDetailPage() {
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-sm truncate">{experience.title}</h3>
                 <p className="text-xs text-gray-500">con {experience.host.name}</p>
-                {experience.price && <p className="text-sm font-bold text-blue-600 mt-1">{experience.price}€/persona</p>}
+                {experience.price && (
+                  <p className="text-sm font-bold text-blue-600 mt-1">
+                    Desde {experience.price}€/persona
+                    {experience.maxParticipants && experience.maxParticipants > 1 && (
+                      <span className="text-xs font-normal text-green-600 ml-1">(descuento grupos)</span>
+                    )}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -759,6 +784,21 @@ export default function ExperienceDetailPage() {
                     initialDate={availabilityDates[0]}
                   />
                 </div>
+              </div>
+            )}
+
+            {/* Participants selector */}
+            {(experience.type === 'pago' || experience.type === 'ambos') && experience.price && (
+              <div className="mb-4">
+                <ParticipantSelector
+                  experienceId={experience.id}
+                  basePrice={experience.price}
+                  minParticipants={experience.minParticipants || 1}
+                  maxParticipants={experience.maxParticipants || experience.capacity || 10}
+                  onChange={handleParticipantsChange}
+                  showNames={participants > 1}
+                  onNamesChange={setParticipantNames}
+                />
               </div>
             )}
 

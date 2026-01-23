@@ -145,6 +145,7 @@ export class WalletService {
     const paymentIntent = await this.ensureStripe().paymentIntents.create({
       amount: amountInCents,
       currency: 'eur',
+      payment_method_types: ['card'], // Solo tarjeta para simplificar
       metadata: {
         userId,
         type: 'wallet_topup',
@@ -232,8 +233,15 @@ export class WalletService {
     });
   }
 
-  // Descontar tarifa de plataforma (llamado al completar match)
-  async deductPlatformFee(userId: string, matchId: string): Promise<void> {
+  // Descontar tarifa de plataforma (llamado al cerrar acuerdo)
+  async deductPlatformFee(
+    userId: string,
+    matchId: string,
+    experienceTitle: string,
+    role: 'host' | 'guest',
+    otherUserId: string,
+    otherUserName: string,
+  ): Promise<void> {
     const wallet = await this.getWallet(userId);
 
     if (wallet.balance < PLATFORM_FEE) {
@@ -241,6 +249,12 @@ export class WalletService {
         `Saldo insuficiente. Necesitas ${PLATFORM_FEE}€ para completar esta operación.`,
       );
     }
+
+    // Descripción clara: Experiencia + con quién
+    const description =
+      role === 'host'
+        ? `${experienceTitle} · ${otherUserName}`
+        : `${experienceTitle} · con ${otherUserName}`;
 
     await this.prisma.$transaction(async (tx) => {
       // Descontar del monedero
@@ -254,32 +268,54 @@ export class WalletService {
         data: {
           userId,
           matchId,
+          otherUserId,
           type: 'platform_fee',
           amount: -PLATFORM_FEE,
           status: 'completed',
-          description: `Tarifa de plataforma por match completado`,
+          description,
         },
       });
     });
   }
 
   // Obtener historial de transacciones del monedero
-  async getTransactionHistory(userId: string, page = 1, limit = 20) {
+  async getTransactionHistory(
+    userId: string,
+    page = 1,
+    limit = 20,
+    type?: string,
+  ) {
     const skip = (page - 1) * limit;
+
+    // Tipos validos para filtrar
+    const validTypes = ['topup', 'platform_fee', 'refund'];
+    const filterType = type && validTypes.includes(type) ? type : null;
 
     // Filtro: mostrar transacciones completadas (topups, fees, refunds)
     // No mostrar pendientes ni canceladas
-    const whereClause = {
-      userId,
-      OR: [
-        // Topups solo completados
-        { type: 'topup', status: 'completed' },
-        // Platform fees (siempre completados)
-        { type: 'platform_fee', status: 'completed' },
-        // Refunds completados
-        { type: 'refund', status: 'completed' },
-      ],
-    };
+    let whereClause: object;
+
+    if (filterType) {
+      // Filtro por tipo especifico
+      whereClause = {
+        userId,
+        type: filterType,
+        status: 'completed',
+      };
+    } else {
+      // Todos los tipos completados
+      whereClause = {
+        userId,
+        OR: [
+          // Topups solo completados
+          { type: 'topup', status: 'completed' },
+          // Platform fees (siempre completados)
+          { type: 'platform_fee', status: 'completed' },
+          // Refunds completados
+          { type: 'refund', status: 'completed' },
+        ],
+      };
+    }
 
     const [transactions, total] = await Promise.all([
       this.prisma.transaction.findMany({
@@ -293,8 +329,29 @@ export class WalletService {
       }),
     ]);
 
+    // Obtener información del otro usuario para transacciones de platform_fee
+    const otherUserIds = transactions
+      .filter((tx) => tx.otherUserId)
+      .map((tx) => tx.otherUserId as string);
+
+    const otherUsers =
+      otherUserIds.length > 0
+        ? await this.prisma.user.findMany({
+            where: { id: { in: otherUserIds } },
+            select: { id: true, name: true, avatar: true },
+          })
+        : [];
+
+    const otherUsersMap = new Map(otherUsers.map((u) => [u.id, u]));
+
+    // Enriquecer transacciones con datos del otro usuario
+    const enrichedTransactions = transactions.map((tx) => ({
+      ...tx,
+      otherUser: tx.otherUserId ? otherUsersMap.get(tx.otherUserId) : null,
+    }));
+
     return {
-      transactions,
+      transactions: enrichedTransactions,
       pagination: {
         page,
         limit,

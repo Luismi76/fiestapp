@@ -10,19 +10,22 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { MatchStatus } from './dto/update-match.dto';
-import { PaymentsService } from '../payments/payments.service';
 import { WalletService, PLATFORM_FEE } from '../wallet/wallet.service';
 import { UsersService } from '../users/users.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { PushService } from '../notifications/push.service';
+import { PricingService } from '../experiences/pricing.service';
 
 @Injectable()
 export class MatchesService {
   constructor(
     private prisma: PrismaService,
-    @Inject(forwardRef(() => PaymentsService))
-    private paymentsService: PaymentsService,
     private walletService: WalletService,
     @Inject(forwardRef(() => UsersService))
     private usersService: UsersService,
+    private notificationsService: NotificationsService,
+    private pushService: PushService,
+    private pricingService: PricingService,
   ) {}
 
   // Crear solicitud de match
@@ -136,7 +139,51 @@ export class MatchesService {
         });
       }
 
+      // Notificar al anfitrión de la nueva solicitud (reactivada)
+      await Promise.all([
+        this.notificationsService.notifyMatchRequest(
+          experience.hostId,
+          reactivatedMatch.id,
+          reactivatedMatch.requester.name,
+          experience.title,
+        ),
+        this.pushService.pushMatchRequest(
+          experience.hostId,
+          reactivatedMatch.requester.name,
+          experience.title,
+          reactivatedMatch.id,
+        ),
+      ]);
+
       return reactivatedMatch;
+    }
+
+    // Validar número de participantes
+    const participants = createDto.participants || 1;
+    const minParticipants = experience.minParticipants || 1;
+    const maxParticipants =
+      experience.maxParticipants || expWithCapacity?.capacity || 1;
+
+    if (participants < minParticipants) {
+      throw new BadRequestException(
+        `El mínimo de participantes para esta experiencia es ${minParticipants}`,
+      );
+    }
+
+    if (participants > maxParticipants) {
+      throw new BadRequestException(
+        `El máximo de participantes para esta experiencia es ${maxParticipants}`,
+      );
+    }
+
+    // Calcular precio total si la experiencia es de pago
+    let totalPrice: number | null = null;
+    if (experience.type === 'pago' || experience.type === 'ambos') {
+      const priceResult = await this.pricingService.calculateGroupPrice(
+        createDto.experienceId,
+        participants,
+      );
+      totalPrice = priceResult.totalPrice;
     }
 
     // Verificar capacidad si hay fechas seleccionadas
@@ -146,8 +193,8 @@ export class MatchesService {
         ? new Date(createDto.endDate)
         : startDate;
 
-      // Contar matches activos que se solapan con las fechas seleccionadas
-      const overlappingMatches = await this.prisma.match.count({
+      // Contar participantes en matches activos que se solapan con las fechas seleccionadas
+      const overlappingMatches = await this.prisma.match.findMany({
         where: {
           experienceId: createDto.experienceId,
           status: { in: ['pending', 'accepted'] },
@@ -164,11 +211,24 @@ export class MatchesService {
             },
           ],
         },
+        select: { participants: true },
       });
 
-      if (overlappingMatches >= (expWithCapacity?.capacity || 1)) {
+      const totalParticipantsBooked = overlappingMatches.reduce(
+        (sum, m) => sum + (m.participants || 1),
+        0,
+      );
+
+      if (
+        totalParticipantsBooked + participants >
+        (expWithCapacity?.capacity || 1)
+      ) {
+        const availableSpots =
+          (expWithCapacity?.capacity || 1) - totalParticipantsBooked;
         throw new BadRequestException(
-          'No hay disponibilidad para las fechas seleccionadas. La experiencia está completa.',
+          availableSpots > 0
+            ? `Solo quedan ${availableSpots} plazas disponibles para las fechas seleccionadas.`
+            : 'No hay disponibilidad para las fechas seleccionadas. La experiencia está completa.',
         );
       }
     }
@@ -182,6 +242,9 @@ export class MatchesService {
         status: 'pending',
         startDate: createDto.startDate ? new Date(createDto.startDate) : null,
         endDate: createDto.endDate ? new Date(createDto.endDate) : null,
+        participants,
+        participantNames: createDto.participantNames || [],
+        totalPrice,
       },
       include: {
         experience: {
@@ -220,6 +283,22 @@ export class MatchesService {
       });
     }
 
+    // Notificar al anfitrión de la nueva solicitud
+    await Promise.all([
+      this.notificationsService.notifyMatchRequest(
+        experience.hostId,
+        match.id,
+        match.requester.name,
+        experience.title,
+      ),
+      this.pushService.pushMatchRequest(
+        experience.hostId,
+        match.requester.name,
+        experience.title,
+        match.id,
+      ),
+    ]);
+
     return match;
   }
 
@@ -243,6 +322,9 @@ export class MatchesService {
         requesterConfirmed: true,
         startDate: true,
         endDate: true,
+        participants: true,
+        participantNames: true,
+        totalPrice: true,
         createdAt: true,
         updatedAt: true,
         experience: {
@@ -302,6 +384,9 @@ export class MatchesService {
         requesterConfirmed: true,
         startDate: true,
         endDate: true,
+        participants: true,
+        participantNames: true,
+        totalPrice: true,
         createdAt: true,
         updatedAt: true,
         experience: {
@@ -424,7 +509,11 @@ export class MatchesService {
   ) {
     const match = await this.prisma.match.findUnique({
       where: { id },
-      include: { experience: true },
+      include: {
+        experience: true,
+        host: { select: { name: true } },
+        requester: { select: { name: true } },
+      },
     });
 
     if (!match) {
@@ -441,13 +530,133 @@ export class MatchesService {
       throw new BadRequestException('Esta solicitud ya no está pendiente');
     }
 
-    // Verificar pago si la experiencia es de pago
-    if (match.experience.price && match.experience.price > 0) {
-      if (match.paymentStatus !== 'held') {
-        throw new BadRequestException(
-          'El viajero debe completar el pago antes de que puedas aceptar',
-        );
-      }
+    // Verificar saldo de ambos usuarios antes de aceptar
+    const [hostHasBalance, requesterHasBalance] = await Promise.all([
+      this.walletService.hasEnoughBalance(match.hostId),
+      this.walletService.hasEnoughBalance(match.requesterId),
+    ]);
+
+    if (!hostHasBalance) {
+      throw new BadRequestException(
+        `No tienes saldo suficiente. Necesitas ${PLATFORM_FEE}€ para cerrar el acuerdo. Recarga tu monedero.`,
+      );
+    }
+
+    if (!requesterHasBalance) {
+      throw new BadRequestException(
+        `El viajero no tiene saldo suficiente (${PLATFORM_FEE}€) para cerrar el acuerdo.`,
+      );
+    }
+
+    // Cobrar tarifa de plataforma a ambos usuarios al cerrar el acuerdo
+    const experienceTitle = match.experience.title;
+    const hostName = match.host.name;
+    const requesterName = match.requester.name;
+    await Promise.all([
+      this.walletService.deductPlatformFee(
+        match.hostId,
+        id,
+        experienceTitle,
+        'host',
+        match.requesterId,
+        requesterName,
+      ),
+      this.walletService.deductPlatformFee(
+        match.requesterId,
+        id,
+        experienceTitle,
+        'guest',
+        match.hostId,
+        hostName,
+      ),
+    ]);
+
+    // Obtener saldos actualizados
+    const [hostWallet, requesterWallet] = await Promise.all([
+      this.walletService.getWallet(match.hostId),
+      this.walletService.getWallet(match.requesterId),
+    ]);
+
+    // Enviar notificaciones de cargo a ambos usuarios
+    const hostOperationsLeft = Math.floor(hostWallet.balance / PLATFORM_FEE);
+    const requesterOperationsLeft = Math.floor(
+      requesterWallet.balance / PLATFORM_FEE,
+    );
+
+    await Promise.all([
+      // Notificaciones al anfitrión
+      this.notificationsService.notifyWalletCharged(
+        match.hostId,
+        PLATFORM_FEE,
+        experienceTitle,
+        id,
+        hostWallet.balance,
+      ),
+      this.pushService.pushWalletCharged(
+        match.hostId,
+        PLATFORM_FEE,
+        experienceTitle,
+        id,
+        hostWallet.balance,
+      ),
+      // Notificaciones al viajero
+      this.notificationsService.notifyWalletCharged(
+        match.requesterId,
+        PLATFORM_FEE,
+        experienceTitle,
+        id,
+        requesterWallet.balance,
+      ),
+      this.pushService.pushWalletCharged(
+        match.requesterId,
+        PLATFORM_FEE,
+        experienceTitle,
+        id,
+        requesterWallet.balance,
+      ),
+      // Notificación de match aceptado al viajero
+      this.notificationsService.notifyMatchAccepted(
+        match.requesterId,
+        id,
+        hostName,
+        experienceTitle,
+      ),
+      this.pushService.pushMatchAccepted(
+        match.requesterId,
+        hostName,
+        experienceTitle,
+        id,
+      ),
+    ]);
+
+    // Verificar saldo bajo y notificar si es necesario
+    if (hostOperationsLeft <= 1) {
+      await Promise.all([
+        this.notificationsService.notifyLowBalance(
+          match.hostId,
+          hostWallet.balance,
+          hostOperationsLeft,
+        ),
+        this.pushService.pushLowBalance(
+          match.hostId,
+          hostWallet.balance,
+          hostOperationsLeft,
+        ),
+      ]);
+    }
+    if (requesterOperationsLeft <= 1) {
+      await Promise.all([
+        this.notificationsService.notifyLowBalance(
+          match.requesterId,
+          requesterWallet.balance,
+          requesterOperationsLeft,
+        ),
+        this.pushService.pushLowBalance(
+          match.requesterId,
+          requesterWallet.balance,
+          requesterOperationsLeft,
+        ),
+      ]);
     }
 
     return this.prisma.match.update({
@@ -481,6 +690,9 @@ export class MatchesService {
   async reject(id: string, hostId: string) {
     const match = await this.prisma.match.findUnique({
       where: { id },
+      include: {
+        experience: { select: { title: true } },
+      },
     });
 
     if (!match) {
@@ -497,18 +709,19 @@ export class MatchesService {
       throw new BadRequestException('Esta solicitud ya no está pendiente');
     }
 
-    // Reembolsar pago si existe
-    if (match.paymentStatus === 'held' || match.paymentStatus === 'pending') {
-      await this.paymentsService.refundPayment(
-        id,
-        'Solicitud rechazada por el anfitrión',
-      );
-    }
-
-    return this.prisma.match.update({
+    const updatedMatch = await this.prisma.match.update({
       where: { id },
       data: { status: MatchStatus.REJECTED },
     });
+
+    // Notificar al viajero del rechazo
+    await this.notificationsService.notifyMatchRejected(
+      match.requesterId,
+      id,
+      match.experience.title,
+    );
+
+    return updatedMatch;
   }
 
   // Cancelar match (solo requester si está pending, ambos si está accepted)
@@ -539,15 +752,6 @@ export class MatchesService {
 
     if (match.status !== 'pending' && match.status !== 'accepted') {
       throw new BadRequestException('Esta solicitud no se puede cancelar');
-    }
-
-    // Reembolsar pago si existe
-    if (match.paymentStatus === 'held' || match.paymentStatus === 'pending') {
-      const reason =
-        match.requesterId === userId
-          ? 'Cancelado por el viajero'
-          : 'Cancelado por el anfitrión';
-      await this.paymentsService.refundPayment(id, reason);
     }
 
     return this.prisma.match.update({
@@ -616,38 +820,7 @@ export class MatchesService {
 
   // Completar match internamente (cuando ambos confirman)
   private async completeMatch(id: string) {
-    const match = await this.prisma.match.findUnique({
-      where: { id },
-    });
-
-    if (!match) {
-      throw new NotFoundException('Solicitud no encontrada');
-    }
-
-    // Verificar saldo de ambos usuarios antes de completar
-    const [hostHasBalance, requesterHasBalance] = await Promise.all([
-      this.walletService.hasEnoughBalance(match.hostId),
-      this.walletService.hasEnoughBalance(match.requesterId),
-    ]);
-
-    if (!hostHasBalance) {
-      throw new BadRequestException(
-        `El anfitrión no tiene saldo suficiente (${PLATFORM_FEE}€) para completar esta operación.`,
-      );
-    }
-
-    if (!requesterHasBalance) {
-      throw new BadRequestException(
-        `El viajero no tiene saldo suficiente (${PLATFORM_FEE}€) para completar esta operación.`,
-      );
-    }
-
-    // Descontar tarifa de plataforma a ambos usuarios
-    await Promise.all([
-      this.walletService.deductPlatformFee(match.hostId, id),
-      this.walletService.deductPlatformFee(match.requesterId, id),
-    ]);
-
+    // El cobro ya se realizó al aceptar el acuerdo
     return this.prisma.match.update({
       where: { id },
       data: { status: MatchStatus.COMPLETED },
@@ -671,7 +844,7 @@ export class MatchesService {
     });
   }
 
-  // Marcar como completado (solo host después de accepted) - mantener para compatibilidad
+  // Marcar como completado (solo host después de accepted)
   async complete(id: string, hostId: string) {
     const match = await this.prisma.match.findUnique({
       where: { id },
@@ -693,30 +866,7 @@ export class MatchesService {
       );
     }
 
-    // Verificar saldo de ambos usuarios antes de completar
-    const [hostHasBalance, requesterHasBalance] = await Promise.all([
-      this.walletService.hasEnoughBalance(match.hostId),
-      this.walletService.hasEnoughBalance(match.requesterId),
-    ]);
-
-    if (!hostHasBalance) {
-      throw new BadRequestException(
-        `No tienes saldo suficiente. Necesitas ${PLATFORM_FEE}€ para completar esta operación. Recarga tu monedero.`,
-      );
-    }
-
-    if (!requesterHasBalance) {
-      throw new BadRequestException(
-        `El viajero no tiene saldo suficiente (${PLATFORM_FEE}€) para completar esta operación.`,
-      );
-    }
-
-    // Descontar tarifa de plataforma a ambos usuarios
-    await Promise.all([
-      this.walletService.deductPlatformFee(match.hostId, id),
-      this.walletService.deductPlatformFee(match.requesterId, id),
-    ]);
-
+    // El cobro ya se realizó al aceptar el acuerdo
     return this.prisma.match.update({
       where: { id },
       data: { status: MatchStatus.COMPLETED },

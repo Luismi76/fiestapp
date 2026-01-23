@@ -14,7 +14,10 @@ const AUDITED_ACTIONS: Record<string, { action: string; entity: string }> = {
   'POST /api/auth/login': { action: 'login', entity: 'user' },
   'POST /api/auth/register': { action: 'register', entity: 'user' },
   'POST /api/auth/logout': { action: 'logout', entity: 'user' },
-  'POST /api/auth/change-password': { action: 'change_password', entity: 'user' },
+  'POST /api/auth/change-password': {
+    action: 'change_password',
+    entity: 'user',
+  },
 
   // Users
   'PATCH /api/users/me': { action: 'update_profile', entity: 'user' },
@@ -38,16 +41,37 @@ const AUDITED_ACTIONS: Record<string, { action: string; entity: string }> = {
 
   // Admin
   'POST /api/admin/users/:id/ban': { action: 'admin_ban_user', entity: 'user' },
-  'POST /api/admin/users/:id/unban': { action: 'admin_unban_user', entity: 'user' },
-  'POST /api/admin/users/:id/strike': { action: 'admin_add_strike', entity: 'user' },
-  'DELETE /api/admin/users/:id/strike': { action: 'admin_remove_strike', entity: 'user' },
-  'POST /api/admin/users/:id/role': { action: 'admin_change_role', entity: 'user' },
-  'DELETE /api/admin/users/:id': { action: 'admin_delete_user', entity: 'user' },
-  'DELETE /api/admin/experiences/:id': { action: 'admin_delete_experience', entity: 'experience' },
+  'POST /api/admin/users/:id/unban': {
+    action: 'admin_unban_user',
+    entity: 'user',
+  },
+  'POST /api/admin/users/:id/strike': {
+    action: 'admin_add_strike',
+    entity: 'user',
+  },
+  'DELETE /api/admin/users/:id/strike': {
+    action: 'admin_remove_strike',
+    entity: 'user',
+  },
+  'POST /api/admin/users/:id/role': {
+    action: 'admin_change_role',
+    entity: 'user',
+  },
+  'DELETE /api/admin/users/:id': {
+    action: 'admin_delete_user',
+    entity: 'user',
+  },
+  'DELETE /api/admin/experiences/:id': {
+    action: 'admin_delete_experience',
+    entity: 'experience',
+  },
 
   // Reports
   'POST /api/reports': { action: 'create', entity: 'report' },
-  'PUT /api/admin/reports/:id/resolve': { action: 'admin_resolve', entity: 'report' },
+  'PUT /api/admin/reports/:id/resolve': {
+    action: 'admin_resolve',
+    entity: 'report',
+  },
 };
 
 @Injectable()
@@ -72,44 +96,57 @@ export class AuditInterceptor implements NestInterceptor {
       tap({
         next: (response) => {
           // Solo loguear si la respuesta fue exitosa
-          const entityId = this.extractEntityId(request, response, auditConfig.entity);
+          const entityId = this.extractEntityId(
+            request,
+            response,
+            auditConfig.entity,
+          );
 
-          this.auditService.log({
-            userId: user?.id,
-            action: auditConfig.action,
-            entity: auditConfig.entity,
-            entityId,
-            data: {
-              method,
-              url,
-              duration: Date.now() - startTime,
-              responseStatus: 'success',
-            },
-            ipAddress: ip || headers['x-forwarded-for'] || headers['x-real-ip'],
-            userAgent: headers['user-agent'],
-          }).catch((err) => {
-            console.error('Error logging audit:', err);
-          });
-        },
-        error: (error) => {
-          // Loguear tambien errores para acciones de seguridad
-          if (auditConfig.action.includes('login') || auditConfig.action.includes('admin')) {
-            this.auditService.log({
+          this.auditService
+            .log({
               userId: user?.id,
-              action: `${auditConfig.action}_failed`,
+              action: auditConfig.action,
               entity: auditConfig.entity,
+              entityId,
               data: {
                 method,
                 url,
                 duration: Date.now() - startTime,
-                error: error.message,
-                responseStatus: 'error',
+                responseStatus: 'success',
               },
-              ipAddress: ip || headers['x-forwarded-for'] || headers['x-real-ip'],
+              ipAddress:
+                ip || headers['x-forwarded-for'] || headers['x-real-ip'],
               userAgent: headers['user-agent'],
-            }).catch((err) => {
+            })
+            .catch((err) => {
               console.error('Error logging audit:', err);
             });
+        },
+        error: (error) => {
+          // Loguear tambien errores para acciones de seguridad
+          if (
+            auditConfig.action.includes('login') ||
+            auditConfig.action.includes('admin')
+          ) {
+            this.auditService
+              .log({
+                userId: user?.id,
+                action: `${auditConfig.action}_failed`,
+                entity: auditConfig.entity,
+                data: {
+                  method,
+                  url,
+                  duration: Date.now() - startTime,
+                  error: error.message,
+                  responseStatus: 'error',
+                },
+                ipAddress:
+                  ip || headers['x-forwarded-for'] || headers['x-real-ip'],
+                userAgent: headers['user-agent'],
+              })
+              .catch((err) => {
+                console.error('Error logging audit:', err);
+              });
           }
         },
       }),
@@ -122,7 +159,10 @@ export class AuditInterceptor implements NestInterceptor {
 
     // Reemplazar UUIDs y IDs numericos con :id
     const normalizedPath = urlWithoutQuery
-      .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '/:id')
+      .replace(
+        /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+        '/:id',
+      )
       .replace(/\/\d+/g, '/:id');
 
     return `${method} ${normalizedPath}`;

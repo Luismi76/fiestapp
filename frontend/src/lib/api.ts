@@ -150,7 +150,89 @@ export const experiencesApi = {
     const response = await api.get<string[]>('/experiences/cities');
     return response.data;
   },
+
+  // Calcular precio grupal
+  calculatePrice: async (
+    id: string,
+    participants: number
+  ): Promise<GroupPriceResult> => {
+    const response = await api.get<GroupPriceResult>(
+      `/experiences/${id}/calculate-price?participants=${participants}`
+    );
+    return response.data;
+  },
+
+  // Obtener precios grupales
+  getGroupPricing: async (id: string): Promise<GroupPricingTier[]> => {
+    const response = await api.get<GroupPricingTier[]>(
+      `/experiences/${id}/group-pricing`
+    );
+    return response.data;
+  },
+
+  // Establecer precios grupales (para hosts)
+  setGroupPricing: async (
+    id: string,
+    tiers: GroupPricingTier[]
+  ): Promise<void> => {
+    await api.post(`/experiences/${id}/group-pricing`, { tiers });
+  },
+
+  // Actualizar precios grupales (para hosts)
+  updateGroupPricing: async (
+    id: string,
+    tiers: GroupPricingTier[]
+  ): Promise<void> => {
+    await api.put(`/experiences/${id}/group-pricing`, { tiers });
+  },
+
+  // Actualizar límites de participantes (para hosts)
+  updateParticipantLimits: async (
+    id: string,
+    minParticipants: number,
+    maxParticipants?: number | null
+  ): Promise<void> => {
+    await api.patch(`/experiences/${id}/participant-limits`, {
+      minParticipants,
+      maxParticipants,
+    });
+  },
 };
+
+// Group Pricing types
+export interface GroupPriceResult {
+  pricePerPerson: number;
+  totalPrice: number;
+  discount: number;
+  tier: 'individual' | 'small_group' | 'large_group';
+  originalPricePerPerson: number;
+  savings: number;
+}
+
+export interface GroupPricingTier {
+  minPeople: number;
+  maxPeople: number | null;
+  pricePerPerson: number;
+}
+
+// Calendar types
+export interface CalendarFestival {
+  id: string;
+  name: string;
+  city: string;
+  startDate: string | null;
+  endDate: string | null;
+  region: string | null;
+  festivalType: string | null;
+  imageUrl: string | null;
+  experienceCount: number;
+}
+
+export interface FestivalByMonth {
+  month: number;
+  monthName: string;
+  festivals: CalendarFestival[];
+}
 
 export const festivalsApi = {
   getAll: async (): Promise<Festival[]> => {
@@ -171,6 +253,62 @@ export const festivalsApi = {
   seed: async (): Promise<{ message: string; count: number }> => {
     const response = await api.post<{ message: string; count: number }>('/festivals/seed');
     return response.data;
+  },
+
+  // =============================================
+  // CALENDARIO
+  // =============================================
+
+  // Obtener datos del calendario
+  getCalendar: async (
+    year?: number,
+    filters?: { region?: string; type?: string; city?: string }
+  ): Promise<FestivalByMonth[]> => {
+    const params = new URLSearchParams();
+    if (filters?.region) params.append('region', filters.region);
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.city) params.append('city', filters.city);
+
+    const path = year ? `/festivals/calendar/${year}` : '/festivals/calendar';
+    const response = await api.get<FestivalByMonth[]>(`${path}?${params}`);
+    return response.data;
+  },
+
+  // Obtener regiones disponibles
+  getRegions: async (): Promise<string[]> => {
+    const response = await api.get<string[]>('/festivals/regions');
+    return response.data;
+  },
+
+  // Obtener tipos disponibles
+  getTypes: async (): Promise<string[]> => {
+    const response = await api.get<string[]>('/festivals/types');
+    return response.data;
+  },
+
+  // Obtener ciudades disponibles
+  getCities: async (): Promise<string[]> => {
+    const response = await api.get<string[]>('/festivals/cities');
+    return response.data;
+  },
+
+  // Obtener URL de Google Calendar para un festival
+  getGoogleCalendarUrl: async (festivalId: string): Promise<{ url: string }> => {
+    const response = await api.get<{ url: string }>(`/festivals/${festivalId}/google-calendar`);
+    return response.data;
+  },
+
+  // Obtener URL de descarga iCal
+  getICalUrl: (festivalId?: string, filters?: { region?: string; type?: string; city?: string }): string => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    if (festivalId) {
+      return `${baseUrl}/festivals/${festivalId}/ical`;
+    }
+    const params = new URLSearchParams();
+    if (filters?.region) params.append('region', filters.region);
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.city) params.append('city', filters.city);
+    return `${baseUrl}/festivals/ical?${params}`;
   },
 };
 
@@ -457,6 +595,12 @@ export interface WalletTransaction {
   amount: number;
   status: string;
   description: string | null;
+  otherUserId: string | null;
+  otherUser: {
+    id: string;
+    name: string;
+    avatar: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -490,8 +634,10 @@ export const walletApi = {
   },
 
   // Obtener historial de transacciones
-  getTransactions: async (page = 1, limit = 20): Promise<WalletTransactionsResponse> => {
-    const response = await api.get<WalletTransactionsResponse>(`/wallet/transactions?page=${page}&limit=${limit}`);
+  getTransactions: async (page = 1, limit = 20, type?: string): Promise<WalletTransactionsResponse> => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (type) params.append('type', type);
+    const response = await api.get<WalletTransactionsResponse>(`/wallet/transactions?${params}`);
     return response.data;
   },
 
@@ -502,10 +648,43 @@ export const walletApi = {
   },
 };
 
+// Favorites types
+export interface FavoriteExperience extends Experience {
+  savedAt: string;
+  hasAlert: boolean;
+  favoriteId: string;
+}
+
+export interface FavoriteFestival extends Festival {
+  savedAt: string;
+  experienceCount: number;
+}
+
+export interface AllFavoritesResponse {
+  experiences: FavoriteExperience[];
+  festivals: FavoriteFestival[];
+  counts: {
+    experiences: number;
+    festivals: number;
+    total: number;
+  };
+}
+
+export interface AlertStatus {
+  experienceId: string;
+  experienceTitle: string;
+  alertEnabled: boolean;
+  lastNotified: string | null;
+}
+
 export const favoritesApi = {
-  // Obtener favoritos del usuario
-  getFavorites: async (): Promise<Experience[]> => {
-    const response = await api.get<Experience[]>('/favorites');
+  // =============================================
+  // EXPERIENCIAS FAVORITAS
+  // =============================================
+
+  // Obtener favoritos del usuario (experiencias)
+  getFavorites: async (): Promise<FavoriteExperience[]> => {
+    const response = await api.get<FavoriteExperience[]>('/favorites');
     return response.data;
   },
 
@@ -516,8 +695,8 @@ export const favoritesApi = {
   },
 
   // Verificar si una experiencia es favorita
-  isFavorite: async (experienceId: string): Promise<{ isFavorite: boolean }> => {
-    const response = await api.get<{ isFavorite: boolean }>(`/favorites/${experienceId}/check`);
+  isFavorite: async (experienceId: string): Promise<{ isFavorite: boolean; hasAlert: boolean }> => {
+    const response = await api.get<{ isFavorite: boolean; hasAlert: boolean }>(`/favorites/${experienceId}/check`);
     return response.data;
   },
 
@@ -538,6 +717,86 @@ export const favoritesApi = {
     } else {
       await api.post(`/favorites/${experienceId}`);
     }
+  },
+
+  // =============================================
+  // FESTIVALES FAVORITOS
+  // =============================================
+
+  // Obtener festivales favoritos
+  getFestivalFavorites: async (): Promise<FavoriteFestival[]> => {
+    const response = await api.get<FavoriteFestival[]>('/favorites/festivals');
+    return response.data;
+  },
+
+  // Obtener IDs de festivales favoritos
+  getFestivalFavoriteIds: async (): Promise<string[]> => {
+    const response = await api.get<string[]>('/favorites/festivals/ids');
+    return response.data;
+  },
+
+  // Verificar si un festival es favorito
+  isFestivalFavorite: async (festivalId: string): Promise<{ isFavorite: boolean }> => {
+    const response = await api.get<{ isFavorite: boolean }>(`/favorites/festivals/${festivalId}/check`);
+    return response.data;
+  },
+
+  // Anadir festival a favoritos
+  addFestivalFavorite: async (festivalId: string): Promise<void> => {
+    await api.post(`/favorites/festivals/${festivalId}`);
+  },
+
+  // Eliminar festival de favoritos
+  removeFestivalFavorite: async (festivalId: string): Promise<void> => {
+    await api.delete(`/favorites/festivals/${festivalId}`);
+  },
+
+  // Toggle festival favorito
+  toggleFestivalFavorite: async (festivalId: string, isFavorite: boolean): Promise<void> => {
+    if (isFavorite) {
+      await api.delete(`/favorites/festivals/${festivalId}`);
+    } else {
+      await api.post(`/favorites/festivals/${festivalId}`);
+    }
+  },
+
+  // =============================================
+  // ALERTAS DE DISPONIBILIDAD
+  // =============================================
+
+  // Obtener estado de todas las alertas
+  getAlertsStatus: async (): Promise<AlertStatus[]> => {
+    const response = await api.get<AlertStatus[]>('/favorites/alerts');
+    return response.data;
+  },
+
+  // Activar alerta de disponibilidad
+  enableAlert: async (experienceId: string): Promise<void> => {
+    await api.post(`/favorites/${experienceId}/alert`);
+  },
+
+  // Desactivar alerta de disponibilidad
+  disableAlert: async (experienceId: string): Promise<void> => {
+    await api.delete(`/favorites/${experienceId}/alert`);
+  },
+
+  // Toggle alerta
+  toggleAlert: async (experienceId: string, hasAlert: boolean): Promise<void> => {
+    if (hasAlert) {
+      await api.delete(`/favorites/${experienceId}/alert`);
+    } else {
+      await api.post(`/favorites/${experienceId}/alert`);
+    }
+  },
+
+  // =============================================
+  // COMBINADO
+  // =============================================
+
+  // Obtener todo (experiencias + festivales)
+  getAllFavorites: async (): Promise<AllFavoritesResponse> => {
+    const response = await api.get<AllFavoritesResponse>('/favorites/all');
+    return response.data;
   },
 };
 
@@ -578,7 +837,13 @@ export interface AdminDashboardStats {
     completed: number;
   };
   reviews: number;
-  revenue: number;
+  revenue: {
+    platformCommissions: number;  // Ingresos reales de la plataforma (comisiones 1.5€)
+    agreementsClosed: number;     // Numero de acuerdos cerrados
+    userTopups: number;           // Total recargado por usuarios
+    topupsCount: number;          // Numero de recargas
+    totalWalletBalance: number;   // Saldo total en monederos
+  };
   recentUsers: {
     id: string;
     name: string;
@@ -723,7 +988,223 @@ export const reportsApi = {
     });
     return response.data;
   },
+
+  // Admin: Get reports with advanced filters
+  getAdvanced: async (
+    page = 1,
+    limit = 20,
+    filters?: {
+      status?: string;
+      reportedType?: string;
+      reason?: string;
+      priority?: 'low' | 'medium' | 'high';
+      dateFrom?: string;
+      dateTo?: string;
+    }
+  ): Promise<ReportsResponse> => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (filters) {
+      if (filters.status) params.append('status', filters.status);
+      if (filters.reportedType) params.append('reportedType', filters.reportedType);
+      if (filters.reason) params.append('reason', filters.reason);
+      if (filters.priority) params.append('priority', filters.priority);
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    }
+    const response = await api.get<ReportsResponse>(`/reports/admin/advanced?${params}`);
+    return response.data;
+  },
+
+  // Admin: Get report detail
+  getDetail: async (reportId: string): Promise<Report & { context?: unknown; templates?: unknown }> => {
+    const response = await api.get(`/reports/admin/${reportId}/detail`);
+    return response.data;
+  },
+
+  // Admin: Resolve report with action
+  resolve: async (
+    reportId: string,
+    resolution: {
+      status: 'resolved' | 'dismissed';
+      action?: 'none' | 'warning' | 'strike' | 'ban' | 'remove_content';
+      templateKey?: string;
+      customMessage?: string;
+      adminNotes?: string;
+    }
+  ): Promise<Report> => {
+    const response = await api.post<Report>(`/reports/admin/${reportId}/resolve`, resolution);
+    return response.data;
+  },
+
+  // Admin: Get advanced stats
+  getAdvancedStats: async (days = 30): Promise<{
+    byStatus: { status: string; count: number }[];
+    byType: { type: string; count: number }[];
+    byReason: { reason: string; count: number }[];
+    avgResolutionHours: number;
+    dailyTrends: { date: string; count: number }[];
+  }> => {
+    const response = await api.get(`/reports/admin/stats/advanced?days=${days}`);
+    return response.data;
+  },
 };
+
+// Badges types
+export interface Badge {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  sortOrder: number;
+}
+
+export interface UserBadge {
+  id: string;
+  earnedAt: string;
+  badge: Badge;
+}
+
+export interface UserReputation {
+  verified: boolean;
+  memberSince: string;
+  totalExperiences: number;
+  completedAsHost: number;
+  completedAsRequester: number;
+  totalReviews: number;
+  avgRating: number;
+  badges: {
+    code: string;
+    name: string;
+    description: string;
+    icon: string;
+    earnedAt: string;
+  }[];
+}
+
+export const badgesApi = {
+  // Obtener todos los badges disponibles
+  getAllBadges: async (): Promise<Badge[]> => {
+    const response = await api.get<Badge[]>('/badges');
+    return response.data;
+  },
+
+  // Obtener mis badges
+  getMyBadges: async (): Promise<UserBadge[]> => {
+    const response = await api.get<UserBadge[]>('/badges/my');
+    return response.data;
+  },
+
+  // Obtener badges de un usuario
+  getUserBadges: async (userId: string): Promise<UserBadge[]> => {
+    const response = await api.get<UserBadge[]>(`/badges/user/${userId}`);
+    return response.data;
+  },
+
+  // Obtener reputacion de un usuario
+  getUserReputation: async (userId: string): Promise<UserReputation> => {
+    const response = await api.get<UserReputation>(`/badges/reputation/${userId}`);
+    return response.data;
+  },
+
+  // Obtener mi reputacion
+  getMyReputation: async (): Promise<UserReputation> => {
+    const response = await api.get<UserReputation>('/badges/reputation/my');
+    return response.data;
+  },
+
+  // Verificar y asignar badges pendientes
+  checkBadges: async (): Promise<{ message: string; awarded: string[] }> => {
+    const response = await api.post<{ message: string; awarded: string[] }>('/badges/check');
+    return response.data;
+  },
+};
+
+// Chart data types
+export interface ChartDataPoint {
+  month: string;
+  count?: number;
+  revenue?: number;
+}
+
+export interface MatchesStats {
+  completed: number;
+  cancelled: number;
+  pending: number;
+  accepted: number;
+  rejected: number;
+  total: number;
+  completionRate: number;
+  cancellationRate: number;
+}
+
+export interface ConversionStats {
+  totalUsers: number;
+  newUsersLast30Days: number;
+  usersWithMatches: number;
+  usersWithCompletedMatches: number;
+  registrationToMatchRate: number;
+  matchToCompletionRate: number;
+}
+
+export interface ActiveUsersStats {
+  activeUsers: number;
+  period: string;
+}
+
+export interface TopExperience {
+  id: string;
+  title: string;
+  city: string;
+  avgRating: number;
+  hostName: string;
+  festivalName: string | null;
+  reviewCount: number;
+  completedMatches: number;
+}
+
+export interface TopHost {
+  id: string;
+  name: string;
+  avatar: string | null;
+  verified: boolean;
+  city: string | null;
+  experienceCount: number;
+  completedMatches: number;
+  avgRating: number;
+  reviewCount: number;
+}
+
+export interface AdminUserAdvanced extends AdminUser {
+  strikes: number;
+  bannedAt: string | null;
+  banReason: string | null;
+  totalMatches: number;
+  walletBalance: number;
+  _count: {
+    experiences: number;
+    matchesAsHost: number;
+    matchesAsRequester: number;
+    reviewsGiven: number;
+  };
+}
+
+export interface AdminUsersAdvancedResponse extends PaginatedResponse<AdminUserAdvanced> {
+  users: AdminUserAdvanced[];
+}
+
+export interface UserFilters {
+  search?: string;
+  verified?: boolean;
+  banned?: boolean;
+  hasStrikes?: boolean;
+  role?: 'user' | 'admin';
+  dateFrom?: string;
+  dateTo?: string;
+  orderBy?: 'createdAt' | 'name' | 'email' | 'matches' | 'revenue';
+  orderDir?: 'asc' | 'desc';
+}
 
 export const adminApi = {
   // Dashboard stats
@@ -740,12 +1221,57 @@ export const adminApi = {
     return response.data;
   },
 
+  getUsersAdvanced: async (page = 1, limit = 20, filters?: UserFilters): Promise<AdminUsersAdvancedResponse> => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (filters) {
+      if (filters.search) params.append('search', filters.search);
+      if (filters.verified !== undefined) params.append('verified', String(filters.verified));
+      if (filters.banned !== undefined) params.append('banned', String(filters.banned));
+      if (filters.hasStrikes) params.append('hasStrikes', 'true');
+      if (filters.role) params.append('role', filters.role);
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+      if (filters.dateTo) params.append('dateTo', filters.dateTo);
+      if (filters.orderBy) params.append('orderBy', filters.orderBy);
+      if (filters.orderDir) params.append('orderDir', filters.orderDir);
+    }
+    const response = await api.get<AdminUsersAdvancedResponse>(`/admin/users/advanced?${params}`);
+    return response.data;
+  },
+
   setUserRole: async (userId: string, role: 'user' | 'admin'): Promise<void> => {
     await api.post(`/admin/users/${userId}/role`, { role });
   },
 
   deleteUser: async (userId: string): Promise<void> => {
     await api.delete(`/admin/users/${userId}`);
+  },
+
+  addStrike: async (userId: string, reason: string): Promise<{ strikes: number; banned: boolean }> => {
+    const response = await api.post(`/admin/users/${userId}/strike`, { reason });
+    return response.data;
+  },
+
+  removeStrike: async (userId: string): Promise<{ strikes: number }> => {
+    const response = await api.delete(`/admin/users/${userId}/strike`);
+    return response.data;
+  },
+
+  banUser: async (userId: string, reason: string): Promise<void> => {
+    await api.post(`/admin/users/${userId}/ban`, { reason });
+  },
+
+  unbanUser: async (userId: string): Promise<void> => {
+    await api.post(`/admin/users/${userId}/unban`);
+  },
+
+  bulkVerifyUsers: async (userIds: string[]): Promise<number> => {
+    const response = await api.post('/admin/users/bulk/verify', { userIds });
+    return response.data;
+  },
+
+  bulkBanUsers: async (userIds: string[], reason: string): Promise<number> => {
+    const response = await api.post('/admin/users/bulk/ban', { userIds, reason });
+    return response.data;
   },
 
   // Experiences management
@@ -771,6 +1297,219 @@ export const adminApi = {
   // Impersonate user (login as)
   impersonateUser: async (userId: string): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>(`/admin/users/${userId}/impersonate`);
+    return response.data;
+  },
+
+  // Chart data
+  getUsersChartData: async (months = 12): Promise<ChartDataPoint[]> => {
+    const response = await api.get<ChartDataPoint[]>(`/admin/charts/users?months=${months}`);
+    return response.data;
+  },
+
+  getRevenueChartData: async (months = 12): Promise<ChartDataPoint[]> => {
+    const response = await api.get<ChartDataPoint[]>(`/admin/charts/revenue?months=${months}`);
+    return response.data;
+  },
+
+  // Stats
+  getMatchesStats: async (): Promise<MatchesStats> => {
+    const response = await api.get<MatchesStats>('/admin/stats/matches');
+    return response.data;
+  },
+
+  getConversionStats: async (): Promise<ConversionStats> => {
+    const response = await api.get<ConversionStats>('/admin/stats/conversion');
+    return response.data;
+  },
+
+  getActiveUsersStats: async (days = 7): Promise<ActiveUsersStats> => {
+    const response = await api.get<ActiveUsersStats>(`/admin/stats/active-users?days=${days}`);
+    return response.data;
+  },
+
+  // Top rankings
+  getTopExperiences: async (limit = 10): Promise<TopExperience[]> => {
+    const response = await api.get<TopExperience[]>(`/admin/top/experiences?limit=${limit}`);
+    return response.data;
+  },
+
+  getTopHosts: async (limit = 10): Promise<TopHost[]> => {
+    const response = await api.get<TopHost[]>(`/admin/top/hosts?limit=${limit}`);
+    return response.data;
+  },
+};
+
+// Search types
+export interface AutocompleteExperience {
+  id: string;
+  title: string;
+  city: string;
+  type: string;
+  avgRating: number;
+  photo: string | null;
+  category: 'experience';
+}
+
+export interface AutocompleteFestival {
+  id: string;
+  name: string;
+  city: string;
+  imageUrl: string | null;
+  experienceCount: number;
+  category: 'festival';
+}
+
+export interface AutocompleteCity {
+  name: string;
+  category: 'city';
+}
+
+export interface AutocompleteResult {
+  experiences: AutocompleteExperience[];
+  festivals: AutocompleteFestival[];
+  cities: AutocompleteCity[];
+}
+
+export interface SearchHistoryItem {
+  id: string;
+  query: string;
+  filters: Record<string, unknown> | null;
+  searchedAt: string;
+}
+
+export interface PopularSearch {
+  query: string;
+  count: number;
+}
+
+export const searchApi = {
+  // Autocompletado
+  autocomplete: async (query: string, limit = 10): Promise<AutocompleteResult> => {
+    const response = await api.get<AutocompleteResult>(`/search/autocomplete?q=${encodeURIComponent(query)}&limit=${limit}`);
+    return response.data;
+  },
+
+  // Busquedas populares
+  getPopularSearches: async (limit = 10): Promise<PopularSearch[]> => {
+    const response = await api.get<PopularSearch[]>(`/search/popular?limit=${limit}`);
+    return response.data;
+  },
+
+  // Historial de busquedas del usuario
+  getHistory: async (limit = 10): Promise<SearchHistoryItem[]> => {
+    const response = await api.get<SearchHistoryItem[]>(`/search/history?limit=${limit}`);
+    return response.data;
+  },
+
+  // Guardar busqueda
+  saveSearch: async (query: string, filters?: Record<string, unknown>): Promise<void> => {
+    await api.post('/search/history', { query, filters });
+  },
+
+  // Limpiar historial
+  clearHistory: async (): Promise<void> => {
+    await api.delete('/search/history');
+  },
+
+  // Eliminar una busqueda
+  deleteSearch: async (searchId: string): Promise<void> => {
+    await api.delete(`/search/history/${searchId}`);
+  },
+};
+
+// Quick Replies types
+export interface QuickReply {
+  id: string;
+  text: string;
+  emoji: string | null;
+  sortOrder: number;
+  isDefault?: boolean;
+}
+
+export interface QuickRepliesResponse {
+  userReplies: QuickReply[];
+  defaultReplies: QuickReply[];
+}
+
+export const quickRepliesApi = {
+  // Obtener todas las respuestas rapidas (usuario + predeterminadas)
+  getAll: async (): Promise<QuickRepliesResponse> => {
+    const response = await api.get<QuickRepliesResponse>('/quick-replies');
+    return response.data;
+  },
+
+  // Obtener solo las del usuario
+  getUserReplies: async (): Promise<QuickReply[]> => {
+    const response = await api.get<QuickReply[]>('/quick-replies/user');
+    return response.data;
+  },
+
+  // Obtener predeterminadas
+  getDefaults: async (): Promise<QuickReply[]> => {
+    const response = await api.get<QuickReply[]>('/quick-replies/defaults');
+    return response.data;
+  },
+
+  // Crear nueva
+  create: async (text: string, emoji?: string): Promise<QuickReply> => {
+    const response = await api.post<QuickReply>('/quick-replies', { text, emoji });
+    return response.data;
+  },
+
+  // Actualizar
+  update: async (id: string, data: { text?: string; emoji?: string | null }): Promise<QuickReply> => {
+    const response = await api.put<QuickReply>(`/quick-replies/${id}`, data);
+    return response.data;
+  },
+
+  // Eliminar
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/quick-replies/${id}`);
+  },
+
+  // Reordenar
+  reorder: async (replyIds: string[]): Promise<void> => {
+    await api.post('/quick-replies/reorder', { replyIds });
+  },
+};
+
+// Chat/Voice types
+export interface VoiceUploadResponse {
+  url: string;
+  duration: number;
+}
+
+export const chatApi = {
+  // Subir mensaje de voz
+  uploadVoice: async (file: Blob, matchId: string): Promise<VoiceUploadResponse> => {
+    const formData = new FormData();
+    // Append with explicit type to ensure proper Content-Type in the form part
+    const audioFile = new File([file], 'voice.webm', { type: file.type || 'audio/webm' });
+    formData.append('audio', audioFile);
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+    // IMPORTANT: Do NOT set Content-Type header manually for FormData
+    // Axios/browser will automatically set it with the correct boundary
+    const response = await axios.post<VoiceUploadResponse>(
+      `${API_URL}/chat/voice/${matchId}`,
+      formData,
+      {
+        headers: {
+          // Let axios set Content-Type automatically for FormData
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      }
+    );
+    return response.data;
+  },
+
+  // Traducir mensaje (via REST para casos sin WebSocket)
+  translateMessage: async (
+    messageId: string,
+    targetLang: string
+  ): Promise<{ translatedText: string; detectedLanguage?: string }> => {
+    const response = await api.post(`/chat/translate/${messageId}`, { targetLang });
     return response.data;
   },
 };

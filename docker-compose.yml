@@ -31,6 +31,22 @@ services:
       timeout: 5s
       retries: 5
 
+  libretranslate:
+    image: libretranslate/libretranslate:latest
+    container_name: fiestapp-translate
+    restart: unless-stopped
+    environment:
+      LT_LOAD_ONLY: es,en,fr,de,it,pt,ca
+      LT_DISABLE_WEB_UI: "true"
+    volumes:
+      - libretranslate_data:/home/libretranslate/.local
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/languages"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
   backend:
     build:
       context: ./backend
@@ -41,6 +57,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      libretranslate:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-fiestapp}:${POSTGRES_PASSWORD:-fiestapp_secret}@postgres:5432/${POSTGRES_DB:-fiestapp}
@@ -58,6 +76,8 @@ services:
       # Email Configuration (Resend)
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@fiestapp.es}
+      # Translation Service
+      LIBRETRANSLATE_URL: http://libretranslate:5000
     expose:
       - "3001"
     healthcheck:
@@ -107,3 +127,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  libretranslate_data:

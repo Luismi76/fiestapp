@@ -7,6 +7,10 @@ import { Message } from '@/types/match';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
 
+// Singleton socket instance to survive React Strict Mode
+let globalSocket: Socket | null = null;
+let globalSocketUserId: string | null = null;
+
 interface UseSocketReturn {
   socket: Socket | null;
   isConnected: boolean;
@@ -19,24 +23,51 @@ interface UseSocketReturn {
 
 export function useSocket(): UseSocketReturn {
   const { user } = useAuth();
-  const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     if (!user) {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
+      // User logged out - disconnect global socket
+      if (globalSocket) {
+        console.log('[useSocket] User logged out, disconnecting socket');
+        globalSocket.disconnect();
+        globalSocket = null;
+        globalSocketUserId = null;
       }
+      setSocket(null);
       setIsConnected(false);
       return;
     }
 
     const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!token) {
+      console.log('[useSocket] No token found');
+      return;
+    }
 
-    // Create socket connection
-    const socket = io(`${SOCKET_URL}/chat`, {
+    // If socket exists for same user, reuse it
+    if (globalSocket && globalSocketUserId === user.id) {
+      console.log('[useSocket] Reusing existing socket for user:', user.id);
+      setSocket(globalSocket);
+      setIsConnected(globalSocket.connected);
+      return;
+    }
+
+    // Different user or no socket - create new one
+    if (globalSocket && globalSocketUserId !== user.id) {
+      console.log('[useSocket] Different user, disconnecting old socket');
+      globalSocket.disconnect();
+      globalSocket = null;
+      globalSocketUserId = null;
+    }
+
+    console.log('[useSocket] Creating new socket for user:', user.id);
+
+    const newSocket = io(`${SOCKET_URL}/chat`, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -44,44 +75,63 @@ export function useSocket(): UseSocketReturn {
       reconnectionAttempts: 5,
     });
 
-    socketRef.current = socket;
+    globalSocket = newSocket;
+    globalSocketUserId = user.id;
 
-    socket.on('connect', () => {
-      console.log('Socket connected');
-      setIsConnected(true);
+    newSocket.on('connect', () => {
+      console.log('[useSocket] Socket connected, id:', newSocket.id);
+      if (mountedRef.current) {
+        setIsConnected(true);
+        setSocket(newSocket);
+      }
     });
 
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
-      setIsConnected(false);
+    newSocket.on('disconnect', (reason) => {
+      console.log('[useSocket] Socket disconnected, reason:', reason);
+      if (mountedRef.current) {
+        setIsConnected(false);
+      }
     });
 
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-      setIsConnected(false);
+    newSocket.on('connect_error', (error) => {
+      console.error('[useSocket] Socket connection error:', error.message);
+      if (mountedRef.current) {
+        setIsConnected(false);
+      }
     });
+
+    // Debug: log all incoming events
+    newSocket.onAny((event, ...args) => {
+      console.log('[Socket Event]', event, args);
+    });
+
+    // Set socket immediately so useSocketEvent can subscribe
+    setSocket(newSocket);
 
     return () => {
-      socket.disconnect();
-      socketRef.current = null;
+      mountedRef.current = false;
+      // DON'T disconnect here - let the socket persist for Strict Mode
+      // Socket will be disconnected when user logs out or changes
     };
-  }, [user]);
+  }, [user?.id]);
 
   const sendMessage = useCallback(async (matchId: string, content: string): Promise<Message | null> => {
     return new Promise((resolve, reject) => {
-      if (!socketRef.current?.connected) {
+      if (!globalSocket?.connected) {
+        console.log('[Socket] Cannot send message - not connected');
         resolve(null);
         return;
       }
 
-      socketRef.current.emit(
+      console.log('[Socket] Sending message to match:', matchId, content);
+      globalSocket.emit(
         'sendMessage',
         { matchId, content },
         (response: { success: boolean; message?: Message; error?: string; requiresTopUp?: boolean }) => {
+          console.log('[Socket] sendMessage response:', response);
           if (response.success && response.message) {
             resolve(response.message);
           } else if (response.requiresTopUp) {
-            // Reject with the error message so the UI can show wallet error
             reject(new Error(response.error || 'Saldo insuficiente en el monedero'));
           } else {
             console.error('Failed to send message:', response.error);
@@ -93,31 +143,36 @@ export function useSocket(): UseSocketReturn {
   }, []);
 
   const joinMatch = useCallback((matchId: string) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('joinMatch', matchId);
+    if (globalSocket?.connected) {
+      console.log('[Socket] Joining match room:', matchId);
+      globalSocket.emit('joinMatch', matchId, (response: { success: boolean; error?: string }) => {
+        console.log('[Socket] joinMatch response:', response);
+      });
+    } else {
+      console.log('[Socket] Cannot join match - not connected. Socket state:', globalSocket ? 'exists but disconnected' : 'null');
     }
   }, []);
 
   const leaveMatch = useCallback((matchId: string) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('leaveMatch', matchId);
+    if (globalSocket?.connected) {
+      globalSocket.emit('leaveMatch', matchId);
     }
   }, []);
 
   const setTyping = useCallback((matchId: string, isTyping: boolean) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('typing', { matchId, isTyping });
+    if (globalSocket?.connected) {
+      globalSocket.emit('typing', { matchId, isTyping });
     }
   }, []);
 
   const markAsRead = useCallback((matchId: string) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('markAsRead', matchId);
+    if (globalSocket?.connected) {
+      globalSocket.emit('markAsRead', matchId);
     }
   }, []);
 
   return {
-    socket: socketRef.current,
+    socket,
     isConnected,
     sendMessage,
     joinMatch,
@@ -133,13 +188,26 @@ export function useSocketEvent<T>(
   event: string,
   callback: (data: T) => void
 ) {
-  useEffect(() => {
-    if (!socket) return;
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
 
-    socket.on(event, callback);
+  useEffect(() => {
+    if (!socket) {
+      return;
+    }
+
+    console.log(`[useSocketEvent] Subscribing to '${event}' on socket ${socket.id || 'pending'}`);
+
+    const handler = (data: T) => {
+      console.log(`[useSocketEvent] Received '${event}':`, data);
+      callbackRef.current(data);
+    };
+
+    socket.on(event, handler);
 
     return () => {
-      socket.off(event, callback);
+      console.log(`[useSocketEvent] Unsubscribing from '${event}'`);
+      socket.off(event, handler);
     };
-  }, [socket, event, callback]);
+  }, [socket, event]);
 }

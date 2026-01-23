@@ -456,7 +456,9 @@ export class ReviewsService {
 
     // Solo el host de la experiencia puede responder
     if (review.experience.hostId !== hostId) {
-      throw new ForbiddenException('Solo el anfitrion puede responder a esta resena');
+      throw new ForbiddenException(
+        'Solo el anfitrion puede responder a esta resena',
+      );
     }
 
     // Solo una respuesta por resena
@@ -514,7 +516,9 @@ export class ReviewsService {
     }
 
     if (review.experience.hostId !== hostId) {
-      throw new ForbiddenException('Solo el anfitrion puede editar esta respuesta');
+      throw new ForbiddenException(
+        'Solo el anfitrion puede editar esta respuesta',
+      );
     }
 
     if (!review.hostResponse) {
@@ -548,7 +552,9 @@ export class ReviewsService {
     }
 
     if (review.experience.hostId !== hostId) {
-      throw new ForbiddenException('Solo el anfitrion puede eliminar esta respuesta');
+      throw new ForbiddenException(
+        'Solo el anfitrion puede eliminar esta respuesta',
+      );
     }
 
     return this.prisma.review.update({

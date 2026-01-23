@@ -16,9 +16,18 @@ async function bootstrap() {
 
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
-    res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
+    res.header(
+      'Access-Control-Allow-Methods',
+      'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    );
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, Accept, X-Requested-With',
+    );
+    res.header(
+      'Access-Control-Expose-Headers',
+      'Content-Range, X-Content-Range',
+    );
 
     // Handle preflight
     if (req.method === 'OPTIONS') {
@@ -61,7 +70,7 @@ async function bootstrap() {
     .setTitle('FiestApp API')
     .setDescription(
       'API del marketplace peer-to-peer de experiencias en fiestas populares españolas. ' +
-      'Conecta viajeros con anfitriones locales para vivir la cultura festiva auténtica.',
+        'Conecta viajeros con anfitriones locales para vivir la cultura festiva auténtica.',
     )
     .setVersion('1.0')
     .addTag('auth', 'Autenticación y gestión de usuarios')
@@ -98,6 +107,8 @@ async function bootstrap() {
   const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`🚀 Backend running on http://localhost:${port}`);
-  console.log(`📚 API Documentation available at http://localhost:${port}/api/docs`);
+  console.log(
+    `📚 API Documentation available at http://localhost:${port}/api/docs`,
+  );
 }
 void bootstrap();

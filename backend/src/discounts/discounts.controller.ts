@@ -51,7 +51,12 @@ export class DiscountsController {
     @Body('amount') amount: number,
     @Body('transactionId') transactionId?: string,
   ) {
-    return this.discountsService.applyDiscount(code, req.user.id, amount, transactionId);
+    return this.discountsService.applyDiscount(
+      code,
+      req.user.id,
+      amount,
+      transactionId,
+    );
   }
 
   // ============================================

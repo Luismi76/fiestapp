@@ -17,7 +17,9 @@ export class UsersService {
 
   // Obtener perfil público de un usuario (cacheado)
   async getPublicProfile(userId: string) {
-    const cached = await this.cacheService.get<any>(CACHE_KEYS.USER_PUBLIC(userId));
+    const cached = await this.cacheService.get<any>(
+      CACHE_KEYS.USER_PUBLIC(userId),
+    );
     if (cached) {
       return cached;
     }
@@ -128,7 +130,11 @@ export class UsersService {
     };
 
     // Cachear por 5 minutos
-    await this.cacheService.set(CACHE_KEYS.USER_PUBLIC(userId), result, CACHE_TTL.USER_PROFILE);
+    await this.cacheService.set(
+      CACHE_KEYS.USER_PUBLIC(userId),
+      result,
+      CACHE_TTL.USER_PROFILE,
+    );
 
     return result;
   }

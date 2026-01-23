@@ -105,7 +105,9 @@ export class NotificationsController {
   @Get('unread-count')
   @UseGuards(JwtAuthGuard)
   async getUnreadCount(@Request() req: AuthenticatedRequest) {
-    const count = await this.notificationsService.getUnreadCount(req.user.userId);
+    const count = await this.notificationsService.getUnreadCount(
+      req.user.userId,
+    );
     return { unreadCount: count };
   }
 

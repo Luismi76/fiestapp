@@ -13,31 +13,31 @@ export const BADGE_DEFINITIONS = {
     criteria: { emailVerified: true },
     sortOrder: 1,
   },
-  ANFITRION_ESTRELLA: {
-    code: 'anfitrion_estrella',
-    name: 'Anfitrion Estrella',
-    description: '5 o mas resenas de 5 estrellas como anfitrion',
-    icon: '⭐',
-    category: 'achievement',
-    criteria: { minFiveStarReviews: 5 },
-    sortOrder: 2,
-  },
-  VIAJERO_FRECUENTE: {
-    code: 'viajero_frecuente',
-    name: 'Viajero Frecuente',
-    description: '10 o mas experiencias completadas',
-    icon: '🎒',
+  PRIMER_ACUERDO: {
+    code: 'primer_acuerdo',
+    name: 'Primer Acuerdo',
+    description: 'Primer match aceptado',
+    icon: '🤝',
     category: 'milestone',
-    criteria: { minCompletedExperiences: 10 },
-    sortOrder: 3,
+    criteria: { minAcceptedMatches: 1 },
+    sortOrder: 2,
   },
   PRIMERA_FIESTA: {
     code: 'primera_fiesta',
     name: 'Primera Fiesta',
-    description: 'Primera experiencia completada',
+    description: 'Primera experiencia completada como viajero',
     icon: '🎉',
     category: 'milestone',
     criteria: { minCompletedExperiences: 1 },
+    sortOrder: 3,
+  },
+  ANFITRION_ACTIVO: {
+    code: 'anfitrion_activo',
+    name: 'Anfitrion Activo',
+    description: 'Al menos una experiencia publicada',
+    icon: '🏠',
+    category: 'achievement',
+    criteria: { minPublishedExperiences: 1 },
     sortOrder: 4,
   },
   PERFIL_COMPLETO: {
@@ -49,14 +49,69 @@ export const BADGE_DEFINITIONS = {
     criteria: { profileComplete: true },
     sortOrder: 5,
   },
+  VIAJERO_FRECUENTE: {
+    code: 'viajero_frecuente',
+    name: 'Viajero Frecuente',
+    description: '10 o mas experiencias completadas como viajero',
+    icon: '🎒',
+    category: 'milestone',
+    criteria: { minCompletedExperiences: 10 },
+    sortOrder: 6,
+  },
+  ANFITRION_ESTRELLA: {
+    code: 'anfitrion_estrella',
+    name: 'Anfitrion Estrella',
+    description: '5 o mas resenas de 5 estrellas como anfitrion',
+    icon: '⭐',
+    category: 'achievement',
+    criteria: { minFiveStarReviews: 5 },
+    sortOrder: 7,
+  },
+  MUY_VALORADO: {
+    code: 'muy_valorado',
+    name: 'Muy Valorado',
+    description: 'Rating promedio de 4.5 o mas con al menos 3 resenas',
+    icon: '💫',
+    category: 'achievement',
+    criteria: { minAvgRating: 4.5, minReviews: 3 },
+    sortOrder: 8,
+  },
+  POPULAR: {
+    code: 'popular',
+    name: 'Popular',
+    description: '10 o mas resenas recibidas',
+    icon: '🔥',
+    category: 'achievement',
+    criteria: { minReviews: 10 },
+    sortOrder: 9,
+  },
+  ANFITRION_EXPERIMENTADO: {
+    code: 'anfitrion_experimentado',
+    name: 'Anfitrion Experimentado',
+    description: '3 o mas experiencias publicadas',
+    icon: '🌟',
+    category: 'achievement',
+    criteria: { minPublishedExperiences: 3 },
+    sortOrder: 10,
+  },
   SUPER_ANFITRION: {
     code: 'super_anfitrion',
     name: 'Super Anfitrion',
-    description: '20 o mas experiencias completadas como anfitrion con rating promedio >= 4.5',
+    description:
+      '20 o mas experiencias completadas como anfitrion con rating promedio >= 4.5',
     icon: '🏆',
     category: 'achievement',
     criteria: { minHostedExperiences: 20, minAvgRating: 4.5 },
-    sortOrder: 6,
+    sortOrder: 11,
+  },
+  VETERANO: {
+    code: 'veterano',
+    name: 'Veterano',
+    description: 'Miembro por mas de 1 ano',
+    icon: '👑',
+    category: 'milestone',
+    criteria: { minAccountAgeDays: 365 },
+    sortOrder: 12,
   },
 };
 
@@ -179,14 +234,15 @@ export class BadgesService {
   async checkAndAwardBadges(userId: string): Promise<string[]> {
     const awardedBadges: string[] = [];
 
-    // Obtener datos del usuario
+    // Obtener datos del usuario con todas las relaciones necesarias
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
         badges: { include: { badge: true } },
         reviewsReceived: true,
-        matchesAsRequester: { where: { status: 'completed' } },
-        matchesAsHost: { where: { status: 'completed' } },
+        experiences: { where: { published: true } },
+        matchesAsRequester: true,
+        matchesAsHost: true,
       },
     });
 
@@ -194,57 +250,99 @@ export class BadgesService {
 
     const existingBadgeCodes = user.badges.map((ub) => ub.badge.code);
 
+    // Helper para asignar badge
+    const tryAward = async (code: string): Promise<void> => {
+      if (!existingBadgeCodes.includes(code)) {
+        const awarded = await this.awardBadge(userId, code);
+        if (awarded) awardedBadges.push(code);
+      }
+    };
+
+    // Calcular estadisticas
+    const completedAsRequester = user.matchesAsRequester.filter(
+      (m) => m.status === 'completed',
+    ).length;
+    const completedAsHost = user.matchesAsHost.filter(
+      (m) => m.status === 'completed',
+    ).length;
+    const acceptedMatches = [
+      ...user.matchesAsRequester.filter((m) => m.status === 'accepted'),
+      ...user.matchesAsHost.filter((m) => m.status === 'accepted'),
+    ].length;
+    const publishedExperiences = user.experiences.length;
+    const totalReviews = user.reviewsReceived.length;
+    const fiveStarReviews = user.reviewsReceived.filter(
+      (r) => r.rating === 5,
+    ).length;
+    const avgRating =
+      totalReviews > 0
+        ? user.reviewsReceived.reduce((sum, r) => sum + r.rating, 0) /
+          totalReviews
+        : 0;
+    const accountAgeDays = Math.floor(
+      (Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24),
+    );
+
     // 1. Badge Verificado
-    if (user.verified && !existingBadgeCodes.includes('verificado')) {
-      const awarded = await this.awardBadge(userId, 'verificado');
-      if (awarded) awardedBadges.push('verificado');
+    if (user.verified) {
+      await tryAward('verificado');
     }
 
     // 2. Badge Perfil Completo
     const isProfileComplete =
-      user.name &&
-      user.bio &&
-      user.city &&
-      user.avatar &&
-      user.age;
-    if (isProfileComplete && !existingBadgeCodes.includes('perfil_completo')) {
-      const awarded = await this.awardBadge(userId, 'perfil_completo');
-      if (awarded) awardedBadges.push('perfil_completo');
+      user.name && user.bio && user.city && user.avatar && user.age;
+    if (isProfileComplete) {
+      await tryAward('perfil_completo');
     }
 
-    // 3. Badge Primera Fiesta (1 experiencia completada como participante)
-    const completedAsRequester = user.matchesAsRequester.length;
-    if (completedAsRequester >= 1 && !existingBadgeCodes.includes('primera_fiesta')) {
-      const awarded = await this.awardBadge(userId, 'primera_fiesta');
-      if (awarded) awardedBadges.push('primera_fiesta');
+    // 3. Badge Primer Acuerdo (1 match aceptado)
+    if (acceptedMatches >= 1 || completedAsRequester >= 1 || completedAsHost >= 1) {
+      await tryAward('primer_acuerdo');
     }
 
-    // 4. Badge Viajero Frecuente (10+ experiencias)
-    if (completedAsRequester >= 10 && !existingBadgeCodes.includes('viajero_frecuente')) {
-      const awarded = await this.awardBadge(userId, 'viajero_frecuente');
-      if (awarded) awardedBadges.push('viajero_frecuente');
+    // 4. Badge Primera Fiesta (1 experiencia completada como viajero)
+    if (completedAsRequester >= 1) {
+      await tryAward('primera_fiesta');
     }
 
-    // 5. Badge Anfitrion Estrella (5+ resenas de 5 estrellas)
-    const fiveStarReviews = user.reviewsReceived.filter((r) => r.rating === 5).length;
-    if (fiveStarReviews >= 5 && !existingBadgeCodes.includes('anfitrion_estrella')) {
-      const awarded = await this.awardBadge(userId, 'anfitrion_estrella');
-      if (awarded) awardedBadges.push('anfitrion_estrella');
+    // 5. Badge Anfitrion Activo (1+ experiencias publicadas)
+    if (publishedExperiences >= 1) {
+      await tryAward('anfitrion_activo');
     }
 
-    // 6. Badge Super Anfitrion (20+ experiencias como host con rating >= 4.5)
-    const completedAsHost = user.matchesAsHost.length;
-    const avgRating =
-      user.reviewsReceived.length > 0
-        ? user.reviewsReceived.reduce((sum, r) => sum + r.rating, 0) / user.reviewsReceived.length
-        : 0;
-    if (
-      completedAsHost >= 20 &&
-      avgRating >= 4.5 &&
-      !existingBadgeCodes.includes('super_anfitrion')
-    ) {
-      const awarded = await this.awardBadge(userId, 'super_anfitrion');
-      if (awarded) awardedBadges.push('super_anfitrion');
+    // 6. Badge Anfitrion Experimentado (3+ experiencias publicadas)
+    if (publishedExperiences >= 3) {
+      await tryAward('anfitrion_experimentado');
+    }
+
+    // 7. Badge Viajero Frecuente (10+ experiencias completadas)
+    if (completedAsRequester >= 10) {
+      await tryAward('viajero_frecuente');
+    }
+
+    // 8. Badge Muy Valorado (rating >= 4.5 con 3+ resenas)
+    if (avgRating >= 4.5 && totalReviews >= 3) {
+      await tryAward('muy_valorado');
+    }
+
+    // 9. Badge Popular (10+ resenas)
+    if (totalReviews >= 10) {
+      await tryAward('popular');
+    }
+
+    // 10. Badge Anfitrion Estrella (5+ resenas de 5 estrellas)
+    if (fiveStarReviews >= 5) {
+      await tryAward('anfitrion_estrella');
+    }
+
+    // 11. Badge Super Anfitrion (20+ experiencias como host con rating >= 4.5)
+    if (completedAsHost >= 20 && avgRating >= 4.5) {
+      await tryAward('super_anfitrion');
+    }
+
+    // 12. Badge Veterano (cuenta de mas de 1 ano)
+    if (accountAgeDays >= 365) {
+      await tryAward('veterano');
     }
 
     return awardedBadges;

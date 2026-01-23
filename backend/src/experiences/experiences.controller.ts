@@ -10,9 +10,11 @@ import {
   Query,
   UseGuards,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { ExperiencesService } from './experiences.service';
+import { PricingService, GroupPricingTier } from './pricing.service';
 import { CreateExperienceDto } from './dto/create-experience.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -28,7 +30,10 @@ interface AuthenticatedRequest extends ExpressRequest {
 
 @Controller('experiences')
 export class ExperiencesController {
-  constructor(private readonly experiencesService: ExperiencesService) {}
+  constructor(
+    private readonly experiencesService: ExperiencesService,
+    private readonly pricingService: PricingService,
+  ) {}
 
   // Crear experiencia (requiere auth)
   @Post()
@@ -65,8 +70,18 @@ export class ExperiencesController {
       sortBy: sortBy as 'newest' | 'price_asc' | 'price_desc' | 'rating',
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 10,
-      hostHasPartner: hostHasPartner === 'true' ? true : hostHasPartner === 'false' ? false : undefined,
-      hostHasChildren: hostHasChildren === 'true' ? true : hostHasChildren === 'false' ? false : undefined,
+      hostHasPartner:
+        hostHasPartner === 'true'
+          ? true
+          : hostHasPartner === 'false'
+            ? false
+            : undefined,
+      hostHasChildren:
+        hostHasChildren === 'true'
+          ? true
+          : hostHasChildren === 'false'
+            ? false
+            : undefined,
     });
   }
 
@@ -121,5 +136,62 @@ export class ExperiencesController {
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
     return this.experiencesService.remove(id, req.user.userId);
+  }
+
+  // Calcular precio para grupo (público)
+  @Get(':id/calculate-price')
+  async calculatePrice(
+    @Param('id') id: string,
+    @Query('participants') participants: string,
+  ) {
+    const numParticipants = parseInt(participants, 10);
+    if (isNaN(numParticipants) || numParticipants < 1) {
+      throw new BadRequestException('El número de participantes debe ser al menos 1');
+    }
+    return this.pricingService.calculateGroupPrice(id, numParticipants);
+  }
+
+  // Obtener precios grupales de una experiencia (público)
+  @Get(':id/group-pricing')
+  getGroupPricing(@Param('id') id: string) {
+    return this.pricingService.getGroupPricing(id);
+  }
+
+  // Establecer precios grupales (requiere auth + ser el dueño)
+  @Post(':id/group-pricing')
+  @UseGuards(JwtAuthGuard)
+  setGroupPricing(
+    @Param('id') id: string,
+    @Body() body: { tiers: GroupPricingTier[] },
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.pricingService.setGroupPricing(id, req.user.userId, body.tiers);
+  }
+
+  // Actualizar precios grupales (requiere auth + ser el dueño)
+  @Put(':id/group-pricing')
+  @UseGuards(JwtAuthGuard)
+  updateGroupPricing(
+    @Param('id') id: string,
+    @Body() body: { tiers: GroupPricingTier[] },
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.pricingService.setGroupPricing(id, req.user.userId, body.tiers);
+  }
+
+  // Actualizar límites de participantes (requiere auth + ser el dueño)
+  @Patch(':id/participant-limits')
+  @UseGuards(JwtAuthGuard)
+  updateParticipantLimits(
+    @Param('id') id: string,
+    @Body() body: { minParticipants: number; maxParticipants?: number | null },
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.pricingService.updateExperienceParticipantLimits(
+      id,
+      req.user.userId,
+      body.minParticipants,
+      body.maxParticipants ?? null,
+    );
   }
 }

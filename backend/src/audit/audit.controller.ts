@@ -116,6 +116,8 @@ export class AuditController {
   @Delete('cleanup')
   @HttpCode(HttpStatus.OK)
   deleteOldLogs(@Query('daysToKeep') daysToKeep?: string) {
-    return this.auditService.deleteOldLogs(daysToKeep ? parseInt(daysToKeep) : 90);
+    return this.auditService.deleteOldLogs(
+      daysToKeep ? parseInt(daysToKeep) : 90,
+    );
   }
 }

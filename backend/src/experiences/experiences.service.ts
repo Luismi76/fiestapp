@@ -345,7 +345,11 @@ export class ExperiencesService {
     };
 
     // Cachear por 5 minutos
-    await this.cacheService.set(CACHE_KEYS.EXPERIENCE(id), result, CACHE_TTL.EXPERIENCE_DETAIL);
+    await this.cacheService.set(
+      CACHE_KEYS.EXPERIENCE(id),
+      result,
+      CACHE_TTL.EXPERIENCE_DETAIL,
+    );
 
     return result;
   }
@@ -579,9 +583,7 @@ export class ExperiencesService {
           }
         } else if (match.startDate) {
           // Solo fecha de inicio (un día)
-          if (
-            match.startDate.toISOString().split('T')[0] === dateStr
-          ) {
+          if (match.startDate.toISOString().split('T')[0] === dateStr) {
             booked++;
           }
         }

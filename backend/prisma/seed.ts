@@ -3,6 +3,118 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
+// Definiciones de badges (sincronizado con badges.service.ts)
+const BADGE_DEFINITIONS = [
+  {
+    code: 'verificado',
+    name: 'Verificado',
+    description: 'Email verificado',
+    icon: '✓',
+    category: 'verification',
+    sortOrder: 1,
+    criteria: { emailVerified: true },
+  },
+  {
+    code: 'primer_acuerdo',
+    name: 'Primer Acuerdo',
+    description: 'Primer match aceptado',
+    icon: '🤝',
+    category: 'milestone',
+    sortOrder: 2,
+    criteria: { minAcceptedMatches: 1 },
+  },
+  {
+    code: 'primera_fiesta',
+    name: 'Primera Fiesta',
+    description: 'Primera experiencia completada como viajero',
+    icon: '🎉',
+    category: 'milestone',
+    sortOrder: 3,
+    criteria: { minCompletedExperiences: 1 },
+  },
+  {
+    code: 'anfitrion_activo',
+    name: 'Anfitrion Activo',
+    description: 'Al menos una experiencia publicada',
+    icon: '🏠',
+    category: 'achievement',
+    sortOrder: 4,
+    criteria: { minPublishedExperiences: 1 },
+  },
+  {
+    code: 'perfil_completo',
+    name: 'Perfil Completo',
+    description: 'Todos los campos del perfil completados',
+    icon: '📝',
+    category: 'achievement',
+    sortOrder: 5,
+    criteria: { profileComplete: true },
+  },
+  {
+    code: 'viajero_frecuente',
+    name: 'Viajero Frecuente',
+    description: '10 o mas experiencias completadas como viajero',
+    icon: '🎒',
+    category: 'milestone',
+    sortOrder: 6,
+    criteria: { minCompletedExperiences: 10 },
+  },
+  {
+    code: 'anfitrion_estrella',
+    name: 'Anfitrion Estrella',
+    description: '5 o mas resenas de 5 estrellas como anfitrion',
+    icon: '⭐',
+    category: 'achievement',
+    sortOrder: 7,
+    criteria: { minFiveStarReviews: 5 },
+  },
+  {
+    code: 'muy_valorado',
+    name: 'Muy Valorado',
+    description: 'Rating promedio de 4.5 o mas con al menos 3 resenas',
+    icon: '💫',
+    category: 'achievement',
+    sortOrder: 8,
+    criteria: { minAvgRating: 4.5, minReviews: 3 },
+  },
+  {
+    code: 'popular',
+    name: 'Popular',
+    description: '10 o mas resenas recibidas',
+    icon: '🔥',
+    category: 'achievement',
+    sortOrder: 9,
+    criteria: { minReviews: 10 },
+  },
+  {
+    code: 'anfitrion_experimentado',
+    name: 'Anfitrion Experimentado',
+    description: '3 o mas experiencias publicadas',
+    icon: '🌟',
+    category: 'achievement',
+    sortOrder: 10,
+    criteria: { minPublishedExperiences: 3 },
+  },
+  {
+    code: 'super_anfitrion',
+    name: 'Super Anfitrion',
+    description: '20 o mas experiencias completadas como anfitrion con rating promedio >= 4.5',
+    icon: '🏆',
+    category: 'achievement',
+    sortOrder: 11,
+    criteria: { minHostedExperiences: 20, minAvgRating: 4.5 },
+  },
+  {
+    code: 'veterano',
+    name: 'Veterano',
+    description: 'Miembro por mas de 1 ano',
+    icon: '👑',
+    category: 'milestone',
+    sortOrder: 12,
+    criteria: { minAccountAgeDays: 365 },
+  },
+];
+
 // URLs de Cloudinary para las imágenes
 const CLOUDINARY_IMAGES = {
   // Avatares de usuarios
@@ -36,7 +148,35 @@ async function main() {
   await prisma.wallet.deleteMany();
   await prisma.transaction.deleteMany();
   await prisma.userPreference.deleteMany();
+  await prisma.userBadge.deleteMany();
+  await prisma.badge.deleteMany();
   await prisma.user.deleteMany();
+
+  // Crear badges
+  console.log('🏅 Creando badges...');
+  for (const badge of BADGE_DEFINITIONS) {
+    await prisma.badge.upsert({
+      where: { code: badge.code },
+      update: {
+        name: badge.name,
+        description: badge.description,
+        icon: badge.icon,
+        category: badge.category,
+        criteria: badge.criteria,
+        sortOrder: badge.sortOrder,
+      },
+      create: {
+        code: badge.code,
+        name: badge.name,
+        description: badge.description,
+        icon: badge.icon,
+        category: badge.category,
+        criteria: badge.criteria,
+        sortOrder: badge.sortOrder,
+      },
+    });
+  }
+  console.log(`✅ ${BADGE_DEFINITIONS.length} badges creados`);
 
   // Crear usuarios
   console.log('👥 Creando usuarios...');
@@ -99,7 +239,7 @@ async function main() {
         bio: 'De Buñol, vivo La Tomatina desde pequeño. ¡La mejor fiesta del mundo! Veterano de más de 10 ediciones, conozco todos los trucos para sobrevivir.',
         city: 'Valencia',
         avatar: CLOUDINARY_IMAGES.user_pedro,
-        verified: false,
+        verified: true,
         hasPartner: false,
         hasChildren: false,
       },
@@ -145,7 +285,7 @@ async function main() {
         bio: 'Viajero entusiasta buscando experiencias auténticas en las festividades españolas. Me encanta conocer las tradiciones locales de la mano de sus protagonistas.',
         city: 'Madrid',
         avatar: CLOUDINARY_IMAGES.user_demo,
-        verified: false,
+        verified: true,
         hasPartner: true,
         hasChildren: true,
         childrenAges: '3, 7',
@@ -657,6 +797,54 @@ async function main() {
   );
 
   console.log(`✅ ${users.length} wallets creadas`);
+
+  // Asignar badges a usuarios basados en sus datos
+  console.log('🏅 Asignando badges a usuarios...');
+
+  // Obtener todos los badges de la BD
+  const allBadges = await prisma.badge.findMany();
+  const badgeMap = new Map(allBadges.map(b => [b.code, b.id]));
+
+  // Helper para asignar badge
+  const assignBadge = async (userId: string, badgeCode: string) => {
+    const badgeId = badgeMap.get(badgeCode);
+    if (badgeId) {
+      await prisma.userBadge.create({
+        data: { userId, badgeId },
+      });
+    }
+  };
+
+  // Usuarios verificados obtienen badge "verificado"
+  for (const user of users) {
+    if (user.verified) {
+      await assignBadge(user.id, 'verificado');
+    }
+  }
+
+  // Usuarios con perfil completo
+  const usersWithCompleteProfile = ['user-maria', 'user-carlos', 'user-laura', 'user-pedro', 'user-juan', 'user-ana', 'user-demo'];
+  for (const userId of usersWithCompleteProfile) {
+    await assignBadge(userId, 'perfil_completo');
+  }
+
+  // Anfitriones activos (tienen experiencias)
+  const hosts = ['user-maria', 'user-carlos', 'user-laura', 'user-pedro', 'user-juan', 'user-ana'];
+  for (const userId of hosts) {
+    await assignBadge(userId, 'anfitrion_activo');
+  }
+
+  // Usuario con match completado obtiene badges de primer acuerdo y primera fiesta
+  await assignBadge('user-demo', 'primer_acuerdo');
+  await assignBadge('user-demo', 'primera_fiesta');
+
+  // Ana tiene 5 resenas de 5 estrellas (mockup), le damos muy_valorado
+  await assignBadge('user-maria', 'muy_valorado');
+  await assignBadge('user-carlos', 'muy_valorado');
+  await assignBadge('user-laura', 'muy_valorado');
+
+  const badgeCount = await prisma.userBadge.count();
+  console.log(`✅ ${badgeCount} badges asignados a usuarios`);
 
   console.log('\n🎉 ¡Seed completado con éxito!');
   console.log('\n📋 Datos de prueba:');

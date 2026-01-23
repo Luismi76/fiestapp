@@ -2,6 +2,12 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ChatGateway } from './chat.gateway';
+import { ChatController } from './chat.controller';
+import { VoiceService } from './voice.service';
+import { LocationService } from './location.service';
+import { TranslationService } from './translation.service';
+import { QuickRepliesService } from './quick-replies.service';
+import { QuickRepliesController } from './quick-replies.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WalletModule } from '../wallet/wallet.module';
 
@@ -17,7 +23,20 @@ import { WalletModule } from '../wallet/wallet.module';
       }),
     }),
   ],
-  providers: [ChatGateway],
-  exports: [ChatGateway],
+  controllers: [ChatController, QuickRepliesController],
+  providers: [
+    ChatGateway,
+    VoiceService,
+    LocationService,
+    TranslationService,
+    QuickRepliesService,
+  ],
+  exports: [
+    ChatGateway,
+    VoiceService,
+    LocationService,
+    TranslationService,
+    QuickRepliesService,
+  ],
 })
 export class ChatModule {}

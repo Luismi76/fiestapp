@@ -67,7 +67,10 @@ export class TwoFactorService {
   /**
    * Verifica el código TOTP y habilita 2FA si es correcto
    */
-  async enableTwoFactor(userId: string, token: string): Promise<{ message: string }> {
+  async enableTwoFactor(
+    userId: string,
+    token: string,
+  ): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { twoFactorSecret: true, twoFactorEnabled: true },

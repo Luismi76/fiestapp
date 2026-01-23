@@ -160,7 +160,10 @@ export class ReviewsController {
   // Eliminar respuesta (solo host)
   @Delete(':id/respond')
   @UseGuards(JwtAuthGuard)
-  deleteResponse(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+  deleteResponse(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.reviewsService.deleteResponse(id, req.user.userId);
   }
 }

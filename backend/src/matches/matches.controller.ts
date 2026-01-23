@@ -82,12 +82,7 @@ export class MatchesController {
     @Body('startDate') startDate?: string,
     @Body('endDate') endDate?: string,
   ) {
-    return this.matchesService.accept(
-      id,
-      req.user.userId,
-      startDate,
-      endDate,
-    );
+    return this.matchesService.accept(id, req.user.userId, startDate, endDate);
   }
 
   // Rechazar solicitud

@@ -6,17 +6,28 @@ import { Resend } from 'resend';
 
 @Injectable()
 export class EmailService {
-  private resend: Resend;
+  private resend: Resend | null = null;
   private readonly logger = new Logger(EmailService.name);
   private fromEmail: string;
   private readonly useQueue: boolean;
+  private readonly isConfigured: boolean;
 
   constructor(
     private configService: ConfigService,
     @Optional() @InjectQueue('email') private emailQueue?: Queue,
   ) {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
-    this.resend = new Resend(apiKey);
+    this.isConfigured = !!apiKey;
+
+    if (apiKey) {
+      this.resend = new Resend(apiKey);
+      this.logger.log('Email service configured with Resend');
+    } else {
+      this.logger.warn(
+        'RESEND_API_KEY not configured - emails will be logged only',
+      );
+    }
+
     this.fromEmail =
       this.configService.get<string>('RESEND_FROM_EMAIL') ||
       'FiestApp <noreply@fiestapp.com>';
@@ -24,23 +35,34 @@ export class EmailService {
 
     if (this.useQueue) {
       this.logger.log('Email queue enabled (Redis connected)');
-    } else {
-      this.logger.log('Email queue disabled (sending synchronously)');
     }
   }
 
   /**
    * Envía un email directamente o lo encola si hay Redis disponible
    */
-  private async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+  private async sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<boolean> {
+    // If not configured, just log
+    if (!this.isConfigured || !this.resend) {
+      this.logger.log(`[DEV] Email would be sent to ${to}: ${subject}`);
+      return true;
+    }
+
     if (this.useQueue && this.emailQueue) {
       try {
-        await this.emailQueue.add({ to, subject, html }, {
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 1000 },
-          removeOnComplete: true,
-          removeOnFail: false,
-        });
+        await this.emailQueue.add(
+          { to, subject, html },
+          {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 1000 },
+            removeOnComplete: true,
+            removeOnFail: false,
+          },
+        );
         this.logger.debug(`Email queued for ${to}`);
         return true;
       } catch (error) {
@@ -97,7 +119,10 @@ export class EmailService {
     return this.sendEmail(email, 'Restablecer contraseña - FiestApp', html);
   }
 
-  private getPasswordResetEmailTemplate(name: string, resetUrl: string): string {
+  private getPasswordResetEmailTemplate(
+    name: string,
+    resetUrl: string,
+  ): string {
     return `
 <!DOCTYPE html>
 <html lang="es">
@@ -210,9 +235,7 @@ export class EmailService {
     });
 
     const urgencyText =
-      daysUntil === 1
-        ? '¡Es mañana!'
-        : `Faltan ${daysUntil} días`;
+      daysUntil === 1 ? '¡Es mañana!' : `Faltan ${daysUntil} días`;
 
     return `
 <!DOCTYPE html>

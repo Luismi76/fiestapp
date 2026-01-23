@@ -4,20 +4,21 @@ import type { Cache } from 'cache-manager';
 
 // TTL en segundos
 export const CACHE_TTL = {
-  FESTIVALS: 3600,        // 1 hora - cambian poco
-  EXPERIENCES_LIST: 300,  // 5 minutos
+  FESTIVALS: 3600, // 1 hora - cambian poco
+  EXPERIENCES_LIST: 300, // 5 minutos
   EXPERIENCE_DETAIL: 300, // 5 minutos
-  USER_PROFILE: 300,      // 5 minutos
-  STATS: 600,             // 10 minutos
-  TOP_EXPERIENCES: 600,   // 10 minutos
-  TOP_HOSTS: 600,         // 10 minutos
+  USER_PROFILE: 300, // 5 minutos
+  STATS: 600, // 10 minutos
+  TOP_EXPERIENCES: 600, // 10 minutos
+  TOP_HOSTS: 600, // 10 minutos
 };
 
 // Prefijos de cache keys
 export const CACHE_KEYS = {
   FESTIVALS_ALL: 'festivals:all',
   FESTIVAL: (id: string) => `festival:${id}`,
-  EXPERIENCES_LIST: (page: number, filters: string) => `experiences:list:${page}:${filters}`,
+  EXPERIENCES_LIST: (page: number, filters: string) =>
+    `experiences:list:${page}:${filters}`,
   EXPERIENCE: (id: string) => `experience:${id}`,
   USER_PROFILE: (id: string) => `user:profile:${id}`,
   USER_PUBLIC: (id: string) => `user:public:${id}`,
@@ -79,7 +80,9 @@ export class CacheService {
           const redisClient = store.opts.store;
           const keys = await redisClient.keys(pattern);
           if (keys.length > 0) {
-            await Promise.all(keys.map((key: string) => this.cacheManager.del(key)));
+            await Promise.all(
+              keys.map((key: string) => this.cacheManager.del(key)),
+            );
           }
         }
       }

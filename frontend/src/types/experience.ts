@@ -22,6 +22,12 @@ export interface Festival {
   };
 }
 
+export interface GroupPricingTier {
+  minPeople: number;
+  maxPeople: number | null;
+  pricePerPerson: number;
+}
+
 export interface Experience {
   id: string;
   title: string;
@@ -32,6 +38,9 @@ export interface Experience {
   photos: string[];
   highlights?: string[];
   capacity: number;
+  minParticipants?: number;
+  maxParticipants?: number | null;
+  groupPricing?: GroupPricingTier[];
   published: boolean;
   createdAt: string;
   updatedAt: string;
@@ -83,6 +92,9 @@ export interface CreateExperienceData {
   photos?: string[];
   highlights?: string[];
   capacity?: number;
+  minParticipants?: number;
+  maxParticipants?: number | null;
+  groupPricing?: GroupPricingTier[];
   availability?: string[];
 }
 

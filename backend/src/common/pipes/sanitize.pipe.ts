@@ -28,7 +28,9 @@ export class SanitizePipe implements PipeTransform {
     if (value !== null && typeof value === 'object') {
       const sanitized: Record<string, unknown> = {};
       for (const key of Object.keys(value)) {
-        sanitized[key] = this.sanitizeValue((value as Record<string, unknown>)[key]);
+        sanitized[key] = this.sanitizeValue(
+          (value as Record<string, unknown>)[key],
+        );
       }
       return sanitized;
     }

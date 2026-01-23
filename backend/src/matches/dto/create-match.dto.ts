@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsInt,
+  Min,
+  IsArray,
+} from 'class-validator';
 
 export class CreateMatchDto {
   @IsString()
@@ -15,4 +22,14 @@ export class CreateMatchDto {
   @IsOptional()
   @IsDateString({}, { message: 'Fecha de fin inválida' })
   endDate?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  participants?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  participantNames?: string[];
 }

@@ -24,6 +24,8 @@ export interface MatchExperience {
   };
 }
 
+export type MessageType = 'TEXT' | 'VOICE' | 'LOCATION' | 'QUICK_REPLY';
+
 export interface Message {
   id: string;
   matchId: string;
@@ -36,6 +38,15 @@ export interface Message {
     name: string;
     avatar?: string;
   };
+  // Enhanced chat fields
+  type?: MessageType;
+  voiceUrl?: string;
+  voiceDuration?: number;
+  latitude?: number;
+  longitude?: number;
+  locationName?: string;
+  originalLang?: string;
+  translations?: Record<string, string>;
 }
 
 export interface Match {
@@ -46,6 +57,9 @@ export interface Match {
   status: MatchStatus;
   startDate?: string;
   endDate?: string;
+  participants?: number;
+  participantNames?: string[];
+  totalPrice?: number;
   createdAt: string;
   updatedAt: string;
   experience: MatchExperience;
@@ -53,6 +67,12 @@ export interface Match {
   host: MatchUser;
   _count?: {
     messages: number;
+  };
+  unreadCount?: number;
+  lastMessage?: {
+    content: string;
+    createdAt: string;
+    senderId: string;
   };
 }
 
@@ -66,6 +86,8 @@ export interface CreateMatchData {
   message?: string;
   startDate?: string;
   endDate?: string;
+  participants?: number;
+  participantNames?: string[];
 }
 
 export interface MatchStats {

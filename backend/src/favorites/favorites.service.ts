@@ -5,8 +5,11 @@ import { PrismaService } from '../prisma/prisma.service';
 export class FavoritesService {
   constructor(private prisma: PrismaService) {}
 
+  // =============================================
+  // EXPERIENCIAS FAVORITAS
+  // =============================================
+
   async addFavorite(userId: string, experienceId: string) {
-    // Verificar que la experiencia existe
     const experience = await this.prisma.experience.findUnique({
       where: { id: experienceId },
     });
@@ -15,7 +18,6 @@ export class FavoritesService {
       throw new NotFoundException('Experiencia no encontrada');
     }
 
-    // Crear o ignorar si ya existe
     const favorite = await this.prisma.favorite.upsert({
       where: {
         userId_experienceId: {
@@ -57,14 +59,21 @@ export class FavoritesService {
           experienceId,
         },
       },
+      include: {
+        alert: true,
+      },
     });
-    return { isFavorite: !!favorite };
+    return {
+      isFavorite: !!favorite,
+      hasAlert: !!favorite?.alert?.enabled,
+    };
   }
 
   async getFavorites(userId: string) {
     const favorites = await this.prisma.favorite.findMany({
       where: { userId },
       include: {
+        alert: true,
         experience: {
           include: {
             host: {
@@ -95,7 +104,6 @@ export class FavoritesService {
       },
     });
 
-    // Calcular rating promedio para cada experiencia
     const experiencesWithRating = await Promise.all(
       favorites.map(async (fav) => {
         const avgRating = await this.prisma.review.aggregate({
@@ -106,6 +114,8 @@ export class FavoritesService {
           ...fav.experience,
           avgRating: avgRating._avg.rating || 0,
           savedAt: fav.createdAt,
+          hasAlert: !!fav.alert?.enabled,
+          favoriteId: fav.id,
         };
       }),
     );
@@ -119,5 +129,229 @@ export class FavoritesService {
       select: { experienceId: true },
     });
     return favorites.map((f) => f.experienceId);
+  }
+
+  // =============================================
+  // FESTIVALES FAVORITOS
+  // =============================================
+
+  async addFestivalFavorite(userId: string, festivalId: string) {
+    const festival = await this.prisma.festival.findUnique({
+      where: { id: festivalId },
+    });
+
+    if (!festival) {
+      throw new NotFoundException('Festival no encontrado');
+    }
+
+    const favorite = await this.prisma.favoriteFestival.upsert({
+      where: {
+        userId_festivalId: {
+          userId,
+          festivalId,
+        },
+      },
+      update: {},
+      create: {
+        userId,
+        festivalId,
+      },
+    });
+
+    return { message: 'Festival guardado en favoritos', favorite };
+  }
+
+  async removeFestivalFavorite(userId: string, festivalId: string) {
+    try {
+      await this.prisma.favoriteFestival.delete({
+        where: {
+          userId_festivalId: {
+            userId,
+            festivalId,
+          },
+        },
+      });
+      return { message: 'Festival eliminado de favoritos' };
+    } catch {
+      return { message: 'El festival no estaba en favoritos' };
+    }
+  }
+
+  async isFestivalFavorite(userId: string, festivalId: string) {
+    const favorite = await this.prisma.favoriteFestival.findUnique({
+      where: {
+        userId_festivalId: {
+          userId,
+          festivalId,
+        },
+      },
+    });
+    return { isFavorite: !!favorite };
+  }
+
+  async getFestivalFavorites(userId: string) {
+    const favorites = await this.prisma.favoriteFestival.findMany({
+      where: { userId },
+      include: {
+        festival: {
+          include: {
+            _count: {
+              select: {
+                experiences: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return favorites.map((fav) => ({
+      ...fav.festival,
+      savedAt: fav.createdAt,
+      experienceCount: fav.festival._count.experiences,
+    }));
+  }
+
+  async getFestivalFavoriteIds(userId: string) {
+    const favorites = await this.prisma.favoriteFestival.findMany({
+      where: { userId },
+      select: { festivalId: true },
+    });
+    return favorites.map((f) => f.festivalId);
+  }
+
+  // =============================================
+  // ALERTAS DE DISPONIBILIDAD
+  // =============================================
+
+  async enableAlert(userId: string, experienceId: string) {
+    // Verificar que existe el favorito
+    const favorite = await this.prisma.favorite.findUnique({
+      where: {
+        userId_experienceId: {
+          userId,
+          experienceId,
+        },
+      },
+    });
+
+    if (!favorite) {
+      // Si no existe el favorito, crearlo primero
+      await this.addFavorite(userId, experienceId);
+      const newFavorite = await this.prisma.favorite.findUnique({
+        where: {
+          userId_experienceId: {
+            userId,
+            experienceId,
+          },
+        },
+      });
+
+      if (!newFavorite) {
+        throw new NotFoundException('Error al crear favorito');
+      }
+
+      const alert = await this.prisma.favoriteAlert.create({
+        data: {
+          favoriteId: newFavorite.id,
+          enabled: true,
+        },
+      });
+
+      return { message: 'Alerta de disponibilidad activada', alert };
+    }
+
+    // Crear o actualizar la alerta
+    const alert = await this.prisma.favoriteAlert.upsert({
+      where: {
+        favoriteId: favorite.id,
+      },
+      update: {
+        enabled: true,
+      },
+      create: {
+        favoriteId: favorite.id,
+        enabled: true,
+      },
+    });
+
+    return { message: 'Alerta de disponibilidad activada', alert };
+  }
+
+  async disableAlert(userId: string, experienceId: string) {
+    const favorite = await this.prisma.favorite.findUnique({
+      where: {
+        userId_experienceId: {
+          userId,
+          experienceId,
+        },
+      },
+      include: {
+        alert: true,
+      },
+    });
+
+    if (!favorite?.alert) {
+      return { message: 'No habia alerta activa' };
+    }
+
+    await this.prisma.favoriteAlert.update({
+      where: {
+        id: favorite.alert.id,
+      },
+      data: {
+        enabled: false,
+      },
+    });
+
+    return { message: 'Alerta de disponibilidad desactivada' };
+  }
+
+  async getAlertsStatus(userId: string) {
+    const favorites = await this.prisma.favorite.findMany({
+      where: { userId },
+      include: {
+        alert: true,
+        experience: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+
+    return favorites
+      .filter((fav) => fav.alert?.enabled)
+      .map((fav) => ({
+        experienceId: fav.experienceId,
+        experienceTitle: fav.experience.title,
+        alertEnabled: fav.alert?.enabled || false,
+        lastNotified: fav.alert?.lastNotified,
+      }));
+  }
+
+  // =============================================
+  // COMBINADO
+  // =============================================
+
+  async getAllFavorites(userId: string) {
+    const [experiences, festivals] = await Promise.all([
+      this.getFavorites(userId),
+      this.getFestivalFavorites(userId),
+    ]);
+
+    return {
+      experiences,
+      festivals,
+      counts: {
+        experiences: experiences.length,
+        festivals: festivals.length,
+        total: experiences.length + festivals.length,
+      },
+    };
   }
 }
