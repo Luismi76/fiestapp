@@ -245,7 +245,7 @@ export const festivalsApi = {
     return response.data;
   },
 
-  create: async (data: { name: string; city: string; description?: string }): Promise<Festival> => {
+  create: async (data: { name: string; city: string; description?: string; startDate?: string; endDate?: string }): Promise<Festival> => {
     const response = await api.post<Festival>('/festivals', data);
     return response.data;
   },

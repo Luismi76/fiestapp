@@ -116,6 +116,12 @@ export class FestivalsService {
         imageUrl: createFestivalDto.imageUrl,
         latitude: coordinates?.latitude,
         longitude: coordinates?.longitude,
+        startDate: createFestivalDto.startDate
+          ? new Date(createFestivalDto.startDate)
+          : undefined,
+        endDate: createFestivalDto.endDate
+          ? new Date(createFestivalDto.endDate)
+          : undefined,
       },
     });
 

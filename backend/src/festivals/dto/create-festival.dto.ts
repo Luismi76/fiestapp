@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsOptional, MinLength, IsDateString } from 'class-validator';
 
 export class CreateFestivalDto {
   @IsString()
@@ -16,4 +16,12 @@ export class CreateFestivalDto {
   @IsString()
   @IsOptional()
   imageUrl?: string;
+
+  @IsDateString()
+  @IsOptional()
+  startDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  endDate?: string;
 }

@@ -69,6 +69,7 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
   const [showNewFestivalForm, setShowNewFestivalForm] = useState(false);
   const [newFestivalName, setNewFestivalName] = useState('');
   const [newFestivalCity, setNewFestivalCity] = useState('');
+  const [newFestivalDate, setNewFestivalDate] = useState('');
   const [citySearch, setCitySearch] = useState('');
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -182,6 +183,7 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
       const createdFestival = await festivalsApi.create({
         name: newFestivalName.trim(),
         city: newFestivalCity.trim(),
+        startDate: newFestivalDate || undefined,
       });
 
       // Añadir a la lista local
@@ -194,6 +196,7 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
       setShowNewFestivalForm(false);
       setNewFestivalName('');
       setNewFestivalCity('');
+      setNewFestivalDate('');
       setIsOpen(false);
     } catch (error: any) {
       console.error('Error creating festival:', error);
@@ -490,6 +493,22 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Fecha aproximada */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Fecha aproximada <span className="font-normal text-gray-400">(opcional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={newFestivalDate}
+                  onChange={(e) => setNewFestivalDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-primary transition-colors"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Indica cuándo se celebra para que aparezca en el calendario
+                </p>
               </div>
 
               {/* Error */}
