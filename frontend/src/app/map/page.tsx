@@ -144,7 +144,7 @@ export default function MapPage() {
           ) : (
             <ExperienceMap
               experiences={experiences}
-              height="100%"
+              height="h-full"
               filter={filter}
               onExperienceClick={setSelectedExperience}
             />

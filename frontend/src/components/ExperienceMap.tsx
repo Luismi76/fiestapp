@@ -179,7 +179,7 @@ let leafletReady = false;
 export default function ExperienceMap({
   experiences,
   onExperienceClick,
-  height = '400px',
+  height = 'h-[50vh] sm:h-[400px] md:h-[500px]',
   filter = 'all',
 }: ExperienceMapProps) {
   const router = useRouter();
@@ -266,7 +266,7 @@ export default function ExperienceMap({
 
   if (!ready) {
     return (
-      <div style={{ height }} className="bg-gray-100 rounded-xl flex items-center justify-center">
+      <div className={`${height} bg-gray-100 rounded-xl flex items-center justify-center`}>
         <div className="text-center">
           <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
           <p className="text-sm text-gray-500">Cargando mapa...</p>
@@ -312,7 +312,7 @@ export default function ExperienceMap({
         .leaflet-popup-close-button { display: none !important; }
       `}</style>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-      <div style={{ height }} className="rounded-xl overflow-hidden">
+      <div className={`${height} rounded-xl overflow-hidden`}>
         <MapContainer
           center={center}
           zoom={6}
@@ -333,11 +333,11 @@ export default function ExperienceMap({
             return (
               <Marker key={key} position={[lat, lng]} icon={createIcon(mainType)}>
                 <Popup>
-                  <div style={{ minWidth: 200, maxWidth: 260 }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: 8, fontSize: 14 }}>
+                  <div className="min-w-[180px] max-w-[calc(100vw-4rem)] sm:max-w-[260px]">
+                    <div className="font-bold mb-2 text-sm">
                       {exps[0].city} ({exps.length})
                     </div>
-                    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                    <div className="max-h-[200px] overflow-y-auto">
                       {exps.slice(0, 5).map(exp => (
                         <div
                           key={exp.id}
@@ -345,34 +345,25 @@ export default function ExperienceMap({
                             onExperienceClick?.(exp);
                             router.push(`/experiences/${exp.id}`);
                           }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            padding: 8,
-                            marginBottom: 4,
-                            background: '#f5f5f5',
-                            borderRadius: 8,
-                            cursor: 'pointer',
-                          }}
+                          className="flex items-center gap-2 p-2 mb-1 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
                         >
                           <img
                             src={getUploadUrl(exp.photos?.[0] || '/images/placeholder.jpg')}
                             alt={exp.title}
-                            style={{ width: 40, height: 40, borderRadius: 6, objectFit: 'cover' }}
+                            className="w-10 h-10 rounded-md object-cover flex-shrink-0"
                           />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-semibold truncate">
                               {exp.title}
                             </div>
-                            <div style={{ fontSize: 11, color: exp.type === 'intercambio' ? '#10B981' : '#FF6B35' }}>
+                            <div className={`text-[11px] ${exp.type === 'intercambio' ? 'text-emerald-500' : 'text-primary'}`}>
                               {exp.type === 'intercambio' ? 'Intercambio' : `${exp.price}€`}
                             </div>
                           </div>
                         </div>
                       ))}
                       {exps.length > 5 && (
-                        <div style={{ textAlign: 'center', fontSize: 11, color: '#888', padding: 4 }}>
+                        <div className="text-center text-[11px] text-gray-500 p-1">
                           +{exps.length - 5} más
                         </div>
                       )}

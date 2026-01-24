@@ -147,7 +147,7 @@ export default function Header() {
                       onClick={() => setIsMenuOpen(false)}
                       aria-hidden="true"
                     />
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-40 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute right-0 top-full mt-2 w-56 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-40 animate-in fade-in zoom-in-95 duration-200">
                       <div className="px-4 py-2 border-b border-gray-100">
                         <p className="font-semibold text-gray-900 truncate">{user?.name}</p>
                         <p className="text-sm text-gray-500 truncate">{user?.email}</p>

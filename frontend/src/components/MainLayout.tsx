@@ -24,12 +24,17 @@ interface MainLayoutProps {
  */
 export default function MainLayout({ children, hideNav = false }: MainLayoutProps) {
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       {!hideNav && <Header />}
-      <main id="main-content" role="main" tabIndex={-1}>
+      <main
+        id="main-content"
+        role="main"
+        tabIndex={-1}
+        className="w-full max-w-7xl mx-auto"
+      >
         {children}
       </main>
       {!hideNav && <BottomNav />}
-    </>
+    </div>
   );
 }
