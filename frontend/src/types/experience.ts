@@ -17,6 +17,8 @@ export interface Festival {
   imageUrl?: string;
   startDate?: string;
   endDate?: string;
+  latitude?: number;
+  longitude?: number;
   _count?: {
     experiences: number;
   };
@@ -33,6 +35,8 @@ export interface Experience {
   title: string;
   description: string;
   city: string;
+  latitude?: number;
+  longitude?: number;
   price?: number;
   type: ExperienceType;
   photos: string[];

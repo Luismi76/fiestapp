@@ -104,6 +104,8 @@ model Experience {
   description     String
   festivalId      String
   city            String
+  latitude        Float?                   // Coordenadas de la ciudad
+  longitude       Float?
   price           Float?
   type            String
   hostId          String

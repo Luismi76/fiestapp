@@ -249,8 +249,13 @@ export default function CreateExperiencePage() {
 
     try {
       const validHighlightsList = highlights.filter(h => h.trim() !== '');
-      // Convertir fechas a formato ISO string para el backend
-      const availabilityDates = selectedDates.map(date => date.toISOString());
+      // Convertir fechas a formato YYYY-MM-DD para evitar problemas de zona horaria
+      const availabilityDates = selectedDates.map(date => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      });
       const experienceData: CreateExperienceData = {
         title: data.title,
         description: data.description,

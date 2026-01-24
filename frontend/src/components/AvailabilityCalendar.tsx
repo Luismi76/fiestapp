@@ -62,10 +62,17 @@ export default function AvailabilityCalendar({
   availableDates = [],
   onDateClick,
   occupancy = [],
-  minDate = new Date(),
+  minDate: minDateProp,
   maxDate,
   initialDate,
 }: AvailabilityCalendarProps) {
+  // Normalizar minDate al inicio del día para evitar problemas con horas
+  const minDate = useMemo(() => {
+    const date = minDateProp || new Date();
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  }, [minDateProp]);
   // Calcular si las fechas disponibles abarcan múltiples meses
   const { spansMultipleMonths, firstMonth, lastMonth } = useMemo(() => {
     if (availableDates.length === 0) {
@@ -193,9 +200,17 @@ export default function AvailabilityCalendar({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (date < today) return true;
-    if (minDate && date < minDate) return true;
-    if (maxDate && date > maxDate) return true;
+    // Normalizar la fecha para comparar solo día/mes/año
+    const normalizedDate = new Date(date);
+    normalizedDate.setHours(0, 0, 0, 0);
+
+    if (normalizedDate < today) return true;
+    if (minDate && normalizedDate < minDate) return true;
+    if (maxDate) {
+      const normalizedMaxDate = new Date(maxDate);
+      normalizedMaxDate.setHours(23, 59, 59, 999);
+      if (normalizedDate > normalizedMaxDate) return true;
+    }
 
     // En modo view/range, fechas llenas no son clickeables
     if ((mode === 'view' || mode === 'range') && occupancy.length > 0) {

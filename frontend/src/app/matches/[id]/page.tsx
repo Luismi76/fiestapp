@@ -750,7 +750,7 @@ export default function MatchDetailPage() {
           </div>
           <h2 className="font-bold text-xl text-gray-900 mb-2">No encontrado</h2>
           <p className="text-gray-500 text-center mb-6">{error}</p>
-          <Link href="/matches/received" className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-full hover:bg-blue-600 transition-colors">
+          <Link href="/messages" className="px-6 py-3 bg-blue-500 text-white font-semibold rounded-full hover:bg-blue-600 transition-colors">
             Volver a mensajes
           </Link>
         </div>

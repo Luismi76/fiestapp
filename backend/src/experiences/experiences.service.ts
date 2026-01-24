@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService, CACHE_KEYS, CACHE_TTL } from '../cache/cache.service';
@@ -10,10 +11,50 @@ import { UpdateExperienceDto } from './dto/update-experience.dto';
 
 @Injectable()
 export class ExperiencesService {
+  private readonly logger = new Logger(ExperiencesService.name);
+
   constructor(
     private prisma: PrismaService,
     private cacheService: CacheService,
   ) {}
+
+  /**
+   * Geocodifica una ciudad española usando Nominatim (OpenStreetMap)
+   */
+  private async geocodeCity(
+    city: string,
+  ): Promise<{ latitude: number; longitude: number } | null> {
+    try {
+      const query = encodeURIComponent(`${city}, España`);
+      const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=es`;
+
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'FiestApp/1.0 (contact@fiestapp.com)',
+        },
+      });
+
+      if (!response.ok) {
+        this.logger.warn(`Geocoding failed for ${city}: HTTP ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (data && data.length > 0 && data[0].lat && data[0].lon) {
+        return {
+          latitude: parseFloat(data[0].lat),
+          longitude: parseFloat(data[0].lon),
+        };
+      }
+
+      this.logger.warn(`No geocoding results for ${city}`);
+      return null;
+    } catch (error) {
+      this.logger.error(`Geocoding error for ${city}:`, error);
+      return null;
+    }
+  }
 
   async create(createDto: CreateExperienceDto, userId: string) {
     // Verificar que el festival existe
@@ -25,6 +66,9 @@ export class ExperiencesService {
       throw new NotFoundException('Festival no encontrado');
     }
 
+    // Geocodificar la ciudad para obtener coordenadas
+    const coordinates = await this.geocodeCity(createDto.city);
+
     // Crear experiencia con disponibilidad en una transacción
     const experience = await this.prisma.$transaction(async (tx) => {
       const exp = await tx.experience.create({
@@ -33,6 +77,8 @@ export class ExperiencesService {
           description: createDto.description,
           festivalId: createDto.festivalId,
           city: createDto.city,
+          latitude: coordinates?.latitude,
+          longitude: coordinates?.longitude,
           price: createDto.price,
           type: createDto.type,
           photos: createDto.photos || [],
@@ -54,6 +100,8 @@ export class ExperiencesService {
               id: true,
               name: true,
               city: true,
+              latitude: true,
+              longitude: true,
             },
           },
         },
@@ -62,11 +110,16 @@ export class ExperiencesService {
       // Crear registros de disponibilidad si se proporcionaron fechas
       if (createDto.availability && createDto.availability.length > 0) {
         await tx.experienceAvailability.createMany({
-          data: createDto.availability.map((dateStr) => ({
-            experienceId: exp.id,
-            date: new Date(dateStr),
-            available: true,
-          })),
+          data: createDto.availability.map((dateStr) => {
+            // Parsear la fecha y establecer a mediodía UTC para evitar problemas de zona horaria
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+            return {
+              experienceId: exp.id,
+              date,
+              available: true,
+            };
+          }),
           skipDuplicates: true,
         });
       }
@@ -199,6 +252,8 @@ export class ExperiencesService {
               id: true,
               name: true,
               city: true,
+              latitude: true,
+              longitude: true,
             },
           },
           _count: {
@@ -363,6 +418,8 @@ export class ExperiencesService {
             id: true,
             name: true,
             city: true,
+            latitude: true,
+            longitude: true,
           },
         },
         host: {
@@ -420,12 +477,24 @@ export class ExperiencesService {
     // Extraer availability del DTO para manejarlo por separado
     const { availability, ...updateData } = updateDto;
 
+    // Si se cambia la ciudad, geocodificar las nuevas coordenadas
+    let coordinates: { latitude: number; longitude: number } | null = null;
+    if (updateData.city && updateData.city !== experience.city) {
+      coordinates = await this.geocodeCity(updateData.city);
+    }
+
     // Usar transacción para actualizar experiencia y disponibilidad
     const result = await this.prisma.$transaction(async (tx) => {
       // Actualizar la experiencia
       const updated = await tx.experience.update({
         where: { id },
-        data: updateData,
+        data: {
+          ...updateData,
+          ...(coordinates && {
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
+          }),
+        },
         include: {
           host: {
             select: {
@@ -440,6 +509,8 @@ export class ExperiencesService {
               id: true,
               name: true,
               city: true,
+              latitude: true,
+              longitude: true,
             },
           },
         },
@@ -455,11 +526,16 @@ export class ExperiencesService {
         // Crear nuevas fechas de disponibilidad
         if (availability.length > 0) {
           await tx.experienceAvailability.createMany({
-            data: availability.map((dateStr) => ({
-              experienceId: id,
-              date: new Date(dateStr),
-              available: true,
-            })),
+            data: availability.map((dateStr) => {
+              // Parsear la fecha y establecer a mediodía UTC para evitar problemas de zona horaria
+              const [year, month, day] = dateStr.split('-').map(Number);
+              const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+              return {
+                experienceId: id,
+                date,
+                available: true,
+              };
+            }),
             skipDuplicates: true,
           });
         }

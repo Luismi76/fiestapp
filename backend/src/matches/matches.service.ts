@@ -16,6 +16,20 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PushService } from '../notifications/push.service';
 import { PricingService } from '../experiences/pricing.service';
 
+// Helper para parsear fechas correctamente evitando problemas de zona horaria
+function parseDate(dateStr: string | undefined | null): Date | null {
+  if (!dateStr) return null;
+
+  // Si es formato YYYY-MM-DD, parsear como UTC mediodía
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  }
+
+  // Si es formato ISO completo, usar new Date directamente
+  return new Date(dateStr);
+}
+
 @Injectable()
 export class MatchesService {
   constructor(
@@ -98,8 +112,8 @@ export class MatchesService {
           paymentStatus: null,
           hostConfirmed: false,
           requesterConfirmed: false,
-          startDate: createDto.startDate ? new Date(createDto.startDate) : null,
-          endDate: createDto.endDate ? new Date(createDto.endDate) : null,
+          startDate: parseDate(createDto.startDate),
+          endDate: parseDate(createDto.endDate),
           updatedAt: new Date(),
         },
         include: {
@@ -188,9 +202,9 @@ export class MatchesService {
 
     // Verificar capacidad si hay fechas seleccionadas
     if (createDto.startDate) {
-      const startDate = new Date(createDto.startDate);
+      const startDate = parseDate(createDto.startDate) as Date;
       const endDate = createDto.endDate
-        ? new Date(createDto.endDate)
+        ? (parseDate(createDto.endDate) as Date)
         : startDate;
 
       // Contar participantes en matches activos que se solapan con las fechas seleccionadas
@@ -240,8 +254,8 @@ export class MatchesService {
         requesterId,
         hostId: experience.hostId,
         status: 'pending',
-        startDate: createDto.startDate ? new Date(createDto.startDate) : null,
-        endDate: createDto.endDate ? new Date(createDto.endDate) : null,
+        startDate: parseDate(createDto.startDate),
+        endDate: parseDate(createDto.endDate),
         participants,
         participantNames: createDto.participantNames || [],
         totalPrice,
@@ -663,8 +677,8 @@ export class MatchesService {
       where: { id },
       data: {
         status: MatchStatus.ACCEPTED,
-        startDate: startDate ? new Date(startDate) : match.startDate,
-        endDate: endDate ? new Date(endDate) : match.endDate,
+        startDate: startDate ? parseDate(startDate) : match.startDate,
+        endDate: endDate ? parseDate(endDate) : match.endDate,
       },
       include: {
         experience: true,

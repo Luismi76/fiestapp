@@ -39,6 +39,7 @@ export default function BottomNav() {
     if (id === 'home') return pathname === '/dashboard' || pathname === '/';
     if (id === 'explore') return pathname === '/experiences' || pathname.startsWith('/experiences/') && !pathname.includes('/create') && !pathname.includes('/my');
     if (id === 'my') return pathname === '/experiences/my';
+    if (id === 'notifications') return pathname === '/messages' || pathname.startsWith('/matches');
     return pathname.startsWith(href);
   };
 
@@ -77,7 +78,7 @@ export default function BottomNav() {
     {
       id: 'notifications',
       label: 'Mensajes',
-      href: '/matches/received',
+      href: '/messages',
       badge: unreadCount,
       authRequired: true,
       icon: (active: boolean) => (
@@ -114,7 +115,8 @@ export default function BottomNav() {
             <Link
               key={item.label}
               href={finalHref}
-              className="bottom-nav-fab"
+              className="bottom-nav-fab ripple"
+              aria-label="Crear experiencia"
             >
               {item.icon(false)}
             </Link>
@@ -125,7 +127,7 @@ export default function BottomNav() {
           <Link
             key={item.label}
             href={finalHref}
-            className={`bottom-nav-item ${active ? 'active' : ''}`}
+            className={`bottom-nav-item ripple ripple-dark ${active ? 'active' : ''}`}
           >
             <span className="bottom-nav-icon">
               {item.icon(active)}

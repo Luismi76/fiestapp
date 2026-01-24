@@ -250,7 +250,6 @@ export default function ExperienceDetailPage() {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [participants, setParticipants] = useState(1);
   const [participantNames, setParticipantNames] = useState<string[]>([]);
-  const [priceResult, setPriceResult] = useState<GroupPriceResult | null>(null);
 
   useEffect(() => {
     const fetchExperience = async () => {
@@ -314,17 +313,8 @@ export default function ExperienceDetailPage() {
     }
   };
 
-  const handleRequestMatch = () => {
-    if (!isAuthenticated) {
-      router.push('/login');
-      return;
-    }
-    setShowModal(true);
-  };
-
-  const handleParticipantsChange = useCallback((count: number, result: GroupPriceResult | null) => {
+  const handleParticipantsChange = useCallback((count: number, _result: GroupPriceResult | null) => {
     setParticipants(count);
-    setPriceResult(result);
   }, []);
 
   const handleSubmitRequest = async () => {
@@ -631,8 +621,8 @@ export default function ExperienceDetailPage() {
                 occupancy={occupancy}
                 initialDate={availabilityDates[0]}
                 onDateClick={(date) => {
-                  setDateRange({ start: date, end: null });
-                  setShowModal(true);
+                  // Redirect to booking page with pre-selected date
+                  router.push(`/experiences/${experience.id}/book?date=${date.toISOString()}`);
                 }}
               />
             </div>
@@ -708,9 +698,12 @@ export default function ExperienceDetailPage() {
             )}
           </div>
           {!isOwner && (
-            <button onClick={handleRequestMatch} className="flex-1 py-4 bg-blue-500 text-white font-semibold rounded-full hover:bg-blue-600 transition-colors">
+            <Link
+              href={`/experiences/${experience.id}/book`}
+              className="flex-1 py-4 bg-blue-500 text-white font-semibold rounded-full hover:bg-blue-600 transition-colors text-center ripple"
+            >
               {experience.type === 'intercambio' ? 'Proponer intercambio' : 'Reservar ahora'}
-            </button>
+            </Link>
           )}
         </div>
       </div>
@@ -722,7 +715,7 @@ export default function ExperienceDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold">Solicitar experiencia</h2>
               <button
-                onClick={() => { setShowModal(false); setDateRange({ start: null, end: null }); setMessage(''); setSubmitError(''); setParticipants(1); setParticipantNames([]); setPriceResult(null); }}
+                onClick={() => { setShowModal(false); setDateRange({ start: null, end: null }); setMessage(''); setSubmitError(''); setParticipants(1); setParticipantNames([]); }}
                 className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">

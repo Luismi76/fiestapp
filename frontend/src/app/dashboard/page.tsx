@@ -1,505 +1,418 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/MainLayout';
-import { experiencesApi, walletApi, WalletInfo } from '@/lib/api';
+import { experiencesApi, matchesApi } from '@/lib/api';
 import { Experience } from '@/types/experience';
+import { Match } from '@/types/match';
 import { getUploadUrl, getAvatarUrl } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
-// Mock data como fallback
-const mockExperiences = [
-  {
-    id: 'exp-1',
-    title: 'Vive la Feria como un sevillano',
-    description: 'Sumérgete en la magia de la Feria de Abril de la mano de una familia sevillana.',
-    festival: { id: 'fest-feria', name: 'Feria de Abril', city: 'Sevilla' },
-    city: 'Sevilla',
-    price: 45,
-    type: 'pago' as const,
-    photos: ['/images/feria_abril.png'],
-    host: { id: 'user-maria', name: 'María García', avatar: '/images/user_maria.png', verified: true },
-    avgRating: 4.9,
-    _count: { reviews: 127, matches: 3800 },
-    hashtags: ['#FeriaDeAbril', '#Sevilla'],
-  },
-  {
-    id: 'exp-2',
-    title: 'Encierro y tapas tradicionales',
-    description: 'Vive San Fermín como un pamplonés de verdad con acceso a balcón privilegiado.',
-    festival: { id: 'fest-sanfermin', name: 'San Fermín', city: 'Pamplona' },
-    city: 'Pamplona',
-    price: undefined,
-    type: 'intercambio' as const,
-    photos: ['/images/san_fermin.png'],
-    host: { id: 'user-carlos', name: 'Carlos Martínez', avatar: '/images/user_carlos.png', verified: true },
-    avgRating: 4.8,
-    _count: { reviews: 89, matches: 2100 },
-    hashtags: ['#SanFermín', '#Encierros'],
-  },
-  {
-    id: 'exp-3',
-    title: 'Mascletà y paella valenciana',
-    description: 'Siente el estruendo de la mascletà y disfruta de paella casera.',
-    festival: { id: 'fest-fallas', name: 'Las Fallas', city: 'Valencia' },
-    city: 'Valencia',
-    price: 35,
-    type: 'pago' as const,
-    photos: ['/images/las_fallas.png'],
-    host: { id: 'user-laura', name: 'Laura Vidal', avatar: '/images/user_laura.png', verified: true },
-    avgRating: 5.0,
-    _count: { reviews: 64, matches: 1500 },
-    hashtags: ['#Fallas', '#Valencia'],
-  },
-  {
-    id: 'exp-4',
-    title: 'La batalla del tomate',
-    description: 'Prepárate para la guerra más divertida del mundo con un veterano.',
-    festival: { id: 'fest-tomatina', name: 'La Tomatina', city: 'Buñol' },
-    city: 'Buñol',
-    price: 25,
-    type: 'ambos' as const,
-    photos: ['/images/la_tomatina.png'],
-    host: { id: 'user-pedro', name: 'Pedro Ruiz', avatar: '/images/user_pedro.png', verified: false },
-    avgRating: 4.7,
-    _count: { reviews: 203, matches: 4200 },
-    hashtags: ['#Tomatina', '#Buñol'],
-  },
-  {
-    id: 'exp-5',
-    title: 'Procesiones y saetas',
-    description: 'La Semana Santa de Sevilla es única. Vívela con un cofrade.',
-    festival: { id: 'fest-semanasanta', name: 'Semana Santa', city: 'Sevilla' },
-    city: 'Sevilla',
-    price: 30,
-    type: 'pago' as const,
-    photos: ['/images/semana_santa.png'],
-    host: { id: 'user-juan', name: 'Juan y Carmen', avatar: '/images/user_juan.png', verified: true },
-    avgRating: 4.9,
-    _count: { reviews: 156, matches: 3800 },
-    hashtags: ['#SemanaSanta', '#Tradición'],
-  },
-  {
-    id: 'exp-6',
-    title: 'Carnaval gaditano auténtico',
-    description: 'Ingenio, humor y fiesta sin parar con chirigotas y comparsas.',
-    festival: { id: 'fest-carnaval', name: 'Carnaval de Cádiz', city: 'Cádiz' },
-    city: 'Cádiz',
-    price: undefined,
-    type: 'intercambio' as const,
-    photos: ['/images/carnaval.png'],
-    host: { id: 'user-ana', name: 'Ana López', avatar: '/images/user_ana.png', verified: true },
-    avgRating: 4.8,
-    _count: { reviews: 92, matches: 2800 },
-    hashtags: ['#Carnaval', '#Cádiz'],
-  },
-];
+// Icons with festive styling
+const MessageIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
+  </svg>
+);
 
-const mockHosts = [
-  { id: 'user-maria', name: 'María García', location: 'Sevilla', avatar: '/images/user_maria.png', experiences: 1 },
-  { id: 'user-carlos', name: 'Carlos Martínez', location: 'Pamplona', avatar: '/images/user_carlos.png', experiences: 1 },
-  { id: 'user-ana', name: 'Ana López', location: 'Cádiz', avatar: '/images/user_ana.png', experiences: 1 },
-  { id: 'user-laura', name: 'Laura Pérez', location: 'Valencia', avatar: '/images/user_laura.png', experiences: 1 },
-];
+const CalendarIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+  </svg>
+);
+
+const SparklesIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+  </svg>
+);
+
+const PlusIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+  </svg>
+);
+
+const ChevronRightIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+  </svg>
+);
+
+const VerifiedIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-secondary">
+    <path fillRule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
+  </svg>
+);
+
+const MapPinIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+  </svg>
+);
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user: authUser, isAuthenticated } = useAuth();
-  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const [myExperiences, setMyExperiences] = useState<Experience[]>([]);
+  const [receivedMatches, setReceivedMatches] = useState<Match[]>([]);
+  const [sentMatches, setSentMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [useMockData, setUseMockData] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [wallet, setWallet] = useState<WalletInfo | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+
     const loadData = async () => {
       setLoading(true);
       try {
-        const expResponse = await experiencesApi.getAll({ limit: 20 });
-
-        if (expResponse.data && expResponse.data.length > 0) {
-          setExperiences(expResponse.data);
-          setUseMockData(false);
-        } else {
-          setUseMockData(true);
-        }
-      } catch {
-        setUseMockData(true);
+        const [expRes, receivedRes, sentRes] = await Promise.all([
+          experiencesApi.getMy().catch(() => []),
+          matchesApi.getReceived().catch(() => []),
+          matchesApi.getSent().catch(() => []),
+        ]);
+        setMyExperiences(expRes || []);
+        setReceivedMatches(receivedRes || []);
+        setSentMatches(sentRes || []);
+      } catch (err) {
+        console.error('Error loading dashboard:', err);
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, []);
+  }, [isAuthenticated, authLoading, router]);
 
-  // Load wallet data if authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      walletApi.getWallet()
-        .then(setWallet)
-        .catch(() => setWallet(null));
-    }
-  }, [isAuthenticated]);
+  // Stats
+  const pendingReceived = receivedMatches.filter(m => m.status === 'pending').length;
+  const acceptedMatches = [...receivedMatches, ...sentMatches].filter(m => m.status === 'accepted');
+  const unreadMessages = [...receivedMatches, ...sentMatches].reduce((acc, m) => acc + (m.unreadCount || 0), 0);
 
-  const displayExperiences = useMockData ? mockExperiences : experiences;
-
-  // Seleccionar experiencia destacada aleatoria
-  const featuredExperience = useMemo(() => {
-    if (displayExperiences.length === 0) return null;
-    const randomIndex = Math.floor(Math.random() * displayExperiences.length);
-    return displayExperiences[randomIndex];
-  }, [displayExperiences]);
-
-  // Excluir la destacada de las populares
-  const popularExperiences = displayExperiences
-    .filter(exp => exp.id !== featuredExperience?.id)
-    .slice(0, 4);
-
-  const getImageUrl = (exp: typeof mockExperiences[0] | Experience) => {
-    if ('photos' in exp && exp.photos && exp.photos.length > 0) {
-      const photo = exp.photos[0];
-      if (photo.startsWith('/images/')) return photo;
-      return getUploadUrl(photo);
-    }
-    return '/images/feria_abril.png';
+  // Helpers
+  const getImageUrl = (photos?: string[]) => {
+    if (!photos || photos.length === 0) return '/images/placeholder.jpg';
+    const photo = photos[0];
+    if (photo.startsWith('/images/')) return photo;
+    return getUploadUrl(photo);
   };
 
-  const getHostAvatar = (avatar?: string) => {
-    if (avatar) {
-      if (avatar.startsWith('/images/')) return avatar;
-      return getAvatarUrl(avatar);
-    }
-    return null;
+  const getAvatarSrc = (avatar?: string) => {
+    if (!avatar) return '/images/placeholder-user.jpg';
+    if (avatar.startsWith('/images/')) return avatar;
+    return getAvatarUrl(avatar);
   };
 
-  const formatParticipants = (count: number) => {
-    if (count >= 1000) {
-      return (count / 1000).toFixed(1) + 'K';
-    }
-    return count.toString();
+  const formatTimeAgo = (date: string) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours < 1) return 'Ahora';
+    if (hours < 24) return `hace ${hours}h`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `hace ${days}d`;
+    return new Date(date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Por ahora solo log, en el futuro se puede implementar búsqueda
-    console.log('Buscando:', searchQuery);
-  };
+  if (authLoading || loading) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center pattern-festive">
+          <div className="text-center">
+            <div className="spinner spinner-lg mx-auto mb-4" />
+            <p className="text-[#8B7355]">Cargando tu espacio...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-50 pb-24 md:pb-8">
-      {/* Hero Header con imagen de fondo */}
-      <div className="relative">
-        {/* Background con imagen de fiesta */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: 'url(/images/hero_fiesta.jpg)',
-          }}
-        >
-          {/* Overlay oscuro para legibilidad */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60" />
-        </div>
+      <div className="min-h-screen pb-24 md:pb-8">
+        {/* Hero Header */}
+        <header className="relative overflow-hidden pattern-festive">
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute top-4 left-4 w-24 h-24 bg-accent/20 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
+          </div>
 
-        {/* Content */}
-        <div className="relative px-4 pt-4 pb-6">
-          {/* Top bar */}
-          <div className="flex items-center justify-between mb-4">
-            {/* Logo */}
-            <div className="flex items-center gap-1">
-              <span className="text-2xl font-bold text-white">Vive</span>
-              <span className="text-2xl font-bold text-orange-400">Festas</span>
+          <div className="relative px-4 pt-6 pb-8">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <p className="text-[#8B7355] text-sm font-medium mb-1">Buenos días,</p>
+                <h1 className="font-display text-2xl text-[#1A1410]">
+                  {user?.name?.split(' ')[0] || 'Viajero'}
+                </h1>
+              </div>
+              <Link
+                href="/profile/me"
+                className="relative w-14 h-14 rounded-full overflow-hidden ring-4 ring-white shadow-lg"
+              >
+                {user?.avatar ? (
+                  <img src={getAvatarSrc(user.avatar)} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full gradient-sunset flex items-center justify-center text-white font-bold text-xl">
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
+              </Link>
             </div>
 
-            {/* User buttons */}
-            {isAuthenticated ? (
-              <div className="flex items-center gap-2">
-                {/* Admin button - only for admins */}
-                {authUser?.role === 'admin' && (
-                  <Link
-                    href="/admin"
-                    className="w-10 h-10 rounded-full bg-purple-500/30 backdrop-blur-sm border border-purple-400/50 flex items-center justify-center"
-                    title="Panel de administración"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-purple-300">
-                      <path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 0 0-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 0 0-2.282.819l-.922 1.597a1.875 1.875 0 0 0 .432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 0 0 0 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 0 0-.432 2.385l.922 1.597a1.875 1.875 0 0 0 2.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 0 0 2.28-.819l.923-1.597a1.875 1.875 0 0 0-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 0 0 0-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 0 0-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 0 0-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 0 0-1.85-1.567h-1.843ZM12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" clipRule="evenodd" />
-                    </svg>
-                  </Link>
-                )}
-                {/* Favorites button */}
+            {/* Welcome banner for new users or quick action */}
+            <div className="card card-festive p-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl gradient-sunset flex items-center justify-center text-white">
+                  <SparklesIcon />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-[#1A1410]">Descubre experiencias únicas</p>
+                  <p className="text-sm text-[#8B7355]">Vive las fiestas como un local</p>
+                </div>
                 <Link
-                  href="/favorites"
-                  className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center"
+                  href="/experiences"
+                  className="btn btn-primary btn-sm"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-red-400">
-                    <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
-                  </svg>
+                  Explorar
                 </Link>
-                {/* Wallet button */}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Quick Stats */}
+        <div className="px-4 -mt-2">
+          <div className="grid grid-cols-3 gap-3">
+            <Link href="/messages" className="card p-4 text-center group">
+              <div className="relative inline-block mb-2">
+                <div className="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center mx-auto text-secondary group-hover:scale-110 transition-transform">
+                  <MessageIcon />
+                </div>
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
+              </div>
+              <p className="text-2xl font-bold text-[#1A1410]">{receivedMatches.length + sentMatches.length}</p>
+              <p className="text-xs text-[#8B7355]">Conversaciones</p>
+            </Link>
+
+            <Link href="/messages?tab=received" className="card p-4 text-center group">
+              <div className="relative inline-block mb-2">
+                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mx-auto text-accent group-hover:scale-110 transition-transform">
+                  <CalendarIcon />
+                </div>
+                {pendingReceived > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-accent text-[#1A1410] text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                    {pendingReceived}
+                  </span>
+                )}
+              </div>
+              <p className="text-2xl font-bold text-[#1A1410]">{pendingReceived}</p>
+              <p className="text-xs text-[#8B7355]">Pendientes</p>
+            </Link>
+
+            <Link href="/experiences/my" className="card p-4 text-center group">
+              <div className="w-12 h-12 bg-emerald/10 rounded-xl flex items-center justify-center mx-auto text-emerald group-hover:scale-110 transition-transform mb-2">
+                <SparklesIcon />
+              </div>
+              <p className="text-2xl font-bold text-[#1A1410]">{myExperiences.length}</p>
+              <p className="text-xs text-[#8B7355]">Mis experiencias</p>
+            </Link>
+          </div>
+        </div>
+
+        {/* Pending Requests */}
+        {pendingReceived > 0 && (
+          <section className="px-4 mt-6">
+            <div className="section-header">
+              <h2 className="section-title">Solicitudes pendientes</h2>
+              <Link href="/messages" className="section-link">
+                Ver todas <ChevronRightIcon />
+              </Link>
+            </div>
+            <div className="space-y-3 stagger-children">
+              {receivedMatches
+                .filter(m => m.status === 'pending')
+                .slice(0, 3)
+                .map(match => (
+                  <Link
+                    key={match.id}
+                    href={`/matches/${match.id}`}
+                    className="card card-highlight flex items-center gap-3 p-4 group"
+                  >
+                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-accent/30">
+                      <img
+                        src={getAvatarSrc(match.requester.avatar)}
+                        alt={match.requester.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-[#1A1410] truncate">{match.requester.name}</p>
+                        {match.requester.verified && <VerifiedIcon />}
+                      </div>
+                      <p className="text-sm text-[#8B7355] truncate">{match.experience.title}</p>
+                    </div>
+                    <span className="badge badge-accent">
+                      Pendiente
+                    </span>
+                  </Link>
+                ))}
+            </div>
+          </section>
+        )}
+
+        {/* Active Conversations */}
+        {acceptedMatches.length > 0 && (
+          <section className="px-4 mt-6">
+            <div className="section-header">
+              <h2 className="section-title">Conversaciones activas</h2>
+              <Link href="/messages" className="section-link">
+                Ver todas <ChevronRightIcon />
+              </Link>
+            </div>
+            <div className="space-y-3 stagger-children">
+              {acceptedMatches.slice(0, 3).map(match => {
+                const otherPerson = match.requesterId === user?.id ? match.host : match.requester;
+                return (
+                  <Link
+                    key={match.id}
+                    href={`/matches/${match.id}`}
+                    className="card flex items-center gap-3 p-4 group"
+                  >
+                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                      <img
+                        src={getAvatarSrc(otherPerson.avatar)}
+                        alt={otherPerson.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-semibold text-[#1A1410] truncate">{otherPerson.name}</p>
+                        {otherPerson.verified && <VerifiedIcon />}
+                      </div>
+                      <p className="text-sm text-[#8B7355] truncate">
+                        {match.lastMessage?.content || match.experience.title}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-xs text-[#A89880]">
+                        {formatTimeAgo(match.lastMessage?.createdAt || match.updatedAt)}
+                      </span>
+                      {match.unreadCount && match.unreadCount > 0 && (
+                        <span className="w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                          {match.unreadCount > 9 ? '9+' : match.unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* My Experiences */}
+        <section className="px-4 mt-6">
+          <div className="section-header">
+            <h2 className="section-title">Mis experiencias</h2>
+            <Link href="/experiences/my" className="section-link">
+              Ver todas <ChevronRightIcon />
+            </Link>
+          </div>
+
+          {myExperiences.length === 0 ? (
+            <Link
+              href="/experiences/create"
+              className="card p-5 flex items-center gap-4 border-2 border-dashed border-primary/30 hover:border-primary hover:shadow-lg transition-all group"
+            >
+              <div className="w-14 h-14 rounded-xl gradient-sunset flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                <PlusIcon />
+              </div>
+              <div>
+                <p className="font-semibold text-[#1A1410]">Crea tu primera experiencia</p>
+                <p className="text-sm text-[#8B7355]">Comparte tu conocimiento local con viajeros</p>
+              </div>
+            </Link>
+          ) : (
+            <div className="space-y-3 stagger-children">
+              {myExperiences.slice(0, 3).map(exp => (
                 <Link
-                  href="/wallet"
-                  className={`px-3 py-2 rounded-full backdrop-blur-sm flex items-center gap-1.5 border ${
-                    wallet && !wallet.canOperate
-                      ? 'bg-amber-500/20 border-amber-400/50'
-                      : 'bg-white/10 border-white/20'
-                  }`}
+                  key={exp.id}
+                  href={`/experiences/${exp.id}`}
+                  className="card flex items-center gap-3 p-3 group"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-white">
-                    <path d="M2.273 5.625A4.483 4.483 0 0 1 5.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 3H5.25a3 3 0 0 0-2.977 2.625ZM2.273 8.625A4.483 4.483 0 0 1 5.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 6H5.25a3 3 0 0 0-2.977 2.625ZM5.25 9a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H15a.75.75 0 0 0-.75.75 2.25 2.25 0 0 1-4.5 0A.75.75 0 0 0 9 9H5.25Z" />
-                  </svg>
-                  <span className="text-white font-semibold text-sm">
-                    {wallet ? `${wallet.balance.toFixed(2)}€` : '...'}
+                  <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+                    <img
+                      src={getImageUrl(exp.photos)}
+                      alt={exp.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-[#1A1410] truncate">{exp.title}</p>
+                    <p className="text-sm text-[#8B7355] flex items-center gap-1">
+                      <MapPinIcon />
+                      {exp.city}
+                    </p>
+                  </div>
+                  <span className={`badge ${
+                    exp.type === 'intercambio'
+                      ? 'badge-intercambio'
+                      : exp.type === 'ambos'
+                        ? 'badge-flexible'
+                        : 'badge-pago'
+                  }`}>
+                    {exp.type === 'intercambio' ? 'Intercambio' : exp.type === 'ambos' ? 'Flexible' : `${exp.price}€`}
                   </span>
                 </Link>
-              </div>
-            ) : (
+              ))}
               <Link
-                href="/login"
-                className="px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium"
+                href="/experiences/create"
+                className="flex items-center justify-center gap-2 py-4 text-primary font-semibold text-sm hover:bg-primary/5 rounded-xl transition-colors"
               >
-                Entrar
+                <PlusIcon />
+                Crear nueva experiencia
               </Link>
-            )}
-          </div>
+            </div>
+          )}
+        </section>
 
-          {/* Tagline */}
-          <div className="text-center mb-4">
-            <h1 className="text-xl font-bold text-white">Vive Fiestas como un Local</h1>
-            <p className="text-white/70 text-sm mt-1">Descubre celebraciones únicas con anfitriones locales</p>
-          </div>
+        {/* Empty State for new users */}
+        {receivedMatches.length === 0 && sentMatches.length === 0 && myExperiences.length === 0 && (
+          <section className="px-4 mt-6">
+            <div className="card gradient-warm p-6 text-center relative overflow-hidden">
+              <div className="flourish flourish-tl" />
+              <div className="flourish flourish-br" />
 
-          {/* Search bar */}
-          <form onSubmit={handleSearch} className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar"
-              className="w-full pl-12 pr-12 py-3.5 bg-white rounded-full text-gray-900 placeholder-gray-400 shadow-lg text-base"
-            />
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-            </svg>
-            <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
-              </svg>
-            </button>
-          </form>
-        </div>
-      </div>
-
-      {/* Mock indicator */}
-      {useMockData && (
-        <div className="bg-amber-50 text-amber-700 text-xs px-4 py-2 text-center">
-          Datos de demostración
-        </div>
-      )}
-
-      {/* Experiencias Populares - Horizontal scroll */}
-      <section className="py-5">
-        <h2 className="font-bold text-gray-900 px-4 mb-3">Experiencias Populares</h2>
-        <div className="flex gap-3 overflow-x-auto pb-2 px-4 scrollbar-hide">
-          {popularExperiences.map((exp: any) => (
-            <Link
-              key={exp.id}
-              href={`/experiences/${exp.id}`}
-              className="flex-shrink-0 w-28"
-            >
-              <div className="w-28 h-20 rounded-xl overflow-hidden mb-2 shadow-md">
-                <img
-                  src={getImageUrl(exp)}
-                  alt={exp.festival?.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <p className="text-xs font-semibold text-gray-900 leading-tight line-clamp-1">{exp.festival?.name}</p>
-              <p className="text-xs text-gray-500">en {exp.city}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Featured Experience - Hero Card */}
-      {featuredExperience && (
-        <section className="px-4 mb-6">
-          <div className="relative rounded-2xl overflow-hidden shadow-lg">
-            {/* Image */}
-            <div className="aspect-[4/5] relative">
-              <img
-                src={getImageUrl(featuredExperience)}
-                alt={featuredExperience.title}
-                className="w-full h-full object-cover"
-              />
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-              {/* Content overlay */}
-              <div className="absolute inset-0 flex flex-col justify-between p-4">
-                {/* Top info */}
-                <div>
-                  <h3 className="text-2xl font-bold text-white leading-tight">
-                    {(featuredExperience as any).festival?.name} en {featuredExperience.city}
-                  </h3>
-
-                  <div className="flex items-center gap-2 mt-2 text-white/90 text-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-red-400">
-                      <path fillRule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
-                    </svg>
-                    <span>Con {(featuredExperience as any).host?.name} · {featuredExperience.city}, España</span>
-                  </div>
-
-                  {/* Hashtags */}
-                  <div className="flex gap-2 mt-2">
-                    {((featuredExperience as any).hashtags || ['#' + (featuredExperience as any).festival?.name?.replace(/\s/g, ''), '#Tradición']).map((tag: string, i: number) => (
-                      <span key={i} className="text-blue-300 text-sm font-medium">{tag}</span>
-                    ))}
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 mt-3 text-white text-sm">
-                    <div className="flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                        <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
-                      </svg>
-                      <span>{formatParticipants((featuredExperience as any)._count?.matches || 3800)} Participantes</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-yellow-400">★</span>
-                      <span>{((featuredExperience as any).avgRating || 4.9).toFixed(1)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom buttons */}
-                <div className="flex gap-3 mt-auto pt-4">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      router.push(`/experiences/${featuredExperience.id}`);
-                    }}
-                    className="flex-1 py-3 bg-white text-gray-900 font-semibold rounded-full text-center hover:bg-gray-100 transition-colors"
-                  >
-                    Unirme
-                  </button>
-                  <Link
-                    href={`/experiences/${featuredExperience.id}`}
-                    className="flex-1 py-3 bg-blue-500 text-white font-semibold rounded-full text-center hover:bg-blue-600 transition-colors"
-                  >
-                    Ver Detalles
+              <div className="relative">
+                <div className="empty-state-icon">🎉</div>
+                <h3 className="empty-state-title">¡Bienvenido a FiestApp!</h3>
+                <p className="empty-state-text">
+                  Explora experiencias únicas en fiestas populares o crea la tuya propia para recibir viajeros.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Link href="/experiences" className="btn btn-primary">
+                    Explorar
+                  </Link>
+                  <Link href="/experiences/create" className="btn btn-secondary">
+                    Crear experiencia
                   </Link>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
-      )}
-
-      {/* Anfitriones Destacados */}
-      <section className="py-4">
-        <h2 className="font-bold text-gray-900 px-4 mb-3">Anfitriones Destacados</h2>
-        <div className="flex gap-3 overflow-x-auto pb-2 px-4 scrollbar-hide">
-          {mockHosts.map((host) => (
-            <Link
-              key={host.id}
-              href={`/profile/${host.id}`}
-              className="flex-shrink-0 w-40"
-            >
-              <div className="relative w-40 h-28 rounded-xl overflow-hidden shadow-md">
-                <img
-                  src={getHostAvatar(host.avatar) || '/images/user_default.png'}
-                  alt={host.name}
-                  className="w-full h-full object-cover"
-                />
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                {/* Name */}
-                <div className="absolute bottom-2 left-2 right-2">
-                  <p className="text-white font-semibold text-sm">{host.name}, <span className="font-normal text-white/80">{host.location}</span></p>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Más Experiencias */}
-      <section className="px-4 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-gray-900">Más Experiencias</h2>
-          <span className="text-sm text-gray-500">{displayExperiences.length} disponibles</span>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="spinner spinner-lg" />
-          </div>
-        ) : displayExperiences.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3">
-            {displayExperiences.slice(0, 6).map((exp: any) => (
-              <Link
-                key={exp.id}
-                href={`/experiences/${exp.id}`}
-                className="block bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-              >
-                <div className="aspect-[4/3] relative">
-                  <img
-                    src={getImageUrl(exp)}
-                    alt={exp.title}
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Price/Type badge */}
-                  <div className="absolute top-2 right-2">
-                    {exp.type === 'intercambio' && (
-                      <span className="px-2 py-1 bg-teal-500 text-white text-xs font-medium rounded-full">Intercambio</span>
-                    )}
-                    {exp.type === 'pago' && (
-                      <span className="px-2 py-1 bg-white/95 text-gray-900 text-xs font-bold rounded-full shadow">{exp.price}€</span>
-                    )}
-                    {exp.type === 'ambos' && (
-                      <span className="px-2 py-1 bg-purple-500 text-white text-xs font-medium rounded-full">Flexible</span>
-                    )}
-                  </div>
-                </div>
-                <div className="p-3">
-                  <p className="text-xs text-blue-600 font-medium mb-1">{exp.festival?.name}</p>
-                  <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-tight">{exp.title}</h3>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 rounded-full overflow-hidden bg-gray-200">
-                        {getHostAvatar(exp.host?.avatar) ? (
-                          <img src={getHostAvatar(exp.host.avatar)!} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] bg-gradient-to-br from-blue-100 to-pink-100 text-gray-600">
-                            {exp.host?.name?.charAt(0)}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-xs text-gray-600">{exp.host?.name?.split(' ')[0]}</span>
-                    </div>
-                    {exp.avgRating > 0 && (
-                      <div className="flex items-center gap-0.5 text-xs">
-                        <span className="text-yellow-500">★</span>
-                        <span className="font-medium text-gray-700">{exp.avgRating.toFixed(1)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">🔍</span>
-            </div>
-            <p className="text-gray-500 mb-2">No hay experiencias disponibles</p>
-          </div>
+          </section>
         )}
-      </section>
       </div>
     </MainLayout>
   );

@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService, CACHE_KEYS, CACHE_TTL } from '../cache/cache.service';
@@ -31,10 +32,48 @@ export interface FestivalByMonth {
 
 @Injectable()
 export class FestivalsService {
+  private readonly logger = new Logger(FestivalsService.name);
+
   constructor(
     private prisma: PrismaService,
     private cacheService: CacheService,
   ) {}
+
+  /**
+   * Geocodifica una ciudad española usando Nominatim (OpenStreetMap)
+   */
+  private async geocodeCity(city: string): Promise<{ latitude: number; longitude: number } | null> {
+    try {
+      const query = encodeURIComponent(`${city}, España`);
+      const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=es`;
+
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'FiestApp/1.0 (contact@fiestapp.com)',
+        },
+      });
+
+      if (!response.ok) {
+        this.logger.warn(`Geocoding failed for ${city}: HTTP ${response.status}`);
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (data && data.length > 0 && data[0].lat && data[0].lon) {
+        return {
+          latitude: parseFloat(data[0].lat),
+          longitude: parseFloat(data[0].lon),
+        };
+      }
+
+      this.logger.warn(`No geocoding results for ${city}`);
+      return null;
+    } catch (error) {
+      this.logger.error(`Geocoding error for ${city}:`, error);
+      return null;
+    }
+  }
 
   async findAll() {
     return this.cacheService.getOrSet(
@@ -66,12 +105,17 @@ export class FestivalsService {
       throw new ConflictException('Ya existe una festividad con este nombre');
     }
 
+    // Geocodificar la ciudad para obtener coordenadas
+    const coordinates = await this.geocodeCity(createFestivalDto.city);
+
     const festival = await this.prisma.festival.create({
       data: {
         name: createFestivalDto.name,
         city: createFestivalDto.city,
         description: createFestivalDto.description,
         imageUrl: createFestivalDto.imageUrl,
+        latitude: coordinates?.latitude,
+        longitude: coordinates?.longitude,
       },
     });
 
