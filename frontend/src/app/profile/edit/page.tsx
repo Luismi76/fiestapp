@@ -8,6 +8,7 @@ import { usersApi, uploadsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { UpdateProfileData } from '@/types/user';
 import { getAvatarUrl } from '@/lib/utils';
+import MainLayout from '@/components/MainLayout';
 
 interface FormData {
   name: string;
@@ -163,20 +164,23 @@ export default function EditProfilePage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="spinner spinner-lg mx-auto mb-4" />
-          <div className="text-gray-500">Cargando...</div>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="spinner spinner-lg mx-auto mb-4" />
+            <div className="text-gray-500">Cargando...</div>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
+    <MainLayout>
     <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-40">
-        <div className="flex items-center justify-between px-4 h-14">
+        <div className="flex items-center justify-between px-4 h-14 max-w-2xl mx-auto">
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -187,8 +191,10 @@ export default function EditProfilePage() {
         </div>
       </div>
 
-      {/* Avatar Section */}
-      <div className="bg-white px-6 py-8">
+      {/* Content container */}
+      <div className="max-w-2xl mx-auto">
+        {/* Avatar Section */}
+        <div className="bg-white px-6 py-8">
         <input
           type="file"
           ref={fileInputRef}
@@ -516,6 +522,9 @@ export default function EditProfilePage() {
           </div>
         </div>
       </div>
+      {/* End content container */}
+      </div>
     </div>
+    </MainLayout>
   );
 }

@@ -9,6 +9,7 @@ import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
 import { Festival, ExperienceType, ExperienceDetail } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
+import MainLayout from '@/components/MainLayout';
 
 interface FormData {
   title: string;
@@ -282,53 +283,58 @@ export default function EditExperiencePage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-white">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-            </svg>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-white">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+              </svg>
+            </div>
+            <div className="text-gray-500">Cargando...</div>
           </div>
-          <div className="text-gray-500">Cargando...</div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (!experience) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b border-gray-100">
-          <div className="flex items-center justify-between px-4 h-14">
-            <Link href="/dashboard" className="w-10 h-10 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+      <MainLayout>
+        <div className="min-h-screen bg-gray-50">
+          <header className="bg-white border-b border-gray-100">
+            <div className="flex items-center justify-between px-4 h-14">
+              <Link href="/dashboard" className="w-10 h-10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                </svg>
+              </Link>
+              <span className="font-semibold text-gray-900">Error</span>
+              <div className="w-10" />
+            </div>
+          </header>
+          <div className="flex flex-col items-center justify-center px-6 py-20">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-gray-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 16.318A4.486 4.486 0 0 0 12.016 15a4.486 4.486 0 0 0-3.198 1.318M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Z" />
               </svg>
+            </div>
+            <h2 className="font-bold text-xl text-gray-900 mb-2">Experiencia no encontrada</h2>
+            <Link href="/dashboard" className="mt-4 px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors">
+              Volver al dashboard
             </Link>
-            <span className="font-semibold text-gray-900">Error</span>
-            <div className="w-10" />
           </div>
-        </header>
-        <div className="flex flex-col items-center justify-center px-6 py-20">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-gray-400">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 16.318A4.486 4.486 0 0 0 12.016 15a4.486 4.486 0 0 0-3.198 1.318M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Z" />
-            </svg>
-          </div>
-          <h2 className="font-bold text-xl text-gray-900 mb-2">Experiencia no encontrada</h2>
-          <Link href="/dashboard" className="mt-4 px-6 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition-colors">
-            Volver al dashboard
-          </Link>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
+    <MainLayout>
     <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
       <header className="bg-white border-b border-gray-100">
-        <div className="flex items-center justify-between px-4 h-14">
+        <div className="flex items-center justify-between px-4 h-14 max-w-2xl mx-auto">
           <Link href={`/experiences/${params.id}`} className="w-10 h-10 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -340,7 +346,7 @@ export default function EditExperiencePage() {
       </header>
 
       {/* Publication Status */}
-      <div className="px-4 py-3 bg-white border-b border-gray-100">
+      <div className="px-4 py-3 bg-white border-b border-gray-100 max-w-2xl mx-auto">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-600">Estado:</span>
@@ -371,7 +377,7 @@ export default function EditExperiencePage() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="p-4 space-y-6 max-w-2xl mx-auto">
         {error && (
           <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm">
             {error}
@@ -673,5 +679,6 @@ export default function EditExperiencePage() {
         </div>
       </form>
     </div>
+    </MainLayout>
   );
 }

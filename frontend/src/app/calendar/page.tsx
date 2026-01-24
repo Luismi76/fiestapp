@@ -194,7 +194,7 @@ export default function CalendarPage() {
 
         {/* Barra de filtros */}
         <div className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm">
-          <div className="px-4 py-2.5 flex items-center justify-between">
+          <div className="px-4 md:px-6 lg:px-8 py-2.5 flex items-center justify-between max-w-5xl mx-auto">
             <div className="flex items-center gap-2">
               {/* Boton de filtros */}
               <button
@@ -232,7 +232,7 @@ export default function CalendarPage() {
 
           {/* Chips de filtros activos */}
           {activeFiltersCount > 0 && (
-            <div className="px-4 pb-2.5 flex gap-2 overflow-x-auto scrollbar-hide">
+            <div className="px-4 md:px-6 lg:px-8 pb-2.5 flex gap-2 overflow-x-auto scrollbar-hide max-w-5xl mx-auto">
               {filters.region && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full whitespace-nowrap">
                   {filters.region}
@@ -265,7 +265,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Content */}
-        <div className="p-4">
+        <div className="p-4 md:px-6 lg:px-8 max-w-5xl mx-auto">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -287,7 +287,7 @@ export default function CalendarPage() {
               )}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               {calendarData.map((monthData) => (
                 <div key={monthData.month} className="bg-white rounded-2xl shadow-sm overflow-hidden">
                   {/* Month Header */}

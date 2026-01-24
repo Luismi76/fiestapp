@@ -64,108 +64,118 @@ export default function MyExperiencesPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-white md:bg-transparent pb-24 md:pb-8">
+      <div className="min-h-screen bg-white md:bg-gray-50 pb-24 md:pb-8">
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
-        <div className="flex items-center justify-between px-4 h-14">
-          <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <span className="font-semibold text-gray-900">Mis Experiencias</span>
-          <div className="flex items-center gap-1">
-            <Link href="/stats" className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-gray-900">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 h-14 lg:h-16">
+            <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center md:hidden">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
               </svg>
-            </Link>
-            <Link href="/experiences/create" className="w-10 h-10 flex items-center justify-center text-blue-600">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-            </Link>
+            </button>
+            <span className="font-semibold text-gray-900 md:text-xl">Mis Experiencias</span>
+            <div className="flex items-center gap-1 md:gap-2">
+              <Link href="/stats" className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-gray-900">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                </svg>
+              </Link>
+              <Link href="/experiences/create" className="hidden md:flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                <span>Crear</span>
+              </Link>
+              <Link href="/experiences/create" className="w-10 h-10 flex items-center justify-center text-blue-600 md:hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+              </Link>
+            </div>
           </div>
+
+          {/* Stats bar */}
+          {experiences.length > 0 && (
+            <div className="flex items-center gap-6 md:gap-8 px-4 md:px-6 lg:px-8 pb-3">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">{experiences.length}</div>
+                <div className="text-xs text-gray-500">Total</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{activeCount}</div>
+                <div className="text-xs text-gray-500">Activas</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-amber-600">{draftCount}</div>
+                <div className="text-xs text-gray-500">Borradores</div>
+              </div>
+            </div>
+          )}
+
+          {/* Filter tabs */}
+          {experiences.length > 0 && (
+            <div className="flex gap-2 px-4 md:px-6 lg:px-8 pb-3">
+              {(['all', 'active', 'draft'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    filter === f
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {f === 'all' && 'Todas'}
+                  {f === 'active' && 'Activas'}
+                  {f === 'draft' && 'Borradores'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-
-        {/* Stats bar */}
-        {experiences.length > 0 && (
-          <div className="flex items-center gap-6 px-4 pb-3">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{experiences.length}</div>
-              <div className="text-xs text-gray-500">Total</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{activeCount}</div>
-              <div className="text-xs text-gray-500">Activas</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-amber-600">{draftCount}</div>
-              <div className="text-xs text-gray-500">Borradores</div>
-            </div>
-          </div>
-        )}
-
-        {/* Filter tabs */}
-        {experiences.length > 0 && (
-          <div className="flex gap-2 px-4 pb-3">
-            {(['all', 'active', 'draft'] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  filter === f
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {f === 'all' && 'Todas'}
-                {f === 'active' && 'Activas'}
-                {f === 'draft' && 'Borradores'}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      {error && (
-        <div className="mx-4 mt-4 bg-red-50 text-red-600 p-4 rounded-xl text-sm">
-          {error}
-        </div>
-      )}
-
-      {experiences.length === 0 ? (
-        <div className="flex flex-col items-center justify-center px-6 py-20">
-          <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-5xl mb-6">
-            🎪
+      {/* Content container */}
+      <div className="max-w-5xl mx-auto">
+        {error && (
+          <div className="mx-4 md:mx-6 lg:mx-8 mt-4 bg-red-50 text-red-600 p-4 rounded-xl text-sm">
+            {error}
           </div>
-          <h2 className="font-bold text-xl text-gray-900 mb-2">Crea tu primera experiencia</h2>
-          <p className="text-gray-500 text-center mb-8 max-w-xs">
-            Comparte tus tradiciones locales con viajeros de todo el mundo
-          </p>
-          <Link
-            href="/experiences/create"
-            className="px-8 py-4 bg-blue-500 text-white font-semibold rounded-full hover:bg-blue-600 transition-colors shadow-lg"
-          >
-            Crear experiencia
-          </Link>
-        </div>
-      ) : filteredExperiences.length === 0 ? (
-        <div className="flex flex-col items-center justify-center px-6 py-16">
-          <div className="text-5xl mb-4">🔍</div>
-          <p className="text-gray-500">No hay experiencias con este filtro</p>
-        </div>
-      ) : (
-        <div className="p-4 space-y-3">
-          {filteredExperiences.map((experience) => (
+        )}
+
+        {experiences.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-6 py-20">
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center text-5xl mb-6">
+              🎪
+            </div>
+            <h2 className="font-bold text-xl text-gray-900 mb-2">Crea tu primera experiencia</h2>
+            <p className="text-gray-500 text-center mb-8 max-w-xs">
+              Comparte tus tradiciones locales con viajeros de todo el mundo
+            </p>
             <Link
-              key={experience.id}
-              href={`/experiences/${experience.id}`}
-              className="bg-white rounded-2xl overflow-hidden shadow-sm block hover:shadow-md transition-shadow"
+              href="/experiences/create"
+              className="px-8 py-4 bg-blue-500 text-white font-semibold rounded-full hover:bg-blue-600 transition-colors shadow-lg"
             >
-              <div className="flex">
-                {/* Thumbnail */}
-                <div className="w-28 h-28 flex-shrink-0 relative">
+              Crear experiencia
+            </Link>
+          </div>
+        ) : filteredExperiences.length === 0 ? (
+          <div className="flex flex-col items-center justify-center px-6 py-16">
+            <div className="text-5xl mb-4">🔍</div>
+            <p className="text-gray-500">No hay experiencias con este filtro</p>
+          </div>
+        ) : (
+          <div className="p-4 md:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredExperiences.map((experience) => (
+              <Link
+                key={experience.id}
+                href={`/experiences/${experience.id}`}
+                className="bg-white rounded-2xl overflow-hidden shadow-sm block hover:shadow-md transition-shadow"
+              >
+                <div className="flex md:flex-col">
+                  {/* Thumbnail */}
+                  <div className="w-28 md:w-full h-28 md:h-40 flex-shrink-0 relative">
                   {experience.photos && experience.photos.length > 0 ? (
                     <img
                       src={getUploadUrl(experience.photos[0])}
@@ -192,11 +202,11 @@ export default function MyExperiencesPage() {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 p-3 min-w-0">
+                <div className="flex-1 p-3 md:p-4 min-w-0">
                   <p className="text-xs text-blue-600 font-medium mb-1">
                     {experience.festival.name}
                   </p>
-                  <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm leading-tight mb-2">
+                  <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm md:text-base leading-tight mb-2">
                     {experience.title}
                   </h3>
 
@@ -224,8 +234,8 @@ export default function MyExperiencesPage() {
                   </div>
                 </div>
 
-                {/* Arrow */}
-                <div className="flex items-center pr-3">
+                {/* Arrow - mobile only */}
+                <div className="flex items-center pr-3 md:hidden">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-300">
                     <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
                   </svg>
@@ -234,7 +244,9 @@ export default function MyExperiencesPage() {
             </Link>
           ))}
         </div>
-      )}
+        )}
+      </div>
+      {/* End of content container */}
       </div>
     </MainLayout>
   );

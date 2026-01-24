@@ -8,6 +8,7 @@ import { ExperienceDetail, DateOccupancy } from '@/types/experience';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUploadUrl } from '@/lib/utils';
 import { useHaptic } from '@/hooks/useHaptic';
+import MainLayout from '@/components/MainLayout';
 
 // Helper to get dates
 const getToday = () => {
@@ -242,35 +243,39 @@ export default function BookingPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--surface-warm)]">
-        <div className="text-center">
-          <div className="spinner spinner-lg mx-auto mb-4" />
-          <p className="text-[#8B7355]">Cargando...</p>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center bg-[var(--surface-warm)]">
+          <div className="text-center">
+            <div className="spinner spinner-lg mx-auto mb-4" />
+            <p className="text-[#8B7355]">Cargando...</p>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   // Error state
   if (error || !experience) {
     return (
-      <div className="min-h-screen bg-[var(--surface-warm)]">
-        <header className="mobile-header">
-          <button onClick={() => router.back()} className="touch-target">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <span className="mobile-header-title">Error</span>
-          <div className="w-11" />
-        </header>
-        <div className="flex flex-col items-center justify-center px-6 py-16">
-          <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-xl font-bold mb-2">Experiencia no encontrada</h2>
-          <p className="text-[#8B7355] mb-6">{error}</p>
-          <Link href="/experiences" className="btn btn-primary">Ver experiencias</Link>
+      <MainLayout>
+        <div className="min-h-screen bg-[var(--surface-warm)]">
+          <header className="mobile-header">
+            <button onClick={() => router.back()} className="touch-target">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <span className="mobile-header-title">Error</span>
+            <div className="w-11" />
+          </header>
+          <div className="flex flex-col items-center justify-center px-6 py-16">
+            <div className="text-6xl mb-4">😕</div>
+            <h2 className="text-xl font-bold mb-2">Experiencia no encontrada</h2>
+            <p className="text-[#8B7355] mb-6">{error}</p>
+            <Link href="/experiences" className="btn btn-primary">Ver experiencias</Link>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
@@ -278,23 +283,25 @@ export default function BookingPage() {
   const isOwner = user && experience.hostId === user.id;
   if (isOwner) {
     return (
-      <div className="min-h-screen bg-[var(--surface-warm)]">
-        <header className="mobile-header">
-          <button onClick={() => router.back()} className="touch-target">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <span className="mobile-header-title">No disponible</span>
-          <div className="w-11" />
-        </header>
-        <div className="flex flex-col items-center justify-center px-6 py-16">
-          <div className="text-6xl mb-4">🙅</div>
-          <h2 className="text-xl font-bold mb-2">Es tu experiencia</h2>
-          <p className="text-[#8B7355] mb-6 text-center">No puedes reservar tu propia experiencia</p>
-          <Link href={`/experiences/${experience.id}`} className="btn btn-primary">Ver experiencia</Link>
+      <MainLayout>
+        <div className="min-h-screen bg-[var(--surface-warm)]">
+          <header className="mobile-header">
+            <button onClick={() => router.back()} className="touch-target">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <span className="mobile-header-title">No disponible</span>
+            <div className="w-11" />
+          </header>
+          <div className="flex flex-col items-center justify-center px-6 py-16">
+            <div className="text-6xl mb-4">🙅</div>
+            <h2 className="text-xl font-bold mb-2">Es tu experiencia</h2>
+            <p className="text-[#8B7355] mb-6 text-center">No puedes reservar tu propia experiencia</p>
+            <Link href={`/experiences/${experience.id}`} className="btn btn-primary">Ver experiencia</Link>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
@@ -302,19 +309,22 @@ export default function BookingPage() {
   const totalPrice = priceResult?.totalPrice || (experience.price ? experience.price * participants : 0);
 
   return (
+    <MainLayout>
     <div className="min-h-screen bg-[var(--surface-warm)] pb-32">
       {/* Header */}
       <header className="mobile-header">
-        <button onClick={() => router.back()} className="touch-target" aria-label="Volver">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-          </svg>
-        </button>
-        <span className="mobile-header-title">Reservar</span>
-        <div className="w-11" />
+        <div className="max-w-2xl mx-auto flex items-center justify-between w-full">
+          <button onClick={() => router.back()} className="touch-target" aria-label="Volver">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          <span className="mobile-header-title">Reservar</span>
+          <div className="w-11" />
+        </div>
       </header>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 max-w-2xl mx-auto">
         {/* Experience summary card */}
         <div className="card p-4">
           <div className="flex gap-3">
@@ -520,8 +530,8 @@ export default function BookingPage() {
       </div>
 
       {/* Fixed bottom bar with price and CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[rgba(139,115,85,0.15)] p-4 z-40">
-        <div className="flex items-center gap-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[rgba(139,115,85,0.15)] p-4 z-40 md:static md:border-t-0 md:py-6">
+        <div className="flex items-center gap-4 max-w-2xl mx-auto">
           {/* Price summary */}
           <div className="flex-shrink-0">
             {isPaid && experience.price ? (
@@ -567,5 +577,6 @@ export default function BookingPage() {
         </div>
       </div>
     </div>
+    </MainLayout>
   );
 }

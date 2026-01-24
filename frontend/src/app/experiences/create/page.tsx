@@ -11,6 +11,7 @@ import { Festival, ExperienceType, CreateExperienceData } from '@/types/experien
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import FestivalSelector from '@/components/FestivalSelector';
+import MainLayout from '@/components/MainLayout';
 
 interface FormData {
   title: string;
@@ -322,71 +323,76 @@ export default function CreateExperiencePage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="spinner spinner-lg mx-auto mb-4" />
-          <div className="text-gray-500">Cargando...</div>
+      <MainLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="spinner spinner-lg mx-auto mb-4" />
+            <div className="text-gray-500">Cargando...</div>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
+    <MainLayout>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
-        <div className="flex items-center justify-between px-4 h-14">
-          <button onClick={() => currentStep > 1 ? handleBack() : router.push('/dashboard')} className="w-10 h-10 flex items-center justify-center text-gray-600">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <div className="text-center">
-            <h1 className="font-semibold text-gray-900">Nueva experiencia</h1>
-            <p className="text-xs text-gray-500">Paso {currentStep} de {STEPS.length}</p>
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between px-4 h-14">
+            <button onClick={() => currentStep > 1 ? handleBack() : router.push('/dashboard')} className="w-10 h-10 flex items-center justify-center text-gray-600">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <div className="text-center">
+              <h1 className="font-semibold text-gray-900">Nueva experiencia</h1>
+              <p className="text-xs text-gray-500">Paso {currentStep} de {STEPS.length}</p>
+            </div>
+            <button onClick={() => router.push('/dashboard')} className="w-10 h-10 flex items-center justify-center text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button onClick={() => router.push('/dashboard')} className="w-10 h-10 flex items-center justify-center text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
 
-        {/* Progress Steps */}
-        <div className="px-4 pb-3">
-          <div className="flex items-center justify-between">
-            {STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <button
-                  onClick={() => step.id < currentStep && setCurrentStep(step.id)}
-                  disabled={step.id > currentStep}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                    step.id === currentStep
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-110'
-                      : step.id < currentStep
-                      ? 'bg-green-500 text-white'
-                      : 'bg-gray-100 text-gray-400'
-                  }`}
-                >
-                  {step.id < currentStep ? (
-                    <StepIcon name="check" className="w-5 h-5" />
-                  ) : (
-                    <StepIcon name={step.icon} className="w-5 h-5" />
+          {/* Progress Steps */}
+          <div className="px-4 pb-3">
+            <div className="flex items-center justify-between">
+              {STEPS.map((step, index) => (
+                <div key={step.id} className="flex items-center">
+                  <button
+                    onClick={() => step.id < currentStep && setCurrentStep(step.id)}
+                    disabled={step.id > currentStep}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                      step.id === currentStep
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-110'
+                        : step.id < currentStep
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-100 text-gray-400'
+                    }`}
+                  >
+                    {step.id < currentStep ? (
+                      <StepIcon name="check" className="w-5 h-5" />
+                    ) : (
+                      <StepIcon name={step.icon} className="w-5 h-5" />
+                    )}
+                  </button>
+                  {index < STEPS.length - 1 && (
+                    <div className={`w-8 h-1 mx-1 rounded-full transition-colors ${
+                      step.id < currentStep ? 'bg-green-500' : 'bg-gray-200'
+                    }`} />
                   )}
-                </button>
-                {index < STEPS.length - 1 && (
-                  <div className={`w-8 h-1 mx-1 rounded-full transition-colors ${
-                    step.id < currentStep ? 'bg-green-500' : 'bg-gray-200'
-                  }`} />
-                )}
-              </div>
-            ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </header>
 
       {/* Content */}
-      <form onSubmit={isAuthenticated ? handleSubmit(onSubmit) : handleDemoSubmit} className="pb-32">
+      <form onSubmit={isAuthenticated ? handleSubmit(onSubmit) : handleDemoSubmit} className="pb-32 max-w-2xl mx-auto">
         {!isAuthenticated && (
           <div className="mx-4 mt-4 bg-amber-50 border border-amber-200 text-amber-700 p-3 rounded-xl text-sm flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 flex-shrink-0">
@@ -962,8 +968,8 @@ export default function CreateExperiencePage() {
       </form>
 
       {/* Footer Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4 pb-safe">
-        <div className="flex gap-3">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4 pb-safe md:static md:border-t-0 md:py-6">
+        <div className="flex gap-3 max-w-2xl mx-auto">
           {currentStep > 1 && (
             <button
               type="button"
@@ -1017,5 +1023,6 @@ export default function CreateExperiencePage() {
         }
       `}</style>
     </div>
+    </MainLayout>
   );
 }

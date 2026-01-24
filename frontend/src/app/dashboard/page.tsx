@@ -135,7 +135,7 @@ export default function DashboardPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen pb-24 md:pb-8">
+      <div className="min-h-screen pb-24 md:pb-8 md:px-6 lg:px-8">
         {/* Hero Header */}
         <header className="relative overflow-hidden pattern-festive">
           <div className="absolute inset-0 opacity-30">

@@ -7,35 +7,31 @@ import BottomNav from './BottomNav';
 interface MainLayoutProps {
   children: ReactNode;
   hideNav?: boolean;
+  hideHeader?: boolean;
 }
 
 /**
- * MainLayout envuelve las paginas principales de la app.
- * Incluye:
- * - Header (visible en desktop md+)
- * - BottomNav (visible en movil < md)
- *
- * Uso:
- * ```tsx
- * <MainLayout>
- *   <div className="page">contenido...</div>
- * </MainLayout>
- * ```
+ * MainLayout - Responsive layout
+ * - Móvil: BottomNav fijo, contenido full-width
+ * - Desktop: Header con navegación, contenido con max-width centrado
  */
-export default function MainLayout({ children, hideNav = false }: MainLayoutProps) {
+export default function MainLayout({ children, hideNav = false, hideHeader = false }: MainLayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
-      {!hideNav && <Header />}
-      {/* Desktop: centered content with max-width, mobile-like experience */}
-      {/* This creates a "phone frame" effect on large screens */}
+      {/* Header: visible en desktop */}
+      {!hideNav && !hideHeader && <Header />}
+
+      {/* Main content: responsive width */}
       <main
         id="main-content"
         role="main"
         tabIndex={-1}
-        className="w-full max-w-lg md:max-w-xl lg:max-w-2xl mx-auto md:my-4 md:shadow-xl md:rounded-2xl md:border md:border-gray-200 md:bg-white md:overflow-hidden"
+        className="w-full max-w-7xl mx-auto"
       >
         {children}
       </main>
+
+      {/* BottomNav: visible solo en móvil (CSS lo oculta en md+) */}
       {!hideNav && <BottomNav />}
     </div>
   );

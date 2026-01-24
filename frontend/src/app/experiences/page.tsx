@@ -165,7 +165,7 @@ function ExperiencesContent() {
   }, [hasMore, loading, loadingMore]);
 
   // Count active filters
-  const activeFiltersCount = [selectedFestival, selectedCity, minPrice, maxPrice].filter(Boolean).length;
+  const activeFiltersCount = [selectedType, selectedFestival, selectedCity, minPrice, maxPrice].filter(Boolean).length;
 
   // Clear all filters
   const clearFilters = () => {
@@ -178,102 +178,43 @@ function ExperiencesContent() {
     setShowFiltersModal(false);
   };
 
-  // Get tab styles
-  const getTabStyles = (value: string) => {
-    const isActive = selectedType === value;
-    if (!isActive) return 'bg-white text-[#8B7355] hover:text-[#1A1410] shadow-sm';
-
-    switch (value) {
-      case 'pago':
-        return 'badge-pago shadow-md';
-      case 'intercambio':
-        return 'badge-intercambio shadow-md';
-      case 'ambos':
-        return 'badge-flexible shadow-md';
-      default:
-        return 'gradient-sunset text-white shadow-md';
-    }
-  };
-
   return (
     <MainLayout>
       <div className="min-h-screen pb-24 md:pb-8">
-        {/* Header with search */}
-        <header className="sticky top-0 z-30 pattern-festive border-b border-primary/10">
-          <div className="px-4 py-4">
-            {/* Title and Search */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="relative flex-1">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#A89880]">
-                  <SearchIcon />
-                </span>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar experiencias..."
-                  className="input pl-12 pr-4 py-3 rounded-xl bg-white shadow-sm"
-                />
-              </div>
-              <button
-                onClick={() => setShowFiltersModal(true)}
-                aria-label={`Filtros${activeFiltersCount > 0 ? ` (${activeFiltersCount} activos)` : ''}`}
-                className={`relative w-12 h-12 min-w-[48px] min-h-[48px] rounded-xl flex items-center justify-center transition-all ripple ${
-                  activeFiltersCount > 0
-                    ? 'gradient-sunset text-white shadow-md'
-                    : 'bg-white text-[#8B7355] shadow-sm hover:shadow-md ripple-dark'
-                }`}
-              >
-                <FilterIcon />
-                {activeFiltersCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-accent text-[#1A1410] text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-[var(--surface-warm)]">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </button>
+        {/* Header - compact */}
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200">
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className="relative flex-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                <SearchIcon />
+              </span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar experiencias..."
+                className="w-full h-10 pl-10 pr-4 bg-gray-100 rounded-full text-sm placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/20"
+              />
             </div>
-
-            {/* Quick actions - Touch optimized */}
-            <div className="flex items-center gap-2 mb-4">
-              <Link
-                href="/map"
-                className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-white text-[#1A1410] rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all ripple ripple-dark"
-              >
-                <MapIcon />
-                <span>Mapa</span>
-              </Link>
-              <Link
-                href="/calendar"
-                className="flex items-center gap-2 px-4 py-3 min-h-[44px] bg-white text-[#1A1410] rounded-xl text-sm font-semibold shadow-sm hover:shadow-md transition-all ripple ripple-dark"
-              >
-                <CalendarIcon />
-                <span>Calendario</span>
-              </Link>
-            </div>
-
-            {/* Type tabs - Accessible */}
-            <div
-              role="tablist"
-              aria-label="Filtrar por tipo de experiencia"
-              className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1"
+            <Link href="/map" className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-primary">
+              <MapIcon />
+            </Link>
+            <Link href="/calendar" className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-primary">
+              <CalendarIcon />
+            </Link>
+            <button
+              onClick={() => setShowFiltersModal(true)}
+              className={`relative w-10 h-10 flex items-center justify-center rounded-full ${
+                activeFiltersCount > 0 ? 'bg-primary text-white' : 'text-gray-600 hover:text-primary'
+              }`}
             >
-              {[
-                { value: '', label: 'Todas' },
-                { value: 'pago', label: 'De pago' },
-                { value: 'intercambio', label: 'Intercambio' },
-                { value: 'ambos', label: 'Flexible' },
-              ].map((type) => (
-                <button
-                  key={type.value}
-                  role="tab"
-                  aria-selected={selectedType === type.value}
-                  onClick={() => setSelectedType(type.value)}
-                  className={`px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all ripple ${getTabStyles(type.value)}`}
-                >
-                  {type.label}
-                </button>
-              ))}
-            </div>
+              <FilterIcon />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
           </div>
         </header>
 
@@ -295,7 +236,7 @@ function ExperiencesContent() {
         )}
 
         {/* Results */}
-        <div className="px-4">
+        <div className="px-4 md:px-6 lg:px-8">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
@@ -318,7 +259,7 @@ function ExperiencesContent() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 stagger-children">
                 {experiences.map((exp) => (
                   <ExperienceCard key={exp.id} experience={exp} />
                 ))}
@@ -361,13 +302,38 @@ function ExperiencesContent() {
           }
         >
           <div className="space-y-6">
+            {/* Type */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Tipo de experiencia</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: '', label: 'Todas' },
+                  { value: 'pago', label: 'De pago' },
+                  { value: 'intercambio', label: 'Intercambio' },
+                  { value: 'ambos', label: 'Flexible' },
+                ].map((type) => (
+                  <button
+                    key={type.value}
+                    onClick={() => setSelectedType(type.value)}
+                    className={`py-3 rounded-xl text-sm font-medium transition-colors ${
+                      selectedType === type.value
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {type.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Festival */}
             <div>
-              <label className="block text-sm font-semibold text-[#1A1410] mb-2">Festival</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Festival</label>
               <select
                 value={selectedFestival}
                 onChange={(e) => setSelectedFestival(e.target.value)}
-                className="input"
+                className="w-full py-3 px-4 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option value="">Todos los festivales</option>
                 {festivals.map((f) => (
@@ -378,11 +344,11 @@ function ExperiencesContent() {
 
             {/* City */}
             <div>
-              <label className="block text-sm font-semibold text-[#1A1410] mb-2">Ciudad</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Ciudad</label>
               <select
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
-                className="input"
+                className="w-full py-3 px-4 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <option value="">Todas las ciudades</option>
                 {cities.map((city) => (
@@ -393,29 +359,25 @@ function ExperiencesContent() {
 
             {/* Price range */}
             <div>
-              <label className="block text-sm font-semibold text-[#1A1410] mb-2">Rango de precio</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Rango de precio</label>
               <div className="flex gap-3 items-center">
-                <div className="flex-1">
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Mínimo"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                    className="input"
-                  />
-                </div>
-                <span className="text-[#A89880] font-medium">—</span>
-                <div className="flex-1">
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Máximo"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    className="input"
-                  />
-                </div>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Mín €"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                  className="flex-1 py-3 px-4 bg-gray-100 rounded-xl text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <span className="text-gray-400">—</span>
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="Máx €"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  className="flex-1 py-3 px-4 bg-gray-100 rounded-xl text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
               </div>
             </div>
           </div>

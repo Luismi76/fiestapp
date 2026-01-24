@@ -11,6 +11,7 @@ import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import ShareButton from '@/components/ShareButton';
 import ImageGallery from '@/components/ImageGallery';
 import ParticipantSelector from '@/components/ParticipantSelector';
+import MainLayout from '@/components/MainLayout';
 
 // Helper to generate availability dates for mock data
 const generateMockAvailability = (baseMonth: number, count: number): Date[] => {
@@ -374,30 +375,34 @@ export default function ExperienceDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="spinner spinner-lg mx-auto mb-4" />
-          <p className="text-gray-500">Cargando experiencia...</p>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="text-center">
+            <div className="spinner spinner-lg mx-auto mb-4" />
+            <p className="text-gray-500">Cargando experiencia...</p>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (error || !experience) {
     return (
-      <div className="min-h-screen bg-white">
-        <header className="mobile-header">
-          <button onClick={() => router.back()} className="text-2xl">←</button>
-          <span className="mobile-header-title">Error</span>
-          <div className="w-6" />
-        </header>
-        <div className="flex flex-col items-center justify-center px-6 py-16">
-          <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-xl font-bold mb-2">Experiencia no encontrada</h2>
-          <p className="text-gray-500 mb-6">{error}</p>
-          <Link href="/dashboard" className="btn btn-primary">Volver al inicio</Link>
+      <MainLayout>
+        <div className="min-h-screen bg-white">
+          <header className="mobile-header">
+            <button onClick={() => router.back()} className="text-2xl">←</button>
+            <span className="mobile-header-title">Error</span>
+            <div className="w-6" />
+          </header>
+          <div className="flex flex-col items-center justify-center px-6 py-16">
+            <div className="text-6xl mb-4">😕</div>
+            <h2 className="text-xl font-bold mb-2">Experiencia no encontrada</h2>
+            <p className="text-gray-500 mb-6">{error}</p>
+            <Link href="/dashboard" className="btn btn-primary">Volver al inicio</Link>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
@@ -406,108 +411,192 @@ export default function ExperienceDetailPage() {
   const hashtags = (experience as any).hashtags || ['#' + experience.festival.name.replace(/\s/g, '')];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-28">
-      {/* Hero Image with Gallery */}
-      <div className="relative group">
-        <div className="max-h-[70vh] overflow-hidden">
-          <ImageGallery
-            images={experience.photos && experience.photos.length > 0
-              ? experience.photos.map(getImageUrl).filter((url): url is string => url !== undefined)
-              : []}
-            alt={experience.title}
-            aspectRatio="aspect-[3/4]"
-            showDots={false}
-            showCounter={false}
-          />
-          {/* Gradient overlay for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none" />
+    <MainLayout>
+    <div className="min-h-screen bg-gray-50 pb-28 md:pb-8">
+      {/* Desktop: 2-column layout */}
+      <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:max-w-7xl lg:mx-auto lg:px-8 lg:py-8">
+        {/* Left column: Image gallery - sticky on desktop */}
+        <div className="lg:sticky lg:top-8 lg:self-start">
+          {/* Hero Image with Gallery */}
+          <div className="relative group lg:rounded-2xl lg:overflow-hidden lg:shadow-lg">
+            <div className="max-h-[70vh] lg:max-h-[80vh] overflow-hidden">
+              <ImageGallery
+                images={experience.photos && experience.photos.length > 0
+                  ? experience.photos.map(getImageUrl).filter((url): url is string => url !== undefined)
+                  : []}
+                alt={experience.title}
+                aspectRatio="aspect-[3/4] lg:aspect-[4/5]"
+                showDots={false}
+                showCounter={false}
+              />
+              {/* Gradient overlay for text readability - only on mobile */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none lg:hidden" />
+            </div>
+
+            {/* Header buttons - mobile only */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 pt-6 z-10 lg:hidden">
+              <button
+                onClick={() => router.back()}
+                className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-lg"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                </svg>
+              </button>
+              <div className="flex gap-2">
+                <ShareButton
+                  title={experience.title}
+                  description={`${experience.city} - ${experience.festival?.name || 'Experiencia única'}`}
+                  className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-lg"
+                />
+                <button
+                  onClick={handleToggleFavorite}
+                  disabled={favoriteLoading}
+                  className={`w-11 h-11 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg transition-colors ${
+                    isFavorite ? 'bg-red-500 text-white' : 'bg-white/20 text-white'
+                  }`}
+                >
+                  {favoriteLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : isFavorite ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                      <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Content overlay on image - mobile only */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10 pointer-events-none lg:hidden">
+              {/* Title */}
+              <h1 className="text-2xl font-bold mb-2">
+                {experience.festival.name} en {experience.city}
+              </h1>
+
+              {/* Host & location */}
+              <div className="flex items-center gap-2 text-white/90 text-sm mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-red-400">
+                  <path fillRule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+                </svg>
+                <span>Con {experience.host.name} · {experience.city}, España</span>
+              </div>
+
+              {/* Hashtags */}
+              <div className="flex gap-2 mb-3">
+                {hashtags.slice(0, 3).map((tag: string, i: number) => (
+                  <span key={i} className="text-blue-300 text-sm font-medium">{tag}</span>
+                ))}
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                    <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
+                  </svg>
+                  <span>{formatParticipants(experience._count?.matches || 0)} Participantes</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-yellow-400">★</span>
+                  <span className="font-medium">{experience.avgRating?.toFixed(1) || '-'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Header buttons */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 pt-6 z-10">
-          <button
-            onClick={() => router.back()}
-            className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-lg"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <div className="flex gap-2">
-            <ShareButton
-              title={experience.title}
-              description={`${experience.city} - ${experience.festival?.name || 'Experiencia única'}`}
-              className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-lg"
-            />
+        {/* Right column: Content */}
+        <div>
+          {/* Desktop header with back button, share, favorite */}
+          <div className="hidden lg:flex items-center justify-between mb-6">
             <button
-              onClick={handleToggleFavorite}
-              disabled={favoriteLoading}
-              className={`w-11 h-11 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg transition-colors ${
-                isFavorite ? 'bg-red-500 text-white' : 'bg-white/20 text-white'
-              }`}
+              onClick={() => router.back()}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
             >
-              {favoriteLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : isFavorite ? (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                  <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Content overlay on image */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10 pointer-events-none">
-          {/* Title */}
-          <h1 className="text-2xl font-bold mb-2">
-            {experience.festival.name} en {experience.city}
-          </h1>
-
-          {/* Host & location */}
-          <div className="flex items-center gap-2 text-white/90 text-sm mb-2">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-red-400">
-              <path fillRule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
-            </svg>
-            <span>Con {experience.host.name} · {experience.city}, España</span>
-          </div>
-
-          {/* Hashtags */}
-          <div className="flex gap-2 mb-3">
-            {hashtags.slice(0, 3).map((tag: string, i: number) => (
-              <span key={i} className="text-blue-300 text-sm font-medium">{tag}</span>
-            ))}
-          </div>
-
-          {/* Stats */}
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-1.5">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
               </svg>
-              <span>{formatParticipants(experience._count?.matches || 0)} Participantes</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-yellow-400">★</span>
-              <span className="font-medium">{experience.avgRating?.toFixed(1) || '-'}</span>
+              <span>Volver</span>
+            </button>
+            <div className="flex gap-3">
+              <ShareButton
+                title={experience.title}
+                description={`${experience.city} - ${experience.festival?.name || 'Experiencia única'}`}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors"
+              />
+              <button
+                onClick={handleToggleFavorite}
+                disabled={favoriteLoading}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors ${
+                  isFavorite ? 'bg-red-500 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                }`}
+              >
+                {favoriteLoading ? (
+                  <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                ) : isFavorite ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                      <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
+                    </svg>
+                    <span>Guardado</span>
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                    </svg>
+                    <span>Guardar</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Mock indicator */}
-      {useMockData && (
-        <div className="bg-amber-50 text-amber-700 text-xs px-4 py-2 text-center">
-          Datos de demostración
-        </div>
-      )}
+          {/* Desktop title section */}
+          <div className="hidden lg:block mb-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-3">
+              {experience.festival.name} en {experience.city}
+            </h1>
+            <div className="flex items-center gap-4 text-gray-600 mb-3">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-red-500">
+                  <path fillRule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
+                </svg>
+                <span>{experience.city}, España</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-gray-400">
+                  <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
+                </svg>
+                <span>{formatParticipants(experience._count?.matches || 0)} Participantes</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-yellow-500 text-lg">★</span>
+                <span className="font-semibold">{experience.avgRating?.toFixed(1) || '-'}</span>
+                <span className="text-gray-400">({experience._count?.reviews || 0} reseñas)</span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {hashtags.slice(0, 3).map((tag: string, i: number) => (
+                <span key={i} className="text-blue-600 text-sm font-medium bg-blue-50 px-3 py-1 rounded-full">{tag}</span>
+              ))}
+            </div>
+          </div>
 
-      {/* Content sections */}
-      <div className="p-4 space-y-4 -mt-4 relative z-10">
+          {/* Mock indicator */}
+          {useMockData && (
+            <div className="bg-amber-50 text-amber-700 text-xs px-4 py-2 text-center rounded-lg mb-4 lg:mb-6">
+              Datos de demostración
+            </div>
+          )}
+
+          {/* Content sections */}
+          <div className="p-4 lg:p-0 space-y-4 -mt-4 lg:mt-0 relative z-10">
         {/* Host card */}
         <Link href={`/profile/${experience.hostId}`} className="block bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-4 flex items-center gap-4">
@@ -677,10 +766,47 @@ export default function ExperienceDetailPage() {
             ✏️ Editar experiencia
           </Link>
         )}
-      </div>
 
-      {/* Fixed bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40">
+        {/* Desktop booking card - inline in content */}
+        <div className="hidden lg:block bg-white rounded-2xl shadow-lg p-6 mt-4 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            {experience.price ? (
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold">{experience.price}€</span>
+                  <span className="text-gray-500">/persona</span>
+                </div>
+                {experience.maxParticipants && experience.maxParticipants > 1 && (
+                  <p className="text-sm text-green-600">Descuento para grupos disponible</p>
+                )}
+              </div>
+            ) : (
+              <div className="text-teal-600 font-bold text-xl">Intercambio de experiencias</div>
+            )}
+            <div className="flex items-center gap-1 text-sm text-gray-500">
+              <span className="text-yellow-500 text-lg">★</span>
+              <span className="font-semibold text-gray-900">{experience.avgRating?.toFixed(1) || '-'}</span>
+              <span>({experience._count?.reviews || 0})</span>
+            </div>
+          </div>
+          {!isOwner && (
+            <Link
+              href={`/experiences/${experience.id}/book`}
+              className="block w-full py-4 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-colors text-center text-lg"
+            >
+              {experience.type === 'intercambio' ? 'Proponer intercambio' : 'Reservar ahora'}
+            </Link>
+          )}
+        </div>
+        </div>
+        {/* End of content sections */}
+        </div>
+        {/* End of right column */}
+      </div>
+      {/* End of 2-column grid */}
+
+      {/* Mobile fixed bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 lg:hidden">
         <div className="flex items-center gap-4">
           <div className="flex-shrink-0">
             {experience.price ? (
@@ -821,5 +947,6 @@ export default function ExperienceDetailPage() {
         </div>
       )}
     </div>
+    </MainLayout>
   );
 }

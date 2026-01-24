@@ -7,7 +7,7 @@ import { matchesApi, walletApi, WalletInfo } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Match, MatchStatus } from '@/types/match';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
-import BottomNav from '@/components/BottomNav';
+import MainLayout from '@/components/MainLayout';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 
@@ -259,17 +259,20 @@ export default function SentMatchesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="spinner spinner-lg mx-auto mb-4" />
-          <div className="text-gray-500">Cargando solicitudes...</div>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="spinner spinner-lg mx-auto mb-4" />
+            <div className="text-gray-500">Cargando solicitudes...</div>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <MainLayout>
+    <div className="min-h-screen bg-white md:bg-transparent pb-24 md:pb-8">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="flex items-center justify-between px-4 h-14">
@@ -523,8 +526,7 @@ export default function SentMatchesPage() {
           </div>
         }
       />
-
-      <BottomNav />
     </div>
+    </MainLayout>
   );
 }

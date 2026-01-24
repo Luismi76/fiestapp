@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { SkipLink } from "@/components/ui/SkipLink";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
+import AppWrapper from "@/components/AppWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,8 +25,8 @@ export const viewport: Viewport = {
   userScalable: true,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FF385C" },
-    { media: "(prefers-color-scheme: dark)", color: "#E31C5F" },
+    { media: "(prefers-color-scheme: light)", color: "#0f4c4a" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f4c4a" },
   ],
 };
 
@@ -69,7 +70,9 @@ export default function RootLayout({
         <SkipLink />
         <AuthProvider>
           <ToastProvider>
-            {children}
+            <AppWrapper>
+              {children}
+            </AppWrapper>
           </ToastProvider>
         </AuthProvider>
       </body>

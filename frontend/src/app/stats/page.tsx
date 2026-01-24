@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usersApi, HostStats } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl } from '@/lib/utils';
-import BottomNav from '@/components/BottomNav';
+import MainLayout from '@/components/MainLayout';
 
 const statusLabels: Record<string, string> = {
   pending: 'Pendiente',
@@ -56,18 +56,21 @@ export default function StatsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="spinner spinner-lg mx-auto mb-4" />
-          <p className="text-gray-500">Cargando estadísticas...</p>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="spinner spinner-lg mx-auto mb-4" />
+            <p className="text-gray-500">Cargando estadísticas...</p>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (error || !stats) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-24">
+      <MainLayout>
+        <div className="min-h-screen bg-white md:bg-transparent pb-24 md:pb-8">
         <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
           <div className="flex items-center px-4 h-14">
             <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
@@ -86,8 +89,8 @@ export default function StatsPage() {
           </div>
           <p className="text-gray-500">{error || 'Error al cargar estadísticas'}</p>
         </div>
-        <BottomNav />
       </div>
+      </MainLayout>
     );
   }
 
@@ -102,23 +105,25 @@ export default function StatsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <MainLayout>
+    <div className="min-h-screen bg-white md:bg-gray-50 pb-24 md:pb-8">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="flex items-center justify-between px-4 h-14">
-          <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
+        <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 h-14 lg:h-16 max-w-5xl mx-auto">
+          <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center md:hidden">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <h1 className="font-semibold text-gray-900">Mis estadísticas</h1>
-          <div className="w-10" />
+          <h1 className="font-semibold text-gray-900 md:text-xl">Mis estadísticas</h1>
+          <div className="w-10 md:hidden" />
         </div>
       </header>
 
-      {/* Summary Cards */}
-      <div className="p-4">
-        <div className="grid grid-cols-2 gap-3 mb-6">
+      {/* Content */}
+      <div className="p-4 md:px-6 lg:px-8 max-w-5xl mx-auto">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
           {/* Total Experiences */}
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
@@ -186,8 +191,8 @@ export default function StatsPage() {
         {/* Experience Stats */}
         {stats.experiences.length > 0 && (
           <div className="mb-6">
-            <h2 className="font-semibold text-gray-900 mb-3">Rendimiento por experiencia</h2>
-            <div className="space-y-3">
+            <h2 className="font-semibold text-gray-900 md:text-lg mb-3">Rendimiento por experiencia</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {stats.experiences.map((exp) => (
                 <Link
                   key={exp.id}
@@ -239,13 +244,13 @@ export default function StatsPage() {
         {/* Recent Activity */}
         {stats.recentActivity.length > 0 && (
           <div>
-            <h2 className="font-semibold text-gray-900 mb-3">Actividad reciente</h2>
-            <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100">
+            <h2 className="font-semibold text-gray-900 md:text-lg mb-3">Actividad reciente</h2>
+            <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100 md:grid md:grid-cols-2 md:divide-y-0 md:gap-px md:bg-gray-200 md:overflow-hidden">
               {stats.recentActivity.map((activity) => (
                 <Link
                   key={activity.id}
                   href={`/matches/${activity.id}`}
-                  className="flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-3 p-4 bg-white hover:bg-gray-50 transition-colors"
                 >
                   <img
                     src={getAvatarUrl(activity.requester.avatar)}
@@ -290,8 +295,7 @@ export default function StatsPage() {
           </div>
         )}
       </div>
-
-      <BottomNav />
     </div>
+    </MainLayout>
   );
 }

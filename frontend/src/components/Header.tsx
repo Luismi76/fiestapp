@@ -72,7 +72,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto w-full px-4 flex items-center justify-between">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2">
-            <span className="text-2xl">🎉</span>
+            <img src="/images/icons/icono.png" alt="FiestApp" className="w-8 h-8 rounded-lg" />
             <span className="font-bold text-xl text-gray-900">FiestApp</span>
           </Link>
 

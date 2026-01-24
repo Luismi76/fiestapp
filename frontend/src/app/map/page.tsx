@@ -6,7 +6,7 @@ import { experiencesApi } from '@/lib/api';
 import { Experience } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
 import ExperienceMap, { MapFilter } from '@/components/ExperienceMap';
-import BottomNav from '@/components/BottomNav';
+import MainLayout from '@/components/MainLayout';
 
 // Iconos
 const CloseIcon = () => (
@@ -60,69 +60,38 @@ export default function MapPage() {
     ambos: experiences.filter(e => e.type === 'ambos').length,
   };
 
-  const getTypeStyles = (type: string, isSelected: boolean) => {
-    if (!isSelected) return 'bg-gray-100 text-gray-700';
-    switch (type) {
-      case 'intercambio':
-        return 'bg-teal-500 text-white';
-      case 'pago':
-        return 'bg-emerald-500 text-white';
-      case 'ambos':
-        return 'bg-purple-500 text-white';
-      default:
-        return 'bg-primary text-white';
-    }
-  };
-
   return (
-    <div className="flex flex-col h-[100dvh] bg-gray-50">
-        {/* Hero compacto */}
-        <header className="flex-shrink-0 bg-gradient-to-r from-primary/10 via-secondary/5 to-primary/10 z-50">
-          <div className="px-4 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <h1 className="text-xl font-bold">
-                <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Explora el Mapa
-                </span>
-              </h1>
-              <Link
-                href="/experiences"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white rounded-full text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
-              >
-                <ListIcon />
-                <span>Lista</span>
-              </Link>
-            </div>
+    <MainLayout>
+    <div className="relative h-[calc(100dvh-4rem)] md:h-[calc(100dvh-6rem)] bg-gray-50">
+        {/* Floating controls */}
+        <div className="absolute top-3 left-3 right-3 z-50 flex items-center justify-between">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value as MapFilter)}
+            className="h-10 pl-3 pr-8 bg-white rounded-full text-sm font-medium shadow-md border-0 focus:outline-none focus:ring-2 focus:ring-primary/30 appearance-none cursor-pointer"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 10px center',
+              backgroundSize: '14px'
+            }}
+          >
+            <option value="all">Todas ({counts.all})</option>
+            <option value="pago">De pago ({counts.pago})</option>
+            <option value="intercambio">Intercambio ({counts.intercambio})</option>
+            <option value="ambos">Flexible ({counts.ambos})</option>
+          </select>
 
-            {/* Filtros integrados en el hero */}
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
-              {[
-                { value: 'all' as MapFilter, label: 'Todas', count: counts.all },
-                { value: 'pago' as MapFilter, label: 'De pago', count: counts.pago },
-                { value: 'intercambio' as MapFilter, label: 'Intercambio', count: counts.intercambio },
-                { value: 'ambos' as MapFilter, label: 'Flexible', count: counts.ambos },
-              ].map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setFilter(opt.value)}
-                  className={`flex-shrink-0 px-3 py-2 rounded-full text-sm font-medium transition-all shadow-sm ${
-                    filter === opt.value
-                      ? getTypeStyles(opt.value, true)
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {opt.label}
-                  <span className={`ml-1.5 ${filter === opt.value ? 'opacity-80' : 'opacity-60'}`}>
-                    {opt.count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </header>
+          <Link
+            href="/experiences"
+            className="h-10 w-10 flex items-center justify-center bg-white rounded-full shadow-md text-gray-700 hover:text-primary"
+          >
+            <ListIcon />
+          </Link>
+        </div>
 
         {/* Map container */}
-        <div className="flex-1 relative z-0">
+        <div className="absolute inset-0">
           {loading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 gap-3">
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -153,7 +122,7 @@ export default function MapPage() {
 
         {/* Selected experience card */}
         {selectedExperience && (
-          <div className="absolute bottom-20 left-4 right-4 z-[100] animate-slide-up">
+          <div className="absolute bottom-4 left-4 right-4 z-[100] animate-slide-up">
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               {/* Close button */}
               <button
@@ -222,8 +191,7 @@ export default function MapPage() {
             </div>
           </div>
         )}
-
-        <BottomNav />
       </div>
+    </MainLayout>
   );
 }

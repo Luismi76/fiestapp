@@ -199,8 +199,8 @@ export default function MessagesPage() {
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary/20 rounded-full blur-3xl" />
           </div>
 
-          <div className="relative px-4 py-6">
-            <h1 className="font-display text-2xl text-[#1A1410]">
+          <div className="relative px-4 md:px-6 lg:px-8 py-6 lg:py-8 max-w-4xl mx-auto">
+            <h1 className="font-display text-2xl lg:text-3xl text-[#1A1410]">
               Mensajes
             </h1>
             {unreadCount > 0 && (
@@ -211,7 +211,7 @@ export default function MessagesPage() {
           </div>
 
           {/* Tabs - Accessible */}
-          <div role="tablist" aria-label="Tipo de mensajes" className="tabs mx-4 mb-4">
+          <div role="tablist" aria-label="Tipo de mensajes" className="tabs mx-4 md:mx-auto md:max-w-4xl md:px-6 lg:px-8 mb-4">
             <button
               role="tab"
               aria-selected={activeTab === 'received'}
@@ -240,58 +240,60 @@ export default function MessagesPage() {
           </div>
         </header>
 
-        {/* Filters - Accessible with touch targets */}
-        <div
-          role="tablist"
-          aria-label="Filtrar por estado"
-          className="px-4 py-3 overflow-x-auto scrollbar-hide bg-white border-b border-primary/10"
-        >
-          <div className="flex gap-2">
-            {(['all', 'pending', 'accepted', 'completed'] as const).map((status) => (
-              <button
-                key={status}
-                role="tab"
-                aria-selected={filter === status}
-                onClick={() => setFilter(status)}
-                className={`px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all ripple ${
-                  filter === status
-                    ? 'gradient-sunset text-white shadow-md'
-                    : 'bg-[var(--surface-tile)] text-[#8B7355] hover:text-[#1A1410]'
-                }`}
-              >
-                {status === 'all' && 'Todas'}
-                {status === 'pending' && 'Pendientes'}
-                {status === 'accepted' && 'Aceptadas'}
-                {status === 'completed' && 'Completadas'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* List */}
-        {filteredMatches.length === 0 ? (
-          <div className="empty-state">
-            <div className="w-20 h-20 rounded-full gradient-sunset flex items-center justify-center text-white mb-6">
-              {activeTab === 'received' ? (
-                <InboxIcon />
-              ) : (
-                <SendIcon />
-              )}
+        {/* Content container for desktop */}
+        <div className="max-w-4xl mx-auto">
+          {/* Filters - Accessible with touch targets */}
+          <div
+            role="tablist"
+            aria-label="Filtrar por estado"
+            className="px-4 md:px-6 lg:px-8 py-3 overflow-x-auto scrollbar-hide bg-white border-b border-primary/10"
+          >
+            <div className="flex gap-2">
+              {(['all', 'pending', 'accepted', 'completed'] as const).map((status) => (
+                <button
+                  key={status}
+                  role="tab"
+                  aria-selected={filter === status}
+                  onClick={() => setFilter(status)}
+                  className={`px-4 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold whitespace-nowrap transition-all ripple ${
+                    filter === status
+                      ? 'gradient-sunset text-white shadow-md'
+                      : 'bg-[var(--surface-tile)] text-[#8B7355] hover:text-[#1A1410]'
+                  }`}
+                >
+                  {status === 'all' && 'Todas'}
+                  {status === 'pending' && 'Pendientes'}
+                  {status === 'accepted' && 'Aceptadas'}
+                  {status === 'completed' && 'Completadas'}
+                </button>
+              ))}
             </div>
-            <h2 className="empty-state-title">
-              {activeTab === 'received' ? 'Sin solicitudes recibidas' : 'Sin solicitudes enviadas'}
-            </h2>
-            <p className="empty-state-text">
-              {activeTab === 'received'
-                ? 'Cuando alguien quiera unirse a tus experiencias, aparecerá aquí'
-                : 'Explora experiencias y envía solicitudes para conectar'}
-            </p>
-            <Link href="/experiences" className="btn btn-primary">
-              Explorar experiencias
-            </Link>
           </div>
-        ) : (
-          <div className="p-4 space-y-3 stagger-children">
+
+          {/* List */}
+          {filteredMatches.length === 0 ? (
+            <div className="empty-state">
+              <div className="w-20 h-20 rounded-full gradient-sunset flex items-center justify-center text-white mb-6">
+                {activeTab === 'received' ? (
+                  <InboxIcon />
+                ) : (
+                  <SendIcon />
+                )}
+              </div>
+              <h2 className="empty-state-title">
+                {activeTab === 'received' ? 'Sin solicitudes recibidas' : 'Sin solicitudes enviadas'}
+              </h2>
+              <p className="empty-state-text">
+                {activeTab === 'received'
+                  ? 'Cuando alguien quiera unirse a tus experiencias, aparecerá aquí'
+                  : 'Explora experiencias y envía solicitudes para conectar'}
+              </p>
+              <Link href="/experiences" className="btn btn-primary">
+                Explorar experiencias
+              </Link>
+            </div>
+          ) : (
+            <div className="p-4 md:px-6 lg:px-8 space-y-3 stagger-children">
             {filteredMatches.map((match) => {
               const config = statusConfig[match.status];
               const person = getContactPerson(match);
@@ -402,6 +404,8 @@ export default function MessagesPage() {
             })}
           </div>
         )}
+        </div>
+        {/* End of content container */}
 
         {/* Accept Modal */}
         <ConfirmModal

@@ -16,6 +16,7 @@ import LocationMessage from '@/components/chat/LocationMessage';
 import LocationPicker from '@/components/chat/LocationPicker';
 import QuickRepliesDrawer from '@/components/chat/QuickRepliesDrawer';
 import TranslateButton from '@/components/chat/TranslateButton';
+import MainLayout from '@/components/MainLayout';
 
 // Mock match details for fallback
 const mockMatchDetails: Record<string, MatchDetail> = {
@@ -720,18 +721,21 @@ export default function MatchDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="spinner spinner-lg mx-auto mb-4" />
-          <div className="text-gray-500">Cargando conversación...</div>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="spinner spinner-lg mx-auto mb-4" />
+            <div className="text-gray-500">Cargando conversación...</div>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (error || !match) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <MainLayout>
+        <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
           <div className="flex items-center px-4 h-14">
             <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
@@ -755,6 +759,7 @@ export default function MatchDetailPage() {
           </Link>
         </div>
       </div>
+      </MainLayout>
     );
   }
 
@@ -763,6 +768,7 @@ export default function MatchDetailPage() {
   const config = statusConfig[match.status];
 
   return (
+    <MainLayout>
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
@@ -1383,5 +1389,6 @@ export default function MatchDetailPage() {
       />
 
     </div>
+    </MainLayout>
   );
 }

@@ -1,3 +1,5 @@
+'use client';
+
 export default function OfflinePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-orange-50 flex items-center justify-center p-4">

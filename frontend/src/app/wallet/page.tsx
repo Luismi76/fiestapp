@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { walletApi, WalletInfo, WalletTransaction } from '@/lib/api';
 import TopUpModal from '@/components/TopUpModal';
-import BottomNav from '@/components/BottomNav';
+import MainLayout from '@/components/MainLayout';
 
 // Tipos de filtro disponibles
 type TransactionFilter = 'all' | 'topup' | 'platform_fee';
@@ -185,14 +185,17 @@ export default function WalletPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <MainLayout>
+    <div className="min-h-screen bg-white md:bg-transparent pb-20 md:pb-8">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="flex items-center justify-between px-4 h-14">
@@ -461,8 +464,6 @@ export default function WalletPage() {
         </div>
       </div>
 
-      <BottomNav />
-
       {/* TopUp Modal */}
       {showTopUpModal && (
         <TopUpModal
@@ -576,5 +577,6 @@ export default function WalletPage() {
         </div>
       )}
     </div>
+    </MainLayout>
   );
 }

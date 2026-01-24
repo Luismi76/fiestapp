@@ -7,6 +7,7 @@ import { reviewsApi, experiencesApi } from '@/lib/api';
 import { Review, ReviewStats } from '@/types/review';
 import { ExperienceDetail } from '@/types/experience';
 import { getAvatarUrl } from '@/lib/utils';
+import MainLayout from '@/components/MainLayout';
 
 const TypeIcon = ({ type, className = "w-6 h-6" }: { type: string; className?: string }) => {
   const icons: Record<string, React.ReactNode> = {
@@ -65,50 +66,55 @@ export default function ExperienceReviewsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-white">
-              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-            </svg>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-white">
+                <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="text-gray-500">Cargando reseñas...</div>
           </div>
-          <div className="text-gray-500">Cargando reseñas...</div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (!experience) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b border-gray-100">
-          <div className="flex items-center justify-between px-4 h-14">
-            <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+      <MainLayout>
+        <div className="min-h-screen bg-gray-50">
+          <header className="bg-white border-b border-gray-100">
+            <div className="flex items-center justify-between px-4 h-14">
+              <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                </svg>
+              </button>
+              <span className="font-semibold text-gray-900">Error</span>
+              <div className="w-10" />
+            </div>
+          </header>
+          <div className="flex flex-col items-center justify-center px-6 py-20">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-gray-400">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 16.318A4.486 4.486 0 0 0 12.016 15a4.486 4.486 0 0 0-3.198 1.318M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Z" />
               </svg>
-            </button>
-            <span className="font-semibold text-gray-900">Error</span>
-            <div className="w-10" />
+            </div>
+            <h2 className="font-bold text-xl text-gray-900 mb-2">No encontrado</h2>
           </div>
-        </header>
-        <div className="flex flex-col items-center justify-center px-6 py-20">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-gray-400">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 16.318A4.486 4.486 0 0 0 12.016 15a4.486 4.486 0 0 0-3.198 1.318M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Z" />
-            </svg>
-          </div>
-          <h2 className="font-bold text-xl text-gray-900 mb-2">No encontrado</h2>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
+    <MainLayout>
     <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
       <header className="bg-white border-b border-gray-100">
-        <div className="flex items-center justify-between px-4 h-14">
+        <div className="flex items-center justify-between px-4 h-14 max-w-3xl mx-auto">
           <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -119,11 +125,13 @@ export default function ExperienceReviewsPage() {
         </div>
       </header>
 
-      {/* Experience summary */}
-      <Link
-        href={`/experiences/${experience.id}`}
-        className="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3 shadow-sm block hover:shadow-md transition-shadow"
-      >
+      {/* Content */}
+      <div className="max-w-3xl mx-auto">
+        {/* Experience summary */}
+        <Link
+          href={`/experiences/${experience.id}`}
+          className="mx-4 mt-4 bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3 shadow-sm block hover:shadow-md transition-shadow"
+        >
         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-white">
           <TypeIcon type={experience.type} className="w-6 h-6" />
         </div>
@@ -286,6 +294,9 @@ export default function ExperienceReviewsPage() {
           </div>
         )}
       </div>
+      {/* End content container */}
+      </div>
     </div>
+    </MainLayout>
   );
 }

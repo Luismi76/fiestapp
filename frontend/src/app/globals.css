@@ -216,9 +216,15 @@ input, textarea, select, button {
   z-index: 9999;
 }
 
+/* Desktop: hide BottomNav, show Header navigation */
 @media (min-width: 768px) {
-  .bottom-nav { display: none; }
-  body { padding-bottom: 0; }
+  .bottom-nav {
+    display: none;
+  }
+
+  body {
+    padding-bottom: 0;
+  }
 }
 
 .bottom-nav-item {
