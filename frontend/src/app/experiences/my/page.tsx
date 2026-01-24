@@ -7,7 +7,7 @@ import { experiencesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Experience } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
-import BottomNav from '@/components/BottomNav';
+import MainLayout from '@/components/MainLayout';
 
 export default function MyExperiencesPage() {
   const router = useRouter();
@@ -51,17 +51,20 @@ export default function MyExperiencesPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="spinner spinner-lg mx-auto mb-4" />
-          <div className="text-gray-500">Cargando experiencias...</div>
+      <MainLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="spinner spinner-lg mx-auto mb-4" />
+            <div className="text-gray-500">Cargando experiencias...</div>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <MainLayout>
+      <div className="min-h-screen bg-white md:bg-transparent pb-24 md:pb-8">
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
         <div className="flex items-center justify-between px-4 h-14">
@@ -232,8 +235,7 @@ export default function MyExperiencesPage() {
           ))}
         </div>
       )}
-
-      <BottomNav />
-    </div>
+      </div>
+    </MainLayout>
   );
 }
