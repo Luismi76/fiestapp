@@ -1,5 +1,25 @@
 export type ExperienceType = 'pago' | 'intercambio' | 'ambos';
 
+export type ExperienceCategory = 'gastronomia' | 'cultura' | 'naturaleza' | 'aventura' | 'nocturna' | 'familiar';
+
+export const CATEGORY_LABELS: Record<ExperienceCategory, string> = {
+  gastronomia: 'Gastronomía',
+  cultura: 'Cultura',
+  naturaleza: 'Naturaleza',
+  aventura: 'Aventura',
+  nocturna: 'Vida nocturna',
+  familiar: 'Familiar',
+};
+
+export const CATEGORY_ICONS: Record<ExperienceCategory, string> = {
+  gastronomia: '🍷',
+  cultura: '🏛️',
+  naturaleza: '🌿',
+  aventura: '⛰️',
+  nocturna: '🌙',
+  familiar: '👨‍👩‍👧',
+};
+
 export interface Host {
   id: string;
   name: string;
@@ -39,6 +59,7 @@ export interface Experience {
   longitude?: number;
   price?: number;
   type: ExperienceType;
+  category: ExperienceCategory;
   photos: string[];
   highlights?: string[];
   capacity: number;
@@ -49,9 +70,9 @@ export interface Experience {
   createdAt: string;
   updatedAt: string;
   hostId: string;
-  festivalId: string;
+  festivalId?: string;
   host: Host;
-  festival: Festival;
+  festival?: Festival;
   avgRating?: number;
   _count?: {
     reviews: number;
@@ -89,7 +110,8 @@ export interface ExperiencesResponse {
 export interface CreateExperienceData {
   title: string;
   description: string;
-  festivalId: string;
+  festivalId?: string;
+  category: ExperienceCategory;
   city: string;
   price?: number;
   type: ExperienceType;

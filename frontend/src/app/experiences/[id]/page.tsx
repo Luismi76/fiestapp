@@ -408,7 +408,7 @@ export default function ExperienceDetailPage() {
 
   const isOwner = user?.id === experience.hostId;
   const highlights = experience.highlights || [];
-  const hashtags = (experience as any).hashtags || ['#' + experience.festival.name.replace(/\s/g, '')];
+  const hashtags = (experience as any).hashtags || (experience.festival ? ['#' + experience.festival.name.replace(/\s/g, '')] : []);
 
   return (
     <MainLayout>
@@ -475,7 +475,7 @@ export default function ExperienceDetailPage() {
             <div className="absolute bottom-0 left-0 right-0 p-4 text-white z-10 pointer-events-none lg:hidden">
               {/* Title */}
               <h1 className="text-2xl font-bold mb-2">
-                {experience.festival.name} en {experience.city}
+                {experience.festival ? `${experience.festival.name} en ${experience.city}` : experience.title}
               </h1>
 
               {/* Host & location */}
@@ -560,7 +560,7 @@ export default function ExperienceDetailPage() {
           {/* Desktop title section */}
           <div className="hidden lg:block mb-6">
             <h1 className="text-3xl font-bold text-gray-900 mb-3">
-              {experience.festival.name} en {experience.city}
+              {experience.festival ? `${experience.festival.name} en ${experience.city}` : experience.title}
             </h1>
             <div className="flex items-center gap-4 text-gray-600 mb-3">
               <div className="flex items-center gap-2">
@@ -670,9 +670,9 @@ export default function ExperienceDetailPage() {
         {/* Quick info cards */}
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white rounded-xl p-3 shadow-sm text-center">
-            <div className="text-2xl mb-1">🎪</div>
-            <div className="text-xs text-gray-500">Festividad</div>
-            <div className="font-semibold text-gray-900 text-sm truncate">{experience.festival.name}</div>
+            <div className="text-2xl mb-1">{experience.festival ? '🎪' : '📅'}</div>
+            <div className="text-xs text-gray-500">{experience.festival ? 'Festividad' : 'Tipo'}</div>
+            <div className="font-semibold text-gray-900 text-sm truncate">{experience.festival?.name || 'Todo el año'}</div>
           </div>
           <div className="bg-white rounded-xl p-3 shadow-sm text-center">
             <div className="text-2xl mb-1">📍</div>

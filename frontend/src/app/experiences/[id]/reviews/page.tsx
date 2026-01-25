@@ -138,7 +138,7 @@ export default function ExperienceReviewsPage() {
         <div className="flex-1 min-w-0">
           <h2 className="font-semibold text-gray-900 truncate">{experience.title}</h2>
           <p className="text-sm text-gray-500 truncate">
-            {experience.festival.name} · {experience.city}
+            {experience.festival ? `${experience.festival.name} · ` : ''}{experience.city}
           </p>
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-300 flex-shrink-0">

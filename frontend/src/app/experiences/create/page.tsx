@@ -7,10 +7,11 @@ import { useForm } from 'react-hook-form';
 import { experiencesApi, uploadsApi } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { Festival, ExperienceType, CreateExperienceData } from '@/types/experience';
+import { Festival, ExperienceType, ExperienceCategory, CreateExperienceData, CATEGORY_LABELS, CATEGORY_ICONS } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import FestivalSelector from '@/components/FestivalSelector';
+import CategorySelector from '@/components/CategorySelector';
 import MainLayout from '@/components/MainLayout';
 
 interface FormData {
@@ -150,6 +151,9 @@ export default function CreateExperiencePage() {
   const [highlights, setHighlights] = useState<string[]>(['']);
   const [festivalError, setFestivalError] = useState('');
   const [capacity, setCapacity] = useState(1);
+  const [noFestival, setNoFestival] = useState(false);
+  const [category, setCategory] = useState<ExperienceCategory | ''>('');
+  const [categoryError, setCategoryError] = useState('');
 
   const {
     register,
@@ -196,8 +200,14 @@ export default function CreateExperiencePage() {
     switch (step) {
       case 1:
         const titleCityValid = await trigger(['title', 'city', 'type']);
-        if (!selectedFestival) {
-          setFestivalError('Selecciona una festividad');
+        // Si no es sin festividad, debe tener una festividad seleccionada
+        if (!noFestival && !selectedFestival) {
+          setFestivalError('Selecciona una festividad o marca "Sin festividad asociada"');
+          return false;
+        }
+        // Categoría siempre es obligatoria
+        if (!category) {
+          setCategoryError('Selecciona una categoría');
           return false;
         }
         return titleCityValid;
@@ -260,7 +270,8 @@ export default function CreateExperiencePage() {
       const experienceData: CreateExperienceData = {
         title: data.title,
         description: data.description,
-        festivalId: data.festivalId,
+        festivalId: noFestival ? undefined : data.festivalId,
+        category: category as ExperienceCategory,
         city: data.city,
         type: data.type,
         price: data.type !== 'intercambio' && data.price ? parseFloat(data.price) : undefined,
@@ -449,16 +460,51 @@ export default function CreateExperiencePage() {
               <p className="text-xs text-gray-400 mt-1.5">Un buen título es breve y atractivo</p>
             </div>
 
-            {/* Festival */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                ¿En qué festividad?
+            {/* Category */}
+            <CategorySelector
+              value={category}
+              onChange={(cat) => {
+                setCategory(cat);
+                setCategoryError('');
+              }}
+              error={categoryError}
+            />
+
+            {/* Festival toggle */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={noFestival}
+                  onChange={(e) => {
+                    setNoFestival(e.target.checked);
+                    if (e.target.checked) {
+                      setValue('festivalId', '');
+                      setSelectedFestival(null);
+                      setFestivalError('');
+                    }
+                  }}
+                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-900">Sin festividad asociada</span>
+                  <p className="text-xs text-gray-500">Experiencia disponible todo el año (ej: ruta de tapas)</p>
+                </div>
               </label>
-              <FestivalSelector
-                value={watchedValues.festivalId || ''}
-                onChange={handleFestivalChange}
-                error={festivalError}
-              />
+
+              {/* Festival Selector - only show if noFestival is false */}
+              {!noFestival && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    ¿En qué festividad?
+                  </label>
+                  <FestivalSelector
+                    value={watchedValues.festivalId || ''}
+                    onChange={handleFestivalChange}
+                    error={festivalError}
+                  />
+                </div>
+              )}
             </div>
 
             {/* City */}

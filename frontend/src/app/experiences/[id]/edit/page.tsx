@@ -7,9 +7,10 @@ import { useForm } from 'react-hook-form';
 import { experiencesApi, festivalsApi, uploadsApi } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { Festival, ExperienceType, ExperienceDetail } from '@/types/experience';
+import { Festival, ExperienceType, ExperienceCategory, ExperienceDetail, CATEGORY_LABELS, CATEGORY_ICONS } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
+import CategorySelector from '@/components/CategorySelector';
 import MainLayout from '@/components/MainLayout';
 
 interface FormData {
@@ -58,12 +59,15 @@ export default function EditExperiencePage() {
   const [highlights, setHighlights] = useState<string[]>(['']);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [capacity, setCapacity] = useState(1);
+  const [category, setCategory] = useState<ExperienceCategory | ''>('');
+  const [noFestival, setNoFestival] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<FormData>();
 
@@ -93,6 +97,8 @@ export default function EditExperiencePage() {
         setPhotos(experienceData.photos || []);
         setHighlights(experienceData.highlights?.length ? experienceData.highlights : ['']);
         setCapacity(experienceData.capacity || 1);
+        setCategory(experienceData.category || '');
+        setNoFestival(!experienceData.festivalId);
 
         // Convert availability dates to Date objects
         if (experienceData.availability && experienceData.availability.length > 0) {
@@ -221,7 +227,8 @@ export default function EditExperiencePage() {
       await experiencesApi.update(params.id as string, {
         title: data.title,
         description: data.description,
-        festivalId: data.festivalId,
+        festivalId: noFestival ? undefined : data.festivalId,
+        category: category as ExperienceCategory,
         city: data.city,
         type: data.type,
         price: data.type !== 'intercambio' && data.price ? parseFloat(data.price) : undefined,
@@ -523,26 +530,49 @@ export default function EditExperiencePage() {
           )}
         </div>
 
+        {/* Categoría */}
+        <CategorySelector
+          value={category}
+          onChange={(cat) => setCategory(cat)}
+        />
+
         {/* Festividad */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Festividad
+        <div className="space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={noFestival}
+              onChange={(e) => {
+                setNoFestival(e.target.checked);
+                if (e.target.checked) {
+                  setValue('festivalId', '');
+                }
+              }}
+              className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <div>
+              <span className="text-sm font-medium text-gray-900">Sin festividad asociada</span>
+              <p className="text-xs text-gray-500">Experiencia disponible todo el año</p>
+            </div>
           </label>
-          <select
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors bg-white"
-            {...register('festivalId', {
-              required: 'Selecciona una festividad',
-            })}
-          >
-            <option value="">Selecciona una festividad</option>
-            {festivals.map((festival) => (
-              <option key={festival.id} value={festival.id}>
-                {festival.name} - {festival.city}
-              </option>
-            ))}
-          </select>
-          {errors.festivalId && (
-            <p className="text-red-500 text-sm mt-1">{errors.festivalId.message}</p>
+
+          {!noFestival && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Festividad
+              </label>
+              <select
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors bg-white"
+                {...register('festivalId')}
+              >
+                <option value="">Selecciona una festividad</option>
+                {festivals.map((festival) => (
+                  <option key={festival.id} value={festival.id}>
+                    {festival.name} - {festival.city}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
 

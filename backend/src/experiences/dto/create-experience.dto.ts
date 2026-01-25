@@ -15,6 +15,15 @@ export enum ExperienceType {
   AMBOS = 'ambos',
 }
 
+export enum ExperienceCategory {
+  GASTRONOMIA = 'gastronomia',
+  CULTURA = 'cultura',
+  NATURALEZA = 'naturaleza',
+  AVENTURA = 'aventura',
+  NOCTURNA = 'nocturna',
+  FAMILIAR = 'familiar',
+}
+
 export class CreateExperienceDto {
   @IsString()
   @MinLength(5, { message: 'El título debe tener al menos 5 caracteres' })
@@ -26,8 +35,14 @@ export class CreateExperienceDto {
   })
   description: string;
 
+  @IsOptional()
   @IsString()
-  festivalId: string;
+  festivalId?: string;
+
+  @IsEnum(ExperienceCategory, {
+    message: 'Categoría debe ser: gastronomia, cultura, naturaleza, aventura, nocturna o familiar',
+  })
+  category: ExperienceCategory;
 
   @IsString()
   city: string;
