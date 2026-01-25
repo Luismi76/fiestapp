@@ -250,6 +250,11 @@ export const festivalsApi = {
     return response.data;
   },
 
+  update: async (id: string, data: { name?: string; city?: string; description?: string; startDate?: string; endDate?: string }): Promise<Festival> => {
+    const response = await api.put<Festival>(`/festivals/${id}`, data);
+    return response.data;
+  },
+
   seed: async (): Promise<{ message: string; count: number }> => {
     const response = await api.post<{ message: string; count: number }>('/festivals/seed');
     return response.data;

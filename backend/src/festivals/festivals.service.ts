@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService, CACHE_KEYS, CACHE_TTL } from '../cache/cache.service';
 import { CreateFestivalDto } from './dto/create-festival.dto';
+import { UpdateFestivalDto } from './dto/update-festival.dto';
 
 export interface CalendarFilters {
   region?: string;
@@ -130,6 +131,66 @@ export class FestivalsService {
     return festival;
   }
 
+  async update(id: string, updateFestivalDto: UpdateFestivalDto) {
+    const existing = await this.prisma.festival.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Festival no encontrado');
+    }
+
+    // Si se cambia el nombre, verificar que no exista otro con el mismo nombre
+    if (updateFestivalDto.name && updateFestivalDto.name !== existing.name) {
+      const nameExists = await this.prisma.festival.findUnique({
+        where: { name: updateFestivalDto.name },
+      });
+      if (nameExists) {
+        throw new ConflictException('Ya existe una festividad con este nombre');
+      }
+    }
+
+    // Si se cambia la ciudad, re-geocodificar
+    let coordinates: { latitude: number; longitude: number } | null = null;
+    if (updateFestivalDto.city && updateFestivalDto.city !== existing.city) {
+      coordinates = await this.geocodeCity(updateFestivalDto.city);
+    }
+
+    const updateData: Record<string, unknown> = {};
+
+    if (updateFestivalDto.name) {
+      updateData.name = updateFestivalDto.name;
+    }
+    if (updateFestivalDto.city) {
+      updateData.city = updateFestivalDto.city;
+    }
+    if (updateFestivalDto.description !== undefined) {
+      updateData.description = updateFestivalDto.description;
+    }
+    if (updateFestivalDto.imageUrl !== undefined) {
+      updateData.imageUrl = updateFestivalDto.imageUrl;
+    }
+    if (coordinates) {
+      updateData.latitude = coordinates.latitude;
+      updateData.longitude = coordinates.longitude;
+    }
+    if (updateFestivalDto.startDate !== undefined) {
+      updateData.startDate = updateFestivalDto.startDate ? new Date(updateFestivalDto.startDate) : null;
+    }
+    if (updateFestivalDto.endDate !== undefined) {
+      updateData.endDate = updateFestivalDto.endDate ? new Date(updateFestivalDto.endDate) : null;
+    }
+
+    const festival = await this.prisma.festival.update({
+      where: { id },
+      data: updateData,
+    });
+
+    await this.cacheService.invalidateFestivals();
+
+    return festival;
+  }
+
   async findOne(id: string) {
     const festival = await this.cacheService.getOrSet(
       CACHE_KEYS.FESTIVAL(id),
@@ -192,8 +253,36 @@ export class FestivalsService {
           },
         },
         {
-          // Festivales sin fecha específica
+          // Festivales sin fecha específica pero con experiencias que tienen disponibilidad en el año
           startDate: null,
+          experiences: {
+            some: {
+              availability: {
+                some: {
+                  date: {
+                    gte: startOfYear,
+                    lte: endOfYear,
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          // Festivales sin fecha y sin experiencias con disponibilidad
+          startDate: null,
+          experiences: {
+            none: {
+              availability: {
+                some: {
+                  date: {
+                    gte: startOfYear,
+                    lte: endOfYear,
+                  },
+                },
+              },
+            },
+          },
         },
       ],
     };
@@ -214,6 +303,23 @@ export class FestivalsService {
         _count: {
           select: {
             experiences: true,
+          },
+        },
+        // Incluir la disponibilidad de las experiencias para obtener la fecha más temprana
+        experiences: {
+          select: {
+            availability: {
+              where: {
+                date: {
+                  gte: startOfYear,
+                  lte: endOfYear,
+                },
+              },
+              orderBy: {
+                date: 'asc',
+              },
+              take: 1,
+            },
           },
         },
       },
@@ -242,11 +348,25 @@ export class FestivalsService {
     };
 
     for (const festival of festivals) {
+      // Obtener la fecha más temprana de disponibilidad de las experiencias
+      let earliestAvailabilityDate: Date | null = null;
+      for (const exp of festival.experiences) {
+        if (exp.availability && exp.availability.length > 0) {
+          const expDate = exp.availability[0].date;
+          if (!earliestAvailabilityDate || expDate < earliestAvailabilityDate) {
+            earliestAvailabilityDate = expDate;
+          }
+        }
+      }
+
+      // Usar la fecha del festival, o la fecha más temprana de disponibilidad como fallback
+      const effectiveDate = festival.startDate || earliestAvailabilityDate;
+
       const mappedFestival = {
         id: festival.id,
         name: festival.name,
         city: festival.city,
-        startDate: festival.startDate,
+        startDate: effectiveDate,
         endDate: festival.endDate,
         region: festival.region,
         festivalType: festival.festivalType,
@@ -254,8 +374,8 @@ export class FestivalsService {
         experienceCount: festival._count.experiences,
       };
 
-      if (festival.startDate) {
-        const month = festival.startDate.getMonth();
+      if (effectiveDate) {
+        const month = effectiveDate.getMonth();
         byMonth[month].festivals.push(mappedFestival);
       } else {
         noDateFestivals.festivals.push(mappedFestival);

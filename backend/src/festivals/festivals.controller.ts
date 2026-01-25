@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Param, Body, Query, Res, Header } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Body, Query, Res, Header } from '@nestjs/common';
 import type { Response } from 'express';
 import { FestivalsService } from './festivals.service';
 import { ICalService } from './ical.service';
 import { CreateFestivalDto } from './dto/create-festival.dto';
+import { UpdateFestivalDto } from './dto/update-festival.dto';
 
 @Controller('festivals')
 export class FestivalsController {
@@ -122,6 +123,11 @@ export class FestivalsController {
   @Post()
   create(@Body() createFestivalDto: CreateFestivalDto) {
     return this.festivalsService.create(createFestivalDto);
+  }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() updateFestivalDto: UpdateFestivalDto) {
+    return this.festivalsService.update(id, updateFestivalDto);
   }
 
   // Endpoint para poblar la base de datos con festivales iniciales

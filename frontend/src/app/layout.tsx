@@ -7,6 +7,7 @@ import { SkipLink } from "@/components/ui/SkipLink";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import AppWrapper from "@/components/AppWrapper";
+import InstallPrompt from "@/components/InstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -73,6 +74,7 @@ export default function RootLayout({
             <AppWrapper>
               {children}
             </AppWrapper>
+            <InstallPrompt />
           </ToastProvider>
         </AuthProvider>
       </body>

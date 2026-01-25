@@ -9,6 +9,7 @@ import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
 import { Festival, ExperienceType, ExperienceDetail } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
+import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import MainLayout from '@/components/MainLayout';
 
 interface FormData {
@@ -55,6 +56,8 @@ export default function EditExperiencePage() {
   const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [highlights, setHighlights] = useState<string[]>(['']);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [capacity, setCapacity] = useState(1);
 
   const {
     register,
@@ -89,6 +92,17 @@ export default function EditExperiencePage() {
         setFestivals(festivalsData);
         setPhotos(experienceData.photos || []);
         setHighlights(experienceData.highlights?.length ? experienceData.highlights : ['']);
+        setCapacity(experienceData.capacity || 1);
+
+        // Convert availability dates to Date objects
+        if (experienceData.availability && experienceData.availability.length > 0) {
+          const dates = experienceData.availability.map(dateStr => {
+            const date = new Date(dateStr);
+            // Adjust for timezone to get the correct local date
+            return new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+          });
+          setSelectedDates(dates);
+        }
 
         reset({
           title: experienceData.title,
@@ -196,6 +210,14 @@ export default function EditExperiencePage() {
       }
 
       const validHighlightsList = highlights.filter(h => h.trim() !== '');
+      // Convert dates to YYYY-MM-DD format
+      const availabilityDates = selectedDates.map(date => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      });
+
       await experiencesApi.update(params.id as string, {
         title: data.title,
         description: data.description,
@@ -204,6 +226,8 @@ export default function EditExperiencePage() {
         type: data.type,
         price: data.type !== 'intercambio' && data.price ? parseFloat(data.price) : undefined,
         highlights: validHighlightsList.length > 0 ? validHighlightsList : [],
+        capacity: capacity,
+        availability: availabilityDates.length > 0 ? availabilityDates : [],
       });
 
       router.push(`/experiences/${params.id}`);
@@ -631,6 +655,84 @@ export default function EditExperiencePage() {
             />
           </div>
         )}
+
+        {/* Capacidad */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Capacidad máxima
+          </label>
+          <p className="text-sm text-gray-500 mb-3">
+            ¿Cuántas personas puedes atender por día?
+          </p>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setCapacity(Math.max(1, capacity - 1))}
+              className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 transition-colors"
+            >
+              −
+            </button>
+            <div className="flex-1 text-center">
+              <span className="text-4xl font-bold text-gray-900">{capacity}</span>
+              <p className="text-sm text-gray-500">{capacity === 1 ? 'persona' : 'personas'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCapacity(capacity + 1)}
+              className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 transition-colors"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {/* Disponibilidad */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Fechas disponibles
+          </label>
+          <p className="text-sm text-gray-500 mb-3">
+            Selecciona los días en que ofreces esta experiencia
+          </p>
+
+          {selectedDates.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {selectedDates.map((date, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200"
+                >
+                  {date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDates(selectedDates.filter((_, idx) => idx !== i))}
+                    className="hover:text-green-900"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <AvailabilityCalendar
+              selectedDates={selectedDates}
+              onDatesChange={setSelectedDates}
+              mode="select"
+            />
+          </div>
+
+          {selectedDates.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedDates([])}
+              className="mt-3 text-sm text-red-500 hover:text-red-600 font-medium"
+            >
+              Limpiar todas las fechas
+            </button>
+          )}
+        </div>
 
         {/* Submit */}
         <button

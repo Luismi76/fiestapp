@@ -74,6 +74,9 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [editingFestival, setEditingFestival] = useState<Festival | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editError, setEditError] = useState('');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -101,6 +104,7 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
         setShowNewFestivalForm(false);
+        setEditingFestival(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -173,7 +177,7 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
   };
 
   const handleCreateFestival = async () => {
-    if (!newFestivalName.trim() || !newFestivalCity.trim()) return;
+    if (!newFestivalName.trim() || !newFestivalCity.trim() || !newFestivalDate) return;
 
     setIsCreating(true);
     setCreateError('');
@@ -207,6 +211,53 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
       }
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const openEditForm = (festival: Festival, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingFestival(festival);
+    setNewFestivalName(festival.name);
+    setNewFestivalCity(festival.city);
+    setNewFestivalDate(festival.startDate ? festival.startDate.split('T')[0] : '');
+    setEditError('');
+  };
+
+  const handleEditFestival = async () => {
+    if (!editingFestival || !newFestivalName.trim() || !newFestivalCity.trim()) return;
+
+    setIsEditing(true);
+    setEditError('');
+
+    try {
+      const updatedFestival = await festivalsApi.update(editingFestival.id, {
+        name: newFestivalName.trim(),
+        city: newFestivalCity.trim(),
+        startDate: newFestivalDate || undefined,
+      });
+
+      // Actualizar la lista local
+      setFestivals(prev => prev.map(f => f.id === updatedFestival.id ? updatedFestival : f));
+
+      // Si el festival editado es el seleccionado, actualizar
+      if (value === updatedFestival.id) {
+        onChange(updatedFestival.id, updatedFestival);
+      }
+
+      // Limpiar y cerrar
+      setEditingFestival(null);
+      setNewFestivalName('');
+      setNewFestivalCity('');
+      setNewFestivalDate('');
+    } catch (error: any) {
+      console.error('Error updating festival:', error);
+      if (error.response?.status === 409) {
+        setEditError('Ya existe una festividad con este nombre');
+      } else {
+        setEditError('Error al actualizar la festividad. Inténtalo de nuevo.');
+      }
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -268,7 +319,135 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
       {/* Dropdown */}
       {isOpen && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 max-h-[70vh] flex flex-col">
-          {!showNewFestivalForm ? (
+          {editingFestival ? (
+            /* Formulario editar festividad */
+            <div className="p-4 space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-gray-900 text-lg">Editar festividad</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingFestival(null);
+                    setNewFestivalName('');
+                    setNewFestivalCity('');
+                    setNewFestivalDate('');
+                    setEditError('');
+                  }}
+                  className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Nombre */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Nombre de la festividad
+                </label>
+                <input
+                  type="text"
+                  value={newFestivalName}
+                  onChange={(e) => setNewFestivalName(e.target.value)}
+                  placeholder="Ej: Fiestas de San Juan"
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary transition-colors"
+                  autoFocus
+                />
+              </div>
+
+              {/* Ciudad */}
+              <div className="relative">
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Ciudad o localidad
+                </label>
+                <input
+                  type="text"
+                  value={newFestivalCity}
+                  onChange={(e) => {
+                    setNewFestivalCity(e.target.value);
+                    setCitySearch(e.target.value);
+                    setShowCitySuggestions(true);
+                  }}
+                  onFocus={() => setShowCitySuggestions(true)}
+                  placeholder="Ej: Alicante"
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary transition-colors"
+                />
+
+                {showCitySuggestions && citySuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-10">
+                    {citySuggestions.map(city => (
+                      <button
+                        key={city}
+                        type="button"
+                        onClick={() => {
+                          setNewFestivalCity(city);
+                          setShowCitySuggestions(false);
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-gray-50 text-gray-700 flex items-center gap-2"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-gray-400">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                        </svg>
+                        {city}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Fecha */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-1.5">
+                  Fecha de inicio
+                </label>
+                <input
+                  type="date"
+                  value={newFestivalDate}
+                  onChange={(e) => setNewFestivalDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-primary transition-colors"
+                />
+              </div>
+
+              {/* Error */}
+              {editError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                  {editError}
+                </div>
+              )}
+
+              {/* Botones */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingFestival(null);
+                    setEditError('');
+                  }}
+                  disabled={isEditing}
+                  className="flex-1 py-3 border-2 border-gray-200 rounded-xl font-semibold text-gray-700 hover:border-gray-300 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEditFestival}
+                  disabled={!newFestivalName.trim() || !newFestivalCity.trim() || isEditing}
+                  className="flex-1 py-3 bg-gradient-to-r from-primary to-pink-500 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                >
+                  {isEditing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    'Guardar cambios'
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : !showNewFestivalForm ? (
             <>
               {/* Buscador */}
               <div className="p-3 border-b border-gray-100">
@@ -337,32 +516,52 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
                         </span>
                       </div>
                       {cityFestivals.map(festival => (
-                        <button
+                        <div
                           key={festival.id}
-                          type="button"
-                          onClick={() => handleSelect(festival)}
                           className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
                             value === festival.id ? 'bg-primary/5' : ''
                           }`}
                         >
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
-                            value === festival.id
-                              ? 'bg-primary text-white'
-                              : 'bg-gradient-to-br from-gray-100 to-gray-200'
-                          }`}>
-                            🎪
-                          </div>
-                          <div className="flex-1 text-left">
-                            <div className={`font-medium ${value === festival.id ? 'text-primary' : 'text-gray-900'}`}>
-                              {festival.name}
+                          <button
+                            type="button"
+                            onClick={() => handleSelect(festival)}
+                            className="flex-1 flex items-center gap-3"
+                          >
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl ${
+                              value === festival.id
+                                ? 'bg-primary text-white'
+                                : 'bg-gradient-to-br from-gray-100 to-gray-200'
+                            }`}>
+                              🎪
                             </div>
-                          </div>
-                          {value === festival.id && (
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-primary">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            <div className="flex-1 text-left">
+                              <div className={`font-medium ${value === festival.id ? 'text-primary' : 'text-gray-900'}`}>
+                                {festival.name}
+                              </div>
+                              {festival.startDate && (
+                                <div className="text-xs text-gray-400">
+                                  {new Date(festival.startDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                                </div>
+                              )}
+                            </div>
+                            {value === festival.id && (
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-primary">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
+                            )}
+                          </button>
+                          {/* Botón editar */}
+                          <button
+                            type="button"
+                            onClick={(e) => openEditForm(festival, e)}
+                            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            title="Editar festividad"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
                             </svg>
-                          )}
-                        </button>
+                          </button>
+                        </div>
                       ))}
                     </div>
                   ))
@@ -495,19 +694,20 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
                 </div>
               </div>
 
-              {/* Fecha aproximada */}
+              {/* Fecha */}
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-1.5">
-                  Fecha aproximada <span className="font-normal text-gray-400">(opcional)</span>
+                  Fecha de inicio <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
                   value={newFestivalDate}
                   onChange={(e) => setNewFestivalDate(e.target.value)}
                   className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:border-primary transition-colors"
+                  required
                 />
                 <p className="text-xs text-gray-400 mt-1">
-                  Indica cuándo se celebra para que aparezca en el calendario
+                  Necesario para que aparezca correctamente en el calendario
                 </p>
               </div>
 
@@ -534,7 +734,7 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
                 <button
                   type="button"
                   onClick={handleCreateFestival}
-                  disabled={!newFestivalName.trim() || !newFestivalCity.trim() || isCreating}
+                  disabled={!newFestivalName.trim() || !newFestivalCity.trim() || !newFestivalDate || isCreating}
                   className="flex-1 py-3 bg-gradient-to-r from-primary to-pink-500 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
                 >
                   {isCreating ? (

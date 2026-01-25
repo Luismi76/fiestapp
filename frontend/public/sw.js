@@ -1,5 +1,5 @@
 // FiestApp Service Worker
-const CACHE_NAME = 'fiestapp-v1';
+const CACHE_NAME = 'fiestapp-v2';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache immediately
@@ -7,7 +7,9 @@ const PRECACHE_ASSETS = [
   '/',
   '/offline',
   '/manifest.json',
-  '/images/icons/icon.svg',
+  '/images/icons/fiestapp-logo.svg',
+  '/images/icons/web-app-manifest-192x192.png',
+  '/images/icons/web-app-manifest-512x512.png',
 ];
 
 // Install event - precache assets
