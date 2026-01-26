@@ -219,99 +219,183 @@ export default function PublicProfilePage() {
   return (
     <MainLayout>
       <div className="min-h-screen bg-gray-50 pb-24 md:pb-8">
-        {/* Header with gradient */}
-      <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        {/* Desktop container */}
+        <div className="lg:max-w-5xl xl:max-w-6xl lg:mx-auto">
 
-        <header className="relative z-10 flex items-center justify-between px-4 h-14">
-          <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center text-white">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <span className="font-semibold text-white">Perfil</span>
-          {isOwnProfile ? (
-            <Link href="/profile/edit" className="w-10 h-10 flex items-center justify-center text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-              </svg>
-            </Link>
-          ) : (
-            <div className="w-10" />
-          )}
-        </header>
+        {/* === MOBILE HEADER (hidden on lg+) === */}
+        <div className="profile-mobile-header">
+          {/* Header with gradient */}
+          <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 relative overflow-hidden">
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
 
-        {/* Avatar and name */}
-        <div className="relative z-10 px-6 pb-8 pt-4 text-center">
-          <div className="relative inline-block">
-            <div className="w-28 h-28 mx-auto bg-white rounded-full p-1 shadow-xl">
-              <OptimizedAvatar
-                src={getAvatarSrc(profile.avatar)}
-                name={profile.name}
-                size="xl"
-                className="w-full h-full"
-              />
-            </div>
-            {profile.verified && (
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg border-3 border-white">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+            <header className="relative z-10 flex items-center justify-between px-4 h-14">
+              <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
                 </svg>
-              </div>
-            )}
-          </div>
+              </button>
+              <span className="font-semibold text-white">Perfil</span>
+              {isOwnProfile ? (
+                <Link href="/profile/edit" className="w-10 h-10 flex items-center justify-center text-white">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                  </svg>
+                </Link>
+              ) : (
+                <div className="w-10" />
+              )}
+            </header>
 
-          <h1 className="text-2xl font-bold text-white mt-4">{profile.name}</h1>
-          <p className="text-white/80 mt-1 flex items-center justify-center gap-1">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
-              <path fillRule="evenodd" d="m7.539 14.841.003.003.002.002a.755.755 0 0 0 .912 0l.002-.002.003-.003.012-.009a5.57 5.57 0 0 0 .19-.153 15.588 15.588 0 0 0 2.046-2.082c1.101-1.362 2.291-3.342 2.291-5.597A5 5 0 0 0 3 7c0 2.255 1.19 4.235 2.292 5.597a15.591 15.591 0 0 0 2.046 2.082 8.916 8.916 0 0 0 .189.153l.012.01ZM8 8.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" clipRule="evenodd" />
-            </svg>
-            {profile.city}
-          </p>
-        </div>
-      </div>
+            {/* Avatar and name */}
+            <div className="relative z-10 px-6 pb-8 pt-4 text-center">
+              <div className="relative inline-block">
+                <div className="w-28 h-28 mx-auto bg-white rounded-full p-1 shadow-xl">
+                  <OptimizedAvatar
+                    src={getAvatarSrc(profile.avatar)}
+                    name={profile.name}
+                    size="xl"
+                    className="w-full h-full"
+                  />
+                </div>
+                {profile.verified && (
+                  <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg border-3 border-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+              </div>
 
-      {/* Stats cards */}
-      <div className="px-4 -mt-6 relative z-20">
-        <div className="bg-white rounded-2xl shadow-lg p-5">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-blue-500">
-                  <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.75a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .913-.143Z" clipRule="evenodd" />
+              <h1 className="text-2xl font-bold text-white mt-4">{profile.name}</h1>
+              <p className="text-white/80 mt-1 flex items-center justify-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="m7.539 14.841.003.003.002.002a.755.755 0 0 0 .912 0l.002-.002.003-.003.012-.009a5.57 5.57 0 0 0 .19-.153 15.588 15.588 0 0 0 2.046-2.082c1.101-1.362 2.291-3.342 2.291-5.597A5 5 0 0 0 3 7c0 2.255 1.19 4.235 2.292 5.597a15.591 15.591 0 0 0 2.046 2.082 8.916 8.916 0 0 0 .189.153l.012.01ZM8 8.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" clipRule="evenodd" />
                 </svg>
-              </div>
-              <div className="text-2xl font-bold text-gray-900">{profile._count.experiences}</div>
-              <div className="text-xs text-gray-500">Experiencias</div>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center mx-auto mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-amber-500">
-                  <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="text-2xl font-bold text-gray-900">
-                {profile.avgRating > 0 ? profile.avgRating.toFixed(1) : '-'}
-              </div>
-              <div className="text-xs text-gray-500">Valoración</div>
-            </div>
-            <div className="text-center">
-              <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-emerald-500">
-                  <path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0 1 12 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 0 1-3.476.383.39.39 0 0 0-.297.17l-2.755 4.133a.75.75 0 0 1-1.248 0l-2.755-4.133a.39.39 0 0 0-.297-.17 48.9 48.9 0 0 1-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97Z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="text-2xl font-bold text-gray-900">{profile._count.reviewsReceived}</div>
-              <div className="text-xs text-gray-500">Reseñas</div>
+                {profile.city}
+              </p>
             </div>
           </div>
+
+          {/* Stats cards - Mobile */}
+          <div className="px-4 -mt-6 relative z-20">
+            <div className="bg-white rounded-2xl shadow-lg p-5">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-blue-500">
+                      <path fillRule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.75a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .913-.143Z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{profile._count.experiences}</div>
+                  <div className="text-xs text-gray-500">Experiencias</div>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-amber-500">
+                      <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {profile.avgRating > 0 ? profile.avgRating.toFixed(1) : '-'}
+                  </div>
+                  <div className="text-xs text-gray-500">Valoración</div>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-emerald-500">
+                      <path fillRule="evenodd" d="M4.848 2.771A49.144 49.144 0 0 1 12 2.25c2.43 0 4.817.178 7.152.52 1.978.292 3.348 2.024 3.348 3.97v6.02c0 1.946-1.37 3.678-3.348 3.97a48.901 48.901 0 0 1-3.476.383.39.39 0 0 0-.297.17l-2.755 4.133a.75.75 0 0 1-1.248 0l-2.755-4.133a.39.39 0 0 0-.297-.17 48.9 48.9 0 0 1-3.476-.384c-1.978-.29-3.348-2.024-3.348-3.97V6.741c0-1.946 1.37-3.68 3.348-3.97Z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">{profile._count.reviewsReceived}</div>
+                  <div className="text-xs text-gray-500">Reseñas</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+
+        {/* === DESKTOP HEADER (hidden on mobile) === */}
+        <div className="profile-desktop-header">
+          {/* Compact header bar */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4 mt-4 mx-4 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-6">
+              {/* Back button */}
+              <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                </svg>
+              </button>
+
+              {/* Avatar */}
+              <div className="relative flex-shrink-0">
+                <OptimizedAvatar
+                  src={getAvatarSrc(profile.avatar)}
+                  name={profile.name}
+                  size="lg"
+                />
+                {profile.verified && (
+                  <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white shadow border-2 border-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              {/* Name and location */}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-bold text-gray-900 truncate">{profile.name}</h1>
+                <p className="text-gray-500 flex items-center gap-1 text-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
+                    <path fillRule="evenodd" d="m7.539 14.841.003.003.002.002a.755.755 0 0 0 .912 0l.002-.002.003-.003.012-.009a5.57 5.57 0 0 0 .19-.153 15.588 15.588 0 0 0 2.046-2.082c1.101-1.362 2.291-3.342 2.291-5.597A5 5 0 0 0 3 7c0 2.255 1.19 4.235 2.292 5.597a15.591 15.591 0 0 0 2.046 2.082 8.916 8.916 0 0 0 .189.153l.012.01ZM8 8.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" clipRule="evenodd" />
+                  </svg>
+                  {profile.city} · Miembro desde {memberSince}
+                </p>
+              </div>
+
+              {/* Compact stats */}
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <div className="text-xl font-bold text-gray-900">{profile._count.experiences}</div>
+                  <div className="text-xs text-gray-500">Experiencias</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-gray-900 flex items-center justify-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-amber-500">
+                      <path fillRule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401Z" clipRule="evenodd" />
+                    </svg>
+                    {profile.avgRating > 0 ? profile.avgRating.toFixed(1) : '-'}
+                  </div>
+                  <div className="text-xs text-gray-500">Valoración</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold text-gray-900">{profile._count.reviewsReceived}</div>
+                  <div className="text-xs text-gray-500">Reseñas</div>
+                </div>
+              </div>
+
+              {/* Edit button */}
+              {isOwnProfile && (
+                <Link href="/profile/edit" className="px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                  </svg>
+                  Editar
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+
+      {/* Main content - Two column layout on desktop */}
+      <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:px-4 lg:mt-6">
+        {/* Left column - Main content */}
+        <div className="lg:col-span-2 space-y-4">
 
       {/* Reputation Badges - Enhanced Section */}
-      <div className="px-4 mt-4">
+      <div className="px-4 lg:px-0 mt-4">
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-5">
             <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -335,7 +419,7 @@ export default function PublicProfilePage() {
 
       {/* Bio */}
       {profile.bio && (
-        <div className="px-4 mt-4">
+        <div className="px-4 lg:px-0 mt-4 lg:mt-0">
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-5">
               <h2 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -360,8 +444,8 @@ export default function PublicProfilePage() {
       )}
 
       {/* Experiences */}
-      {profile.experiences.length > 0 && (
-        <div className="px-4 mt-6">
+      {profile.experiences && profile.experiences.length > 0 && (
+        <div className="px-4 lg:px-0 mt-6 lg:mt-0">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-gray-900">Experiencias</h2>
             <span className="text-sm text-gray-400">{profile.experiences.length}</span>
@@ -429,7 +513,7 @@ export default function PublicProfilePage() {
 
       {/* Reviews */}
       {profile.reviews && profile.reviews.length > 0 && (
-        <div className="px-4 mt-6">
+        <div className="px-4 lg:px-0 mt-6 lg:mt-0">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-gray-900">Reseñas</h2>
             <span className="text-sm text-gray-400">{profile._count.reviewsReceived}</span>
@@ -492,8 +576,8 @@ export default function PublicProfilePage() {
       )}
 
       {/* Contact button (if not own profile) */}
-      {!isOwnProfile && profile.experiences.length > 0 && (
-        <div className="px-4 mt-6">
+      {!isOwnProfile && profile.experiences && profile.experiences.length > 0 && (
+        <div className="px-4 lg:px-0 mt-6 lg:mt-0">
           <Link
             href={`/experiences/${profile.experiences[0].id}`}
             className="block w-full py-4 bg-blue-500 text-white font-semibold rounded-2xl text-center hover:bg-blue-600 transition-colors shadow-lg"
@@ -502,10 +586,13 @@ export default function PublicProfilePage() {
           </Link>
         </div>
       )}
+        </div>{/* End left column */}
 
+        {/* Right column - Sidebar */}
+        <div className="lg:col-span-1 space-y-4 lg:space-y-6">
       {/* Wallet Card (only for own profile) */}
       {isOwnProfile && currentUser && (
-        <div className="px-4 mt-6">
+        <div className="px-4 lg:px-0 mt-6 lg:mt-0">
           <Link
             href="/wallet"
             className="block bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-lg overflow-hidden hover:from-orange-600 hover:to-orange-700 transition-all"
@@ -550,7 +637,7 @@ export default function PublicProfilePage() {
 
       {/* Account Settings (only for own profile) */}
       {isOwnProfile && currentUser && (
-        <div className="px-4 mt-6">
+        <div className="px-4 lg:px-0 mt-6 lg:mt-0">
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-5">
               <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -646,8 +733,8 @@ export default function PublicProfilePage() {
       )}
 
       {/* Empty state */}
-      {profile.experiences.length === 0 && !profile.bio && (
-        <div className="px-4 mt-6">
+      {(!profile.experiences || profile.experiences.length === 0) && !profile.bio && (
+        <div className="px-4 lg:px-0 mt-6 lg:mt-0">
           <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400">
@@ -671,6 +758,9 @@ export default function PublicProfilePage() {
           </div>
         </div>
       )}
+        </div>{/* End right column */}
+      </div>{/* End two-column grid */}
+        </div>{/* End desktop container */}
       </div>
     </MainLayout>
   );

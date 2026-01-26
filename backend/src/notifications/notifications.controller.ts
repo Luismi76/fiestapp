@@ -20,7 +20,7 @@ import {
   NotificationType,
 } from './dto/notification.dto';
 import { SubscribePushDto, UnsubscribePushDto } from './dto/push.dto';
-import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('notifications')
 export class NotificationsController {

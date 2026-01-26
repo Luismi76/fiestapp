@@ -6,6 +6,8 @@ import { WalletModule } from '../wallet/wallet.module';
 import { UsersModule } from '../users/users.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ExperiencesModule } from '../experiences/experiences.module';
+import { CancellationsModule } from '../cancellations/cancellations.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { ExperiencesModule } from '../experiences/experiences.module';
     forwardRef(() => UsersModule),
     NotificationsModule,
     ExperiencesModule,
+    CancellationsModule,
+    EmailModule,
   ],
   controllers: [MatchesController],
   providers: [MatchesService],

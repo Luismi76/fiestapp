@@ -12,6 +12,24 @@
 @import "tailwindcss";
 
 /* ============================================
+   RESPONSIVE PROFILE HEADERS
+   ============================================ */
+.profile-mobile-header {
+  display: block;
+}
+.profile-desktop-header {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .profile-mobile-header {
+    display: none !important;
+  }
+  .profile-desktop-header {
+    display: block !important;
+  }
+}
+
+/* ============================================
    THEME CONFIGURATION
    ============================================ */
 @theme {

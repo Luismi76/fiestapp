@@ -1,11 +1,12 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
 import { PushService } from './push.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, forwardRef(() => ChatModule)],
   controllers: [NotificationsController],
   providers: [NotificationsService, PushService],
   exports: [NotificationsService, PushService],

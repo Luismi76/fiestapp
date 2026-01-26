@@ -238,6 +238,41 @@ export class WalletService {
     });
   }
 
+  // Añadir saldo al monedero (para reembolsos)
+  async addBalance(
+    userId: string,
+    amount: number,
+    description: string,
+    matchId?: string,
+  ): Promise<void> {
+    if (amount <= 0) {
+      throw new BadRequestException('El monto debe ser positivo');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // Añadir al monedero
+      await tx.wallet.upsert({
+        where: { userId },
+        update: { balance: { increment: amount } },
+        create: { userId, balance: amount },
+      });
+
+      // Registrar transacción de reembolso
+      await tx.transaction.create({
+        data: {
+          userId,
+          matchId,
+          type: 'refund',
+          amount,
+          status: 'completed',
+          description,
+        },
+      });
+    });
+
+    this.logger.log(`Reembolso de ${amount}€ añadido a usuario ${userId}`);
+  }
+
   // Descontar tarifa de plataforma (llamado al cerrar acuerdo)
   async deductPlatformFee(
     userId: string,

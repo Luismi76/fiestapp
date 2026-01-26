@@ -12,7 +12,7 @@ import {
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('users')
 export class UsersController {
@@ -30,6 +30,27 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   getHostStats(@Request() req: AuthenticatedRequest) {
     return this.usersService.getHostStats(req.user.userId);
+  }
+
+  // Obtener analytics avanzados de anfitrión
+  @Get('me/analytics')
+  @UseGuards(JwtAuthGuard)
+  getHostAnalytics(@Request() req: AuthenticatedRequest) {
+    return this.usersService.getHostAnalytics(req.user.userId);
+  }
+
+  // Obtener datos de ingresos para gráfico
+  @Get('me/analytics/revenue')
+  @UseGuards(JwtAuthGuard)
+  getRevenueChart(@Request() req: AuthenticatedRequest) {
+    return this.usersService.getRevenueChart(req.user.userId);
+  }
+
+  // Obtener datos de reservas para gráfico
+  @Get('me/analytics/bookings')
+  @UseGuards(JwtAuthGuard)
+  getBookingsChart(@Request() req: AuthenticatedRequest) {
+    return this.usersService.getBookingsChart(req.user.userId);
   }
 
   // Actualizar mi perfil (requiere auth)

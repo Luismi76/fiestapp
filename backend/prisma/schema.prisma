@@ -17,6 +17,8 @@ model User {
   bio                       String?
   city                      String?
   avatar                    String?
+  phone                     String?          // Teléfono para verificación
+  phoneVerified             Boolean          @default(false)
   hasPartner                Boolean?         // tiene pareja
   hasChildren               Boolean?         // tiene hijos
   childrenAges              String?          // edades de los hijos (ej: "5, 8, 12")
@@ -27,6 +29,9 @@ model User {
   passwordResetExpires      DateTime?
   twoFactorSecret           String?          // Secret para TOTP 2FA
   twoFactorEnabled          Boolean          @default(false)
+  // Sistema de verificación de identidad
+  identityVerified          Boolean          @default(false)
+  verificationLevel         VerificationLevel @default(NONE)
   // Sistema de strikes y bans
   strikes                   Int              @default(0)
   bannedAt                  DateTime?
@@ -37,6 +42,8 @@ model User {
   referredBy                User?            @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals                 User[]           @relation("UserReferrals")
   referralCreditsEarned     Float            @default(0)
+  // Preferencias de moneda
+  preferredCurrency         Currency         @default(EUR)
   createdAt                 DateTime         @default(now())
   updatedAt                 DateTime         @updatedAt
   experiences        Experience[]
@@ -62,6 +69,16 @@ model User {
   searchHistory           SearchHistory[]
   quickReplies            QuickReply[]
   preferredLang           String?            @default("es")
+  // Relaciones para disputas
+  disputesOpened          Dispute[]            @relation("DisputeOpenedBy")
+  disputesReceived        Dispute[]            @relation("DisputeRespondent")
+  disputesResolved        Dispute[]            @relation("DisputeResolvedBy")
+  disputeMessages         DisputeMessage[]
+  // Relaciones para cancelaciones
+  cancellations           Cancellation[]
+  // Relaciones para verificación de identidad
+  identityVerification    IdentityVerification?
+  verificationsApproved   IdentityVerification[] @relation("VerificationVerifiedBy")
 
   @@map("users")
 }
@@ -108,6 +125,7 @@ model Experience {
   latitude        Float?                   // Coordenadas de la ciudad
   longitude       Float?
   price           Float?
+  currency        Currency                 @default(EUR)     // Moneda del precio
   type            String
   hostId          String
   photos          String[]
@@ -122,6 +140,8 @@ model Experience {
   // Campos para grupos (FASE 4)
   minParticipants Int                      @default(1)
   maxParticipants Int?                     // null = usa capacity
+  // Política de cancelación (FASE 7)
+  cancellationPolicy CancellationPolicy    @default(FLEXIBLE)
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
   availability    ExperienceAvailability[]
@@ -171,6 +191,7 @@ model Match {
   participants          Int           @default(1)
   participantNames      String[]      // Nombres opcionales de los participantes
   totalPrice            Float?        // Precio total calculado
+  currency              Currency      @default(EUR) // Moneda de la transacción
   createdAt             DateTime      @default(now())
   updatedAt             DateTime      @updatedAt
   experience            Experience    @relation(fields: [experienceId], references: [id], onDelete: Cascade)
@@ -178,6 +199,9 @@ model Match {
   requester             User          @relation("MatchRequester", fields: [requesterId], references: [id], onDelete: Cascade)
   messages              Message[]
   transactions          Transaction[]
+  // Relaciones para disputas y cancelaciones
+  disputes              Dispute[]
+  cancellation          Cancellation?
 
   @@unique([experienceId, requesterId])
   @@index([experienceId])
@@ -221,10 +245,13 @@ model Transaction {
   otherUserId String?  // ID del otro usuario en transacciones de platform_fee
   type        String
   amount      Float
+  currency    Currency @default(EUR)
   status      String   @default("pending")
   stripeId    String?  @unique
   paypalId    String?  @unique
   description String?
+  // Campos para PayPal
+  paypalOrderId String? @unique // ID de orden de PayPal para captura
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -242,6 +269,7 @@ model Wallet {
   id        String   @id @default(uuid())
   userId    String   @unique
   balance   Float    @default(0)
+  currency  Currency @default(EUR)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -529,6 +557,57 @@ enum ExperienceCategory {
   familiar
 }
 
+enum CancellationPolicy {
+  FLEXIBLE        // 100% hasta 24h antes
+  MODERATE        // 100% hasta 72h, 50% hasta 24h
+  STRICT          // 100% hasta 7d, 50% hasta 72h, 0% después
+  NON_REFUNDABLE  // Sin reembolso
+}
+
+enum DisputeReason {
+  NO_SHOW
+  EXPERIENCE_MISMATCH
+  SAFETY_CONCERN
+  PAYMENT_ISSUE
+  COMMUNICATION
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_REFUND
+  RESOLVED_PARTIAL_REFUND
+  RESOLVED_NO_REFUND
+  CLOSED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum DocumentType {
+  DNI
+  PASSPORT
+  DRIVER_LICENSE
+}
+
+enum VerificationLevel {
+  NONE
+  BASIC       // Email verificado
+  PHONE       // Email + teléfono verificado
+  IDENTITY    // Email + teléfono + documento
+  FULL        // Todo verificado + verificación manual
+}
+
+enum Currency {
+  EUR
+  USD
+  GBP
+}
+
 model QuickReply {
   id        String   @id @default(uuid())
   userId    String
@@ -540,4 +619,105 @@ model QuickReply {
 
   @@index([userId])
   @@map("quick_replies")
+}
+
+// ============================================
+// FASE 7: Sistema de Disputas
+// ============================================
+
+model Dispute {
+  id              String          @id @default(uuid())
+  matchId         String
+  openedById      String          // Usuario que abre la disputa
+  respondentId    String          // Usuario contra quien se abre
+  reason          DisputeReason
+  description     String
+  status          DisputeStatus   @default(OPEN)
+  evidence        Json?           // URLs de fotos/capturas como evidencia
+  resolution      String?         // Descripción de la resolución
+  resolvedById    String?         // Admin que resuelve
+  refundAmount    Float?          // Monto reembolsado si aplica
+  refundPercentage Float?         // Porcentaje reembolsado
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  resolvedAt      DateTime?
+  match           Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  openedBy        User            @relation("DisputeOpenedBy", fields: [openedById], references: [id], onDelete: Cascade)
+  respondent      User            @relation("DisputeRespondent", fields: [respondentId], references: [id], onDelete: Cascade)
+  resolvedBy      User?           @relation("DisputeResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  messages        DisputeMessage[]
+
+  @@index([matchId])
+  @@index([openedById])
+  @@index([respondentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("disputes")
+}
+
+model DisputeMessage {
+  id        String   @id @default(uuid())
+  disputeId String
+  senderId  String
+  content   String
+  isAdmin   Boolean  @default(false) // Si es mensaje de admin
+  attachments Json?  // URLs de archivos adjuntos
+  createdAt DateTime @default(now())
+  dispute   Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("dispute_messages")
+}
+
+// ============================================
+// FASE 7: Sistema de Cancelaciones
+// ============================================
+
+model Cancellation {
+  id               String             @id @default(uuid())
+  matchId          String             @unique
+  cancelledById    String             // Usuario que cancela
+  reason           String?
+  policy           CancellationPolicy // Política aplicada
+  originalAmount   Float              // Monto original de la reserva
+  refundPercentage Float              // Porcentaje reembolsado (0-100)
+  refundAmount     Float              // Monto reembolsado
+  penaltyAmount    Float              // Monto retenido como penalización
+  processedAt      DateTime?          // Cuando se procesó el reembolso
+  createdAt        DateTime           @default(now())
+  match            Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  cancelledBy      User               @relation(fields: [cancelledById], references: [id], onDelete: Cascade)
+
+  @@index([cancelledById])
+  @@index([createdAt])
+  @@map("cancellations")
+}
+
+// ============================================
+// FASE 7: Verificación de Identidad
+// ============================================
+
+model IdentityVerification {
+  id              String             @id @default(uuid())
+  userId          String             @unique
+  status          VerificationStatus @default(PENDING)
+  documentType    DocumentType
+  documentFront   String             // URL en Cloudinary (carpeta privada)
+  documentBack    String?            // URL en Cloudinary (opcional para pasaporte)
+  selfie          String?            // URL de selfie con documento
+  verifiedAt      DateTime?
+  verifiedById    String?            // Admin que verifica
+  rejectionReason String?
+  attempts        Int                @default(1) // Número de intentos
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verifiedBy      User?              @relation("VerificationVerifiedBy", fields: [verifiedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("identity_verifications")
 }

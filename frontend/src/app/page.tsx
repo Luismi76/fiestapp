@@ -97,19 +97,21 @@ export default function Home() {
         </div>
 
         {/* Botones de acción */}
-        <div className="relative px-6 pb-8 space-y-3 z-10">
-          <Link
-            href="/login"
-            className="block w-full bg-white text-gray-900 font-semibold py-4 rounded-xl text-center hover:bg-gray-100 transition-colors shadow-lg"
-          >
-            Iniciar sesión
-          </Link>
-          <Link
-            href="/register"
-            className="block w-full bg-white/20 backdrop-blur-sm text-white font-semibold py-4 rounded-xl text-center hover:bg-white/30 transition-colors border border-white/30"
-          >
-            Crear cuenta
-          </Link>
+        <div className="relative px-6 pb-8 z-10 flex justify-center">
+          <div className="w-full max-w-sm space-y-3">
+            <Link
+              href="/login"
+              className="block w-full bg-white text-gray-900 font-semibold py-4 rounded-xl text-center hover:bg-gray-100 transition-colors shadow-lg"
+            >
+              Iniciar sesión
+            </Link>
+            <Link
+              href="/register"
+              className="block w-full bg-white/20 backdrop-blur-sm text-white font-semibold py-4 rounded-xl text-center hover:bg-white/30 transition-colors border border-white/30"
+            >
+              Crear cuenta
+            </Link>
+          </div>
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Param,
+  Body,
   UseGuards,
   Request,
   Headers,
@@ -15,7 +16,16 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaymentsService } from './payments.service';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
-import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+
+class CreatePayPalOrderDto {
+  returnUrl: string;
+  cancelUrl: string;
+}
+
+class AuthorizePayPalOrderDto {
+  orderId: string;
+}
 
 @Controller('payments')
 export class PaymentsController {
@@ -100,6 +110,117 @@ export class PaymentsController {
     } catch (err) {
       this.logger.error(
         'Webhook error',
+        err instanceof Error ? err.stack : String(err),
+      );
+      throw err;
+    }
+  }
+
+  // =====================
+  // PayPal Endpoints
+  // =====================
+
+  // Obtener métodos de pago disponibles
+  @Get('methods')
+  getPaymentMethods() {
+    return {
+      methods: this.paymentsService.getAvailablePaymentMethods(),
+    };
+  }
+
+  // Crear orden de PayPal
+  @UseGuards(JwtAuthGuard)
+  @Post('paypal/create/:matchId')
+  async createPayPalOrder(
+    @Param('matchId') matchId: string,
+    @Body() body: CreatePayPalOrderDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.paymentsService.createPayPalOrder(
+      matchId,
+      req.user.userId,
+      body.returnUrl,
+      body.cancelUrl,
+    );
+  }
+
+  // Autorizar orden de PayPal (después de aprobación del usuario)
+  @UseGuards(JwtAuthGuard)
+  @Post('paypal/authorize')
+  async authorizePayPalOrder(
+    @Body() body: AuthorizePayPalOrderDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    // Verify user is the owner of the transaction
+    const transaction = await this.paymentsService[
+      'prisma'
+    ].transaction.findFirst({
+      where: { paypalOrderId: body.orderId },
+    });
+
+    if (!transaction || transaction.userId !== req.user.userId) {
+      throw new BadRequestException('Orden no encontrada o no autorizada');
+    }
+
+    return this.paymentsService.authorizePayPalOrder(body.orderId);
+  }
+
+  // Liberar pago de PayPal al anfitrión
+  @UseGuards(JwtAuthGuard)
+  @Post('paypal/release/:matchId')
+  async releasePayPalPayment(
+    @Param('matchId') matchId: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    await this.paymentsService.capturePayPalPayment(matchId, req.user.userId);
+    return { success: true, message: 'Pago PayPal liberado correctamente' };
+  }
+
+  // Webhook de PayPal (sin auth, usa verificación de PayPal)
+  @Post('paypal/webhook')
+  async handlePayPalWebhook(
+    @Headers('paypal-transmission-id') transmissionId: string,
+    @Headers('paypal-transmission-time') transmissionTime: string,
+    @Headers('paypal-transmission-sig') transmissionSig: string,
+    @Headers('paypal-cert-url') certUrl: string,
+    @Headers('paypal-auth-algo') authAlgo: string,
+    @Body() event: { event_type: string; resource: Record<string, unknown> },
+  ) {
+    // En producción, verificar la firma del webhook
+    // Por ahora, procesamos el evento directamente
+    const webhookId = this.configService.get<string>('PAYPAL_WEBHOOK_ID');
+
+    if (!webhookId) {
+      this.logger.warn(
+        'PAYPAL_WEBHOOK_ID not configured - skipping webhook verification',
+      );
+    } else {
+      // TODO: Implement webhook signature verification
+      this.logger.log(
+        `PayPal webhook headers: ${JSON.stringify({
+          transmissionId,
+          transmissionTime,
+          authAlgo,
+          certUrl: certUrl?.substring(0, 50),
+        })}`,
+      );
+    }
+
+    try {
+      await this.paymentsService.handlePayPalWebhook(
+        event as {
+          event_type: string;
+          resource: {
+            id?: string;
+            supplementary_data?: { related_ids?: { order_id?: string } };
+            status?: string;
+          };
+        },
+      );
+      return { received: true };
+    } catch (err) {
+      this.logger.error(
+        'PayPal webhook error',
         err instanceof Error ? err.stack : String(err),
       );
       throw err;

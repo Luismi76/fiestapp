@@ -923,7 +923,7 @@ export interface AdminUsersResponse extends PaginatedResponse {
   users: AdminUser[];
 }
 
-export interface AdminExperiencesResponse extends PaginatedResponse<AdminExperience> {
+export interface AdminExperiencesResponse extends PaginatedResponse {
   experiences: AdminExperience[];
 }
 
@@ -944,7 +944,7 @@ export interface Report {
   reportedEntity?: unknown;
 }
 
-export interface ReportsResponse extends PaginatedResponse<Report> {
+export interface ReportsResponse extends PaginatedResponse {
   reports: Report[];
 }
 
@@ -1208,7 +1208,7 @@ export interface AdminUserAdvanced extends AdminUser {
   };
 }
 
-export interface AdminUsersAdvancedResponse extends PaginatedResponse<AdminUserAdvanced> {
+export interface AdminUsersAdvancedResponse extends PaginatedResponse {
   users: AdminUserAdvanced[];
 }
 

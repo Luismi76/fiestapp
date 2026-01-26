@@ -10,7 +10,7 @@ import { AuditService } from '../audit/audit.service';
 import { CreateReportDto } from './dto/create-report.dto';
 
 // Interfaces para entidades reportadas
-interface ReportedUser {
+export interface ReportedUser {
   id: string;
   name: string;
   email: string;
@@ -19,7 +19,7 @@ interface ReportedUser {
   bannedAt: Date | null;
 }
 
-interface ReportedExperience {
+export interface ReportedExperience {
   id: string;
   title: string;
   city: string;
@@ -27,7 +27,7 @@ interface ReportedExperience {
   host: { id: string; name: string };
 }
 
-interface ReportedMatch {
+export interface ReportedMatch {
   id: string;
   status: string;
   experience: { title: string };
@@ -35,7 +35,11 @@ interface ReportedMatch {
   requester: { id: string; name: string };
 }
 
-type ReportedEntity = ReportedUser | ReportedExperience | ReportedMatch | null;
+export type ReportedEntity =
+  | ReportedUser
+  | ReportedExperience
+  | ReportedMatch
+  | null;
 
 // Templates de respuesta para admins
 export const RESPONSE_TEMPLATES = {

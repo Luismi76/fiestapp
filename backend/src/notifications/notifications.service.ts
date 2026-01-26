@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ChatGateway } from '../chat/chat.gateway';
 import {
   CreateNotificationDto,
   NotificationListResponseDto,
@@ -11,13 +12,19 @@ import {
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(NotificationsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => ChatGateway))
+    private chatGateway: ChatGateway,
+  ) {}
 
   /**
-   * Crea una nueva notificación para un usuario
+   * Crea una nueva notificación para un usuario y la emite en tiempo real
    */
   async create(dto: CreateNotificationDto) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId: dto.userId,
         type: dto.type,
@@ -26,6 +33,44 @@ export class NotificationsService {
         data: dto.data as Prisma.InputJsonValue | undefined,
       },
     });
+
+    // Emit notification in real-time via WebSocket
+    try {
+      this.emitNotification(dto.userId, {
+        id: notification.id,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        data: notification.data,
+        read: notification.read,
+        createdAt: notification.createdAt,
+      });
+    } catch (error) {
+      this.logger.warn(`Failed to emit real-time notification: ${error}`);
+    }
+
+    return notification;
+  }
+
+  /**
+   * Emite una notificación en tiempo real via WebSocket
+   */
+  private emitNotification(
+    userId: string,
+    notification: {
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      data: unknown;
+      read: boolean;
+      createdAt: Date;
+    },
+  ) {
+    this.chatGateway.notifyUser(userId, 'notification', notification);
+    this.logger.log(
+      `Emitted real-time notification to user ${userId}: ${notification.type}`,
+    );
   }
 
   /**

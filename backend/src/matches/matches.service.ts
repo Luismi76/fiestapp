@@ -15,6 +15,8 @@ import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PushService } from '../notifications/push.service';
 import { PricingService } from '../experiences/pricing.service';
+import { CancellationsService } from '../cancellations/cancellations.service';
+import { EmailService } from '../email/email.service';
 
 // Helper para parsear fechas correctamente evitando problemas de zona horaria
 function parseDate(dateStr: string | undefined | null): Date | null {
@@ -40,6 +42,8 @@ export class MatchesService {
     private notificationsService: NotificationsService,
     private pushService: PushService,
     private pricingService: PricingService,
+    private cancellationsService: CancellationsService,
+    private emailService: EmailService,
   ) {}
 
   // Crear solicitud de match
@@ -739,9 +743,20 @@ export class MatchesService {
   }
 
   // Cancelar match (solo requester si está pending, ambos si está accepted)
-  async cancel(id: string, userId: string) {
+  async cancel(id: string, userId: string, reason?: string) {
     const match = await this.prisma.match.findUnique({
       where: { id },
+      include: {
+        experience: {
+          select: {
+            title: true,
+            city: true,
+            cancellationPolicy: true,
+          },
+        },
+        host: { select: { id: true, name: true, email: true } },
+        requester: { select: { id: true, name: true, email: true } },
+      },
     });
 
     if (!match) {
@@ -768,10 +783,94 @@ export class MatchesService {
       throw new BadRequestException('Esta solicitud no se puede cancelar');
     }
 
-    return this.prisma.match.update({
+    const isHost = userId === match.hostId;
+    const cancelledByHost = isHost;
+
+    // Calcular reembolso si hay pago y fecha de inicio
+    let refundAmount = 0;
+    let refundPercentage = 0;
+
+    if (match.status === 'accepted' && match.totalPrice && match.startDate) {
+      // Si el host cancela, reembolso total al viajero
+      if (cancelledByHost) {
+        refundPercentage = 100;
+        refundAmount = match.totalPrice;
+      } else {
+        // Si el viajero cancela, aplicar política de cancelación
+        const refundCalc = this.cancellationsService.calculateRefund(
+          match.experience.cancellationPolicy,
+          match.totalPrice,
+          match.startDate,
+        );
+        refundAmount = refundCalc.refundAmount;
+        refundPercentage = refundCalc.refundPercentage;
+
+        // Registrar cancelación en base de datos
+        await this.cancellationsService.recordCancellation(
+          id,
+          userId,
+          reason,
+          refundCalc,
+        );
+      }
+
+      // Procesar reembolso al wallet del viajero si hay monto
+      if (refundAmount > 0) {
+        await this.walletService.addBalance(
+          match.requesterId,
+          refundAmount,
+          `Reembolso por cancelación: ${match.experience.title}`,
+          id,
+        );
+      }
+    }
+
+    // Actualizar estado del match
+    const updatedMatch = await this.prisma.match.update({
       where: { id },
-      data: { status: MatchStatus.CANCELLED },
+      data: {
+        status: MatchStatus.CANCELLED,
+        paymentStatus: refundAmount > 0 ? 'refunded' : match.paymentStatus,
+      },
     });
+
+    // Notificar a la otra parte
+    const otherUserId = isHost ? match.requesterId : match.hostId;
+    const otherUser = isHost ? match.requester : match.host;
+    const cancelledByName = isHost ? match.host.name : match.requester.name;
+
+    // Enviar notificación in-app
+    await this.notificationsService.create({
+      userId: otherUserId,
+      type: 'match_cancelled',
+      title: 'Reserva cancelada',
+      message: `${cancelledByName} ha cancelado la reserva para "${match.experience.title}"`,
+      data: {
+        matchId: id,
+        refundAmount,
+        refundPercentage,
+      },
+    });
+
+    // Enviar email de cancelación
+    await this.emailService.sendMatchCancelledEmail(
+      otherUser.email,
+      otherUser.name,
+      cancelledByName,
+      match.experience.title,
+      match.experience.city,
+      match.startDate || new Date(),
+      cancelledByHost,
+      reason,
+      refundAmount,
+      refundPercentage,
+    );
+
+    return {
+      ...updatedMatch,
+      refundAmount,
+      refundPercentage,
+    };
   }
 
   // Confirmar experiencia completada (sistema bidireccional)

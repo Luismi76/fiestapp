@@ -32,6 +32,10 @@ import { SentryModule } from './sentry/sentry.module';
 import { SentryExceptionFilter } from './sentry/sentry-exception.filter';
 import { EmailModule } from './email/email.module';
 import { SearchModule } from './search/search.module';
+import { CancellationsModule } from './cancellations/cancellations.module';
+import { DisputesModule } from './disputes/disputes.module';
+import { VerificationModule } from './verification/verification.module';
+import { CurrencyModule } from './currency/currency.module';
 
 @Module({
   imports: [
@@ -82,6 +86,10 @@ import { SearchModule } from './search/search.module';
     CacheConfigModule,
     SentryModule,
     SearchModule,
+    CancellationsModule,
+    DisputesModule,
+    VerificationModule,
+    CurrencyModule,
   ],
   controllers: [AppController],
   providers: [

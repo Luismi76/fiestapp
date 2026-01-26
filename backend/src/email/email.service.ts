@@ -3,6 +3,22 @@ import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { Resend } from 'resend';
+import {
+  getMatchRequestTemplate,
+  getMatchAcceptedTemplate,
+  getMatchRejectedTemplate,
+  getMatchCancelledTemplate,
+  getMatchCompletedTemplate,
+  getDisputeOpenedTemplate,
+  getDisputeMessageTemplate,
+  getDisputeResolvedTemplate,
+  getWalletChargedTemplate,
+  getWalletLowBalanceTemplate,
+  getPaymentReceiptTemplate,
+  getPayoutProcessedTemplate,
+  getReviewRequestTemplate,
+  getReviewReceivedTemplate,
+} from './templates';
 
 @Injectable()
 export class EmailService {
@@ -388,5 +404,478 @@ export class EmailService {
 </body>
 </html>
     `.trim();
+  }
+
+  // ============================================
+  // MATCH EMAILS
+  // ============================================
+
+  async sendMatchRequestEmail(
+    hostEmail: string,
+    hostName: string,
+    requesterName: string,
+    experienceTitle: string,
+    experienceCity: string,
+    startDate: Date,
+    participants: number,
+    totalPrice: number,
+    matchId: string,
+    currency: string = 'EUR',
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const matchUrl = `${frontendUrl}/matches/${matchId}`;
+
+    const html = getMatchRequestTemplate({
+      hostName,
+      requesterName,
+      experienceTitle,
+      experienceCity,
+      startDate,
+      participants,
+      totalPrice,
+      currency,
+      matchUrl,
+    });
+
+    return this.sendEmail(
+      hostEmail,
+      `Nueva solicitud de ${requesterName} para ${experienceTitle}`,
+      html,
+    );
+  }
+
+  async sendMatchAcceptedEmail(
+    requesterEmail: string,
+    requesterName: string,
+    hostName: string,
+    experienceTitle: string,
+    experienceCity: string,
+    startDate: Date,
+    totalPrice: number,
+    matchId: string,
+    currency: string = 'EUR',
+    meetingPoint?: string,
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const matchUrl = `${frontendUrl}/matches/${matchId}`;
+    const chatUrl = `${frontendUrl}/messages?match=${matchId}`;
+
+    const html = getMatchAcceptedTemplate({
+      requesterName,
+      hostName,
+      experienceTitle,
+      experienceCity,
+      startDate,
+      meetingPoint,
+      totalPrice,
+      currency,
+      matchUrl,
+      chatUrl,
+    });
+
+    return this.sendEmail(
+      requesterEmail,
+      `¡Reserva confirmada! ${experienceTitle} con ${hostName}`,
+      html,
+    );
+  }
+
+  async sendMatchRejectedEmail(
+    requesterEmail: string,
+    requesterName: string,
+    hostName: string,
+    experienceTitle: string,
+    experienceCity: string,
+    startDate: Date,
+    reason?: string,
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const searchUrl = `${frontendUrl}/experiences?city=${encodeURIComponent(experienceCity)}`;
+
+    const html = getMatchRejectedTemplate({
+      requesterName,
+      hostName,
+      experienceTitle,
+      experienceCity,
+      startDate,
+      reason,
+      searchUrl,
+    });
+
+    return this.sendEmail(
+      requesterEmail,
+      `Actualización de tu solicitud para ${experienceTitle}`,
+      html,
+    );
+  }
+
+  async sendMatchCancelledEmail(
+    userEmail: string,
+    userName: string,
+    otherPartyName: string,
+    experienceTitle: string,
+    experienceCity: string,
+    startDate: Date,
+    cancelledByHost: boolean,
+    reason?: string,
+    refundAmount?: number,
+    refundPercentage?: number,
+    currency: string = 'EUR',
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const walletUrl = `${frontendUrl}/wallet`;
+    const searchUrl = `${frontendUrl}/experiences`;
+
+    const html = getMatchCancelledTemplate({
+      userName,
+      otherPartyName,
+      experienceTitle,
+      experienceCity,
+      startDate,
+      cancelledByHost,
+      reason,
+      refundAmount,
+      refundPercentage,
+      currency,
+      walletUrl,
+      searchUrl,
+    });
+
+    return this.sendEmail(
+      userEmail,
+      `Reserva cancelada: ${experienceTitle}`,
+      html,
+    );
+  }
+
+  async sendMatchCompletedEmail(
+    userEmail: string,
+    userName: string,
+    otherPartyName: string,
+    experienceTitle: string,
+    experienceCity: string,
+    startDate: Date,
+    isHost: boolean,
+    matchId: string,
+    earnedAmount?: number,
+    currency: string = 'EUR',
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const reviewUrl = `${frontendUrl}/matches/${matchId}/review`;
+
+    const html = getMatchCompletedTemplate({
+      userName,
+      otherPartyName,
+      experienceTitle,
+      experienceCity,
+      startDate,
+      isHost,
+      reviewUrl,
+      earnedAmount,
+      currency,
+    });
+
+    return this.sendEmail(
+      userEmail,
+      `¡Experiencia completada! ${experienceTitle}`,
+      html,
+    );
+  }
+
+  // ============================================
+  // DISPUTE EMAILS
+  // ============================================
+
+  async sendDisputeOpenedEmail(
+    userEmail: string,
+    userName: string,
+    isOpener: boolean,
+    disputeId: string,
+    experienceTitle: string,
+    otherPartyName: string,
+    reason: string,
+    description: string,
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const disputeUrl = `${frontendUrl}/disputes/${disputeId}`;
+
+    const html = getDisputeOpenedTemplate({
+      userName,
+      isOpener,
+      disputeId,
+      experienceTitle,
+      otherPartyName,
+      reason,
+      description,
+      disputeUrl,
+    });
+
+    const subject = isOpener
+      ? `Disputa registrada #${disputeId.slice(0, 8).toUpperCase()}`
+      : `Se ha abierto una disputa contigo #${disputeId.slice(0, 8).toUpperCase()}`;
+
+    return this.sendEmail(userEmail, subject, html);
+  }
+
+  async sendDisputeMessageEmail(
+    userEmail: string,
+    userName: string,
+    senderName: string,
+    isAdmin: boolean,
+    disputeId: string,
+    messagePreview: string,
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const disputeUrl = `${frontendUrl}/disputes/${disputeId}`;
+
+    const html = getDisputeMessageTemplate({
+      userName,
+      senderName,
+      isAdmin,
+      disputeId,
+      messagePreview,
+      disputeUrl,
+    });
+
+    const sender = isAdmin ? 'el equipo de FiestApp' : senderName;
+    return this.sendEmail(
+      userEmail,
+      `Nuevo mensaje de ${sender} en tu disputa`,
+      html,
+    );
+  }
+
+  async sendDisputeResolvedEmail(
+    userEmail: string,
+    userName: string,
+    disputeId: string,
+    experienceTitle: string,
+    resolution:
+      | 'RESOLVED_REFUND'
+      | 'RESOLVED_PARTIAL_REFUND'
+      | 'RESOLVED_NO_REFUND'
+      | 'CLOSED',
+    resolutionDescription: string,
+    refundAmount?: number,
+    refundPercentage?: number,
+    currency: string = 'EUR',
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const disputeUrl = `${frontendUrl}/disputes/${disputeId}`;
+    const walletUrl = `${frontendUrl}/wallet`;
+
+    const html = getDisputeResolvedTemplate({
+      userName,
+      disputeId,
+      experienceTitle,
+      resolution,
+      resolutionDescription,
+      refundAmount,
+      refundPercentage,
+      currency,
+      disputeUrl,
+      walletUrl,
+    });
+
+    return this.sendEmail(
+      userEmail,
+      `Disputa #${disputeId.slice(0, 8).toUpperCase()} resuelta`,
+      html,
+    );
+  }
+
+  // ============================================
+  // WALLET EMAILS
+  // ============================================
+
+  async sendWalletChargedEmail(
+    userEmail: string,
+    userName: string,
+    amount: number,
+    transactionType: 'topup' | 'earnings' | 'refund',
+    description: string,
+    newBalance: number,
+    currency: string = 'EUR',
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const walletUrl = `${frontendUrl}/wallet`;
+
+    const html = getWalletChargedTemplate({
+      userName,
+      amount,
+      currency,
+      transactionType,
+      description,
+      newBalance,
+      walletUrl,
+    });
+
+    const typeLabels = {
+      topup: 'Recarga de saldo',
+      earnings: 'Ingresos recibidos',
+      refund: 'Reembolso recibido',
+    };
+
+    return this.sendEmail(
+      userEmail,
+      `${typeLabels[transactionType]} - FiestApp`,
+      html,
+    );
+  }
+
+  async sendWalletLowBalanceEmail(
+    userEmail: string,
+    userName: string,
+    currentBalance: number,
+    threshold: number,
+    currency: string = 'EUR',
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const topupUrl = `${frontendUrl}/wallet/topup`;
+
+    const html = getWalletLowBalanceTemplate({
+      userName,
+      currentBalance,
+      currency,
+      threshold,
+      topupUrl,
+    });
+
+    return this.sendEmail(userEmail, 'Tu saldo en FiestApp está bajo', html);
+  }
+
+  async sendPaymentReceiptEmail(
+    userEmail: string,
+    userName: string,
+    transactionId: string,
+    amount: number,
+    paymentMethod: 'stripe' | 'paypal' | 'wallet',
+    experienceTitle: string,
+    experienceCity: string,
+    startDate: Date,
+    hostName: string,
+    matchId: string,
+    currency: string = 'EUR',
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const matchUrl = `${frontendUrl}/matches/${matchId}`;
+
+    const html = getPaymentReceiptTemplate({
+      userName,
+      transactionId,
+      amount,
+      currency,
+      paymentMethod,
+      experienceTitle,
+      experienceCity,
+      startDate,
+      hostName,
+      matchUrl,
+    });
+
+    return this.sendEmail(userEmail, 'Recibo de pago - FiestApp', html);
+  }
+
+  async sendPayoutProcessedEmail(
+    hostEmail: string,
+    hostName: string,
+    amount: number,
+    experienceCount: number,
+    estimatedArrival: string,
+    currency: string = 'EUR',
+    bankLast4?: string,
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const walletUrl = `${frontendUrl}/wallet`;
+
+    const html = getPayoutProcessedTemplate({
+      hostName,
+      amount,
+      currency,
+      experienceCount,
+      bankLast4,
+      estimatedArrival,
+      walletUrl,
+    });
+
+    return this.sendEmail(
+      hostEmail,
+      'Retiro de fondos procesado - FiestApp',
+      html,
+    );
+  }
+
+  // ============================================
+  // REVIEW EMAILS
+  // ============================================
+
+  async sendReviewRequestEmail(
+    userEmail: string,
+    userName: string,
+    otherPartyName: string,
+    isHost: boolean,
+    experienceTitle: string,
+    experienceCity: string,
+    experienceDate: Date,
+    matchId: string,
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const reviewUrl = `${frontendUrl}/matches/${matchId}/review`;
+
+    const html = getReviewRequestTemplate({
+      userName,
+      otherPartyName,
+      isHost,
+      experienceTitle,
+      experienceCity,
+      experienceDate,
+      reviewUrl,
+    });
+
+    return this.sendEmail(userEmail, `¿Qué tal fue ${experienceTitle}?`, html);
+  }
+
+  async sendReviewReceivedEmail(
+    userEmail: string,
+    userName: string,
+    reviewerName: string,
+    rating: number,
+    comment: string,
+    experienceTitle: string,
+    reviewId: string,
+    canRespond: boolean = true,
+  ): Promise<boolean> {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const reviewUrl = `${frontendUrl}/reviews/${reviewId}`;
+
+    const html = getReviewReceivedTemplate({
+      userName,
+      reviewerName,
+      rating,
+      comment,
+      experienceTitle,
+      reviewUrl,
+      canRespond,
+    });
+
+    return this.sendEmail(
+      userEmail,
+      `${reviewerName} te ha dejado una reseña`,
+      html,
+    );
   }
 }

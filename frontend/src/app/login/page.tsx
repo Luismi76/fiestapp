@@ -41,27 +41,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header with gradient */}
-      <div className="relative bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 pt-12 pb-32">
-        {/* Decorative circles */}
-        <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-        <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 flex items-center justify-center p-4">
+      {/* Decorative circles */}
+      <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+      <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl" />
+      <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
 
-        {/* Back button */}
-        <Link
-          href="/"
-          className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-full text-white"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-          </svg>
-        </Link>
+      {/* Back button */}
+      <Link
+        href="/"
+        className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+        </svg>
+      </Link>
 
+      {/* Main Card */}
+      <div className="w-full max-w-md relative z-10">
         {/* Logo and title */}
-        <div className="text-center text-white relative z-10">
-          <div className="w-20 h-20 mx-auto mb-4 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10">
+        <div className="text-center text-white mb-8">
+          <div className="w-16 h-16 mx-auto mb-4 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
               <path d="M15.75 8.25a.75.75 0 0 1 .75.75c0 1.12-.492 2.126-1.27 2.812a.75.75 0 1 1-.992-1.124A2.243 2.243 0 0 0 15 9a.75.75 0 0 1 .75-.75Z" />
               <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM4.575 15.6a8.25 8.25 0 0 0 9.348 4.425 1.966 1.966 0 0 0-1.84-1.275.983.983 0 0 1-.97-.822l-.073-.437c-.094-.565.25-1.11.8-1.267l.99-.282c.427-.123.783-.418.982-.816l.036-.073a1.453 1.453 0 0 1 2.328-.377L16.5 15h.628a2.25 2.25 0 0 1 1.983 1.186 8.25 8.25 0 0 0-6.345-12.4c.044.262.18.503.389.676l1.068.89c.442.369.535 1.01.216 1.49l-.51.766a2.25 2.25 0 0 1-1.161.886l-.143.048a1.107 1.107 0 0 0-.57 1.664c.369.555.169 1.307-.427 1.605L9 13.125l.423 1.059a.956.956 0 0 1-1.652.928l-.679-.906a1.125 1.125 0 0 0-1.906.172L4.575 15.6Z" clipRule="evenodd" />
             </svg>
@@ -69,11 +70,9 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold mb-1">Bienvenido a FiestApp</h1>
           <p className="text-white/70 text-sm">Inicia sesión para continuar</p>
         </div>
-      </div>
 
-      {/* Form Card - overlapping header */}
-      <div className="px-4 -mt-24 pb-8 relative z-10">
-        <div className="bg-white rounded-3xl p-6 shadow-xl">
+        {/* Form Card */}
+        <div className="bg-white rounded-3xl p-6 shadow-2xl">
           {/* Error */}
           {error && (
             <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl mb-6 text-sm flex items-center gap-2">
@@ -202,11 +201,11 @@ export default function LoginPage() {
         </div>
 
         {/* Footer text */}
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-white/60 mt-6">
           Al continuar, aceptas nuestros{' '}
-          <Link href="/terms" className="text-blue-600 hover:underline">Términos</Link>
+          <Link href="/terms" className="text-white/80 hover:underline">Términos</Link>
           {' '}y{' '}
-          <Link href="/privacy" className="text-blue-600 hover:underline">Privacidad</Link>
+          <Link href="/privacy" className="text-white/80 hover:underline">Privacidad</Link>
         </p>
       </div>
     </div>

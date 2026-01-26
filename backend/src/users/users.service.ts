@@ -379,6 +379,230 @@ export class UsersService {
     };
   }
 
+  // Obtener analytics avanzados para hosts
+  async getHostAnalytics(userId: string) {
+    const now = new Date();
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    // Revenue from completed matches
+    const [revenueThisMonth, revenueLastMonth, totalRevenue] =
+      await Promise.all([
+        this.prisma.transaction.aggregate({
+          where: {
+            match: { hostId: userId },
+            type: 'payment',
+            status: 'released',
+            createdAt: { gte: thisMonth },
+          },
+          _sum: { amount: true },
+        }),
+        this.prisma.transaction.aggregate({
+          where: {
+            match: { hostId: userId },
+            type: 'payment',
+            status: 'released',
+            createdAt: { gte: lastMonth, lt: thisMonth },
+          },
+          _sum: { amount: true },
+        }),
+        this.prisma.transaction.aggregate({
+          where: {
+            match: { hostId: userId },
+            type: 'payment',
+            status: 'released',
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+
+    const thisMonthRevenue = revenueThisMonth._sum.amount || 0;
+    const lastMonthRevenue = revenueLastMonth._sum.amount || 0;
+    const revenueGrowth =
+      lastMonthRevenue > 0
+        ? Math.round(
+            ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100,
+          )
+        : thisMonthRevenue > 0
+          ? 100
+          : 0;
+
+    // Bookings stats
+    const [
+      totalBookings,
+      pendingBookings,
+      completedBookings,
+      acceptedBookings,
+    ] = await Promise.all([
+      this.prisma.match.count({ where: { hostId: userId } }),
+      this.prisma.match.count({ where: { hostId: userId, status: 'pending' } }),
+      this.prisma.match.count({
+        where: { hostId: userId, status: 'completed' },
+      }),
+      this.prisma.match.count({
+        where: { hostId: userId, status: 'accepted' },
+      }),
+    ]);
+
+    const conversionRate =
+      totalBookings > 0
+        ? Math.round(
+            ((completedBookings + acceptedBookings) / totalBookings) * 100,
+          )
+        : 0;
+
+    // Reviews stats
+    const reviews = await this.prisma.review.findMany({
+      where: { targetId: userId },
+      select: { rating: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const avgRating =
+      reviews.length > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+        : 0;
+
+    const distribution = [0, 0, 0, 0, 0]; // 1-5 stars
+    reviews.forEach((r) => {
+      if (r.rating >= 1 && r.rating <= 5) {
+        distribution[r.rating - 1]++;
+      }
+    });
+
+    // Recent reviews trend (last 3 months vs previous 3 months)
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const recentReviews = reviews.filter((r) => r.createdAt >= threeMonthsAgo);
+    const olderReviews = reviews.filter(
+      (r) => r.createdAt >= sixMonthsAgo && r.createdAt < threeMonthsAgo,
+    );
+
+    const recentAvg =
+      recentReviews.length > 0
+        ? recentReviews.reduce((sum, r) => sum + r.rating, 0) /
+          recentReviews.length
+        : 0;
+    const olderAvg =
+      olderReviews.length > 0
+        ? olderReviews.reduce((sum, r) => sum + r.rating, 0) /
+          olderReviews.length
+        : 0;
+
+    const reviewTrend = recentAvg - olderAvg;
+
+    // Top experiences
+    const topExperiences = await this.prisma.experience.findMany({
+      where: { hostId: userId, published: true },
+      include: {
+        _count: { select: { matches: true } },
+        reviews: { select: { rating: true } },
+      },
+      take: 5,
+    });
+
+    const topExperiencesData = topExperiences
+      .map((exp) => ({
+        id: exp.id,
+        title: exp.title,
+        bookings: exp._count.matches,
+        rating:
+          exp.reviews.length > 0
+            ? exp.reviews.reduce((sum, r) => sum + r.rating, 0) /
+              exp.reviews.length
+            : 0,
+      }))
+      .sort((a, b) => b.bookings - a.bookings);
+
+    return {
+      revenue: {
+        total: totalRevenue._sum.amount || 0,
+        thisMonth: thisMonthRevenue,
+        lastMonth: lastMonthRevenue,
+        growth: revenueGrowth,
+      },
+      bookings: {
+        total: totalBookings,
+        pending: pendingBookings,
+        completed: completedBookings,
+        conversionRate,
+      },
+      reviews: {
+        average: Math.round(avgRating * 10) / 10,
+        total: reviews.length,
+        distribution,
+        trend: Math.round(reviewTrend * 10) / 10,
+      },
+      topExperiences: topExperiencesData,
+    };
+  }
+
+  // Obtener datos de ingresos para gráfico
+  async getRevenueChart(userId: string, months: number = 6) {
+    const data: { month: string; revenue: number }[] = [];
+    const now = new Date();
+
+    for (let i = months - 1; i >= 0; i--) {
+      const startDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+
+      const revenue = await this.prisma.transaction.aggregate({
+        where: {
+          match: { hostId: userId },
+          type: 'payment',
+          status: 'released',
+          createdAt: { gte: startDate, lte: endDate },
+        },
+        _sum: { amount: true },
+      });
+
+      data.push({
+        month: startDate.toLocaleDateString('es-ES', { month: 'short' }),
+        revenue: revenue._sum.amount || 0,
+      });
+    }
+
+    return data;
+  }
+
+  // Obtener datos de reservas para gráfico
+  async getBookingsChart(userId: string, months: number = 6) {
+    const data: { month: string; total: number; completed: number }[] = [];
+    const now = new Date();
+
+    for (let i = months - 1; i >= 0; i--) {
+      const startDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const endDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+
+      const [total, completed] = await Promise.all([
+        this.prisma.match.count({
+          where: {
+            hostId: userId,
+            createdAt: { gte: startDate, lte: endDate },
+          },
+        }),
+        this.prisma.match.count({
+          where: {
+            hostId: userId,
+            status: 'completed',
+            createdAt: { gte: startDate, lte: endDate },
+          },
+        }),
+      ]);
+
+      data.push({
+        month: startDate.toLocaleDateString('es-ES', { month: 'short' }),
+        total,
+        completed,
+      });
+    }
+
+    return data;
+  }
+
   // Bloquear usuario
   async blockUser(blockerId: string, blockedId: string, reason?: string) {
     if (blockerId === blockedId) {

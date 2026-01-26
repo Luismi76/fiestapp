@@ -13,7 +13,7 @@ import { MatchesService } from './matches.service';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { SendMessageDto } from './dto/update-match.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('matches')
 @UseGuards(JwtAuthGuard)
@@ -84,8 +84,12 @@ export class MatchesController {
 
   // Cancelar solicitud
   @Patch(':id/cancel')
-  cancel(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    return this.matchesService.cancel(id, req.user.userId);
+  cancel(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @Body('reason') reason?: string,
+  ) {
+    return this.matchesService.cancel(id, req.user.userId, reason);
   }
 
   // Marcar como completado (legacy - solo host)

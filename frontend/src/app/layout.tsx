@@ -8,6 +8,7 @@ import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import AppWrapper from "@/components/AppWrapper";
 import InstallPrompt from "@/components/InstallPrompt";
+import RealtimeNotifications from "@/components/RealtimeNotifications";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -71,6 +72,7 @@ export default function RootLayout({
         <SkipLink />
         <AuthProvider>
           <ToastProvider>
+            <RealtimeNotifications />
             <AppWrapper>
               {children}
             </AppWrapper>

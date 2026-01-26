@@ -101,13 +101,17 @@ export default function StatsPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 h-14 lg:h-16 max-w-5xl mx-auto">
-          <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center md:hidden">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </button>
-          <h1 className="font-semibold text-gray-900 md:text-xl">Mis estadísticas</h1>
-          <div className="w-10 md:hidden" />
+          <div className="flex items-center">
+            <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center md:hidden">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+              </svg>
+            </button>
+            <h1 className="font-semibold text-gray-900 md:text-xl">Mis estadisticas</h1>
+          </div>
+          <Link href="/stats/analytics" className="text-sm text-primary font-medium hover:text-primary/80">
+            Ver analytics
+          </Link>
         </div>
       </header>
 
