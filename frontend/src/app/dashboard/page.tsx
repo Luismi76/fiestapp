@@ -9,6 +9,7 @@ import { Experience } from '@/types/experience';
 import { Match } from '@/types/match';
 import { getUploadUrl, getAvatarUrl } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import logger from '@/lib/logger';
 
 // Icons with festive styling
 const MessageIcon = () => (
@@ -82,7 +83,7 @@ export default function DashboardPage() {
         setReceivedMatches(receivedRes || []);
         setSentMatches(sentRes || []);
       } catch (err) {
-        console.error('Error loading dashboard:', err);
+        logger.error('Error loading dashboard:', err);
       } finally {
         setLoading(false);
       }

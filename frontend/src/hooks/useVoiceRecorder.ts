@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import logger from '@/lib/logger';
 
 type RecorderState = 'idle' | 'recording' | 'processing';
 
@@ -32,15 +33,17 @@ export function useVoiceRecorder({
   const chunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const stopRef = useRef<() => void>(() => {});
   const startTimeRef = useRef<number>(0);
 
-  // Check browser support
+  // Check browser support - valid initialization pattern
   useEffect(() => {
     const supported =
       typeof window !== 'undefined' &&
       navigator.mediaDevices &&
       typeof navigator.mediaDevices.getUserMedia === 'function' &&
       typeof MediaRecorder !== 'undefined';
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsSupported(supported);
   }, []);
 
@@ -136,11 +139,11 @@ export function useVoiceRecorder({
         setDuration(elapsed);
 
         if (elapsed >= maxDuration) {
-          stop();
+          stopRef.current();
         }
       }, 100);
     } catch (error) {
-      console.error('Error starting recording:', error);
+      logger.error('Error starting recording:', error);
       if (error instanceof DOMException) {
         if (error.name === 'NotAllowedError') {
           onError?.(
@@ -176,6 +179,11 @@ export function useVoiceRecorder({
 
     mediaRecorderRef.current.stop();
   }, [state]);
+
+  // Keep stopRef updated so start callback can access latest stop
+  useEffect(() => {
+    stopRef.current = stop;
+  }, [stop]);
 
   const cancel = useCallback(() => {
     if (state !== 'recording') return;

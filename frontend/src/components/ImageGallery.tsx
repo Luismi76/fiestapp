@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { OptimizedImage } from '@/components/OptimizedImage';
 
 interface ImageGalleryProps {
   images: string[];
@@ -158,10 +159,12 @@ export default function ImageGallery({
           className="absolute inset-0 cursor-pointer"
           onClick={() => setIsLightboxOpen(true)}
         >
-          <img
+          <OptimizedImage
             src={images[currentIndex]}
             alt={`${alt} ${currentIndex + 1}`}
-            className="w-full h-full object-cover"
+            fill
+            preset="galleryMain"
+            priority
           />
         </div>
 
@@ -313,16 +316,17 @@ export default function ImageGallery({
                 <button
                   key={index}
                   onClick={() => setCurrentIndex(index)}
-                  className={`w-14 h-14 rounded-lg overflow-hidden transition-all ${
+                  className={`w-14 h-14 rounded-lg overflow-hidden transition-all relative ${
                     index === currentIndex
                       ? 'ring-2 ring-white'
                       : 'opacity-50 hover:opacity-75'
                   }`}
                 >
-                  <img
+                  <OptimizedImage
                     src={img}
                     alt={`Thumbnail ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    fill
+                    preset="galleryThumbnail"
                   />
                 </button>
               ))}

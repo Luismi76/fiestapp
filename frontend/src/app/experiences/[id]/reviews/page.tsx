@@ -8,6 +8,7 @@ import { Review, ReviewStats } from '@/types/review';
 import { ExperienceDetail } from '@/types/experience';
 import { getAvatarUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
+import logger from '@/lib/logger';
 
 const TypeIcon = ({ type, className = "w-6 h-6" }: { type: string; className?: string }) => {
   const icons: Record<string, React.ReactNode> = {
@@ -53,7 +54,7 @@ export default function ExperienceReviewsPage() {
         setStats(reviewsData.stats);
         setTotalPages(reviewsData.meta.totalPages);
       } catch (err) {
-        console.error('Error fetching data:', err);
+        logger.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }

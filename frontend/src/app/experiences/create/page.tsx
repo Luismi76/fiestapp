@@ -13,6 +13,7 @@ import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import FestivalSelector from '@/components/FestivalSelector';
 import CategorySelector from '@/components/CategorySelector';
 import MainLayout from '@/components/MainLayout';
+import logger from '@/lib/logger';
 
 interface FormData {
   title: string;
@@ -288,7 +289,7 @@ export default function CreateExperiencePage() {
         try {
           await uploadsApi.uploadExperiencePhotos(experience.id, pendingPhotos);
         } catch (uploadErr) {
-          console.error('Error uploading photos:', uploadErr);
+          logger.error('Error uploading photos:', uploadErr);
           // Check if it's a 403 error
           if (axios.isAxiosError(uploadErr) && uploadErr.response?.status === 403) {
             setError('Error de permisos al subir fotos. Tu sesión puede haber expirado. La experiencia se creó correctamente, puedes añadir las fotos desde la página de edición.');
@@ -303,7 +304,7 @@ export default function CreateExperiencePage() {
 
       router.push(`/experiences/${experience.id}`);
     } catch (err) {
-      console.error('Error creating experience:', err);
+      logger.error('Error creating experience:', err);
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 401) {
           setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');

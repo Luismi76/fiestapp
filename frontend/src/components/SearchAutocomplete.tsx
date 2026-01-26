@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { searchApi, AutocompleteResult, SearchHistoryItem } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUploadUrl } from '@/lib/utils';
+import logger from '@/lib/logger';
 
 interface SearchAutocompleteProps {
   initialValue?: string;
@@ -53,7 +54,7 @@ export default function SearchAutocomplete({
       const data = await searchApi.getHistory(5);
       setHistory(data);
     } catch (error) {
-      console.error('Error loading search history:', error);
+      logger.error('Error loading search history:', error);
     }
   };
 
@@ -68,7 +69,7 @@ export default function SearchAutocomplete({
       const data = await searchApi.autocomplete(searchQuery);
       setResults(data);
     } catch (error) {
-      console.error('Error searching:', error);
+      logger.error('Error searching:', error);
     } finally {
       setLoading(false);
     }
@@ -93,7 +94,7 @@ export default function SearchAutocomplete({
     if (query.trim()) {
       // Guardar en historial
       if (user) {
-        searchApi.saveSearch(query.trim()).catch(console.error);
+        searchApi.saveSearch(query.trim()).catch((err) => logger.error('Error saving search:', err));
       }
       setIsOpen(false);
       if (onSearch) {
@@ -134,7 +135,7 @@ export default function SearchAutocomplete({
       await searchApi.clearHistory();
       setHistory([]);
     } catch (error) {
-      console.error('Error clearing history:', error);
+      logger.error('Error clearing history:', error);
     }
   };
 
@@ -293,7 +294,7 @@ export default function SearchAutocomplete({
           {/* Sin resultados */}
           {query && !loading && !hasResults && (
             <div className="p-4 text-center text-sm text-gray-500">
-              No se encontraron resultados para "{query}"
+              No se encontraron resultados para &ldquo;{query}&rdquo;
             </div>
           )}
         </div>

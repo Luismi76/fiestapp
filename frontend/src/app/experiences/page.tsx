@@ -5,9 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
 import ExperienceCard from '@/components/ExperienceCard';
+import { ExperienceGridSkeleton } from '@/components/ui/Skeleton';
 import BottomSheet from '@/components/BottomSheet';
 import { experiencesApi, festivalsApi } from '@/lib/api';
-import { Experience, Festival, ExperienceFilters } from '@/types/experience';
+import { Experience, Festival, ExperienceFilters, ExperienceType } from '@/types/experience';
+import logger from '@/lib/logger';
 
 // Icons
 const SearchIcon = () => (
@@ -82,7 +84,7 @@ function ExperiencesContent() {
         setFestivals(festRes || []);
         setCities(citiesRes || []);
       } catch (error) {
-        console.error('Error loading filters:', error);
+        logger.error('Error loading filters:', error);
       }
     };
     loadInitialData();
@@ -100,7 +102,7 @@ function ExperiencesContent() {
       };
 
       if (searchQuery) filters.search = searchQuery;
-      if (selectedType) filters.type = selectedType as any;
+      if (selectedType) filters.type = selectedType as ExperienceType;
       if (selectedFestival) filters.festivalId = selectedFestival;
       if (selectedCity) filters.city = selectedCity;
       if (minPrice) filters.minPrice = Number(minPrice);
@@ -117,7 +119,7 @@ function ExperiencesContent() {
       setTotalResults(response.meta?.total || response.data?.length || 0);
       setHasMore((response.data?.length || 0) === ITEMS_PER_PAGE);
     } catch (error) {
-      console.error('Error loading experiences:', error);
+      logger.error('Error loading experiences:', error);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -238,12 +240,7 @@ function ExperiencesContent() {
         {/* Results */}
         <div className="px-4 md:px-6 lg:px-8">
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="spinner spinner-lg mx-auto mb-4" />
-                <p className="text-[#8B7355]">Buscando experiencias...</p>
-              </div>
-            </div>
+            <ExperienceGridSkeleton count={8} />
           ) : experiences.length === 0 ? (
             <div className="empty-state">
               <div className="text-[#A89880] mb-4">

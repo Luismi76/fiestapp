@@ -32,18 +32,20 @@ export function isCloudinaryUrl(url: string): boolean {
 }
 
 /**
- * Extrae el public_id de una URL de Cloudinary
+ * Extrae el public_id de una URL de Cloudinary (incluyendo extensión)
  */
 export function extractPublicId(url: string): string | null {
   if (!isCloudinaryUrl(url)) return null;
 
   // Formato: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}.{ext}
-  const match = url.match(/\/upload\/(?:v\d+\/)?(.+?)(?:\.[a-zA-Z]+)?$/);
+  // o con transformaciones: .../upload/f_auto,q_auto/{public_id}.{ext}
+  const match = url.match(/\/upload\/(?:v\d+\/)?(?:[a-z_]+[,:][^/]+\/)*(.+)$/);
   return match ? match[1] : null;
 }
 
 /**
  * Genera una URL de Cloudinary optimizada con transformaciones
+ * Inserta las transformaciones en la URL original (preserva el cloud name)
  */
 export function optimizeImage(url: string, options: ImageOptions = {}): string {
   // Si no es una URL de Cloudinary, devolver tal cual
@@ -86,11 +88,10 @@ export function optimizeImage(url: string, options: ImageOptions = {}): string {
   // Blur para placeholders
   if (blur) transformations.push(`e_blur:${blur}`);
 
-  // Construir la URL con transformaciones
-  const publicId = extractPublicId(url);
-  if (!publicId) return url;
-
-  return `${CLOUDINARY_BASE_URL}/upload/${transformations.join(',')}/${publicId}`;
+  // Insertar transformaciones después de /upload/ en la URL original
+  // Esto preserva el cloud name original de la URL
+  const transformStr = transformations.join(',');
+  return url.replace('/upload/', `/upload/${transformStr}/`);
 }
 
 /**

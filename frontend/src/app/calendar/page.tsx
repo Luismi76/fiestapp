@@ -5,6 +5,7 @@ import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
 import { festivalsApi, FestivalByMonth, CalendarFestival } from '@/lib/api';
 import { getUploadUrl } from '@/lib/utils';
+import logger from '@/lib/logger';
 
 // Iconos
 const ChevronLeftIcon = () => (
@@ -82,7 +83,7 @@ export default function CalendarPage() {
       setTypes(typesData);
       setCities(citiesData);
     } catch (error) {
-      console.error('Error loading filters:', error);
+      logger.error('Error loading filters:', error);
     }
   };
 
@@ -96,7 +97,7 @@ export default function CalendarPage() {
       });
       setCalendarData(data);
     } catch (error) {
-      console.error('Error loading calendar:', error);
+      logger.error('Error loading calendar:', error);
     } finally {
       setLoading(false);
     }
@@ -112,7 +113,7 @@ export default function CalendarPage() {
       const { url } = await festivalsApi.getGoogleCalendarUrl(festivalId);
       window.open(url, '_blank');
     } catch (error) {
-      console.error('Error getting Google Calendar URL:', error);
+      logger.error('Error getting Google Calendar URL:', error);
     }
   };
 

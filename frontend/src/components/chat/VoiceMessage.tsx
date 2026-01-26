@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import logger from '@/lib/logger';
 
 interface VoiceMessageProps {
   url: string;
@@ -47,7 +48,7 @@ export default function VoiceMessage({
 
     const handleError = () => {
       setIsLoading(false);
-      console.error('Error loading audio');
+      logger.error('Error loading audio');
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -77,7 +78,7 @@ export default function VoiceMessage({
         await audio.play();
         setIsPlaying(true);
       } catch (error) {
-        console.error('Error playing audio:', error);
+        logger.error('Error playing audio:', error);
       }
     }
   };

@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { cn, getUploadUrl, getAvatarUrl } from '@/lib/utils';
-import { Experience } from '@/types/experience';
+import { cn, getUploadUrl } from '@/lib/utils';
+import { Experience, ExperienceType } from '@/types/experience';
+import { OptimizedImage, OptimizedAvatar } from '@/components/OptimizedImage';
 
 interface ExperienceCardProps {
   experience: Experience;
@@ -11,16 +12,57 @@ interface ExperienceCardProps {
   className?: string;
 }
 
+// Extracted components to avoid recreation during render
+function TypeBadge({ type, price }: { type: ExperienceType; price?: number }) {
+  if (type === 'intercambio') {
+    return <span className="badge badge-intercambio text-[11px]">Intercambio</span>;
+  }
+  if (type === 'pago') {
+    return <span className="badge badge-pago text-[11px]">{price}€</span>;
+  }
+  if (type === 'ambos') {
+    return <span className="badge badge-flexible text-[11px]">Flexible</span>;
+  }
+  return null;
+}
+
+function HostInfo({ host, avatarSrc }: { host: Experience['host']; avatarSrc: string | null }) {
+  if (!host) return null;
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="flex-shrink-0 ring-2 ring-white rounded-full">
+        <OptimizedAvatar
+          src={avatarSrc}
+          name={host.name || '?'}
+          size="sm"
+          className="w-6 h-6"
+        />
+      </div>
+      <span className="text-xs text-[#8B7355] truncate max-w-[80px] font-medium">
+        {host.name?.split(' ')[0]}
+      </span>
+      {host.verified && (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-secondary flex-shrink-0">
+          <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0 1 12 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 0 1 3.498 1.307 4.491 4.491 0 0 1 1.307 3.497A4.49 4.49 0 0 1 21.75 12a4.49 4.49 0 0 1-1.549 3.397 4.491 4.491 0 0 1-1.307 3.497 4.491 4.491 0 0 1-3.497 1.307A4.49 4.49 0 0 1 12 21.75a4.49 4.49 0 0 1-3.397-1.549 4.49 4.49 0 0 1-3.498-1.306 4.491 4.491 0 0 1-1.307-3.498A4.49 4.49 0 0 1 2.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 0 1 1.307-3.497 4.49 4.49 0 0 1 3.497-1.307Zm7.007 6.387a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+        </svg>
+      )}
+    </div>
+  );
+}
+
+function Rating({ avgRating }: { avgRating?: number }) {
+  if (!avgRating || avgRating <= 0) return null;
+  return (
+    <div className="rating">
+      <span className="rating-star">★</span>
+      <span className="text-[#1A1410]">{avgRating.toFixed(1)}</span>
+    </div>
+  );
+}
+
 /**
  * Card de experiencia responsive y optimizada para movil.
  * Diseño "Verbena Digital" - Festivo y vibrante.
- *
- * Variantes:
- * - default: Card vertical con imagen grande (ideal para grids)
- * - compact: Card compacta para grids de 2 columnas
- * - horizontal: Card horizontal para listas
- * - horizontal-compact: Card compacta horizontal para listas móviles
- * - featured: Card destacada para secciones hero
  */
 export default function ExperienceCard({
   experience,
@@ -28,89 +70,24 @@ export default function ExperienceCard({
   showHost = true,
   className,
 }: ExperienceCardProps) {
-  const getImageUrl = () => {
+  const getImageUrl = (): string => {
     if (experience.photos && experience.photos.length > 0) {
       const photo = experience.photos[0];
       if (photo.startsWith('/images/')) return photo;
-      return getUploadUrl(photo);
+      return getUploadUrl(photo) || '/images/placeholder.png';
     }
     return '/images/placeholder.png';
   };
 
-  const getHostAvatarUrl = () => {
+  const getHostAvatarSrc = () => {
     if (experience.host?.avatar) {
       if (experience.host.avatar.startsWith('/images/')) return experience.host.avatar;
-      return getAvatarUrl(experience.host.avatar);
+      return experience.host.avatar;
     }
     return null;
   };
 
-  const TypeBadge = () => {
-    if (experience.type === 'intercambio') {
-      return (
-        <span className="badge badge-intercambio text-[11px]">
-          Intercambio
-        </span>
-      );
-    }
-    if (experience.type === 'pago') {
-      return (
-        <span className="badge badge-pago text-[11px]">
-          {experience.price}€
-        </span>
-      );
-    }
-    if (experience.type === 'ambos') {
-      return (
-        <span className="badge badge-flexible text-[11px]">
-          Flexible
-        </span>
-      );
-    }
-    return null;
-  };
-
-  const HostInfo = () => {
-    if (!showHost || !experience.host) return null;
-    const avatarUrl = getHostAvatarUrl();
-
-    return (
-      <div className="flex items-center gap-1.5">
-        <div className="w-6 h-6 rounded-full overflow-hidden bg-[var(--surface-tile)] flex-shrink-0 ring-2 ring-white">
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt={experience.host.name}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[10px] gradient-sunset text-white font-semibold">
-              {experience.host.name?.charAt(0).toUpperCase()}
-            </div>
-          )}
-        </div>
-        <span className="text-xs text-[#8B7355] truncate max-w-[80px] font-medium">
-          {experience.host.name?.split(' ')[0]}
-        </span>
-        {experience.host.verified && (
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-secondary flex-shrink-0">
-            <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0 1 12 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 0 1 3.498 1.307 4.491 4.491 0 0 1 1.307 3.497A4.49 4.49 0 0 1 21.75 12a4.49 4.49 0 0 1-1.549 3.397 4.491 4.491 0 0 1-1.307 3.497 4.491 4.491 0 0 1-3.497 1.307A4.49 4.49 0 0 1 12 21.75a4.49 4.49 0 0 1-3.397-1.549 4.49 4.49 0 0 1-3.498-1.306 4.491 4.491 0 0 1-1.307-3.498A4.49 4.49 0 0 1 2.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 0 1 1.307-3.497 4.49 4.49 0 0 1 3.497-1.307Zm7.007 6.387a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
-          </svg>
-        )}
-      </div>
-    );
-  };
-
-  const Rating = () => {
-    if (!experience.avgRating || experience.avgRating <= 0) return null;
-    return (
-      <div className="rating">
-        <span className="rating-star">★</span>
-        <span className="text-[#1A1410]">{experience.avgRating.toFixed(1)}</span>
-      </div>
-    );
-  };
+  const hostAvatarSrc = getHostAvatarSrc();
 
   // Variant: Compact (for 2-column grids on mobile)
   if (variant === 'compact') {
@@ -125,14 +102,15 @@ export default function ExperienceCard({
         )}
       >
         <div className="aspect-[4/3] relative overflow-hidden">
-          <img
+          <OptimizedImage
             src={getImageUrl()}
             alt={experience.title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
+            fill
+            preset="cardThumbnail"
+            className="transition-transform duration-300 group-hover:scale-105"
           />
-          <div className="absolute top-2.5 right-2.5">
-            <TypeBadge />
+          <div className="absolute top-2.5 right-2.5 z-10">
+            <TypeBadge type={experience.type} price={experience.price} />
           </div>
         </div>
         <div className="p-3">
@@ -145,8 +123,8 @@ export default function ExperienceCard({
             {experience.title}
           </h3>
           <div className="flex items-center justify-between mt-2.5 gap-2">
-            <HostInfo />
-            <Rating />
+            {showHost && <HostInfo host={experience.host} avatarSrc={hostAvatarSrc} />}
+            <Rating avgRating={experience.avgRating} />
           </div>
         </div>
       </Link>
@@ -165,15 +143,15 @@ export default function ExperienceCard({
           className
         )}
       >
-        <div className="w-28 sm:w-36 flex-shrink-0 relative overflow-hidden">
-          <img
+        <div className="w-28 sm:w-36 flex-shrink-0 relative overflow-hidden aspect-square">
+          <OptimizedImage
             src={getImageUrl()}
             alt={experience.title}
-            className="w-full h-full object-cover aspect-square"
-            loading="lazy"
+            fill
+            preset="cardThumbnail"
           />
-          <div className="absolute top-2 left-2">
-            <TypeBadge />
+          <div className="absolute top-2 left-2 z-10">
+            <TypeBadge type={experience.type} price={experience.price} />
           </div>
         </div>
         <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
@@ -188,15 +166,15 @@ export default function ExperienceCard({
             </h3>
           </div>
           <div className="flex items-center justify-between mt-2 gap-2">
-            <HostInfo />
-            <Rating />
+            {showHost && <HostInfo host={experience.host} avatarSrc={hostAvatarSrc} />}
+            <Rating avgRating={experience.avgRating} />
           </div>
         </div>
       </Link>
     );
   }
 
-  // Variant: Horizontal Compact (for mobile lists - smaller and faster to scroll)
+  // Variant: Horizontal Compact (for mobile lists)
   if (variant === 'horizontal-compact') {
     return (
       <Link
@@ -209,14 +187,14 @@ export default function ExperienceCard({
         )}
       >
         <div className="w-20 h-20 flex-shrink-0 relative overflow-hidden rounded-l-[var(--radius-lg)]">
-          <img
+          <OptimizedImage
             src={getImageUrl()}
             alt={experience.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
+            fill
+            preset="cardThumbnail"
           />
-          <div className="absolute top-1 left-1">
-            <TypeBadge />
+          <div className="absolute top-1 left-1 z-10">
+            <TypeBadge type={experience.type} price={experience.price} />
           </div>
         </div>
         <div className="flex-1 p-2.5 flex flex-col justify-center min-w-0">
@@ -229,7 +207,7 @@ export default function ExperienceCard({
             </p>
           )}
           <div className="flex items-center gap-2 mt-1.5">
-            <Rating />
+            <Rating avgRating={experience.avgRating} />
             {experience.city && (
               <span className="text-xs text-[#A89880] truncate">{experience.city}</span>
             )}
@@ -252,17 +230,18 @@ export default function ExperienceCard({
         )}
       >
         <div className="aspect-[16/9] relative overflow-hidden">
-          <img
+          <OptimizedImage
             src={getImageUrl()}
             alt={experience.title}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-            loading="lazy"
+            fill
+            preset="cardLarge"
+            className="transition-transform duration-500 hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-          <div className="absolute top-3 right-3">
-            <TypeBadge />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent z-[1]" />
+          <div className="absolute top-3 right-3 z-10">
+            <TypeBadge type={experience.type} price={experience.price} />
           </div>
-          <div className="absolute bottom-3 left-3 right-3">
+          <div className="absolute bottom-3 left-3 right-3 z-10">
             <h3 className="font-display text-white text-lg line-clamp-1 drop-shadow-lg">
               {experience.title}
             </h3>
@@ -274,9 +253,9 @@ export default function ExperienceCard({
           </div>
         </div>
         <div className="p-3 flex items-center justify-between bg-white">
-          <HostInfo />
+          {showHost && <HostInfo host={experience.host} avatarSrc={hostAvatarSrc} />}
           <div className="flex items-center gap-2">
-            <Rating />
+            <Rating avgRating={experience.avgRating} />
             {experience._count?.reviews !== undefined && experience._count.reviews > 0 && (
               <span className="text-xs text-[#A89880]">
                 ({experience._count.reviews})
@@ -300,18 +279,19 @@ export default function ExperienceCard({
       )}
     >
       <div className="aspect-[16/10] sm:aspect-[4/3] relative overflow-hidden">
-        <img
+        <OptimizedImage
           src={getImageUrl()}
           alt={experience.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
+          fill
+          preset="cardLarge"
+          className="transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-        <div className="absolute top-3 right-3">
-          <TypeBadge />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-[1]" />
+        <div className="absolute top-3 right-3 z-10">
+          <TypeBadge type={experience.type} price={experience.price} />
         </div>
         {experience.festival && (
-          <div className="absolute bottom-3 left-3">
+          <div className="absolute bottom-3 left-3 z-10">
             <span className="badge bg-white/95 text-[#1A1410] backdrop-blur-sm text-xs font-semibold shadow-lg">
               {experience.festival.name}
             </span>
@@ -331,9 +311,9 @@ export default function ExperienceCard({
           </div>
         )}
         <div className="flex items-center justify-between">
-          <HostInfo />
+          {showHost && <HostInfo host={experience.host} avatarSrc={hostAvatarSrc} />}
           <div className="flex items-center gap-3">
-            <Rating />
+            <Rating avgRating={experience.avgRating} />
             {experience._count?.reviews !== undefined && experience._count.reviews > 0 && (
               <span className="text-xs text-[#A89880]">
                 ({experience._count.reviews})

@@ -172,7 +172,9 @@ const getMarkerColor = (type: string | undefined | null): string => {
 };
 
 // Dynamically import Leaflet components (client-side only)
-let MapContainer: any, TileLayer: any, Marker: any, Popup: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let MapContainer: React.ComponentType<any>, TileLayer: React.ComponentType<any>, Marker: React.ComponentType<any>, Popup: React.ComponentType<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let L: any;
 let leafletReady = false;
 

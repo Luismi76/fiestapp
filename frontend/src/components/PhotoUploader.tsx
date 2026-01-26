@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { getUploadUrl } from '@/lib/utils';
+import { OptimizedImage } from '@/components/OptimizedImage';
 
 interface PhotoUploaderProps {
   photos: string[];
@@ -145,10 +146,11 @@ export default function PhotoUploader({
               key={`photo-${index}`}
               className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
             >
-              <img
-                src={getUploadUrl(photo)}
+              <OptimizedImage
+                src={getUploadUrl(photo) || '/images/placeholder.png'}
                 alt={`Foto ${index + 1}`}
-                className="w-full h-full object-cover"
+                fill
+                preset="galleryThumbnail"
               />
               {index === 0 && (
                 <div className="absolute top-2 left-2 bg-primary text-white text-xs px-2 py-1 rounded">

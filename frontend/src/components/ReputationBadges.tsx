@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { badgesApi } from '@/lib/api';
+import logger from '@/lib/logger';
 
 // Colores por categoria de badge
 const BADGE_COLORS: Record<string, { color: string; bgColor: string }> = {
@@ -55,7 +56,7 @@ export function ReputationBadgesFromAPI({
         const reputation = await badgesApi.getUserReputation(userId);
         setBadges(reputation.badges);
       } catch (error) {
-        console.error('Error fetching badges:', error);
+        logger.error('Error fetching badges:', error);
       } finally {
         setLoading(false);
       }

@@ -5,6 +5,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import PaymentForm from './PaymentForm';
 import api from '@/lib/api';
+import { getErrorMessage } from '@/lib/error';
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
@@ -34,8 +35,8 @@ export default function PaymentModal({
       try {
         const response = await api.post(`/payments/create-intent/${matchId}`);
         setClientSecret(response.data.clientSecret);
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Error al inicializar el pago');
+      } catch (err) {
+        setError(getErrorMessage(err, 'Error al inicializar el pago'));
       } finally {
         setLoading(false);
       }

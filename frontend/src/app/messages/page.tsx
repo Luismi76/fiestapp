@@ -8,6 +8,9 @@ import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
+import { MatchListSkeleton } from '@/components/ui/Skeleton';
+import logger from '@/lib/logger';
+import { getErrorMessage } from '@/lib/error';
 
 // Icons
 const InboxIcon = () => (
@@ -81,7 +84,7 @@ export default function MessagesPage() {
         setReceivedMatches(received || []);
         setSentMatches(sent || []);
       } catch (err) {
-        console.error('Error fetching matches:', err);
+        logger.error('Error fetching matches:', err);
       } finally {
         setLoading(false);
       }
@@ -106,8 +109,8 @@ export default function MessagesPage() {
         m.id === acceptModal.match!.id ? { ...m, status: 'accepted' as MatchStatus } : m
       ));
       showSuccess('Solicitud aceptada', `Has aceptado la solicitud de ${acceptModal.match.requester.name}`);
-    } catch (err: any) {
-      showError('Error', err?.response?.data?.message || 'No se pudo aceptar');
+    } catch (err) {
+      showError('Error', getErrorMessage(err, 'No se pudo aceptar'));
     } finally {
       setActionLoading(false);
       setAcceptModal({ isOpen: false, match: null });
@@ -123,8 +126,8 @@ export default function MessagesPage() {
         m.id === rejectModal.match!.id ? { ...m, status: 'rejected' as MatchStatus } : m
       ));
       showSuccess('Solicitud rechazada', `Has rechazado la solicitud de ${rejectModal.match.requester.name}`);
-    } catch (err: any) {
-      showError('Error', err?.response?.data?.message || 'No se pudo rechazar');
+    } catch (err) {
+      showError('Error', getErrorMessage(err, 'No se pudo rechazar'));
     } finally {
       setActionLoading(false);
       setRejectModal({ isOpen: false, match: null });
@@ -140,8 +143,8 @@ export default function MessagesPage() {
         m.id === cancelModal.match!.id ? { ...m, status: 'cancelled' as MatchStatus } : m
       ));
       showSuccess('Solicitud cancelada', 'Tu solicitud ha sido cancelada');
-    } catch (err: any) {
-      showError('Error', err?.response?.data?.message || 'No se pudo cancelar');
+    } catch (err) {
+      showError('Error', getErrorMessage(err, 'No se pudo cancelar'));
     } finally {
       setActionLoading(false);
       setCancelModal({ isOpen: false, match: null });
@@ -179,11 +182,8 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="min-h-screen flex items-center justify-center pattern-festive">
-          <div className="text-center">
-            <div className="spinner spinner-lg mx-auto mb-4" />
-            <p className="text-[#8B7355]">Cargando conversaciones...</p>
-          </div>
+        <div className="min-h-screen p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
+          <MatchListSkeleton count={5} />
         </div>
       </MainLayout>
     );

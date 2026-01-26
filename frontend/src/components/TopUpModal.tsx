@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { walletApi } from '@/lib/api';
+import logger from '@/lib/logger';
+import { getErrorMessage } from '@/lib/error';
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -35,13 +37,13 @@ function TopUpForm({ amount, onClose, onSuccess, paymentIntentId }: TopUpModalPr
       // Primero validar el formulario y recoger los datos de pago
       const { error: submitError } = await elements.submit();
       if (submitError) {
-        console.log('Elements submit error:', submitError);
+        logger.debug('Elements submit error:', submitError);
         setError(submitError.message || 'Error de validación del formulario');
         setLoading(false);
         return;
       }
 
-      console.log('Elements validated successfully, confirming payment...');
+      logger.debug('Elements validated successfully, confirming payment...');
 
       const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
         elements,
@@ -51,7 +53,7 @@ function TopUpForm({ amount, onClose, onSuccess, paymentIntentId }: TopUpModalPr
         redirect: 'if_required',
       });
 
-      console.log('Stripe response:', { stripeError, paymentIntent });
+      logger.debug('Stripe response:', { stripeError, paymentIntent });
 
       if (stripeError) {
         setError(stripeError.message || 'Error al procesar el pago');
@@ -63,12 +65,12 @@ function TopUpForm({ amount, onClose, onSuccess, paymentIntentId }: TopUpModalPr
         return;
       }
 
-      console.log('Payment intent status:', paymentIntent.status);
+      logger.debug('Payment intent status:', paymentIntent.status);
 
       if (paymentIntent.status === 'succeeded') {
         // Confirmar la recarga en el backend
-        console.log('Confirming topup - prop paymentIntentId:', paymentIntentId);
-        console.log('Confirming topup - Stripe paymentIntent.id:', paymentIntent.id);
+        logger.debug('Confirming topup - prop paymentIntentId:', paymentIntentId);
+        logger.debug('Confirming topup - Stripe paymentIntent.id:', paymentIntent.id);
         // Usar el ID de Stripe directamente para asegurar consistencia
         await walletApi.confirmTopUp(paymentIntent.id);
         onSuccess();
@@ -81,9 +83,9 @@ function TopUpForm({ amount, onClose, onSuccess, paymentIntentId }: TopUpModalPr
       } else {
         setError(`Estado del pago: ${paymentIntent.status}. Intenta de nuevo.`);
       }
-    } catch (err: any) {
-      console.error('TopUp error:', err);
-      setError(err?.response?.data?.message || err?.message || 'Error al completar la recarga');
+    } catch (err) {
+      logger.error('TopUp error:', err);
+      setError(getErrorMessage(err, 'Error al completar la recarga'));
     } finally {
       setLoading(false);
     }
@@ -153,7 +155,7 @@ export default function TopUpModal({ amount, onClose, onSuccess }: TopUpModalPro
         setPaymentIntentId(paymentIntentId);
       } catch (err) {
         setError('No se pudo iniciar el pago. Los pagos no están configurados.');
-        console.error('Error creating top-up intent:', err);
+        logger.error('Error creating top-up intent:', err);
       } finally {
         setLoading(false);
       }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
+import logger from '@/lib/logger';
 
 interface VoiceRecorderProps {
   onSend: (blob: Blob, duration: number) => Promise<void>;
@@ -26,7 +27,7 @@ export default function VoiceRecorder({
       try {
         await onSend(blob, recordedDuration);
       } catch (err) {
-        console.error('Error sending voice:', err);
+        logger.error('Error sending voice:', err);
         setError('Error al enviar el mensaje de voz');
       } finally {
         setSending(false);

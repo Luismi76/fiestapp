@@ -22,7 +22,9 @@ export default function BottomNav() {
     }
   }, [isAuthenticated]);
 
+  // Initial fetch and polling - valid external data sync pattern
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUnreadCount();
 
     // Poll every 30 seconds for new messages
@@ -32,6 +34,7 @@ export default function BottomNav() {
 
   // Refresh when pathname changes (e.g., coming back from chat)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUnreadCount();
   }, [pathname, fetchUnreadCount]);
 

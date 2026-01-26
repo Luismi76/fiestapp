@@ -13,12 +13,17 @@ import { useSocket, useSocketEvent } from '@/hooks/useSocket';
 import VoiceMessage from '@/components/chat/VoiceMessage';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import LocationMessage from '@/components/chat/LocationMessage';
+import logger from '@/lib/logger';
+import { getErrorMessage } from '@/lib/error';
 import LocationPicker from '@/components/chat/LocationPicker';
 import QuickRepliesDrawer from '@/components/chat/QuickRepliesDrawer';
 import TranslateButton from '@/components/chat/TranslateButton';
 import MainLayout from '@/components/MainLayout';
+import { ChatSkeleton } from '@/components/ui/Skeleton';
+import { OptimizedImage, OptimizedAvatar } from '@/components/OptimizedImage';
 
-// Mock match details for fallback
+// Mock match details for fallback (partial data for development)
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const mockMatchDetails: Record<string, MatchDetail> = {
   '1': {
     id: '1',
@@ -244,6 +249,7 @@ const mockMatchDetails: Record<string, MatchDetail> = {
     ],
   },
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const statusConfig: Record<MatchStatus, { label: string; bg: string; text: string }> = {
   pending: { label: 'Pendiente', bg: 'bg-amber-100', text: 'text-amber-700' },
@@ -293,7 +299,7 @@ export default function MatchDetailPage() {
   // Load user quick replies
   useEffect(() => {
     if (user) {
-      quickRepliesApi.getUserReplies().then(setUserQuickReplies).catch(console.error);
+      quickRepliesApi.getUserReplies().then(setUserQuickReplies).catch((err) => logger.error('Error loading quick replies:', err));
     }
   }, [user]);
 
@@ -313,7 +319,7 @@ export default function MatchDetailPage() {
         await chatApi.uploadVoice(audioBlob, match.id);
         // Message will appear via WebSocket
       } catch (err: unknown) {
-        console.error('Error sending voice:', err);
+        logger.error('Error sending voice:', err);
         if (err && typeof err === 'object' && 'response' in err) {
           const axiosError = err as { response?: { data?: unknown; status?: number } };
           const errorMessage = typeof axiosError.response?.data === 'object' && axiosError.response?.data !== null && 'message' in axiosError.response.data
@@ -372,7 +378,7 @@ export default function MatchDetailPage() {
         setError('Necesitas conexión en tiempo real para enviar ubicación');
       }
     } catch (err) {
-      console.error('Error sending location:', err);
+      logger.error('Error sending location:', err);
       setError('No se pudo enviar la ubicación');
     } finally {
       setSending(false);
@@ -443,20 +449,20 @@ export default function MatchDetailPage() {
 
   // Handle incoming messages via WebSocket
   const handleNewMessage = useCallback((message: Message) => {
-    console.log('[handleNewMessage] Received:', message);
-    console.log('[handleNewMessage] Current match?.id:', match?.id);
-    console.log('[handleNewMessage] Message matchId:', message.matchId);
+    logger.socket('[handleNewMessage] Received:', message);
+    logger.socket('[handleNewMessage] Current match?.id:', match?.id);
+    logger.socket('[handleNewMessage] Message matchId:', message.matchId);
 
     if (match && message.matchId === match.id) {
-      console.log('[handleNewMessage] Adding message to state');
+      logger.socket('[handleNewMessage] Adding message to state');
       setMatch(prev => {
         if (!prev) return prev;
         // Check if message already exists
         if (prev.messages.some(m => m.id === message.id)) {
-          console.log('[handleNewMessage] Message already exists, skipping');
+          logger.socket('[handleNewMessage] Message already exists, skipping');
           return prev;
         }
-        console.log('[handleNewMessage] Message added, new count:', prev.messages.length + 1);
+        logger.socket('[handleNewMessage] Message added, new count:', prev.messages.length + 1);
         return {
           ...prev,
           messages: [...prev.messages, message],
@@ -464,7 +470,7 @@ export default function MatchDetailPage() {
       });
       markAsRead(match.id);
     } else {
-      console.log('[handleNewMessage] Message ignored - match mismatch');
+      logger.socket('[handleNewMessage] Message ignored - match mismatch');
     }
   }, [match?.id, markAsRead]);
 
@@ -587,8 +593,8 @@ export default function MatchDetailPage() {
           messages: [...prev.messages, message],
         } : prev);
       }
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || err?.message || 'No se pudo enviar el mensaje';
+    } catch (err) {
+      const errorMessage = getErrorMessage(err, 'No se pudo enviar el mensaje');
       // Check if it's a wallet balance error
       if (errorMessage.includes('monedero') || errorMessage.includes('saldo')) {
         setWalletError(errorMessage);
@@ -722,11 +728,8 @@ export default function MatchDetailPage() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="spinner spinner-lg mx-auto mb-4" />
-            <div className="text-gray-500">Cargando conversación...</div>
-          </div>
+        <div className="min-h-screen bg-gray-50">
+          <ChatSkeleton />
         </div>
       </MainLayout>
     );
@@ -781,11 +784,12 @@ export default function MatchDetailPage() {
 
           {/* User info */}
           <Link href={`/profile/${otherUser?.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-gray-100 flex-shrink-0">
-              <img
+            <div className="ring-2 ring-gray-100 rounded-full flex-shrink-0">
+              <OptimizedAvatar
                 src={getAvatarSrc(otherUser?.avatar)}
-                alt={otherUser?.name || 'Usuario'}
-                className="w-full h-full object-cover"
+                name={otherUser?.name || 'Usuario'}
+                size="md"
+                className="w-10 h-10"
               />
             </div>
             <div className="min-w-0">
@@ -825,10 +829,11 @@ export default function MatchDetailPage() {
       >
         <div className="w-16 h-16 flex-shrink-0 relative">
           {match.experience.photos && match.experience.photos[0] ? (
-            <img
+            <OptimizedImage
               src={getUploadUrl(match.experience.photos[0]) || '/images/feria_abril.png'}
               alt={match.experience.title}
-              className="w-full h-full object-cover"
+              fill
+              preset="cardThumbnail"
             />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
@@ -1056,12 +1061,15 @@ export default function MatchDetailPage() {
                 >
                   {/* Avatar for other user */}
                   {!isMe && (
-                    <div className={`w-7 h-7 flex-shrink-0 ${showAvatar ? '' : 'invisible'}`}>
-                      <img
-                        src={getAvatarSrc(otherUser?.avatar)}
-                        alt=""
-                        className="w-full h-full rounded-full object-cover ring-2 ring-white shadow-sm"
-                      />
+                    <div className={`flex-shrink-0 ${showAvatar ? '' : 'invisible'}`}>
+                      <div className="ring-2 ring-white shadow-sm rounded-full">
+                        <OptimizedAvatar
+                          src={getAvatarSrc(otherUser?.avatar)}
+                          name={otherUser?.name || '?'}
+                          size="sm"
+                          className="w-7 h-7"
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -1141,11 +1149,12 @@ export default function MatchDetailPage() {
         {/* Typing indicator in messages area */}
         {otherUserTyping && (
           <div className="flex items-end gap-2">
-            <div className="w-7 h-7 flex-shrink-0">
-              <img
+            <div className="flex-shrink-0 ring-2 ring-white shadow-sm rounded-full">
+              <OptimizedAvatar
                 src={getAvatarSrc(otherUser?.avatar)}
-                alt=""
-                className="w-full h-full rounded-full object-cover ring-2 ring-white shadow-sm"
+                name={otherUser?.name || '?'}
+                size="sm"
+                className="w-7 h-7"
               />
             </div>
             <div className="bg-white shadow-sm border border-gray-100 rounded-2xl rounded-bl-md px-4 py-3">

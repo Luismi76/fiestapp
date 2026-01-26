@@ -7,6 +7,7 @@ import { Experience } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
 import ExperienceMap, { MapFilter } from '@/components/ExperienceMap';
 import MainLayout from '@/components/MainLayout';
+import logger from '@/lib/logger';
 
 // Iconos
 const CloseIcon = () => (
@@ -49,7 +50,7 @@ export default function MapPage() {
   useEffect(() => {
     experiencesApi.getAll({ limit: 100 })
       .then(response => setExperiences(response.data || []))
-      .catch(console.error)
+      .catch((err) => logger.error('Error loading experiences:', err))
       .finally(() => setLoading(false));
   }, []);
 

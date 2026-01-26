@@ -10,8 +10,11 @@ import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
+import logger from '@/lib/logger';
+import { getErrorMessage } from '@/lib/error';
 
-// Mock data for fallback
+// Mock data for fallback (partial data for development)
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const mockSentMatches: Match[] = [
   {
     id: '10',
@@ -123,6 +126,7 @@ const mockSentMatches: Match[] = [
     },
   },
 ];
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const statusConfig: Record<MatchStatus, { label: string; bg: string; text: string; dot: string }> = {
   pending: { label: 'Pendiente', bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
@@ -162,7 +166,7 @@ export default function SentMatchesPage() {
           setUseMockData(true);
         }
       } catch (err) {
-        console.log('Using mock data for sent matches');
+        logger.log('Using mock data for sent matches');
         setMatches(mockSentMatches);
         setUseMockData(true);
       } finally {
@@ -226,11 +230,10 @@ export default function SentMatchesPage() {
         showSuccess('Solicitud cancelada', `Has cancelado tu solicitud para "${experienceTitle}"`);
       }, 400);
 
-    } catch (err: any) {
+    } catch (err) {
       setActionLoading(false);
       setCancelModal({ isOpen: false, match: null });
-      const errorMsg = err?.response?.data?.message || 'No se pudo cancelar la solicitud';
-      showError('Error', errorMsg);
+      showError('Error', getErrorMessage(err, 'No se pudo cancelar la solicitud'));
     }
   };
 

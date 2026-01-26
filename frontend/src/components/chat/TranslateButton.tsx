@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import logger from '@/lib/logger';
 
 interface TranslateButtonProps {
   messageId: string;
@@ -67,7 +68,7 @@ export default function TranslateButton({
       }
       setShowTranslation(true);
     } catch (err) {
-      console.error('Translation error:', err);
+      logger.error('Translation error:', err);
       setError('No se pudo traducir');
     } finally {
       setLoading(false);

@@ -8,6 +8,7 @@ import FavoriteButton from '@/components/FavoriteButton';
 import { favoritesApi, FavoriteExperience, FavoriteFestival } from '@/lib/api';
 import { getUploadUrl, getAvatarUrl } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import logger from '@/lib/logger';
 
 type TabType = 'experiences' | 'festivals';
 
@@ -39,7 +40,7 @@ export default function FavoritesPage() {
       setExperiences(data.experiences);
       setFestivals(data.festivals);
     } catch (error) {
-      console.error('Error loading favorites:', error);
+      logger.error('Error loading favorites:', error);
     } finally {
       setLoading(false);
     }
@@ -52,7 +53,7 @@ export default function FavoritesPage() {
       await favoritesApi.removeFavorite(experienceId);
       setExperiences(experiences.filter((f) => f.id !== experienceId));
     } catch (error) {
-      console.error('Error removing favorite:', error);
+      logger.error('Error removing favorite:', error);
     }
   };
 
@@ -63,7 +64,7 @@ export default function FavoritesPage() {
       await favoritesApi.removeFestivalFavorite(festivalId);
       setFestivals(festivals.filter((f) => f.id !== festivalId));
     } catch (error) {
-      console.error('Error removing festival favorite:', error);
+      logger.error('Error removing festival favorite:', error);
     }
   };
 
@@ -76,7 +77,7 @@ export default function FavoritesPage() {
         )
       );
     } catch (error) {
-      console.error('Error toggling alert:', error);
+      logger.error('Error toggling alert:', error);
     }
   };
 

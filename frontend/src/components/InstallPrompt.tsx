@@ -13,10 +13,13 @@ export default function InstallPrompt() {
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
+  // Check PWA installation status - valid initialization pattern
   useEffect(() => {
-    // Check if already installed
+    // Check if already installed (navigator.standalone is Safari-specific)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
+      (window.navigator as { standalone?: boolean }).standalone === true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsStandalone(standalone);
 
     // Check if iOS
@@ -114,7 +117,7 @@ export default function InstallPrompt() {
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 inline-block text-blue-500">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 8.25H7.5a2.25 2.25 0 0 0-2.25 2.25v9a2.25 2.25 0 0 0 2.25 2.25h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25H15m0-3-3-3m0 0-3 3m3-3V15" />
                 </svg>
-                {' '}y luego <strong>"Añadir a pantalla de inicio"</strong>
+                {' '}y luego <strong>&ldquo;Añadir a pantalla de inicio&rdquo;</strong>
               </p>
             </div>
           ) : (

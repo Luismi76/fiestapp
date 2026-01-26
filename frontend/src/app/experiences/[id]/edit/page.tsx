@@ -12,6 +12,7 @@ import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import CategorySelector from '@/components/CategorySelector';
 import MainLayout from '@/components/MainLayout';
+import logger from '@/lib/logger';
 
 interface FormData {
   title: string;
@@ -138,7 +139,7 @@ export default function EditExperiencePage() {
       try {
         await uploadsApi.deleteExperiencePhoto(params.id as string, photoUrl);
       } catch (err) {
-        console.error('Error deleting photo:', err);
+        logger.error('Error deleting photo:', err);
       }
     }
 
@@ -147,7 +148,7 @@ export default function EditExperiencePage() {
       try {
         await uploadsApi.reorderExperiencePhotos(params.id as string, newPhotos);
       } catch (err) {
-        console.error('Error reordering photos:', err);
+        logger.error('Error reordering photos:', err);
       }
     }
 
@@ -184,7 +185,7 @@ export default function EditExperiencePage() {
       setPhotos([...photos, ...result.photos]);
       setPendingPhotos([]);
     } catch (err) {
-      console.error('Error uploading photos:', err);
+      logger.error('Error uploading photos:', err);
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 401) {
           setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
@@ -239,7 +240,7 @@ export default function EditExperiencePage() {
 
       router.push(`/experiences/${params.id}`);
     } catch (err) {
-      console.error('Error saving experience:', err);
+      logger.error('Error saving experience:', err);
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 401) {
           setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
@@ -267,7 +268,7 @@ export default function EditExperiencePage() {
       const updated = await experiencesApi.togglePublished(params.id as string);
       setExperience({ ...experience, published: updated.published });
     } catch (err) {
-      console.error('Error toggling published:', err);
+      logger.error('Error toggling published:', err);
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 401) {
           setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
@@ -294,7 +295,7 @@ export default function EditExperiencePage() {
       await experiencesApi.delete(params.id as string);
       router.push('/dashboard');
     } catch (err) {
-      console.error('Error deleting experience:', err);
+      logger.error('Error deleting experience:', err);
       if (axios.isAxiosError(err)) {
         if (err.response?.status === 401) {
           setError('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');

@@ -12,6 +12,7 @@ import ShareButton from '@/components/ShareButton';
 import ImageGallery from '@/components/ImageGallery';
 import ParticipantSelector from '@/components/ParticipantSelector';
 import MainLayout from '@/components/MainLayout';
+import logger from '@/lib/logger';
 
 // Helper to generate availability dates for mock data
 const generateMockAvailability = (baseMonth: number, count: number): Date[] => {
@@ -29,7 +30,8 @@ const generateMockAvailability = (baseMonth: number, count: number): Date[] => {
   return dates.sort((a, b) => a.getTime() - b.getTime());
 };
 
-// Mock experiences for fallback
+// Mock experiences for fallback (partial data for development)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockExperiencesMap: Record<string, any> = {
   'exp-1': {
     id: 'exp-1',
@@ -61,11 +63,10 @@ const mockExperiencesMap: Record<string, any> = {
     avgRating: 4.9,
     _count: { reviews: 127, matches: 3800 },
     reviews: [
-      { id: '1', rating: 5, comment: '¡Increíble experiencia! María fue muy amable y la caseta estaba genial.', createdAt: '2024-04-20', author: { id: '10', name: 'Laura M.', avatar: '/images/user_laura.png', verified: true } },
-      { id: '2', rating: 5, comment: 'La mejor forma de vivir la Feria. Totalmente recomendado.', createdAt: '2024-04-18', author: { id: '11', name: 'Carlos P.', avatar: '/images/user_carlos.png', verified: true } },
+      { id: '1', rating: 5, comment: '¡Increíble experiencia! María fue muy amable y la caseta estaba genial.', createdAt: '2024-04-20', author: { id: '10', name: 'Laura M.', avatar: '/images/user_laura.png' } },
+      { id: '2', rating: 5, comment: 'La mejor forma de vivir la Feria. Totalmente recomendado.', createdAt: '2024-04-18', author: { id: '11', name: 'Carlos P.', avatar: '/images/user_carlos.png' } },
     ],
     availability: generateMockAvailability(4, 12),
-    hashtags: ['#FeriaDeAbril', '#Sevilla', '#Tradición'],
   },
   'exp-2': {
     id: 'exp-2',
@@ -99,7 +100,6 @@ const mockExperiencesMap: Record<string, any> = {
       { id: '3', rating: 5, comment: 'Carlos conoce todos los rincones de Pamplona. Auténtico.', createdAt: '2024-07-10', author: { id: '12', name: 'Anna S.', avatar: null, verified: false } },
     ],
     availability: generateMockAvailability(7, 8),
-    hashtags: ['#SanFermín', '#Encierros', '#Pamplona'],
   },
   'exp-3': {
     id: 'exp-3',
@@ -131,7 +131,6 @@ const mockExperiencesMap: Record<string, any> = {
     _count: { reviews: 64, matches: 1500 },
     reviews: [],
     availability: generateMockAvailability(3, 10),
-    hashtags: ['#Fallas', '#Valencia', '#Mascletà'],
   },
   'exp-4': {
     id: 'exp-4',
@@ -163,7 +162,6 @@ const mockExperiencesMap: Record<string, any> = {
     _count: { reviews: 203, matches: 4200 },
     reviews: [],
     availability: generateMockAvailability(8, 6),
-    hashtags: ['#Tomatina', '#Buñol', '#Fiesta'],
   },
   'exp-5': {
     id: 'exp-5',
@@ -195,7 +193,6 @@ const mockExperiencesMap: Record<string, any> = {
     _count: { reviews: 156, matches: 3800 },
     reviews: [],
     availability: generateMockAvailability(4, 14),
-    hashtags: ['#SemanaSanta', '#Tradición', '#Sevilla'],
   },
   'exp-6': {
     id: 'exp-6',
@@ -229,7 +226,6 @@ const mockExperiencesMap: Record<string, any> = {
       { id: '5', rating: 5, comment: 'El Carnaval con Ana fue espectacular. ¡Volveré!', createdAt: '2024-02-18', author: { id: 'user-demo', name: 'Usuario D.', avatar: null, verified: false } },
     ],
     availability: generateMockAvailability(2, 15),
-    hashtags: ['#Carnaval', '#Cádiz', '#Chirigotas'],
   },
 };
 
@@ -266,7 +262,7 @@ export default function ExperienceDetailPage() {
           setOccupancy(occupancyData.dates);
         } catch {
           // Si falla la carga de ocupación, continuamos sin ella
-          console.log('No se pudo cargar la ocupación');
+          logger.debug('No se pudo cargar la ocupación');
         }
       } catch {
         if (mockExperiencesMap[id]) {
@@ -308,7 +304,7 @@ export default function ExperienceDetailPage() {
       await favoritesApi.toggleFavorite(params.id as string, isFavorite);
       setIsFavorite(!isFavorite);
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+      logger.error('Error toggling favorite:', error);
     } finally {
       setFavoriteLoading(false);
     }
@@ -408,7 +404,7 @@ export default function ExperienceDetailPage() {
 
   const isOwner = user?.id === experience.hostId;
   const highlights = experience.highlights || [];
-  const hashtags = (experience as any).hashtags || (experience.festival ? ['#' + experience.festival.name.replace(/\s/g, '')] : []);
+  const hashtags = experience.festival ? ['#' + experience.festival.name.replace(/\s/g, '')] : [];
 
   return (
     <MainLayout>
@@ -633,7 +629,7 @@ export default function ExperienceDetailPage() {
           </div>
           {experience.host.bio && (
             <div className="px-4 pb-4">
-              <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-3 italic">"{experience.host.bio}"</p>
+              <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-3 italic">&ldquo;{experience.host.bio}&rdquo;</p>
             </div>
           )}
         </Link>
@@ -732,7 +728,7 @@ export default function ExperienceDetailPage() {
               </div>
             </div>
             <div className="p-4 space-y-4">
-              {experience.reviews.slice(0, 3).map((review: any) => (
+              {experience.reviews.slice(0, 3).map((review) => (
                 <div key={review.id} className="flex gap-3">
                   <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                     {review.author.avatar ? (

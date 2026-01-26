@@ -9,8 +9,12 @@ import { UserPublicProfile } from '@/types/user';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import ReputationBadges from '@/components/ReputationBadges';
+import { ProfileSkeleton } from '@/components/ui/Skeleton';
+import { OptimizedImage, OptimizedAvatar } from '@/components/OptimizedImage';
+import logger from '@/lib/logger';
 
-// Mock profiles para fallback
+// Mock profiles para fallback (partial data for development)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockProfiles: Record<string, any> = {
   'user-maria': {
     id: 'user-maria',
@@ -96,7 +100,7 @@ const mockProfiles: Record<string, any> = {
   },
 };
 
-const getExperienceImage = (exp: any) => {
+const getExperienceImage = (exp: { photos?: string[] }) => {
   if (exp.photos && exp.photos.length > 0) {
     const photo = exp.photos[0];
     if (photo.startsWith('/images/')) return photo;
@@ -155,7 +159,7 @@ export default function PublicProfilePage() {
           const walletData = await walletApi.getWallet();
           setWallet(walletData);
         } catch (err) {
-          console.error('Error fetching wallet:', err);
+          logger.error('Error fetching wallet:', err);
         }
       }
     };
@@ -164,12 +168,11 @@ export default function PublicProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="spinner spinner-lg mx-auto mb-4" />
-          <p className="text-gray-500">Cargando perfil...</p>
+      <MainLayout>
+        <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
+          <ProfileSkeleton />
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
@@ -244,19 +247,12 @@ export default function PublicProfilePage() {
         <div className="relative z-10 px-6 pb-8 pt-4 text-center">
           <div className="relative inline-block">
             <div className="w-28 h-28 mx-auto bg-white rounded-full p-1 shadow-xl">
-              <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden flex items-center justify-center">
-                {getAvatarSrc(profile.avatar) ? (
-                  <img
-                    src={getAvatarSrc(profile.avatar)!}
-                    alt={profile.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-16 h-16 text-gray-400">
-                    <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </div>
+              <OptimizedAvatar
+                src={getAvatarSrc(profile.avatar)}
+                name={profile.name}
+                size="xl"
+                className="w-full h-full"
+              />
             </div>
             {profile.verified && (
               <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg border-3 border-white">
@@ -371,7 +367,7 @@ export default function PublicProfilePage() {
             <span className="text-sm text-gray-400">{profile.experiences.length}</span>
           </div>
           <div className="space-y-3">
-            {profile.experiences.map((exp: any) => (
+            {profile.experiences.map((exp) => (
               <Link
                 key={exp.id}
                 href={`/experiences/${exp.id}`}
@@ -380,10 +376,11 @@ export default function PublicProfilePage() {
                 <div className="flex">
                   <div className="w-28 h-28 flex-shrink-0 relative">
                     {getExperienceImage(exp) ? (
-                      <img
+                      <OptimizedImage
                         src={getExperienceImage(exp)!}
                         alt={exp.title}
-                        className="w-full h-full object-cover"
+                        fill
+                        preset="cardThumbnail"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
@@ -395,7 +392,7 @@ export default function PublicProfilePage() {
                   </div>
                   <div className="flex-1 p-4 min-w-0">
                     <p className="text-xs text-blue-600 font-medium mb-1">
-                      {exp.festival.name}
+                      {exp.festival?.name || 'Experiencia general'}
                     </p>
                     <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm leading-tight">
                       {exp.title}
@@ -438,22 +435,15 @@ export default function PublicProfilePage() {
             <span className="text-sm text-gray-400">{profile._count.reviewsReceived}</span>
           </div>
           <div className="space-y-3">
-            {profile.reviews.slice(0, 5).map((review: any) => (
+            {profile.reviews.slice(0, 5).map((review) => (
               <div key={review.id} className="bg-white rounded-2xl shadow-sm p-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
-                    {getAvatarSrc(review.author.avatar) ? (
-                      <img
-                        src={getAvatarSrc(review.author.avatar)!}
-                        alt={review.author.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-gray-400">
-                        <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clipRule="evenodd" />
-                      </svg>
-                    )}
-                  </div>
+                  <OptimizedAvatar
+                    src={getAvatarSrc(review.author.avatar)}
+                    name={review.author.name}
+                    size="md"
+                    className="w-10 h-10 flex-shrink-0"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">

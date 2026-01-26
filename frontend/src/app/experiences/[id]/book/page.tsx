@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getUploadUrl } from '@/lib/utils';
 import { useHaptic } from '@/hooks/useHaptic';
 import MainLayout from '@/components/MainLayout';
+import logger from '@/lib/logger';
 
 // Helper to get dates
 const getToday = () => {
@@ -95,7 +96,7 @@ export default function BookingPage() {
           const occupancyData = await experiencesApi.getOccupancy(id);
           setOccupancy(occupancyData.dates);
         } catch {
-          console.log('Could not load occupancy');
+          logger.debug('Could not load occupancy');
         }
 
         // Check for pre-selected date from URL

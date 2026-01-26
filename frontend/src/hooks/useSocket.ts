@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/match';
+import logger from '@/lib/logger';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
 
@@ -33,11 +34,12 @@ export function useSocket(): UseSocketReturn {
     if (!user) {
       // User logged out - disconnect global socket
       if (globalSocket) {
-        console.log('[useSocket] User logged out, disconnecting socket');
+        logger.socket('User logged out, disconnecting socket');
         globalSocket.disconnect();
         globalSocket = null;
         globalSocketUserId = null;
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSocket(null);
       setIsConnected(false);
       return;
@@ -45,13 +47,13 @@ export function useSocket(): UseSocketReturn {
 
     const token = localStorage.getItem('token');
     if (!token) {
-      console.log('[useSocket] No token found');
+      logger.socket('No token found');
       return;
     }
 
     // If socket exists for same user, reuse it
     if (globalSocket && globalSocketUserId === user.id) {
-      console.log('[useSocket] Reusing existing socket for user:', user.id);
+      logger.socket('Reusing existing socket for user:', user.id);
       setSocket(globalSocket);
       setIsConnected(globalSocket.connected);
       return;
@@ -59,13 +61,13 @@ export function useSocket(): UseSocketReturn {
 
     // Different user or no socket - create new one
     if (globalSocket && globalSocketUserId !== user.id) {
-      console.log('[useSocket] Different user, disconnecting old socket');
+      logger.socket('Different user, disconnecting old socket');
       globalSocket.disconnect();
       globalSocket = null;
       globalSocketUserId = null;
     }
 
-    console.log('[useSocket] Creating new socket for user:', user.id);
+    logger.socket('Creating new socket for user:', user.id);
 
     const newSocket = io(`${SOCKET_URL}/chat`, {
       auth: { token },
@@ -79,7 +81,7 @@ export function useSocket(): UseSocketReturn {
     globalSocketUserId = user.id;
 
     newSocket.on('connect', () => {
-      console.log('[useSocket] Socket connected, id:', newSocket.id);
+      logger.socket('Connected, id:', newSocket.id);
       if (mountedRef.current) {
         setIsConnected(true);
         setSocket(newSocket);
@@ -87,22 +89,22 @@ export function useSocket(): UseSocketReturn {
     });
 
     newSocket.on('disconnect', (reason) => {
-      console.log('[useSocket] Socket disconnected, reason:', reason);
+      logger.socket('Disconnected, reason:', reason);
       if (mountedRef.current) {
         setIsConnected(false);
       }
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('[useSocket] Socket connection error:', error.message);
+      logger.error('Socket connection error:', error.message);
       if (mountedRef.current) {
         setIsConnected(false);
       }
     });
 
-    // Debug: log all incoming events
+    // Debug: log all incoming events (only in dev)
     newSocket.onAny((event, ...args) => {
-      console.log('[Socket Event]', event, args);
+      logger.socket(event, ...args);
     });
 
     // Set socket immediately so useSocketEvent can subscribe
@@ -118,23 +120,23 @@ export function useSocket(): UseSocketReturn {
   const sendMessage = useCallback(async (matchId: string, content: string): Promise<Message | null> => {
     return new Promise((resolve, reject) => {
       if (!globalSocket?.connected) {
-        console.log('[Socket] Cannot send message - not connected');
+        logger.socket('Cannot send message - not connected');
         resolve(null);
         return;
       }
 
-      console.log('[Socket] Sending message to match:', matchId, content);
+      logger.socket('Sending message to match:', matchId);
       globalSocket.emit(
         'sendMessage',
         { matchId, content },
         (response: { success: boolean; message?: Message; error?: string; requiresTopUp?: boolean }) => {
-          console.log('[Socket] sendMessage response:', response);
+          logger.socket('sendMessage response:', response);
           if (response.success && response.message) {
             resolve(response.message);
           } else if (response.requiresTopUp) {
             reject(new Error(response.error || 'Saldo insuficiente en el monedero'));
           } else {
-            console.error('Failed to send message:', response.error);
+            logger.error('Failed to send message:', response.error);
             resolve(null);
           }
         }
@@ -144,12 +146,12 @@ export function useSocket(): UseSocketReturn {
 
   const joinMatch = useCallback((matchId: string) => {
     if (globalSocket?.connected) {
-      console.log('[Socket] Joining match room:', matchId);
+      logger.socket('Joining match room:', matchId);
       globalSocket.emit('joinMatch', matchId, (response: { success: boolean; error?: string }) => {
-        console.log('[Socket] joinMatch response:', response);
+        logger.socket('joinMatch response:', response);
       });
     } else {
-      console.log('[Socket] Cannot join match - not connected. Socket state:', globalSocket ? 'exists but disconnected' : 'null');
+      logger.socket('Cannot join match - not connected');
     }
   }, []);
 
@@ -189,24 +191,28 @@ export function useSocketEvent<T>(
   callback: (data: T) => void
 ) {
   const callbackRef = useRef(callback);
-  callbackRef.current = callback;
+
+  // Keep callback ref updated - using useEffect to avoid render-time ref update
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
 
   useEffect(() => {
     if (!socket) {
       return;
     }
 
-    console.log(`[useSocketEvent] Subscribing to '${event}' on socket ${socket.id || 'pending'}`);
+    logger.socket(`Subscribing to '${event}' on socket ${socket.id || 'pending'}`);
 
     const handler = (data: T) => {
-      console.log(`[useSocketEvent] Received '${event}':`, data);
+      logger.socket(`Received '${event}':`, data);
       callbackRef.current(data);
     };
 
     socket.on(event, handler);
 
     return () => {
-      console.log(`[useSocketEvent] Unsubscribing from '${event}'`);
+      logger.socket(`Unsubscribing from '${event}'`);
       socket.off(event, handler);
     };
   }, [socket, event]);

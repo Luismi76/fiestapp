@@ -4,11 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import {
   optimizeImage,
-  getBlurPlaceholder,
   IMAGE_PRESETS,
   ImageOptions,
   ImageFit,
   ImageGravity,
+  isCloudinaryUrl,
 } from '@/lib/image';
 
 interface OptimizedImageProps {
@@ -32,7 +32,6 @@ interface OptimizedImageProps {
  * Componente de imagen optimizada con:
  * - Transformaciones Cloudinary automáticas
  * - Lazy loading nativo
- * - Placeholder blur
  * - Soporte para presets
  */
 export function OptimizedImage({
@@ -51,44 +50,34 @@ export function OptimizedImage({
   onLoad,
   onError,
 }: OptimizedImageProps) {
-  const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const [blurDataURL, setBlurDataURL] = useState<string | undefined>();
 
   // Aplicar preset si existe
   const presetOptions = preset ? IMAGE_PRESETS[preset] : null;
   const finalWidth = width || presetOptions?.width;
   const finalHeight = height || presetOptions?.height;
   const finalFit = presetOptions?.fit || fit;
-  // Solo algunos presets tienen gravity
   const presetGravity = presetOptions && 'gravity' in presetOptions
     ? (presetOptions as { gravity: ImageGravity }).gravity
     : undefined;
   const finalGravity: ImageGravity = presetGravity || gravity;
 
-  // Generar URL optimizada
-  const options: ImageOptions = {
-    width: finalWidth,
-    height: finalHeight,
-    quality,
-    fit: finalFit,
-    gravity: finalGravity,
-  };
+  // Para URLs de Cloudinary, aplicar transformaciones
+  // Para otras URLs, usar tal cual
+  let finalSrc = src;
+  if (isCloudinaryUrl(src)) {
+    const options: ImageOptions = {
+      width: finalWidth,
+      height: finalHeight,
+      quality,
+      fit: finalFit,
+      gravity: finalGravity,
+    };
+    finalSrc = optimizeImage(src, options);
+  }
 
-  const optimizedSrc = optimizeImage(src, options);
-
-  // Generar placeholder blur
-  useEffect(() => {
-    if (src && !priority) {
-      const placeholder = getBlurPlaceholder(src);
-      setBlurDataURL(placeholder);
-    }
-  }, [src, priority]);
-
-  const handleLoad = () => {
-    setIsLoaded(true);
-    onLoad?.();
-  };
+  // Usar unoptimized para URLs externas (Next.js no las procesa bien)
+  const shouldSkipOptimization = finalSrc.startsWith('http://') || finalSrc.startsWith('https://');
 
   const handleError = () => {
     setHasError(true);
@@ -119,31 +108,35 @@ export function OptimizedImage({
     );
   }
 
-  const imageProps = {
-    src: optimizedSrc,
-    alt,
-    className: `transition-opacity duration-300 ${
-      isLoaded ? 'opacity-100' : 'opacity-0'
-    } ${className}`,
-    onLoad: handleLoad,
-    onError: handleError,
-    priority,
-    sizes: sizes || (fill ? '100vw' : undefined),
-    ...(blurDataURL && !priority
-      ? { placeholder: 'blur' as const, blurDataURL }
-      : {}),
-  };
-
   if (fill) {
-    return <Image {...imageProps} fill style={{ objectFit: 'cover' }} />;
+    return (
+      <Image
+        src={finalSrc}
+        alt={alt}
+        fill
+        className={className}
+        style={{ objectFit: 'cover' }}
+        sizes={sizes || '100vw'}
+        priority={priority}
+        unoptimized={shouldSkipOptimization}
+        onLoad={onLoad}
+        onError={handleError}
+      />
+    );
   }
 
   return (
     <Image
-      {...imageProps}
+      src={finalSrc}
+      alt={alt}
       width={finalWidth || 400}
       height={finalHeight || 300}
+      className={className}
       style={{ objectFit: 'cover' }}
+      priority={priority}
+      unoptimized={shouldSkipOptimization}
+      onLoad={onLoad}
+      onError={handleError}
     />
   );
 }

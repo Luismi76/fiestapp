@@ -45,16 +45,28 @@ export default function BottomSheet({
   const startY = useRef(0);
   const currentY = useRef(0);
 
-  // Mount portal
+  // Mount portal - valid pattern for createPortal
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     return () => setMounted(false);
   }, []);
 
-  // Handle body scroll lock
+  // Close handler - defined early so it can be used in effects
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+      setDragY(0);
+    }, 200);
+  }, [onClose]);
+
+  // Handle body scroll lock - sync closing state when isOpen changes
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsClosing(false);
     } else {
       document.body.style.overflow = '';
@@ -73,16 +85,7 @@ export default function BottomSheet({
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen]);
-
-  const handleClose = useCallback(() => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-      setIsClosing(false);
-      setDragY(0);
-    }, 200);
-  }, [onClose]);
+  }, [isOpen, handleClose]);
 
   // Touch handlers for drag-to-close
   const handleTouchStart = useCallback((e: React.TouchEvent) => {

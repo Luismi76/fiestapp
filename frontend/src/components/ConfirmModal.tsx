@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
-export type ConfirmModalVariant = 'default' | 'success' | 'danger' | 'warning';
+export type ConfirmModalVariant = 'default' | 'success' | 'danger' | 'warning' | 'info';
 
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title: string;
   message: string | React.ReactNode;
   confirmText?: string;
@@ -15,6 +15,8 @@ interface ConfirmModalProps {
   variant?: ConfirmModalVariant;
   isLoading?: boolean;
   icon?: React.ReactNode;
+  requireDoubleConfirm?: boolean;
+  doubleConfirmText?: string;
 }
 
 const variantStyles: Record<ConfirmModalVariant, {
@@ -47,6 +49,12 @@ const variantStyles: Record<ConfirmModalVariant, {
     buttonBg: 'bg-amber-500',
     buttonHover: 'hover:bg-amber-600',
   },
+  info: {
+    iconBg: 'bg-cyan-100',
+    iconColor: 'text-cyan-600',
+    buttonBg: 'bg-cyan-500',
+    buttonHover: 'hover:bg-cyan-600',
+  },
 };
 
 const defaultIcons: Record<ConfirmModalVariant, React.ReactNode> = {
@@ -70,6 +78,11 @@ const defaultIcons: Record<ConfirmModalVariant, React.ReactNode> = {
       <path fillRule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" />
     </svg>
   ),
+  info: (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+      <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" />
+    </svg>
+  ),
 };
 
 export default function ConfirmModal({
@@ -83,9 +96,24 @@ export default function ConfirmModal({
   variant = 'default',
   isLoading = false,
   icon,
+  requireDoubleConfirm = false,
+  doubleConfirmText,
 }: ConfirmModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const confirmInputRef = useRef<HTMLInputElement>(null);
+  const [inputValue, setInputValue] = useState('');
   const styles = variantStyles[variant];
+
+  const expectedText = doubleConfirmText || 'CONFIRMAR';
+  const isDoubleConfirmValid = !requireDoubleConfirm || inputValue === expectedText;
+
+  // Reset input al cerrar - valid pattern for form reset
+  useEffect(() => {
+    if (!isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setInputValue('');
+    }
+  }, [isOpen]);
 
   // Cerrar con Escape
   useEffect(() => {
@@ -111,6 +139,11 @@ export default function ConfirmModal({
     if (e.target === e.currentTarget && !isLoading) {
       onClose();
     }
+  };
+
+  const handleConfirm = async () => {
+    if (!isDoubleConfirmValid) return;
+    await onConfirm();
   };
 
   if (!isOpen) return null;
@@ -151,6 +184,28 @@ export default function ConfirmModal({
           <div className="text-sm text-gray-600 text-center">
             {message}
           </div>
+
+          {/* Double confirm input */}
+          {requireDoubleConfirm && (
+            <div className="mt-4">
+              <label className="block text-sm text-gray-600 mb-2">
+                Escribe <span className="font-mono font-semibold text-gray-900">{expectedText}</span> para confirmar:
+              </label>
+              <input
+                ref={confirmInputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                className={`w-full px-3 py-2 border rounded-lg text-center font-mono focus:outline-none focus:ring-2 focus:ring-offset-1 ${
+                  inputValue === expectedText
+                    ? 'border-emerald-300 focus:ring-emerald-500'
+                    : 'border-gray-300 focus:ring-gray-500'
+                }`}
+                placeholder={expectedText}
+                autoComplete="off"
+              />
+            </div>
+          )}
         </div>
 
         {/* Actions */}
@@ -163,8 +218,8 @@ export default function ConfirmModal({
             {cancelText}
           </button>
           <button
-            onClick={onConfirm}
-            disabled={isLoading}
+            onClick={handleConfirm}
+            disabled={isLoading || !isDoubleConfirmValid}
             className={`flex-1 py-3 px-4 ${styles.buttonBg} text-white font-semibold rounded-xl ${styles.buttonHover} transition-colors disabled:opacity-50 flex items-center justify-center gap-2`}
           >
             {isLoading ? (
@@ -180,4 +235,40 @@ export default function ConfirmModal({
       </div>
     </div>
   );
+}
+
+// Hook para manejar el estado del modal de confirmación
+interface UseConfirmModalOptions {
+  onConfirm: () => void | Promise<void>;
+  onCancel?: () => void;
+}
+
+export function useConfirmModal({ onConfirm, onCancel }: UseConfirmModalOptions) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const open = useCallback(() => setIsOpen(true), []);
+
+  const close = useCallback(() => {
+    setIsOpen(false);
+    onCancel?.();
+  }, [onCancel]);
+
+  const confirm = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await onConfirm();
+      setIsOpen(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [onConfirm]);
+
+  return {
+    isOpen,
+    isLoading,
+    open,
+    close,
+    confirm,
+  };
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { experiencesApi, GroupPriceResult } from '@/lib/api';
+import logger from '@/lib/logger';
 
 interface ParticipantSelectorProps {
   experienceId: string;
@@ -43,7 +44,7 @@ export default function ParticipantSelector({
         setPriceResult(result);
         onChange?.(participants, result);
       } catch (error) {
-        console.error('Error calculating price:', error);
+        logger.error('Error calculating price:', error);
         // Fallback: calcular localmente
         const fallbackResult: GroupPriceResult = {
           pricePerPerson: basePrice,

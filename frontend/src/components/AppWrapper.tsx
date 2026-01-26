@@ -1,24 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import SplashScreen from './SplashScreen';
 
 interface AppWrapperProps {
   children: React.ReactNode;
 }
 
-export default function AppWrapper({ children }: AppWrapperProps) {
-  const [showSplash, setShowSplash] = useState(true);
-  const [isFirstVisit, setIsFirstVisit] = useState(true);
+// Helper to safely check sessionStorage (handles SSR)
+const getInitialVisitState = () => {
+  if (typeof window === 'undefined') return true;
+  return !sessionStorage.getItem('fiestapp_visited');
+};
 
-  useEffect(() => {
-    // Check if user has visited before in this session
-    const hasVisited = sessionStorage.getItem('fiestapp_visited');
-    if (hasVisited) {
-      setShowSplash(false);
-      setIsFirstVisit(false);
-    }
-  }, []);
+export default function AppWrapper({ children }: AppWrapperProps) {
+  const [isFirstVisit] = useState(getInitialVisitState);
+  const [showSplash, setShowSplash] = useState(isFirstVisit);
 
   const handleSplashFinish = () => {
     setShowSplash(false);

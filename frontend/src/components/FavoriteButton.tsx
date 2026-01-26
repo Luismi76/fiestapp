@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { favoritesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import logger from '@/lib/logger';
 
 interface FavoriteButtonProps {
   entityType: 'experience' | 'festival';
@@ -51,7 +52,7 @@ export default function FavoriteButton({
           setIsFavorite(result.isFavorite);
         }
       } catch (error) {
-        console.error('Error checking favorite status:', error);
+        logger.error('Error checking favorite status:', error);
       } finally {
         setChecking(false);
       }
@@ -83,7 +84,7 @@ export default function FavoriteButton({
     } catch (error) {
       // Revert on error
       setIsFavorite(previousState);
-      console.error('Error toggling favorite:', error);
+      logger.error('Error toggling favorite:', error);
     } finally {
       setLoading(false);
     }
@@ -106,7 +107,7 @@ export default function FavoriteButton({
     } catch (error) {
       // Revert on error
       setHasAlert(previousState);
-      console.error('Error toggling alert:', error);
+      logger.error('Error toggling alert:', error);
     } finally {
       setLoading(false);
     }

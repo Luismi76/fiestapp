@@ -59,7 +59,12 @@ function DonutChart({ data, colors, labels }: {
   labels: string[];
 }) {
   const total = data.reduce((a, b) => a + b, 0) || 1;
-  let accumulated = 0;
+  // Pre-calculate cumulative offsets to avoid mutation during render
+  const offsets = data.reduce<number[]>((acc, _, index) => {
+    const prev = index > 0 ? acc[index - 1] + (data[index - 1] / total) * 100 : 0;
+    acc.push(prev);
+    return acc;
+  }, []);
 
   return (
     <div className="flex items-center gap-4">
@@ -68,8 +73,7 @@ function DonutChart({ data, colors, labels }: {
           {data.map((value, index) => {
             const percentage = (value / total) * 100;
             const dashArray = `${percentage} ${100 - percentage}`;
-            const dashOffset = -accumulated;
-            accumulated += percentage;
+            const dashOffset = -offsets[index];
 
             return (
               <circle

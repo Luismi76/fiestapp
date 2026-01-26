@@ -7,6 +7,7 @@ import { usersApi, HostStats } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
+import logger from '@/lib/logger';
 
 const statusLabels: Record<string, string> = {
   pending: 'Pendiente',
@@ -48,7 +49,7 @@ export default function StatsPage() {
       setStats(data);
     } catch (err) {
       setError('No se pudieron cargar las estadísticas');
-      console.error(err);
+      logger.error('Error loading stats:', err);
     } finally {
       setLoading(false);
     }

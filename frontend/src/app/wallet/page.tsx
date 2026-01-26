@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { walletApi, WalletInfo, WalletTransaction } from '@/lib/api';
 import TopUpModal from '@/components/TopUpModal';
 import MainLayout from '@/components/MainLayout';
+import logger from '@/lib/logger';
 
 // Tipos de filtro disponibles
 type TransactionFilter = 'all' | 'topup' | 'platform_fee';
@@ -77,7 +78,7 @@ export default function WalletPage() {
       setTotalPages(transactionsData.pagination.totalPages);
       setCurrentPage(1);
     } catch (error) {
-      console.error('Error loading wallet:', error);
+      logger.error('Error loading wallet:', error);
     } finally {
       setLoading(false);
     }
@@ -103,7 +104,7 @@ export default function WalletPage() {
       setTotalPages(transactionsData.pagination.totalPages);
       setCurrentPage(page);
     } catch (error) {
-      console.error('Error loading transactions:', error);
+      logger.error('Error loading transactions:', error);
     } finally {
       setLoading(false);
       setLoadingMore(false);

@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Experience, CATEGORY_LABELS } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
+import { ExperienceGridSkeleton } from '@/components/ui/Skeleton';
 
 export default function MyExperiencesPage() {
   const router = useRouter();
@@ -52,11 +53,8 @@ export default function MyExperiencesPage() {
   if (authLoading || loading) {
     return (
       <MainLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="spinner spinner-lg mx-auto mb-4" />
-            <div className="text-gray-500">Cargando experiencias...</div>
-          </div>
+        <div className="min-h-screen bg-white md:bg-gray-50 p-4 md:p-6 lg:p-8">
+          <ExperienceGridSkeleton count={6} />
         </div>
       </MainLayout>
     );

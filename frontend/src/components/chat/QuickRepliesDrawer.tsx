@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import logger from '@/lib/logger';
 
 interface QuickReply {
   id: string;
@@ -72,7 +73,7 @@ export default function QuickRepliesDrawer({
       setNewReplyEmoji('');
       setShowAddForm(false);
     } catch (error) {
-      console.error('Error adding reply:', error);
+      logger.error('Error adding reply:', error);
     } finally {
       setAdding(false);
     }
@@ -85,7 +86,7 @@ export default function QuickRepliesDrawer({
     try {
       await onDeleteReply(id);
     } catch (error) {
-      console.error('Error deleting reply:', error);
+      logger.error('Error deleting reply:', error);
     } finally {
       setDeletingId(null);
     }

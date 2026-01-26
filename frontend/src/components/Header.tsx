@@ -24,13 +24,17 @@ export default function Header() {
     }
   }, [isAuthenticated]);
 
+  // Initial fetch and polling - valid external data sync pattern
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, [fetchUnreadCount]);
 
+  // Refresh on navigation and close menu
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUnreadCount();
     setIsMenuOpen(false);
   }, [pathname, fetchUnreadCount]);

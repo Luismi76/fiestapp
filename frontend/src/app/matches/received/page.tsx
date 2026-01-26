@@ -10,8 +10,11 @@ import { getAvatarUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
+import logger from '@/lib/logger';
+import { getErrorMessage } from '@/lib/error';
 
-// Mock data for fallback
+// Mock data for fallback (partial data for development)
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const mockReceivedMatches: Match[] = [
   {
     id: '1',
@@ -157,6 +160,7 @@ const mockReceivedMatches: Match[] = [
     },
   },
 ];
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const statusConfig: Record<MatchStatus, { label: string; bg: string; text: string; dot: string }> = {
   pending: { label: 'Pendiente', bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
@@ -197,7 +201,7 @@ export default function ReceivedMatchesPage() {
           setUseMockData(true);
         }
       } catch (err) {
-        console.log('Using mock data for matches');
+        logger.log('Using mock data for matches');
         setMatches(mockReceivedMatches);
         setUseMockData(true);
       } finally {
@@ -270,11 +274,10 @@ export default function ReceivedMatchesPage() {
         showSuccess('Solicitud aceptada', `Has aceptado la solicitud de ${requesterName}`);
       }, 400);
 
-    } catch (err: any) {
+    } catch (err) {
       setActionLoading(false);
       setAcceptModal({ isOpen: false, match: null });
-      const errorMsg = err?.response?.data?.message || 'No se pudo aceptar la solicitud';
-      showError('Error', errorMsg);
+      showError('Error', getErrorMessage(err, 'No se pudo aceptar la solicitud'));
     }
   };
 
@@ -307,11 +310,10 @@ export default function ReceivedMatchesPage() {
         showSuccess('Solicitud rechazada', `Has rechazado la solicitud de ${requesterName}`);
       }, 400);
 
-    } catch (err: any) {
+    } catch (err) {
       setActionLoading(false);
       setRejectModal({ isOpen: false, match: null });
-      const errorMsg = err?.response?.data?.message || 'No se pudo rechazar la solicitud';
-      showError('Error', errorMsg);
+      showError('Error', getErrorMessage(err, 'No se pudo rechazar la solicitud'));
     }
   };
 

@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Festival } from '@/types/experience';
 import { festivalsApi } from '@/lib/api';
+import logger from '@/lib/logger';
+import { AxiosError } from 'axios';
 
 interface FestivalSelectorProps {
   value: string;
@@ -202,9 +204,9 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
       setNewFestivalCity('');
       setNewFestivalDate('');
       setIsOpen(false);
-    } catch (error: any) {
-      console.error('Error creating festival:', error);
-      if (error.response?.status === 409) {
+    } catch (error) {
+      logger.error('Error creating festival:', error);
+      if (error instanceof AxiosError && error.response?.status === 409) {
         setCreateError('Ya existe una festividad con este nombre');
       } else {
         setCreateError('Error al crear la festividad. Inténtalo de nuevo.');
@@ -249,9 +251,9 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
       setNewFestivalName('');
       setNewFestivalCity('');
       setNewFestivalDate('');
-    } catch (error: any) {
-      console.error('Error updating festival:', error);
-      if (error.response?.status === 409) {
+    } catch (error) {
+      logger.error('Error updating festival:', error);
+      if (error instanceof AxiosError && error.response?.status === 409) {
         setEditError('Ya existe una festividad con este nombre');
       } else {
         setEditError('Error al actualizar la festividad. Inténtalo de nuevo.');
