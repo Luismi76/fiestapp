@@ -4,9 +4,24 @@ import {
   ExecutionContext,
   CallHandler,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { AuditService } from './audit.service';
+
+interface AuditUser {
+  id: string;
+  email?: string;
+}
+
+interface AuditRequest extends Request {
+  user?: AuditUser;
+}
+
+interface AuditResponse {
+  id?: string;
+  user?: { id: string };
+}
 
 // Acciones que deben ser logueadas automaticamente
 const AUDITED_ACTIONS: Record<string, { action: string; entity: string }> = {
@@ -78,8 +93,8 @@ const AUDITED_ACTIONS: Record<string, { action: string; entity: string }> = {
 export class AuditInterceptor implements NestInterceptor {
   constructor(private auditService: AuditService) {}
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest();
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = context.switchToHttp().getRequest<AuditRequest>();
     const { method, url, user, ip, headers } = request;
 
     // Normalizar URL para buscar en el mapa (remover query params y normalizar params)
@@ -92,13 +107,26 @@ export class AuditInterceptor implements NestInterceptor {
 
     const startTime = Date.now();
 
+    // Extract IP and user agent from headers
+    const forwardedFor = headers['x-forwarded-for'];
+    const realIp = headers['x-real-ip'];
+    const ipAddress =
+      ip ||
+      (typeof forwardedFor === 'string' ? forwardedFor : undefined) ||
+      (typeof realIp === 'string' ? realIp : undefined);
+    const userAgent =
+      typeof headers['user-agent'] === 'string'
+        ? headers['user-agent']
+        : undefined;
+
     return next.handle().pipe(
       tap({
         next: (response) => {
           // Solo loguear si la respuesta fue exitosa
+          const typedResponse = response as AuditResponse | null;
           const entityId = this.extractEntityId(
             request,
-            response,
+            typedResponse,
             auditConfig.entity,
           );
 
@@ -114,15 +142,14 @@ export class AuditInterceptor implements NestInterceptor {
                 duration: Date.now() - startTime,
                 responseStatus: 'success',
               },
-              ipAddress:
-                ip || headers['x-forwarded-for'] || headers['x-real-ip'],
-              userAgent: headers['user-agent'],
+              ipAddress,
+              userAgent,
             })
-            .catch((err) => {
+            .catch((err: unknown) => {
               console.error('Error logging audit:', err);
             });
         },
-        error: (error) => {
+        error: (error: Error) => {
           // Loguear tambien errores para acciones de seguridad
           if (
             auditConfig.action.includes('login') ||
@@ -140,11 +167,10 @@ export class AuditInterceptor implements NestInterceptor {
                   error: error.message,
                   responseStatus: 'error',
                 },
-                ipAddress:
-                  ip || headers['x-forwarded-for'] || headers['x-real-ip'],
-                userAgent: headers['user-agent'],
+                ipAddress,
+                userAgent,
               })
-              .catch((err) => {
+              .catch((err: unknown) => {
                 console.error('Error logging audit:', err);
               });
           }
@@ -169,13 +195,14 @@ export class AuditInterceptor implements NestInterceptor {
   }
 
   private extractEntityId(
-    request: any,
-    response: any,
+    request: AuditRequest,
+    response: AuditResponse | null,
     entity: string,
   ): string | undefined {
     // Intentar extraer el ID de los params
-    if (request.params?.id) {
-      return request.params.id;
+    const paramId = request.params?.id;
+    if (typeof paramId === 'string') {
+      return paramId;
     }
 
     // Para creaciones, el ID viene en la respuesta

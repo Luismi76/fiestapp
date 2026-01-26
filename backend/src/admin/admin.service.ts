@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -767,7 +768,6 @@ export class AdminService {
    * Obtiene tasa de conversion
    */
   async getConversionStats() {
-    const now = new Date();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -838,7 +838,7 @@ export class AdminService {
   ) {
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
 
     if (filters.search) {
       where.OR = [
@@ -865,11 +865,13 @@ export class AdminService {
 
     if (filters.dateFrom || filters.dateTo) {
       where.createdAt = {};
-      if (filters.dateFrom) where.createdAt.gte = filters.dateFrom;
-      if (filters.dateTo) where.createdAt.lte = filters.dateTo;
+      if (filters.dateFrom)
+        (where.createdAt as Prisma.DateTimeFilter).gte = filters.dateFrom;
+      if (filters.dateTo)
+        (where.createdAt as Prisma.DateTimeFilter).lte = filters.dateTo;
     }
 
-    let orderBy: any = { createdAt: 'desc' };
+    let orderBy: Prisma.UserOrderByWithRelationInput = { createdAt: 'desc' };
     if (filters.orderBy) {
       const dir = filters.orderDir || 'desc';
       if (filters.orderBy === 'matches') {
@@ -1065,7 +1067,7 @@ export class AdminService {
       dateTo?: Date;
     } = {},
   ): Promise<string> {
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
 
     if (filters.verified !== undefined) {
       where.verified = filters.verified;
@@ -1075,8 +1077,10 @@ export class AdminService {
     }
     if (filters.dateFrom || filters.dateTo) {
       where.createdAt = {};
-      if (filters.dateFrom) where.createdAt.gte = filters.dateFrom;
-      if (filters.dateTo) where.createdAt.lte = filters.dateTo;
+      if (filters.dateFrom)
+        (where.createdAt as Prisma.DateTimeFilter).gte = filters.dateFrom;
+      if (filters.dateTo)
+        (where.createdAt as Prisma.DateTimeFilter).lte = filters.dateTo;
     }
 
     const users = await this.prisma.user.findMany({

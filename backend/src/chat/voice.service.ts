@@ -9,9 +9,9 @@ export class VoiceService {
   private isConfigured = false;
 
   constructor(private configService: ConfigService) {
-    const cloudName = this.configService.get('CLOUDINARY_CLOUD_NAME');
-    const apiKey = this.configService.get('CLOUDINARY_API_KEY');
-    const apiSecret = this.configService.get('CLOUDINARY_API_SECRET');
+    const cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME');
+    const apiKey = this.configService.get<string>('CLOUDINARY_API_KEY');
+    const apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET');
 
     if (cloudName && apiKey && apiSecret) {
       cloudinary.config({
@@ -31,7 +31,7 @@ export class VoiceService {
     // Verificar que Cloudinary está configurado
     if (!this.isConfigured) {
       throw new BadRequestException(
-        'Cloudinary no está configurado. Añade CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET al archivo .env'
+        'Cloudinary no está configurado. Añade CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY y CLOUDINARY_API_SECRET al archivo .env',
       );
     }
 
@@ -42,7 +42,9 @@ export class VoiceService {
 
     // Validar tamaño (máximo 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      throw new BadRequestException('El archivo es demasiado grande (máximo 5MB)');
+      throw new BadRequestException(
+        'El archivo es demasiado grande (máximo 5MB)',
+      );
     }
 
     try {
@@ -64,11 +66,19 @@ export class VoiceService {
             },
             (error, result) => {
               if (error) {
-                reject(error);
+                const errorMessage =
+                  error instanceof Error
+                    ? error.message
+                    : typeof error === 'object' && error !== null
+                      ? JSON.stringify(error)
+                      : String(error);
+                reject(new Error(errorMessage));
               } else if (result) {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+                const duration: number = (result as any).duration || 0;
                 resolve({
                   secure_url: result.secure_url,
-                  duration: result.duration || 0,
+                  duration,
                 });
               } else {
                 reject(new Error('No result from Cloudinary'));
@@ -95,7 +105,10 @@ export class VoiceService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Error uploading voice to Cloudinary:', error instanceof Error ? error.message : error);
+      console.error(
+        'Error uploading voice to Cloudinary:',
+        error instanceof Error ? error.message : error,
+      );
       throw new BadRequestException('Error al subir el mensaje de voz');
     }
   }

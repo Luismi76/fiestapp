@@ -90,7 +90,10 @@ export class FavoritesController {
     @Param('festivalId') festivalId: string,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.favoritesService.isFestivalFavorite(req.user.userId, festivalId);
+    return this.favoritesService.isFestivalFavorite(
+      req.user.userId,
+      festivalId,
+    );
   }
 
   // Anadir festival a favoritos
@@ -99,7 +102,10 @@ export class FavoritesController {
     @Param('festivalId') festivalId: string,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.favoritesService.addFestivalFavorite(req.user.userId, festivalId);
+    return this.favoritesService.addFestivalFavorite(
+      req.user.userId,
+      festivalId,
+    );
   }
 
   // Eliminar festival de favoritos

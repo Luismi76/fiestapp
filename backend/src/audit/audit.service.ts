@@ -64,7 +64,7 @@ export class AuditService {
    */
   async getLogs(page = 1, limit = 50, filters?: AuditLogFilters) {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.AuditLogWhereInput = {};
 
     if (filters?.userId) {
       where.userId = filters.userId;
@@ -80,8 +80,10 @@ export class AuditService {
     }
     if (filters?.dateFrom || filters?.dateTo) {
       where.createdAt = {};
-      if (filters.dateFrom) where.createdAt.gte = filters.dateFrom;
-      if (filters.dateTo) where.createdAt.lte = filters.dateTo;
+      if (filters.dateFrom)
+        (where.createdAt as Prisma.DateTimeFilter).gte = filters.dateFrom;
+      if (filters.dateTo)
+        (where.createdAt as Prisma.DateTimeFilter).lte = filters.dateTo;
     }
 
     const [logs, total] = await Promise.all([

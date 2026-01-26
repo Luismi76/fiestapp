@@ -1,6 +1,7 @@
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import { Response } from 'express';
 
 @Injectable()
 export class GoogleAuthGuard extends AuthGuard('google') {
@@ -14,7 +15,7 @@ export class GoogleAuthGuard extends AuthGuard('google') {
     const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET');
 
     if (!clientId || !clientSecret) {
-      const response = context.switchToHttp().getResponse();
+      const response = context.switchToHttp().getResponse<Response>();
       response.status(503).json({
         statusCode: 503,
         message: 'Google OAuth no está configurado en este servidor.',
@@ -25,6 +26,7 @@ export class GoogleAuthGuard extends AuthGuard('google') {
     return super.canActivate(context);
   }
 
+  // Method signature required by Passport - extra params are part of the interface
   handleRequest<TUser = unknown>(
     err: Error | null,
     user: TUser | false,

@@ -29,19 +29,27 @@ export class SearchController {
   // Autocomplete (publico, no requiere auth)
   @Get('autocomplete')
   autocomplete(@Query('q') query: string, @Query('limit') limit?: string) {
-    return this.searchService.autocomplete(query, limit ? parseInt(limit, 10) : 10);
+    return this.searchService.autocomplete(
+      query,
+      limit ? parseInt(limit, 10) : 10,
+    );
   }
 
   // Busquedas populares (publico)
   @Get('popular')
   getPopularSearches(@Query('limit') limit?: string) {
-    return this.searchService.getPopularSearches(limit ? parseInt(limit, 10) : 10);
+    return this.searchService.getPopularSearches(
+      limit ? parseInt(limit, 10) : 10,
+    );
   }
 
   // Historial del usuario (requiere auth)
   @Get('history')
   @UseGuards(JwtAuthGuard)
-  getHistory(@Request() req: AuthenticatedRequest, @Query('limit') limit?: string) {
+  getHistory(
+    @Request() req: AuthenticatedRequest,
+    @Query('limit') limit?: string,
+  ) {
     return this.searchService.getHistory(
       req.user.userId,
       limit ? parseInt(limit, 10) : 10,

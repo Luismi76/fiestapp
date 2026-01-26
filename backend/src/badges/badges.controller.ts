@@ -6,8 +6,13 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BadgesService } from './badges.service';
+
+interface AuthenticatedRequest extends ExpressRequest {
+  user: { id: string; email: string };
+}
 
 @Controller('badges')
 export class BadgesController {
@@ -28,7 +33,7 @@ export class BadgesController {
    */
   @Get('my')
   @UseGuards(JwtAuthGuard)
-  async getMyBadges(@Request() req) {
+  async getMyBadges(@Request() req: AuthenticatedRequest) {
     return this.badgesService.getUserBadges(req.user.id);
   }
 
@@ -56,7 +61,7 @@ export class BadgesController {
    */
   @Get('reputation/my')
   @UseGuards(JwtAuthGuard)
-  async getMyReputation(@Request() req) {
+  async getMyReputation(@Request() req: AuthenticatedRequest) {
     return this.badgesService.getUserReputation(req.user.id);
   }
 
@@ -66,7 +71,7 @@ export class BadgesController {
    */
   @Post('check')
   @UseGuards(JwtAuthGuard)
-  async checkBadges(@Request() req) {
+  async checkBadges(@Request() req: AuthenticatedRequest) {
     const awarded = await this.badgesService.checkAndAwardBadges(req.user.id);
     return {
       message:

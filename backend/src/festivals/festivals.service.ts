@@ -43,7 +43,9 @@ export class FestivalsService {
   /**
    * Geocodifica una ciudad española usando Nominatim (OpenStreetMap)
    */
-  private async geocodeCity(city: string): Promise<{ latitude: number; longitude: number } | null> {
+  private async geocodeCity(
+    city: string,
+  ): Promise<{ latitude: number; longitude: number } | null> {
     try {
       const query = encodeURIComponent(`${city}, España`);
       const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=es`;
@@ -55,11 +57,15 @@ export class FestivalsService {
       });
 
       if (!response.ok) {
-        this.logger.warn(`Geocoding failed for ${city}: HTTP ${response.status}`);
+        this.logger.warn(
+          `Geocoding failed for ${city}: HTTP ${response.status}`,
+        );
         return null;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as
+        | { lat: string; lon: string }[]
+        | null;
 
       if (data && data.length > 0 && data[0].lat && data[0].lon) {
         return {
@@ -175,10 +181,14 @@ export class FestivalsService {
       updateData.longitude = coordinates.longitude;
     }
     if (updateFestivalDto.startDate !== undefined) {
-      updateData.startDate = updateFestivalDto.startDate ? new Date(updateFestivalDto.startDate) : null;
+      updateData.startDate = updateFestivalDto.startDate
+        ? new Date(updateFestivalDto.startDate)
+        : null;
     }
     if (updateFestivalDto.endDate !== undefined) {
-      updateData.endDate = updateFestivalDto.endDate ? new Date(updateFestivalDto.endDate) : null;
+      updateData.endDate = updateFestivalDto.endDate
+        ? new Date(updateFestivalDto.endDate)
+        : null;
     }
 
     const festival = await this.prisma.festival.update({
@@ -330,8 +340,18 @@ export class FestivalsService {
 
     // Agrupar por mes
     const monthNames = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
     ];
 
     const byMonth: FestivalByMonth[] = monthNames.map((monthName, index) => ({
@@ -533,8 +553,8 @@ export class FestivalsService {
         festivalType: 'tradicional',
         startDate: new Date(2026, 7, 15), // Agosto
         endDate: new Date(2026, 7, 23),
-        latitude: 43.2630,
-        longitude: -2.9350,
+        latitude: 43.263,
+        longitude: -2.935,
       },
       {
         name: 'Carnaval de Cadiz',
@@ -545,7 +565,7 @@ export class FestivalsService {
         festivalType: 'tradicional',
         startDate: new Date(2026, 1, 12), // Febrero
         endDate: new Date(2026, 1, 22),
-        latitude: 36.5270,
+        latitude: 36.527,
         longitude: -6.2885,
       },
       {
@@ -575,7 +595,8 @@ export class FestivalsService {
       {
         name: 'Moros y Cristianos',
         city: 'Alcoy',
-        description: 'Recreación histórica de las batallas entre moros y cristianos.',
+        description:
+          'Recreación histórica de las batallas entre moros y cristianos.',
         imageUrl: null,
         region: 'Comunidad Valenciana',
         festivalType: 'tradicional',
@@ -599,7 +620,8 @@ export class FestivalsService {
       {
         name: 'Fiesta de la Merce',
         city: 'Barcelona',
-        description: 'La fiesta mayor de Barcelona con castellers, correfocs y más.',
+        description:
+          'La fiesta mayor de Barcelona con castellers, correfocs y más.',
         imageUrl: null,
         region: 'Cataluna',
         festivalType: 'tradicional',
@@ -617,7 +639,7 @@ export class FestivalsService {
         festivalType: 'tradicional',
         startDate: new Date(2026, 4, 3), // Mayo
         endDate: new Date(2026, 4, 10),
-        latitude: 36.6850,
+        latitude: 36.685,
         longitude: -6.1264,
       },
     ];

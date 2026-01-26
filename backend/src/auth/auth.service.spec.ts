@@ -16,7 +16,9 @@ jest.mock('otplib', () => ({
   verifySync: jest.fn(() => ({ valid: true })),
 }));
 jest.mock('fs', () => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const actual = jest.requireActual('fs');
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return {
     ...actual,
     appendFileSync: jest.fn(),
@@ -30,9 +32,12 @@ import * as bcrypt from 'bcrypt';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let prismaService: PrismaService;
-  let jwtService: JwtService;
-  let emailService: EmailService;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _prismaService: PrismaService;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _jwtService: JwtService;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let _emailService: EmailService;
 
   const mockPrismaService = {
     user: {
@@ -77,9 +82,9 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    prismaService = module.get<PrismaService>(PrismaService);
-    jwtService = module.get<JwtService>(JwtService);
-    emailService = module.get<EmailService>(EmailService);
+    _prismaService = module.get<PrismaService>(PrismaService);
+    _jwtService = module.get<JwtService>(JwtService);
+    _emailService = module.get<EmailService>(EmailService);
 
     // Reset all mocks
     jest.clearAllMocks();
@@ -119,7 +124,8 @@ describe('AuthService', () => {
         email: registerDto.email,
         name: registerDto.name,
       };
-      mockPrismaService.$transaction.mockImplementation(async (callback) => {
+
+      mockPrismaService.$transaction.mockImplementation((callback: any) => {
         const mockTx = {
           user: {
             create: jest.fn().mockResolvedValue(newUser),
@@ -130,6 +136,7 @@ describe('AuthService', () => {
               .mockResolvedValue({ id: '1', userId: newUser.id }),
           },
         };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
         return callback(mockTx);
       });
       mockEmailService.sendVerificationEmail.mockResolvedValue(undefined);
@@ -218,7 +225,10 @@ describe('AuthService', () => {
 
       expect(result).toHaveProperty('access_token', 'jwt-token');
       expect(result).toHaveProperty('user');
-      expect(result.user.email).toBe(loginDto.email);
+
+      expect((result as { user: { email: string } }).user.email).toBe(
+        loginDto.email,
+      );
     });
 
     it('should require 2FA if enabled', async () => {

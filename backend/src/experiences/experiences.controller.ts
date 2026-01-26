@@ -146,7 +146,9 @@ export class ExperiencesController {
   ) {
     const numParticipants = parseInt(participants, 10);
     if (isNaN(numParticipants) || numParticipants < 1) {
-      throw new BadRequestException('El número de participantes debe ser al menos 1');
+      throw new BadRequestException(
+        'El número de participantes debe ser al menos 1',
+      );
     }
     return this.pricingService.calculateGroupPrice(id, numParticipants);
   }

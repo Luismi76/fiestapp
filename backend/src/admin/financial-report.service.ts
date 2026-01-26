@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface FinancialReportFilters {
@@ -35,12 +36,14 @@ export class FinancialReportService {
   async getFinancialSummary(
     filters?: FinancialReportFilters,
   ): Promise<FinancialSummary> {
-    const where: any = {};
+    const where: Prisma.TransactionWhereInput = {};
 
     if (filters?.startDate || filters?.endDate) {
       where.createdAt = {};
-      if (filters.startDate) where.createdAt.gte = filters.startDate;
-      if (filters.endDate) where.createdAt.lte = filters.endDate;
+      if (filters.startDate)
+        (where.createdAt as Prisma.DateTimeFilter).gte = filters.startDate;
+      if (filters.endDate)
+        (where.createdAt as Prisma.DateTimeFilter).lte = filters.endDate;
     }
 
     // Obtener totales
@@ -108,12 +111,14 @@ export class FinancialReportService {
     period: 'daily' | 'weekly' | 'monthly',
     filters?: FinancialReportFilters,
   ) {
-    const where: any = { status: 'completed' };
+    const where: Prisma.TransactionWhereInput = { status: 'completed' };
 
     if (filters?.startDate || filters?.endDate) {
       where.createdAt = {};
-      if (filters.startDate) where.createdAt.gte = filters.startDate;
-      if (filters.endDate) where.createdAt.lte = filters.endDate;
+      if (filters.startDate)
+        (where.createdAt as Prisma.DateTimeFilter).gte = filters.startDate;
+      if (filters.endDate)
+        (where.createdAt as Prisma.DateTimeFilter).lte = filters.endDate;
     }
 
     // Obtener transacciones en el rango
@@ -168,12 +173,14 @@ export class FinancialReportService {
     filters?: FinancialReportFilters & { type?: string; status?: string },
   ) {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.TransactionWhereInput = {};
 
     if (filters?.startDate || filters?.endDate) {
       where.createdAt = {};
-      if (filters.startDate) where.createdAt.gte = filters.startDate;
-      if (filters.endDate) where.createdAt.lte = filters.endDate;
+      if (filters.startDate)
+        (where.createdAt as Prisma.DateTimeFilter).gte = filters.startDate;
+      if (filters.endDate)
+        (where.createdAt as Prisma.DateTimeFilter).lte = filters.endDate;
     }
     if (filters?.type) where.type = filters.type;
     if (filters?.status) where.status = filters.status;
@@ -216,12 +223,14 @@ export class FinancialReportService {
    * Exporta transacciones a formato CSV
    */
   async exportToCSV(filters?: FinancialReportFilters): Promise<string> {
-    const where: any = {};
+    const where: Prisma.TransactionWhereInput = {};
 
     if (filters?.startDate || filters?.endDate) {
       where.createdAt = {};
-      if (filters.startDate) where.createdAt.gte = filters.startDate;
-      if (filters.endDate) where.createdAt.lte = filters.endDate;
+      if (filters.startDate)
+        (where.createdAt as Prisma.DateTimeFilter).gte = filters.startDate;
+      if (filters.endDate)
+        (where.createdAt as Prisma.DateTimeFilter).lte = filters.endDate;
     }
 
     const transactions = await this.prisma.transaction.findMany({
@@ -294,15 +303,17 @@ export class FinancialReportService {
    * Obtiene metricas de comisiones
    */
   async getCommissionMetrics(filters?: FinancialReportFilters) {
-    const where: any = {
+    const where: Prisma.TransactionWhereInput = {
       type: 'commission',
       status: 'completed',
     };
 
     if (filters?.startDate || filters?.endDate) {
       where.createdAt = {};
-      if (filters.startDate) where.createdAt.gte = filters.startDate;
-      if (filters.endDate) where.createdAt.lte = filters.endDate;
+      if (filters.startDate)
+        (where.createdAt as Prisma.DateTimeFilter).gte = filters.startDate;
+      if (filters.endDate)
+        (where.createdAt as Prisma.DateTimeFilter).lte = filters.endDate;
     }
 
     const commissions = await this.prisma.transaction.aggregate({

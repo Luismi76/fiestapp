@@ -82,7 +82,9 @@ export class PricingService {
     const originalTotal = basePrice * participants;
     const savings = originalTotal - totalPrice;
     const discount =
-      basePrice > 0 ? Math.round(((basePrice - pricePerPerson) / basePrice) * 100) : 0;
+      basePrice > 0
+        ? Math.round(((basePrice - pricePerPerson) / basePrice) * 100)
+        : 0;
 
     return {
       pricePerPerson,

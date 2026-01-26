@@ -35,11 +35,15 @@ export class ExperiencesService {
       });
 
       if (!response.ok) {
-        this.logger.warn(`Geocoding failed for ${city}: HTTP ${response.status}`);
+        this.logger.warn(
+          `Geocoding failed for ${city}: HTTP ${response.status}`,
+        );
         return null;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as
+        | { lat: string; lon: string }[]
+        | null;
 
       if (data && data.length > 0 && data[0].lat && data[0].lon) {
         return {
@@ -323,7 +327,7 @@ export class ExperiencesService {
   }
 
   async findOne(id: string) {
-    const cached = await this.cacheService.get<any>(CACHE_KEYS.EXPERIENCE(id));
+    const cached = await this.cacheService.get(CACHE_KEYS.EXPERIENCE(id));
     if (cached) {
       return cached;
     }

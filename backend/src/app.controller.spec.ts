@@ -5,6 +5,7 @@ import { PrismaService } from './prisma/prisma.service';
 
 describe('AppController', () => {
   let appController: AppController;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let prismaService: PrismaService;
 
   const mockPrismaService = {

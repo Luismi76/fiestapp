@@ -12,10 +12,15 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { DiscountsService } from './discounts.service';
 import { CreateDiscountDto } from './dto/create-discount.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
+
+interface AuthenticatedRequest extends ExpressRequest {
+  user: { id: string; email: string };
+}
 
 @Controller('discounts')
 export class DiscountsController {
@@ -32,7 +37,7 @@ export class DiscountsController {
   @Post('validate')
   @UseGuards(JwtAuthGuard)
   validateDiscount(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body('code') code: string,
     @Body('amount') amount: number,
   ) {
@@ -46,7 +51,7 @@ export class DiscountsController {
   @Post('apply')
   @UseGuards(JwtAuthGuard)
   applyDiscount(
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
     @Body('code') code: string,
     @Body('amount') amount: number,
     @Body('transactionId') transactionId?: string,

@@ -296,7 +296,11 @@ export class BadgesService {
     }
 
     // 3. Badge Primer Acuerdo (1 match aceptado)
-    if (acceptedMatches >= 1 || completedAsRequester >= 1 || completedAsHost >= 1) {
+    if (
+      acceptedMatches >= 1 ||
+      completedAsRequester >= 1 ||
+      completedAsHost >= 1
+    ) {
       await tryAward('primer_acuerdo');
     }
 

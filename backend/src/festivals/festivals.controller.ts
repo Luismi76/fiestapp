@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Param, Body, Query, Res, Header } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Param,
+  Body,
+  Query,
+  Res,
+  Header,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { FestivalsService } from './festivals.service';
 import { ICalService } from './ical.service';
@@ -126,7 +136,10 @@ export class FestivalsController {
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateFestivalDto: UpdateFestivalDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateFestivalDto: UpdateFestivalDto,
+  ) {
     return this.festivalsService.update(id, updateFestivalDto);
   }
 

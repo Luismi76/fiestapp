@@ -40,7 +40,8 @@ export class CreateExperienceDto {
   festivalId?: string;
 
   @IsEnum(ExperienceCategory, {
-    message: 'Categoría debe ser: gastronomia, cultura, naturaleza, aventura, nocturna o familiar',
+    message:
+      'Categoría debe ser: gastronomia, cultura, naturaleza, aventura, nocturna o familiar',
   })
   category: ExperienceCategory;
 

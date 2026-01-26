@@ -62,21 +62,22 @@ export class ChatController {
       'video/webm', // MediaRecorder puede usar esto para audio
     ];
 
-    const isValidType = validMimeTypes.some(type => file.mimetype.startsWith(type.split('/')[0] + '/')) ||
-                        file.mimetype === 'video/webm';
+    const isValidType =
+      validMimeTypes.some((type) =>
+        file.mimetype.startsWith(type.split('/')[0] + '/'),
+      ) || file.mimetype === 'video/webm';
 
     if (!isValidType) {
-      throw new BadRequestException(`Tipo de archivo no permitido: ${file.mimetype}. Tipos válidos: ${validMimeTypes.join(', ')}`);
+      throw new BadRequestException(
+        `Tipo de archivo no permitido: ${file.mimetype}. Tipos válidos: ${validMimeTypes.join(', ')}`,
+      );
     }
 
     // Verificar que el usuario pertenece al match
     const match = await this.prisma.match.findFirst({
       where: {
         id: matchId,
-        OR: [
-          { requesterId: req.user.userId },
-          { hostId: req.user.userId },
-        ],
+        OR: [{ requesterId: req.user.userId }, { hostId: req.user.userId }],
       },
     });
 
@@ -113,8 +114,14 @@ export class ChatController {
     });
 
     // Emitir evento WebSocket para que el mensaje aparezca en el chat
-    const otherUserId = match.hostId === req.user.userId ? match.requesterId : match.hostId;
-    this.chatGateway.emitNewMessage(matchId, message, req.user.userId, otherUserId);
+    const otherUserId =
+      match.hostId === req.user.userId ? match.requesterId : match.hostId;
+    this.chatGateway.emitNewMessage(
+      matchId,
+      message,
+      req.user.userId,
+      otherUserId,
+    );
 
     return {
       url,
@@ -156,7 +163,9 @@ export class ChatController {
 
     // No traducir mensajes de voz o ubicación
     if (message.type !== 'TEXT' && message.type !== 'QUICK_REPLY') {
-      throw new BadRequestException('Este tipo de mensaje no se puede traducir');
+      throw new BadRequestException(
+        'Este tipo de mensaje no se puede traducir',
+      );
     }
 
     // Verificar si ya tenemos la traducción en cache

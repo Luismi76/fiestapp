@@ -19,10 +19,7 @@ export class LocationService {
   private readonly nominatimUrl = 'https://nominatim.openstreetmap.org';
   private readonly userAgent = 'FiestApp/1.0';
 
-  async reverseGeocode(
-    latitude: number,
-    longitude: number,
-  ): Promise<string> {
+  async reverseGeocode(latitude: number, longitude: number): Promise<string> {
     try {
       const response = await fetch(
         `${this.nominatimUrl}/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
@@ -37,7 +34,7 @@ export class LocationService {
         throw new Error('Nominatim API error');
       }
 
-      const data: NominatimResponse = await response.json();
+      const data = (await response.json()) as NominatimResponse;
 
       // Construir nombre legible
       return this.formatLocationName(data);
@@ -63,7 +60,8 @@ export class LocationService {
     }
 
     // Añadir ciudad/pueblo
-    const city = address.city || address.town || address.village || address.municipality;
+    const city =
+      address.city || address.town || address.village || address.municipality;
     if (city) {
       parts.push(city);
     }
@@ -79,7 +77,11 @@ export class LocationService {
   }
 
   // Generar URL para abrir en app de mapas
-  getMapUrl(latitude: number, longitude: number, name?: string): {
+  getMapUrl(
+    latitude: number,
+    longitude: number,
+    name?: string,
+  ): {
     googleMaps: string;
     appleMaps: string;
   } {

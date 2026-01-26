@@ -72,17 +72,20 @@ export class CacheService {
   async delByPattern(pattern: string): Promise<void> {
     try {
       // Intentar con el store de Redis si está disponible
-      const stores = (this.cacheManager as any).stores;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const stores: any[] | undefined = (this.cacheManager as any).stores;
       if (stores && stores[0]) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const store = stores[0];
         // Redis store tiene método keys
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (store.opts?.store?.keys) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           const redisClient = store.opts.store;
-          const keys = await redisClient.keys(pattern);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          const keys: string[] = await redisClient.keys(pattern);
           if (keys.length > 0) {
-            await Promise.all(
-              keys.map((key: string) => this.cacheManager.del(key)),
-            );
+            await Promise.all(keys.map((key) => this.cacheManager.del(key)));
           }
         }
       }
@@ -97,7 +100,9 @@ export class CacheService {
   async reset(): Promise<void> {
     try {
       // cache-manager v5+ usa clear() en lugar de reset()
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if ((this.cacheManager as any).clear) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         await (this.cacheManager as any).clear();
       }
     } catch (error) {

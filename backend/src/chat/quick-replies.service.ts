@@ -42,7 +42,7 @@ export class QuickRepliesService {
     return userReplies;
   }
 
-  async getDefaultReplies(): Promise<QuickReply[]> {
+  getDefaultReplies(): QuickReply[] {
     return DEFAULT_QUICK_REPLIES.map((reply, index) => ({
       id: `default-${index}`,
       text: reply.text,
@@ -56,10 +56,8 @@ export class QuickRepliesService {
     userReplies: QuickReply[];
     defaultReplies: QuickReply[];
   }> {
-    const [userReplies, defaultReplies] = await Promise.all([
-      this.getQuickReplies(userId),
-      this.getDefaultReplies(),
-    ]);
+    const userReplies = await this.getQuickReplies(userId);
+    const defaultReplies = this.getDefaultReplies();
 
     return { userReplies, defaultReplies };
   }
@@ -113,7 +111,10 @@ export class QuickRepliesService {
       where: { id: replyId },
       data: {
         text: data.text?.substring(0, 100),
-        emoji: data.emoji !== undefined ? data.emoji?.substring(0, 10) || null : existing.emoji,
+        emoji:
+          data.emoji !== undefined
+            ? data.emoji?.substring(0, 10) || null
+            : existing.emoji,
         sortOrder: data.sortOrder ?? existing.sortOrder,
       },
       select: {
@@ -142,10 +143,7 @@ export class QuickRepliesService {
     });
   }
 
-  async reorderQuickReplies(
-    userId: string,
-    replyIds: string[],
-  ): Promise<void> {
+  async reorderQuickReplies(userId: string, replyIds: string[]): Promise<void> {
     // Actualizar sortOrder para cada respuesta
     await this.prisma.$transaction(
       replyIds.map((id, index) =>

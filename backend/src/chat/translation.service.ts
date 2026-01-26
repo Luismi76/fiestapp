@@ -33,7 +33,9 @@ export class TranslationService {
     private prisma: PrismaService,
   ) {
     this.googleApiKey = this.configService.get('GOOGLE_TRANSLATE_API_KEY');
-    this.libreTranslateUrl = this.configService.get('LIBRETRANSLATE_URL') || 'https://libretranslate.com';
+    this.libreTranslateUrl =
+      this.configService.get('LIBRETRANSLATE_URL') ||
+      'https://libretranslate.com';
 
     // Determinar proveedor: Google si hay API key, sino LibreTranslate
     this.provider = this.googleApiKey ? 'google' : 'libretranslate';
@@ -121,7 +123,9 @@ export class TranslationService {
       });
 
       if (!detectResponse.ok) {
-        console.log('[TranslationService] LibreTranslate detect failed, falling back to MyMemory');
+        console.log(
+          '[TranslationService] LibreTranslate detect failed, falling back to MyMemory',
+        );
         throw new Error('LibreTranslate not available');
       }
 
@@ -129,7 +133,9 @@ export class TranslationService {
       const detectedLang = detectData[0]?.language;
 
       if (!detectedLang) {
-        console.log('[TranslationService] Could not detect language, falling back to MyMemory');
+        console.log(
+          '[TranslationService] Could not detect language, falling back to MyMemory',
+        );
         throw new Error('Could not detect language');
       }
 
@@ -238,10 +244,7 @@ export class TranslationService {
     }
   }
 
-  private mockTranslate(
-    text: string,
-    targetLang: string,
-  ): TranslationResult {
+  private mockTranslate(text: string, targetLang: string): TranslationResult {
     // Detectar idioma simple (basado en palabras comunes)
     const detectedLang = this.detectLanguage(text);
 
@@ -264,11 +267,97 @@ export class TranslationService {
     const lowerText = ` ${text.toLowerCase()} `; // Add spaces for word boundary matching
 
     // Palabras comunes en español (con espacio para coincidencia de palabras completas)
-    const spanishWords = [' hola ', ' gracias ', ' buenos ', ' días ', ' qué ', ' cómo ', ' estás ', ' dónde ', ' cuándo ', ' quiero ', ' tengo ', ' vamos ', ' este ', ' esta ', ' para ', ' pero ', ' porque ', ' cuando ', ' donde ', ' muy ', ' bien ', ' más ', ' menos ', ' todo ', ' nada ', ' algo ', ' mucho ', ' poco '];
+    const spanishWords = [
+      ' hola ',
+      ' gracias ',
+      ' buenos ',
+      ' días ',
+      ' qué ',
+      ' cómo ',
+      ' estás ',
+      ' dónde ',
+      ' cuándo ',
+      ' quiero ',
+      ' tengo ',
+      ' vamos ',
+      ' este ',
+      ' esta ',
+      ' para ',
+      ' pero ',
+      ' porque ',
+      ' cuando ',
+      ' donde ',
+      ' muy ',
+      ' bien ',
+      ' más ',
+      ' menos ',
+      ' todo ',
+      ' nada ',
+      ' algo ',
+      ' mucho ',
+      ' poco ',
+    ];
     // Palabras comunes en inglés
-    const englishWords = [' hello ', ' thanks ', ' good ', ' morning ', ' what ', ' how ', ' are ', ' where ', ' when ', ' want ', ' have ', ' this ', ' that ', ' the ', ' for ', ' but ', ' because ', ' very ', ' well ', ' more ', ' less ', ' all ', ' nothing ', ' something ', ' much ', ' little ', ' going ', ' weekend ', ' today ', ' tomorrow ', ' would ', ' could ', ' should ', ' will '];
+    const englishWords = [
+      ' hello ',
+      ' thanks ',
+      ' good ',
+      ' morning ',
+      ' what ',
+      ' how ',
+      ' are ',
+      ' where ',
+      ' when ',
+      ' want ',
+      ' have ',
+      ' this ',
+      ' that ',
+      ' the ',
+      ' for ',
+      ' but ',
+      ' because ',
+      ' very ',
+      ' well ',
+      ' more ',
+      ' less ',
+      ' all ',
+      ' nothing ',
+      ' something ',
+      ' much ',
+      ' little ',
+      ' going ',
+      ' weekend ',
+      ' today ',
+      ' tomorrow ',
+      ' would ',
+      ' could ',
+      ' should ',
+      ' will ',
+    ];
     // Palabras comunes en francés
-    const frenchWords = [' bonjour ', ' merci ', ' comment ', ' allez ', ' vous ', ' bien ', ' oui ', ' non ', ' je ', ' tu ', ' nous ', ' avec ', ' pour ', ' mais ', ' parce ', ' très ', ' plus ', ' moins ', ' tout ', ' rien ', ' quelque '];
+    const frenchWords = [
+      ' bonjour ',
+      ' merci ',
+      ' comment ',
+      ' allez ',
+      ' vous ',
+      ' bien ',
+      ' oui ',
+      ' non ',
+      ' je ',
+      ' tu ',
+      ' nous ',
+      ' avec ',
+      ' pour ',
+      ' mais ',
+      ' parce ',
+      ' très ',
+      ' plus ',
+      ' moins ',
+      ' tout ',
+      ' rien ',
+      ' quelque ',
+    ];
 
     let spanishCount = 0;
     let englishCount = 0;
@@ -284,7 +373,9 @@ export class TranslationService {
       if (lowerText.includes(word)) frenchCount++;
     });
 
-    console.log(`[TranslationService] Language detection for "${text}": es=${spanishCount}, en=${englishCount}, fr=${frenchCount}`);
+    console.log(
+      `[TranslationService] Language detection for "${text}": es=${spanishCount}, en=${englishCount}, fr=${frenchCount}`,
+    );
 
     if (englishCount > spanishCount && englishCount > frenchCount) {
       return 'en';

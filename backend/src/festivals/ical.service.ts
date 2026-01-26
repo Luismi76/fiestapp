@@ -27,7 +27,7 @@ export class ICalService {
     const dtend = this.formatDate(endDate);
 
     const description = this.escapeICalText(
-      festival.description || `Festival en ${festival.city}`
+      festival.description || `Festival en ${festival.city}`,
     );
     const summary = this.escapeICalText(festival.name);
     const location = this.escapeICalText(festival.city);
@@ -81,7 +81,7 @@ export class ICalService {
     const text = encodeURIComponent(festival.name);
     const location = encodeURIComponent(festival.city);
     const details = encodeURIComponent(
-      festival.description || `Festival en ${festival.city}`
+      festival.description || `Festival en ${festival.city}`,
     );
 
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dates}&location=${location}&details=${details}`;

@@ -54,30 +54,39 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
-      this.logger.log(`[handleConnection] New connection attempt: ${client.id}`);
+      this.logger.log(
+        `[handleConnection] New connection attempt: ${client.id}`,
+      );
 
-      const token =
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const token: string | undefined =
         client.handshake.auth?.token ||
         client.handshake.headers?.authorization?.replace('Bearer ', '');
 
       if (!token) {
-        this.logger.warn(`[handleConnection] Client ${client.id} connected without token`);
+        this.logger.warn(
+          `[handleConnection] Client ${client.id} connected without token`,
+        );
         client.disconnect();
         return;
       }
 
-      this.logger.log(`[handleConnection] Token found for ${client.id}, verifying...`);
+      this.logger.log(
+        `[handleConnection] Token found for ${client.id}, verifying...`,
+      );
 
-      let payload;
+      let payload: { sub: string };
       try {
         payload = this.jwtService.verify(token);
       } catch (jwtError) {
-        this.logger.error(`[handleConnection] JWT verification failed for ${client.id}: ${jwtError}`);
+        this.logger.error(
+          `[handleConnection] JWT verification failed for ${client.id}: ${jwtError}`,
+        );
         client.disconnect();
         return;
       }
 
-      const userId = payload.sub as string;
+      const userId = payload.sub;
       this.logger.log(`[handleConnection] JWT verified, userId: ${userId}`);
       client.userId = userId;
 
@@ -99,11 +108,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         select: { id: true, hostId: true, requesterId: true, status: true },
       });
 
-      this.logger.log(`[handleConnection] User ${client.userId} has ${matches.length} active matches`);
+      this.logger.log(
+        `[handleConnection] User ${client.userId} has ${matches.length} active matches`,
+      );
 
       for (const match of matches) {
         client.join(`match:${match.id}`);
-        this.logger.log(`[handleConnection] User ${client.userId} (socket ${client.id}) joined match:${match.id}`);
+        this.logger.log(
+          `[handleConnection] User ${client.userId} (socket ${client.id}) joined match:${match.id}`,
+        );
       }
 
       this.logger.log(
@@ -111,8 +124,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
       client.emit('connected', { userId: client.userId });
     } catch (error) {
-      this.logger.error(`[handleConnection] CRITICAL ERROR for ${client.id}:`, error);
-      this.logger.error(`[handleConnection] Error stack:`, error instanceof Error ? error.stack : 'no stack');
+      this.logger.error(
+        `[handleConnection] CRITICAL ERROR for ${client.id}:`,
+        error,
+      );
+      this.logger.error(
+        `[handleConnection] Error stack:`,
+        error instanceof Error ? error.stack : 'no stack',
+      );
       client.disconnect();
     }
   }
@@ -137,7 +156,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() matchId: string,
   ) {
-    this.logger.log(`[joinMatch] User ${client.userId} requesting to join match ${matchId}`);
+    this.logger.log(
+      `[joinMatch] User ${client.userId} requesting to join match ${matchId}`,
+    );
 
     if (!client.userId) {
       this.logger.warn(`[joinMatch] No userId on client`);
@@ -154,16 +175,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
 
       if (!match) {
-        this.logger.warn(`[joinMatch] User ${client.userId} has no access to match ${matchId}`);
+        this.logger.warn(
+          `[joinMatch] User ${client.userId} has no access to match ${matchId}`,
+        );
         return { success: false, error: 'No access to this match' };
       }
 
       this.logger.log(`[joinMatch] Match found, checking balance...`);
 
       // Verify user has enough balance to use chat
-      const hasBalance = await this.walletService.hasEnoughBalance(client.userId);
+      const hasBalance = await this.walletService.hasEnoughBalance(
+        client.userId,
+      );
       if (!hasBalance) {
-        this.logger.warn(`[joinMatch] User ${client.userId} has insufficient balance`);
+        this.logger.warn(
+          `[joinMatch] User ${client.userId} has insufficient balance`,
+        );
         return {
           success: false,
           error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para acceder al chat. Recarga tu saldo.`,
@@ -176,14 +203,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.join(`match:${matchId}`);
 
       // Debug: check sockets in room after joining (use optional chaining for safety)
-      const room = this.server?.sockets?.adapter?.rooms?.get(`match:${matchId}`);
+      const room = this.server?.sockets?.adapter?.rooms?.get(
+        `match:${matchId}`,
+      );
       const socketsInRoom = room ? Array.from(room) : [];
-      this.logger.log(`[joinMatch] User ${client.userId} (socket ${client.id}) joined match:${matchId}`);
+      this.logger.log(
+        `[joinMatch] User ${client.userId} (socket ${client.id}) joined match:${matchId}`,
+      );
       this.logger.log(`[joinMatch] Sockets in room: ${socketsInRoom.length}`);
 
       return { success: true };
     } catch (error) {
-      this.logger.error(`[joinMatch] Error for user ${client.userId} joining match ${matchId}:`, error);
+      this.logger.error(
+        `[joinMatch] Error for user ${client.userId} joining match ${matchId}:`,
+        error,
+      );
       return { success: false, error: 'Error joining match' };
     }
   }
@@ -292,7 +326,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const otherUserId =
         match.hostId === client.userId ? match.requesterId : match.hostId;
 
-      this.logger.log(`[sendMessage] Broadcasting to match:${data.matchId}, other user: ${otherUserId}`);
+      this.logger.log(
+        `[sendMessage] Broadcasting to match:${data.matchId}, other user: ${otherUserId}`,
+      );
 
       // Broadcast message to all users in the match room
       this.server.to(`match:${data.matchId}`).emit('newMessage', message);
@@ -391,7 +427,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Verify balance
-      const hasBalance = await this.walletService.hasEnoughBalance(client.userId);
+      const hasBalance = await this.walletService.hasEnoughBalance(
+        client.userId,
+      );
       if (!hasBalance) {
         return {
           success: false,
@@ -479,7 +517,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Verify balance
-      const hasBalance = await this.walletService.hasEnoughBalance(client.userId);
+      const hasBalance = await this.walletService.hasEnoughBalance(
+        client.userId,
+      );
       if (!hasBalance) {
         return {
           success: false,
@@ -587,7 +627,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * Método público para emitir un nuevo mensaje desde el controller REST.
    * Útil para mensajes de voz que se suben via HTTP pero deben notificarse via WebSocket.
    */
-  emitNewMessage(matchId: string, message: unknown, senderId: string, otherUserId: string) {
+  emitNewMessage(
+    matchId: string,
+    message: unknown,
+    senderId: string,
+    otherUserId: string,
+  ) {
     // Emitir a la sala del match
     this.server.to(`match:${matchId}`).emit('newMessage', message);
 
@@ -597,6 +642,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       message,
     });
 
-    this.logger.log(`[emitNewMessage] Emitted to match:${matchId} and user:${otherUserId}`);
+    this.logger.log(
+      `[emitNewMessage] Emitted to match:${matchId} and user:${otherUserId}`,
+    );
   }
 }
