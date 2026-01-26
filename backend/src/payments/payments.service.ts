@@ -97,6 +97,7 @@ export class PaymentsService {
     const paymentIntent = await this.ensureStripe().paymentIntents.create({
       amount,
       currency: 'eur',
+      payment_method_types: ['card'], // Solo tarjeta, sin Link ni otros métodos
       capture_method: 'manual', // No capturar automáticamente
       metadata: {
         matchId: match.id,
