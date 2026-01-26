@@ -8,12 +8,21 @@ import {
 import { Request, Response } from 'express';
 import * as Sentry from '@sentry/nestjs';
 
+interface AuthenticatedRequest extends Request {
+  user?: { userId: string; email: string };
+}
+
+interface ErrorResponse {
+  message?: string;
+  statusCode?: number;
+}
+
 @Catch()
 export class SentryExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const request = ctx.getRequest<AuthenticatedRequest>();
 
     const status =
       exception instanceof HttpException
@@ -36,7 +45,7 @@ export class SentryExceptionFilter implements ExceptionFilter {
         scope.setExtra('params', request.params);
 
         // Añadir usuario si está autenticado
-        const user = (request as any).user;
+        const user = request.user;
         if (user) {
           scope.setUser({
             id: user.userId,
@@ -57,7 +66,7 @@ export class SentryExceptionFilter implements ExceptionFilter {
       message:
         typeof message === 'string'
           ? message
-          : (message as any).message || message,
+          : (message as ErrorResponse).message || JSON.stringify(message),
     };
 
     response.status(status).json(errorResponse);

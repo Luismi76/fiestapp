@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../audit/audit.service';
@@ -230,7 +231,7 @@ export class ReportsService {
     } = {},
   ) {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: Prisma.ReportWhereInput = {};
 
     if (filters.status) {
       where.status = filters.status;
@@ -243,8 +244,10 @@ export class ReportsService {
     }
     if (filters.dateFrom || filters.dateTo) {
       where.createdAt = {};
-      if (filters.dateFrom) where.createdAt.gte = filters.dateFrom;
-      if (filters.dateTo) where.createdAt.lte = filters.dateTo;
+      if (filters.dateFrom)
+        (where.createdAt as Prisma.DateTimeFilter).gte = filters.dateFrom;
+      if (filters.dateTo)
+        (where.createdAt as Prisma.DateTimeFilter).lte = filters.dateTo;
     }
 
     const [reports, total] = await Promise.all([
@@ -263,6 +266,7 @@ export class ReportsService {
     ]);
 
     // Enrich con info del reportado
+
     const enrichedReports = await Promise.all(
       reports.map(async (report) => {
         let reportedEntity: any = null;
@@ -306,6 +310,7 @@ export class ReportsService {
         // Determinar prioridad basada en factores
         const priority = this.calculatePriority(report, reportedEntity);
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         return { ...report, reportedEntity, priority };
       }),
     );
@@ -332,15 +337,18 @@ export class ReportsService {
    * Calcula la prioridad de un reporte
    */
   private calculatePriority(
-    report: any,
+    report: { reason: string },
+
     reportedEntity: any,
   ): 'low' | 'medium' | 'high' {
     // Alta prioridad: fraude, acoso, usuario con strikes
     if (['fraud', 'harassment'].includes(report.reason)) return 'high';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (reportedEntity?.strikes >= 2) return 'high';
 
     // Media prioridad: contenido inapropiado, spam
     if (['inappropriate', 'spam'].includes(report.reason)) return 'medium';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (reportedEntity?.strikes >= 1) return 'medium';
 
     return 'low';
@@ -370,8 +378,9 @@ export class ReportsService {
       throw new NotFoundException('Reporte no encontrado');
     }
 
-    let reportedEntity: any = null;
-    const context: any = {};
+    let reportedEntity: Record<string, any> | null = null;
+
+    const context: Record<string, any> = {};
 
     if (report.reportedType === 'user') {
       reportedEntity = await this.prisma.user.findUnique({
@@ -457,7 +466,9 @@ export class ReportsService {
 
     return {
       ...report,
+
       reportedEntity,
+
       context,
       templates: RESPONSE_TEMPLATES,
     };

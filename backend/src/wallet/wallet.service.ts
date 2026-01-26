@@ -124,7 +124,7 @@ export class WalletService {
             paymentIntentId: existingIntent.id,
           };
         }
-      } catch (e) {
+      } catch {
         console.log('PaymentIntent existente no válido, creando nuevo');
       }
     }

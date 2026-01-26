@@ -14,11 +14,22 @@ import {
   Body,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { Request as ExpressRequest } from 'express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UploadsService } from './uploads.service';
 
-const imageFileFilter = (req, file, callback) => {
+interface AuthenticatedRequest extends ExpressRequest {
+  user: { userId: string; email: string };
+}
+
+type MulterCallback = (error: Error | null, acceptFile: boolean) => void;
+
+const imageFileFilter = (
+  _req: ExpressRequest,
+  file: Express.Multer.File,
+  callback: MulterCallback,
+) => {
   const allowedMimeTypes = [
     'image/jpeg',
     'image/png',
@@ -52,7 +63,7 @@ export class UploadsController {
   )
   async uploadAvatar(
     @UploadedFile() file: Express.Multer.File,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
     const avatarUrl = await this.uploadsService.uploadAvatar(
       req.user.userId,
@@ -63,7 +74,7 @@ export class UploadsController {
 
   @Delete('avatar')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteAvatar(@Request() req) {
+  async deleteAvatar(@Request() req: AuthenticatedRequest) {
     await this.uploadsService.deleteAvatar(req.user.userId);
   }
 
@@ -80,7 +91,7 @@ export class UploadsController {
   async uploadExperiencePhotos(
     @Param('id') experienceId: string,
     @UploadedFiles() files: Express.Multer.File[],
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
     const photoUrls = await this.uploadsService.uploadExperiencePhotos(
       experienceId,
@@ -95,7 +106,7 @@ export class UploadsController {
   async deleteExperiencePhoto(
     @Param('id') experienceId: string,
     @Body('photoUrl') photoUrl: string,
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
     await this.uploadsService.deleteExperiencePhoto(
       experienceId,
@@ -108,7 +119,7 @@ export class UploadsController {
   async reorderExperiencePhotos(
     @Param('id') experienceId: string,
     @Body('photos') photos: string[],
-    @Request() req,
+    @Request() req: AuthenticatedRequest,
   ) {
     const reorderedPhotos = await this.uploadsService.reorderExperiencePhotos(
       experienceId,

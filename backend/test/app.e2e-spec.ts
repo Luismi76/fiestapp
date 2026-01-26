@@ -4,6 +4,19 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
+interface HealthResponse {
+  status: string;
+  timestamp: string;
+  checks: {
+    database: unknown;
+  };
+}
+
+interface ExperiencesResponse {
+  data: unknown[];
+  meta: unknown;
+}
+
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
@@ -43,10 +56,11 @@ describe('AppController (e2e)', () => {
         .get('/api/health')
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('status');
-          expect(res.body).toHaveProperty('timestamp');
-          expect(res.body).toHaveProperty('checks');
-          expect(res.body.checks).toHaveProperty('database');
+          const body = res.body as HealthResponse;
+          expect(body).toHaveProperty('status');
+          expect(body).toHaveProperty('timestamp');
+          expect(body).toHaveProperty('checks');
+          expect(body.checks).toHaveProperty('database');
         });
     });
 
@@ -55,7 +69,8 @@ describe('AppController (e2e)', () => {
         .get('/api/health/live')
         .expect(200)
         .expect((res) => {
-          expect(res.body.status).toBe('ok');
+          const body = res.body as { status: string };
+          expect(body.status).toBe('ok');
         });
     });
 
@@ -70,7 +85,9 @@ describe('AppController (e2e)', () => {
   });
 
   describe('Auth Endpoints', () => {
-    const testUser = {
+    // Test user data for future use in registration tests
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _testUser = {
       email: `test-${Date.now()}@example.com`,
       password: 'TestPassword123!',
       name: 'Test User',
@@ -115,9 +132,10 @@ describe('AppController (e2e)', () => {
         .get('/api/experiences')
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('data');
-          expect(res.body).toHaveProperty('meta');
-          expect(Array.isArray(res.body.data)).toBe(true);
+          const body = res.body as ExperiencesResponse;
+          expect(body).toHaveProperty('data');
+          expect(body).toHaveProperty('meta');
+          expect(Array.isArray(body.data)).toBe(true);
         });
     });
 

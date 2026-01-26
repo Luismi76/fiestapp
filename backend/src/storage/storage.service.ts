@@ -26,7 +26,13 @@ export class StorageService implements OnModuleInit {
           (error, result: UploadApiResponse | undefined) => {
             if (error) {
               console.error('Error uploading to Cloudinary:', error);
-              reject(error);
+              const errorMessage =
+                error instanceof Error
+                  ? error.message
+                  : typeof error === 'object' && error !== null
+                    ? JSON.stringify(error)
+                    : String(error);
+              reject(new Error(errorMessage));
             } else if (result) {
               resolve(result.secure_url);
             } else {

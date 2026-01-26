@@ -17,9 +17,7 @@ export class UsersService {
 
   // Obtener perfil público de un usuario (cacheado)
   async getPublicProfile(userId: string) {
-    const cached = await this.cacheService.get<any>(
-      CACHE_KEYS.USER_PUBLIC(userId),
-    );
+    const cached = await this.cacheService.get(CACHE_KEYS.USER_PUBLIC(userId));
     if (cached) {
       return cached;
     }
