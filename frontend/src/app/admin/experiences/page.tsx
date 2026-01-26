@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { adminApi, AdminExperience, AdminExperiencesResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { AdminHeader } from '@/components/admin';
+import MainLayout from '@/components/MainLayout';
 
 export default function AdminExperiencesPage() {
   const router = useRouter();
@@ -85,7 +87,7 @@ export default function AdminExperiencesPage() {
   };
 
   const handleDelete = async (exp: AdminExperience) => {
-    if (!confirm(`Eliminar permanentemente "${exp.title}"? Esta accion no se puede deshacer.`)) return;
+    if (!confirm(`Eliminar permanentemente "${exp.title}"? Esta acción no se puede deshacer.`)) return;
 
     setActionLoading(exp.id);
     try {
@@ -115,7 +117,7 @@ export default function AdminExperiencesPage() {
 
   const handleBulkDelete = async () => {
     if (selectedExperiences.size === 0) return;
-    if (!confirm(`Eliminar ${selectedExperiences.size} experiencias seleccionadas? Esta accion no se puede deshacer.`)) return;
+    if (!confirm(`Eliminar ${selectedExperiences.size} experiencias seleccionadas? Esta acción no se puede deshacer.`)) return;
 
     for (const expId of selectedExperiences) {
       try {
@@ -156,7 +158,7 @@ export default function AdminExperiencesPage() {
   };
 
   const getTypeColor = (type: string) => {
-    if (type === 'pago') return 'bg-green-100 text-green-700';
+    if (type === 'pago') return 'bg-emerald/10 text-emerald';
     if (type === 'intercambio') return 'bg-blue-100 text-blue-700';
     return 'bg-purple-100 text-purple-700';
   };
@@ -176,7 +178,7 @@ export default function AdminExperiencesPage() {
           <div className="text-5xl mb-4">&#128683;</div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Acceso Denegado</h1>
           <p className="text-gray-500 mb-6">{error}</p>
-          <Link href="/admin" className="text-blue-600 font-medium">
+          <Link href="/admin" className="text-secondary font-medium">
             Volver al panel
           </Link>
         </div>
@@ -185,28 +187,19 @@ export default function AdminExperiencesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="flex items-center px-4 h-14">
-          <Link href="/admin" className="w-10 h-10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </Link>
-          <span className="flex-1 text-center font-semibold text-gray-900">Gestion de Experiencias</span>
-          <div className="w-10" />
-        </div>
+    <MainLayout>
+      <div className="min-h-screen bg-gray-50 pb-8">
+        <AdminHeader title="Gestión de Experiencias" />
 
         {/* Filter tabs */}
-        <div className="flex gap-2 px-4 pb-3">
+        <div className="flex gap-2 px-4 py-3 bg-white border-b border-gray-100">
           {(['all', 'published', 'draft'] as const).map((f) => (
             <button
               key={f}
               onClick={() => { setFilter(f); setPage(1); }}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 filter === f
-                  ? 'bg-blue-500 text-white'
+                  ? 'bg-secondary text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -216,19 +209,18 @@ export default function AdminExperiencesPage() {
             </button>
           ))}
         </div>
-      </div>
 
-      <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4">
         {/* Search */}
         <form onSubmit={handleSearch} className="flex gap-2">
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por titulo, ciudad, host o festival..."
-            className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Buscar por título, ciudad, host o festival..."
+            className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/50"
           />
-          <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-xl font-medium">
+          <button type="submit" className="px-4 py-2 bg-secondary text-white rounded-xl font-medium">
             Buscar
           </button>
         </form>
@@ -295,7 +287,7 @@ export default function AdminExperiencesPage() {
                   <button
                     onClick={() => toggleSelectExperience(exp.id)}
                     className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center ${
-                      selectedExperiences.has(exp.id) ? 'bg-purple-500 border-purple-500' : 'border-gray-300'
+                      selectedExperiences.has(exp.id) ? 'bg-primary border-primary' : 'border-gray-300'
                     }`}
                   >
                     {selectedExperiences.has(exp.id) && (
@@ -310,9 +302,9 @@ export default function AdminExperiencesPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{exp.title}</span>
                       {exp.published ? (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Publicada</span>
+                        <span className="px-2 py-0.5 bg-emerald/10 text-emerald text-xs rounded-full">Publicada</span>
                       ) : (
-                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full">Borrador</span>
+                        <span className="px-2 py-0.5 bg-accent/10 text-accent-dark text-xs rounded-full">Borrador</span>
                       )}
                       <span className={`px-2 py-0.5 text-xs rounded-full ${getTypeColor(exp.type)}`}>
                         {getTypeLabel(exp.type, exp.price)}
@@ -339,7 +331,7 @@ export default function AdminExperiencesPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
                         </svg>
-                        {exp._count.reviews} resenas
+                        {exp._count.reviews} reseñas
                       </span>
                     </div>
 
@@ -353,7 +345,7 @@ export default function AdminExperiencesPage() {
                     {/* View Details */}
                     <button
                       onClick={() => setShowDetails(exp)}
-                      className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-500 hover:text-secondary hover:bg-blue-50 rounded-lg transition-colors"
                       title="Ver detalles"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -364,7 +356,7 @@ export default function AdminExperiencesPage() {
                     {/* View in app */}
                     <Link
                       href={`/experiences/${exp.id}`}
-                      className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-500 hover:text-secondary hover:bg-blue-50 rounded-lg transition-colors"
                       title="Ver experiencia"
                       target="_blank"
                     >
@@ -433,7 +425,7 @@ export default function AdminExperiencesPage() {
               Anterior
             </button>
             <span className="px-4 py-2 text-gray-600">
-              Pagina {page} de {data.pagination.pages}
+              Página {page} de {data.pagination.pages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(data.pagination.pages, p + 1))}
@@ -467,9 +459,9 @@ export default function AdminExperiencesPage() {
                 {/* Status badges */}
                 <div className="flex gap-2 flex-wrap">
                   {showDetails.published ? (
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">Publicada</span>
+                    <span className="px-3 py-1 bg-emerald/10 text-emerald text-sm rounded-full">Publicada</span>
                   ) : (
-                    <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm rounded-full">Borrador</span>
+                    <span className="px-3 py-1 bg-accent/10 text-accent-dark text-sm rounded-full">Borrador</span>
                   )}
                   <span className={`px-3 py-1 text-sm rounded-full ${getTypeColor(showDetails.type)}`}>
                     {getTypeLabel(showDetails.type, showDetails.price)}
@@ -491,7 +483,7 @@ export default function AdminExperiencesPage() {
                     <p className="font-medium text-gray-900">{showDetails._count.matches}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Resenas</span>
+                    <span className="text-gray-500">Reseñas</span>
                     <p className="font-medium text-gray-900">{showDetails._count.reviews}</p>
                   </div>
                   <div>
@@ -512,7 +504,7 @@ export default function AdminExperiencesPage() {
 
                 {/* Host Info */}
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <h4 className="font-medium text-gray-900 mb-2">Informacion del Host</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">Información del Host</h4>
                   <div className="space-y-1 text-sm">
                     <p><span className="text-gray-500">Nombre:</span> {showDetails.host.name}</p>
                     <p><span className="text-gray-500">Email:</span> {showDetails.host.email}</p>
@@ -525,7 +517,7 @@ export default function AdminExperiencesPage() {
                   <Link
                     href={`/experiences/${showDetails.id}`}
                     target="_blank"
-                    className="flex-1 py-3 bg-blue-500 text-white text-center font-medium rounded-xl hover:bg-blue-600 transition-colors"
+                    className="flex-1 py-3 bg-secondary text-white text-center font-medium rounded-xl hover:bg-blue-600 transition-colors"
                   >
                     Ver en la app
                   </Link>
@@ -536,8 +528,8 @@ export default function AdminExperiencesPage() {
                     }}
                     className={`flex-1 py-3 font-medium rounded-xl transition-colors ${
                       showDetails.published
-                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                        : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        ? 'bg-accent/10 text-accent-dark hover:bg-accent/20'
+                        : 'bg-emerald/10 text-emerald hover:bg-emerald/20'
                     }`}
                   >
                     {showDetails.published ? 'Despublicar' : 'Publicar'}
@@ -548,6 +540,7 @@ export default function AdminExperiencesPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </MainLayout>
   );
 }

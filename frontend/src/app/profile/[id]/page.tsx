@@ -9,6 +9,7 @@ import { UserPublicProfile } from '@/types/user';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import ReputationBadges from '@/components/ReputationBadges';
+import ReportButton from '@/components/ReportButton';
 import { ProfileSkeleton } from '@/components/ui/Skeleton';
 import { OptimizedImage, OptimizedAvatar } from '@/components/OptimizedImage';
 import logger from '@/lib/logger';
@@ -244,7 +245,11 @@ export default function PublicProfilePage() {
                   </svg>
                 </Link>
               ) : (
-                <div className="w-10" />
+                <ReportButton
+                  type="user"
+                  id={profile?.id || ''}
+                  className="w-10 h-10 flex items-center justify-center text-white/70 hover:text-white"
+                />
               )}
             </header>
 
@@ -376,14 +381,20 @@ export default function PublicProfilePage() {
                 </div>
               </div>
 
-              {/* Edit button */}
-              {isOwnProfile && (
+              {/* Edit button or Report button */}
+              {isOwnProfile ? (
                 <Link href="/profile/edit" className="px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
                   </svg>
                   Editar
                 </Link>
+              ) : (
+                <ReportButton
+                  type="user"
+                  id={profile?.id || ''}
+                  className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
+                />
               )}
             </div>
           </div>

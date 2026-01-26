@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/MainLayout';
+import { AdminHeader } from '@/components/admin';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/lib/api';
@@ -46,9 +47,9 @@ interface VerificationStats {
 }
 
 const statusConfig: Record<VerificationStatus, { label: string; color: string; bgColor: string }> = {
-  PENDING: { label: 'Pendiente', color: 'text-yellow-700', bgColor: 'bg-yellow-100' },
-  VERIFIED: { label: 'Verificado', color: 'text-green-700', bgColor: 'bg-green-100' },
-  REJECTED: { label: 'Rechazado', color: 'text-red-700', bgColor: 'bg-red-100' },
+  PENDING: { label: 'Pendiente', color: 'text-accent-dark', bgColor: 'bg-accent/10' },
+  VERIFIED: { label: 'Verificado', color: 'text-emerald', bgColor: 'bg-emerald/10' },
+  REJECTED: { label: 'Rechazado', color: 'text-primary', bgColor: 'bg-primary/10' },
 };
 
 const documentTypeLabels: Record<DocumentType, string> = {
@@ -173,12 +174,12 @@ export default function AdminVerificationsPage() {
       await api.put(`/verification/admin/${selectedId}`, {
         status: 'VERIFIED',
       });
-      toast.success('Aprobado', 'La verificacion ha sido aprobada');
+      toast.success('Aprobado', 'La verificación ha sido aprobada');
       closeDetail();
       fetchStats();
       fetchVerifications(true);
     } catch {
-      toast.error('Error', 'No se pudo aprobar la verificacion');
+      toast.error('Error', 'No se pudo aprobar la verificación');
     } finally {
       setProcessing(false);
     }
@@ -196,12 +197,12 @@ export default function AdminVerificationsPage() {
         status: 'REJECTED',
         rejectionReason: rejectionReason.trim(),
       });
-      toast.success('Rechazado', 'La verificacion ha sido rechazada');
+      toast.success('Rechazado', 'La verificación ha sido rechazada');
       closeDetail();
       fetchStats();
       fetchVerifications(true);
     } catch {
-      toast.error('Error', 'No se pudo rechazar la verificacion');
+      toast.error('Error', 'No se pudo rechazar la verificación');
     } finally {
       setProcessing(false);
     }
@@ -220,37 +221,27 @@ export default function AdminVerificationsPage() {
   return (
     <MainLayout>
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
-          <div className="flex items-center gap-3 px-4 h-16">
-            <button onClick={() => router.push('/admin')} className="w-10 h-10 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-              </svg>
-            </button>
-            <h1 className="text-lg font-semibold">Verificaciones de Identidad</h1>
-          </div>
-        </header>
+<AdminHeader title="Verificaciones de Identidad" />
 
         <div className="p-4 space-y-4">
           {/* Stats */}
           {stats && (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <div className="bg-white rounded-xl p-3 text-center border border-gray-100">
-                <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+                <p className="text-2xl font-bold text-accent">{stats.pending}</p>
                 <p className="text-xs text-gray-500">Pendientes</p>
               </div>
               <div className="bg-white rounded-xl p-3 text-center border border-gray-100">
-                <p className="text-2xl font-bold text-green-600">{stats.verified}</p>
+                <p className="text-2xl font-bold text-emerald">{stats.verified}</p>
                 <p className="text-xs text-gray-500">Verificados</p>
               </div>
               <div className="bg-white rounded-xl p-3 text-center border border-gray-100">
-                <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
+                <p className="text-2xl font-bold text-primary">{stats.rejected}</p>
                 <p className="text-xs text-gray-500">Rechazados</p>
               </div>
               <div className="bg-white rounded-xl p-3 text-center border border-gray-100">
                 <p className="text-2xl font-bold text-primary">{stats.approvalRate}%</p>
-                <p className="text-xs text-gray-500">Tasa aprobacion</p>
+                <p className="text-xs text-gray-500">Tasa de aprobación</p>
               </div>
             </div>
           )}
@@ -301,7 +292,7 @@ export default function AdminVerificationsPage() {
                         {documentTypeLabels[v.documentType]}
                       </span>
                       {v.attempts > 1 && (
-                        <span className="text-xs text-orange-500">
+                        <span className="text-xs text-terracotta">
                           Intento {v.attempts}
                         </span>
                       )}
@@ -324,7 +315,7 @@ export default function AdminVerificationsPage() {
               }}
               className="w-full py-3 bg-white border border-gray-200 rounded-xl text-gray-600 font-medium"
             >
-              Cargar mas ({total - verifications.length} restantes)
+              Cargar más ({total - verifications.length} restantes)
             </button>
           )}
         </div>
@@ -335,7 +326,7 @@ export default function AdminVerificationsPage() {
             <div className="bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
               {/* Modal Header */}
               <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-                <h2 className="font-semibold">Detalle de Verificacion</h2>
+                <h2 className="font-semibold">Detalle de Verificación</h2>
                 <button onClick={closeDetail} className="w-8 h-8 flex items-center justify-center">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -426,7 +417,7 @@ export default function AdminVerificationsPage() {
                           value={rejectionReason}
                           onChange={(e) => setRejectionReason(e.target.value)}
                           placeholder="Ej: El documento no es legible..."
-                          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                           rows={2}
                         />
                       </div>
@@ -436,14 +427,14 @@ export default function AdminVerificationsPage() {
                         <button
                           onClick={handleReject}
                           disabled={processing}
-                          className="flex-1 py-3 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+                          className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50"
                         >
                           Rechazar
                         </button>
                         <button
                           onClick={handleApprove}
                           disabled={processing}
-                          className="flex-1 py-3 bg-green-500 text-white font-semibold rounded-xl hover:bg-green-600 transition-colors disabled:opacity-50"
+                          className="flex-1 py-3 bg-emerald text-white font-semibold rounded-xl hover:bg-emerald/80 transition-colors disabled:opacity-50"
                         >
                           Aprobar
                         </button>

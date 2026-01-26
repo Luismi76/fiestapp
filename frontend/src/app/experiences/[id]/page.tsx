@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import ShareButton from '@/components/ShareButton';
+import ReportButton from '@/components/ReportButton';
 import ImageGallery from '@/components/ImageGallery';
 import ParticipantSelector from '@/components/ParticipantSelector';
 import MainLayout from '@/components/MainLayout';
@@ -464,6 +465,13 @@ export default function ExperienceDetailPage() {
                     </svg>
                   )}
                 </button>
+                {!isOwner && (
+                  <ReportButton
+                    type="experience"
+                    id={experience.id}
+                    className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white shadow-lg hover:bg-white/30"
+                  />
+                )}
               </div>
             </div>
 
@@ -550,6 +558,13 @@ export default function ExperienceDetailPage() {
                   </>
                 )}
               </button>
+              {!isOwner && (
+                <ReportButton
+                  type="experience"
+                  id={experience.id}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 hover:text-red-500 transition-colors"
+                />
+              )}
             </div>
           </div>
 

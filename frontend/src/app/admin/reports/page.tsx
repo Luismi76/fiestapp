@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { reportsApi, Report, ReportsResponse, ReportStats } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import MainLayout from '@/components/MainLayout';
+import { AdminHeader } from '@/components/admin';
 
 const REASON_LABELS: Record<string, string> = {
   spam: 'Spam',
@@ -15,9 +17,9 @@ const REASON_LABELS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pendiente', color: 'bg-amber-100 text-amber-700' },
-  reviewed: { label: 'En revision', color: 'bg-blue-100 text-blue-700' },
-  resolved: { label: 'Resuelto', color: 'bg-green-100 text-green-700' },
+  pending: { label: 'Pendiente', color: 'bg-accent/10 text-accent-dark' },
+  reviewed: { label: 'En revisión', color: 'bg-secondary/10 text-secondary' },
+  resolved: { label: 'Resuelto', color: 'bg-emerald/10 text-emerald' },
   dismissed: { label: 'Desestimado', color: 'bg-gray-100 text-gray-600' },
 };
 
@@ -28,8 +30,8 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 const PRIORITY_BADGES: Record<string, { label: string; color: string }> = {
-  high: { label: 'Alta', color: 'bg-red-100 text-red-700' },
-  medium: { label: 'Media', color: 'bg-amber-100 text-amber-700' },
+  high: { label: 'Alta', color: 'bg-primary/10 text-primary' },
+  medium: { label: 'Media', color: 'bg-accent/10 text-accent-dark' },
   low: { label: 'Baja', color: 'bg-gray-100 text-gray-600' },
 };
 
@@ -40,11 +42,11 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const ACTIONS: Record<string, { label: string; color: string; description: string }> = {
-  none: { label: 'Sin accion', color: 'bg-gray-100 text-gray-700', description: 'Solo marcar como resuelto' },
-  warning: { label: 'Advertencia', color: 'bg-amber-100 text-amber-700', description: 'Enviar advertencia al usuario' },
-  strike: { label: 'Strike', color: 'bg-orange-100 text-orange-700', description: 'Anadir un strike (3 = ban)' },
-  ban: { label: 'Baneo', color: 'bg-red-100 text-red-700', description: 'Banear usuario inmediatamente' },
-  remove_content: { label: 'Eliminar', color: 'bg-purple-100 text-purple-700', description: 'Eliminar contenido reportado' },
+  none: { label: 'Sin acción', color: 'bg-gray-100 text-gray-700', description: 'Solo marcar como resuelto' },
+  warning: { label: 'Advertencia', color: 'bg-accent/10 text-accent-dark', description: 'Enviar advertencia al usuario' },
+  strike: { label: 'Strike', color: 'bg-terracotta/10 text-terracotta', description: 'Añadir un strike (3 = ban)' },
+  ban: { label: 'Baneo', color: 'bg-primary/10 text-primary', description: 'Banear usuario inmediatamente' },
+  remove_content: { label: 'Eliminar', color: 'bg-secondary/10 text-secondary', description: 'Eliminar contenido reportado' },
 };
 
 // Extended Report type with priority
@@ -150,7 +152,7 @@ export default function AdminReportsPage() {
     }
 
     const confirmMsg = action === 'resolve'
-      ? 'Marcar reporte como resuelto sin accion?'
+      ? 'Marcar reporte como resuelto sin acción?'
       : 'Desestimar este reporte?';
 
     if (!confirm(confirmMsg)) return;
@@ -160,7 +162,7 @@ export default function AdminReportsPage() {
       await reportsApi.resolve(report.id, {
         status: action === 'resolve' ? 'resolved' : 'dismissed',
         action: 'none',
-        adminNotes: action === 'dismiss' ? 'Desestimado sin accion' : 'Resuelto sin accion adicional',
+        adminNotes: action === 'dismiss' ? 'Desestimado sin acción' : 'Resuelto sin acción adicional',
       });
       fetchReports();
     } catch {
@@ -208,12 +210,12 @@ export default function AdminReportsPage() {
           </div>
           <div className="flex gap-1 ml-auto">
             {entity.strikes !== undefined && entity.strikes > 0 && (
-              <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">
+              <span className="text-xs px-1.5 py-0.5 bg-accent/10 text-accent-dark rounded">
                 {entity.strikes}/3
               </span>
             )}
             {entity.bannedAt && (
-              <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded">
+              <span className="text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded">
                 Baneado
               </span>
             )}
@@ -270,26 +272,14 @@ export default function AdminReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="flex items-center px-4 h-14">
-          <Link href="/admin" className="w-10 h-10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </Link>
-          <span className="flex-1 text-center font-semibold text-gray-900">Reportes y Denuncias</span>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`w-10 h-10 flex items-center justify-center rounded-lg ${showFilters ? 'bg-red-100 text-red-600' : 'text-gray-500'}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-            </svg>
-          </button>
-        </div>
-      </div>
+    <MainLayout>
+      <div className="min-h-screen bg-gray-50 pb-8">
+        <AdminHeader
+          title="Reportes y Denuncias"
+          showFilterButton
+          filterActive={showFilters}
+          onFilterToggle={() => setShowFilters(!showFilters)}
+        />
 
       <div className="p-4 space-y-4">
         {/* Stats Cards */}
@@ -298,7 +288,7 @@ export default function AdminReportsPage() {
             <button
               onClick={() => handleFilterChange('status', 'pending')}
               className={`p-3 rounded-xl text-center transition-all ${
-                filters.status === 'pending' ? 'bg-amber-500 text-white shadow-lg scale-105' : 'bg-white shadow-sm hover:shadow'
+                filters.status === 'pending' ? 'bg-accent text-white shadow-lg scale-105' : 'bg-white shadow-sm hover:shadow'
               }`}
             >
               <div className="text-2xl font-bold">{stats.pending}</div>
@@ -307,16 +297,16 @@ export default function AdminReportsPage() {
             <button
               onClick={() => handleFilterChange('status', 'reviewed')}
               className={`p-3 rounded-xl text-center transition-all ${
-                filters.status === 'reviewed' ? 'bg-blue-500 text-white shadow-lg scale-105' : 'bg-white shadow-sm hover:shadow'
+                filters.status === 'reviewed' ? 'bg-secondary text-white shadow-lg scale-105' : 'bg-white shadow-sm hover:shadow'
               }`}
             >
               <div className="text-2xl font-bold">{stats.reviewed}</div>
-              <div className="text-xs opacity-80">En revision</div>
+              <div className="text-xs opacity-80">En revisión</div>
             </button>
             <button
               onClick={() => handleFilterChange('status', 'resolved')}
               className={`p-3 rounded-xl text-center transition-all ${
-                filters.status === 'resolved' ? 'bg-green-500 text-white shadow-lg scale-105' : 'bg-white shadow-sm hover:shadow'
+                filters.status === 'resolved' ? 'bg-emerald text-white shadow-lg scale-105' : 'bg-white shadow-sm hover:shadow'
               }`}
             >
               <div className="text-2xl font-bold">{stats.resolved}</div>
@@ -334,7 +324,7 @@ export default function AdminReportsPage() {
             <button
               onClick={() => handleFilterChange('status', '')}
               className={`p-3 rounded-xl text-center transition-all ${
-                filters.status === '' ? 'bg-purple-500 text-white shadow-lg scale-105' : 'bg-white shadow-sm hover:shadow'
+                filters.status === '' ? 'bg-secondary text-white shadow-lg scale-105' : 'bg-white shadow-sm hover:shadow'
               }`}
             >
               <div className="text-2xl font-bold">{stats.total}</div>
@@ -406,7 +396,7 @@ export default function AdminReportsPage() {
                 >
                   <option value="">Todos</option>
                   <option value="pending">Pendiente</option>
-                  <option value="reviewed">En revision</option>
+                  <option value="reviewed">En revisión</option>
                   <option value="resolved">Resuelto</option>
                   <option value="dismissed">Desestimado</option>
                 </select>
@@ -418,7 +408,7 @@ export default function AdminReportsPage() {
                 setFilters({ status: 'pending', reportedType: '', reason: '', priority: '' });
                 setPage(1);
               }}
-              className="text-sm text-red-600 font-medium"
+              className="text-sm text-primary font-medium"
             >
               Limpiar filtros
             </button>
@@ -481,20 +471,20 @@ export default function AdminReportsPage() {
                   {/* Description */}
                   {report.description && (
                     <div className="text-sm text-gray-600 mb-3 p-3 bg-amber-50 rounded-lg border-l-2 border-amber-400">
-                      <div className="text-xs text-amber-600 mb-1 font-medium">Descripcion del reporte:</div>
+                      <div className="text-xs text-accent mb-1 font-medium">Descripción del reporte:</div>
                       {report.description}
                     </div>
                   )}
 
                   {/* Reporter Info */}
                   <div className="text-xs text-gray-400 mb-3">
-                    Reportado por: <span className="font-medium">{report.reporter?.name || 'Usuario anonimo'}</span>
+                    Reportado por: <span className="font-medium">{report.reporter?.name || 'Usuario anónimo'}</span>
                     {report.reporter?.email && ` (${report.reporter.email})`}
                   </div>
 
                   {/* Admin Notes */}
                   {report.adminNotes && (
-                    <div className="text-xs bg-blue-50 text-blue-700 p-2 rounded-lg mb-3">
+                    <div className="text-xs bg-secondary/5 text-secondary p-2 rounded-lg mb-3">
                       <strong>Notas admin:</strong> {report.adminNotes}
                     </div>
                   )}
@@ -506,7 +496,7 @@ export default function AdminReportsPage() {
                         <button
                           onClick={() => handleQuickAction(report, 'review')}
                           disabled={actionLoading === report.id}
-                          className="flex-1 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50"
+                          className="flex-1 py-2 bg-secondary/10 text-secondary text-sm font-medium rounded-lg hover:bg-secondary/20 transition-colors disabled:opacity-50"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 inline mr-1">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
@@ -518,7 +508,7 @@ export default function AdminReportsPage() {
                       <button
                         onClick={() => setShowResolveModal(report)}
                         disabled={actionLoading === report.id}
-                        className="flex-1 py-2 bg-green-100 text-green-700 text-sm font-medium rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
+                        className="flex-1 py-2 bg-emerald/10 text-emerald text-sm font-medium rounded-lg hover:bg-emerald/20 transition-colors disabled:opacity-50"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 inline mr-1">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -558,7 +548,7 @@ export default function AdminReportsPage() {
           <div className="text-center py-12 bg-white rounded-xl shadow-sm">
             <div className="text-4xl mb-4">&#9989;</div>
             <p className="text-gray-500 font-medium">No hay reportes con estos filtros</p>
-            <p className="text-gray-400 text-sm mt-1">Prueba cambiando los filtros o vuelve mas tarde</p>
+            <p className="text-gray-400 text-sm mt-1">Prueba cambiando los filtros o vuelve más tarde</p>
           </div>
         )}
 
@@ -573,7 +563,7 @@ export default function AdminReportsPage() {
               Anterior
             </button>
             <span className="px-4 py-2 text-gray-600">
-              Pagina {page} de {data.pagination.pages}
+              Página {page} de {data.pagination.pages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(data.pagination.pages, p + 1))}
@@ -615,7 +605,7 @@ export default function AdminReportsPage() {
                 </div>
                 {showResolveModal.description && (
                   <div className="mt-3 pt-3 border-t border-gray-200">
-                    <div className="text-xs text-gray-500">Descripcion:</div>
+                    <div className="text-xs text-gray-500">Descripción:</div>
                     <div className="text-sm text-gray-600">{showResolveModal.description}</div>
                   </div>
                 )}
@@ -625,14 +615,14 @@ export default function AdminReportsPage() {
                 {/* Resolution Status */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de resolucion
+                    Tipo de resolución
                   </label>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setResolution(prev => ({ ...prev, status: 'resolved' }))}
                       className={`flex-1 py-2.5 px-3 rounded-lg font-medium transition-colors border-2 ${
                         resolution.status === 'resolved'
-                          ? 'bg-green-500 text-white border-green-500'
+                          ? 'bg-emerald text-white border-emerald'
                           : 'bg-white text-gray-700 border-gray-200 hover:border-green-300'
                       }`}
                     >
@@ -655,7 +645,7 @@ export default function AdminReportsPage() {
                 {showResolveModal.reportedType === 'user' && resolution.status === 'resolved' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Accion a tomar contra el usuario
+                      Acción a tomar contra el usuario
                     </label>
                     <div className="space-y-2">
                       {Object.entries(ACTIONS).map(([key, { label, color, description }]) => (
@@ -664,14 +654,14 @@ export default function AdminReportsPage() {
                           onClick={() => setResolution(prev => ({ ...prev, action: key as typeof prev.action }))}
                           className={`w-full py-3 px-4 rounded-lg text-left transition-colors border-2 ${
                             resolution.action === key
-                              ? 'border-blue-500 ' + color
+                              ? 'border-secondary ' + color
                               : 'border-gray-100 bg-gray-50 hover:border-gray-200'
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-medium">{label}</span>
                             {resolution.action === key && (
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-blue-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-secondary">
                                 <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
                               </svg>
                             )}
@@ -681,19 +671,19 @@ export default function AdminReportsPage() {
                       ))}
                     </div>
                     {resolution.action === 'strike' && (
-                      <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                      <p className="text-xs text-accent mt-2 flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                           <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
                         </svg>
-                        Con 3 strikes el usuario sera baneado automaticamente.
+                        Con 3 strikes el usuario será baneado automáticamente.
                       </p>
                     )}
                     {resolution.action === 'ban' && (
-                      <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                      <p className="text-xs text-primary mt-2 flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                           <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
                         </svg>
-                        El usuario sera baneado inmediatamente.
+                        El usuario será baneado inmediatamente.
                       </p>
                     )}
                   </div>
@@ -707,9 +697,9 @@ export default function AdminReportsPage() {
                   <textarea
                     value={resolution.adminNotes}
                     onChange={(e) => setResolution(prev => ({ ...prev, adminNotes: e.target.value }))}
-                    placeholder="Notas sobre la resolucion para otros admins..."
+                    placeholder="Notas sobre la resolución para otros admins..."
                     rows={3}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-secondary/50"
                   />
                 </div>
 
@@ -729,11 +719,11 @@ export default function AdminReportsPage() {
                     disabled={actionLoading === showResolveModal.id}
                     className={`flex-1 py-3 font-medium rounded-xl transition-colors disabled:opacity-50 ${
                       resolution.status === 'resolved'
-                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        ? 'bg-emerald text-white hover:bg-emerald/80'
                         : 'bg-gray-500 text-white hover:bg-gray-600'
                     }`}
                   >
-                    {actionLoading === showResolveModal.id ? 'Procesando...' : 'Confirmar Resolucion'}
+                    {actionLoading === showResolveModal.id ? 'Procesando...' : 'Confirmar Resolución'}
                   </button>
                 </div>
               </div>
@@ -741,6 +731,7 @@ export default function AdminReportsPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </MainLayout>
   );
 }

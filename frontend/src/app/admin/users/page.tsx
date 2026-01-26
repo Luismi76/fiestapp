@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { adminApi, AdminUserAdvanced, AdminUsersAdvancedResponse, UserFilters } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import MainLayout from '@/components/MainLayout';
+import { AdminHeader } from '@/components/admin';
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -93,7 +95,7 @@ export default function AdminUsersPage() {
   };
 
   const handleDelete = async (user: AdminUserAdvanced) => {
-    if (!confirm(`Eliminar permanentemente a ${user.name}? Esta accion no se puede deshacer.`)) return;
+    if (!confirm(`Eliminar permanentemente a ${user.name}? Esta acción no se puede deshacer.`)) return;
 
     setActionLoading(user.id);
     try {
@@ -107,7 +109,7 @@ export default function AdminUsersPage() {
   };
 
   const handleImpersonate = async (user: AdminUserAdvanced) => {
-    if (!confirm(`Iniciar sesion como ${user.name}? Seras redirigido al dashboard.`)) return;
+    if (!confirm(`Iniciar sesión como ${user.name}? Serás redirigido al dashboard.`)) return;
 
     setActionLoading(user.id);
     try {
@@ -126,15 +128,15 @@ export default function AdminUsersPage() {
     try {
       const result = await adminApi.addStrike(showStrikeModal.id, strikeReason);
       if (result.banned) {
-        alert(`Usuario baneado automaticamente por alcanzar 3 strikes`);
+        alert(`Usuario baneado automáticamente por alcanzar 3 strikes`);
       } else {
-        alert(`Strike anadido. Total: ${result.strikes}/3`);
+        alert(`Strike añadido. Total: ${result.strikes}/3`);
       }
       setShowStrikeModal(null);
       setStrikeReason('');
       fetchUsers();
     } catch {
-      alert('Error al anadir strike');
+      alert('Error al añadir strike');
     } finally {
       setActionLoading(null);
     }
@@ -252,7 +254,7 @@ export default function AdminUsersPage() {
           <div className="text-5xl mb-4">&#128683;</div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Acceso Denegado</h1>
           <p className="text-gray-500 mb-6">{error}</p>
-          <Link href="/admin" className="text-blue-600 font-medium">
+          <Link href="/admin" className="text-secondary font-medium">
             Volver al panel
           </Link>
         </div>
@@ -261,26 +263,14 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="flex items-center px-4 h-14">
-          <Link href="/admin" className="w-10 h-10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-            </svg>
-          </Link>
-          <span className="flex-1 text-center font-semibold text-gray-900">Gestion de Usuarios</span>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`w-10 h-10 flex items-center justify-center rounded-lg ${showFilters ? 'bg-blue-100 text-blue-600' : 'text-gray-500'}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
-            </svg>
-          </button>
-        </div>
-      </div>
+    <MainLayout>
+      <div className="min-h-screen bg-gray-50 pb-8">
+        <AdminHeader
+          title="Gestión de Usuarios"
+          showFilterButton
+          filterActive={showFilters}
+          onFilterToggle={() => setShowFilters(!showFilters)}
+        />
 
       <div className="p-4 space-y-4">
         {/* Search */}
@@ -290,9 +280,9 @@ export default function AdminUsersPage() {
             value={filters.search || ''}
             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
             placeholder="Buscar por nombre o email..."
-            className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/50"
           />
-          <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-xl font-medium">
+          <button type="submit" className="px-4 py-2 bg-secondary text-white rounded-xl font-medium">
             Buscar
           </button>
         </form>
@@ -305,7 +295,7 @@ export default function AdminUsersPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {/* Verified Filter */}
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Verificacion</label>
+                <label className="block text-sm text-gray-600 mb-1">Verificación</label>
                 <select
                   value={filters.verified === undefined ? '' : String(filters.verified)}
                   onChange={(e) => handleFilterChange('verified', e.target.value === '' ? undefined : e.target.value === 'true')}
@@ -376,7 +366,7 @@ export default function AdminUsersPage() {
 
               {/* Order Direction */}
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Direccion</label>
+                <label className="block text-sm text-gray-600 mb-1">Dirección</label>
                 <select
                   value={filters.orderDir || 'desc'}
                   onChange={(e) => handleFilterChange('orderDir', e.target.value as 'asc' | 'desc')}
@@ -401,7 +391,7 @@ export default function AdminUsersPage() {
                 });
                 setPage(1);
               }}
-              className="text-sm text-blue-600 font-medium"
+              className="text-sm text-secondary font-medium"
             >
               Limpiar filtros
             </button>
@@ -421,7 +411,7 @@ export default function AdminUsersPage() {
               </button>
               <button
                 onClick={handleBulkBan}
-                className="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg font-medium"
+                className="px-3 py-1.5 bg-primary text-white text-sm rounded-lg font-medium"
               >
                 Banear
               </button>
@@ -443,7 +433,7 @@ export default function AdminUsersPage() {
             </div>
             <button
               onClick={toggleSelectAll}
-              className="text-sm text-blue-600 font-medium"
+              className="text-sm text-secondary font-medium"
             >
               {selectedUsers.size === data.users.length ? 'Deseleccionar todo' : 'Seleccionar todo'}
             </button>
@@ -485,16 +475,16 @@ export default function AdminUsersPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-900">{user.name}</span>
                       {user.role === 'admin' && (
-                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full">Admin</span>
+                        <span className="px-2 py-0.5 bg-secondary/10 text-secondary text-xs rounded-full">Admin</span>
                       )}
                       {user.verified && (
-                        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">Verificado</span>
+                        <span className="px-2 py-0.5 bg-emerald/10 text-emerald text-xs rounded-full">Verificado</span>
                       )}
                       {user.bannedAt && (
-                        <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">Baneado</span>
+                        <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">Baneado</span>
                       )}
                       {user.strikes > 0 && !user.bannedAt && (
-                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-full">
+                        <span className="px-2 py-0.5 bg-accent/10 text-accent-dark text-xs rounded-full">
                           {user.strikes}/3 strikes
                         </span>
                       )}
@@ -506,13 +496,13 @@ export default function AdminUsersPage() {
                     <div className="flex gap-4 mt-2 text-xs text-gray-400">
                       <span>{user._count.experiences} experiencias</span>
                       <span>{user.totalMatches} matches</span>
-                      <span>{user._count.reviewsGiven} resenas</span>
+                      <span>{user._count.reviewsGiven} reseñas</span>
                       <span>{user.walletBalance.toFixed(2)} EUR</span>
                     </div>
 
                     {/* Ban reason if applicable */}
                     {user.bannedAt && user.banReason && (
-                      <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
+                      <div className="mt-2 text-xs text-primary bg-red-50 p-2 rounded">
                         <strong>Motivo ban:</strong> {user.banReason}
                       </div>
                     )}
@@ -528,8 +518,8 @@ export default function AdminUsersPage() {
                     <button
                       onClick={() => handleImpersonate(user)}
                       disabled={actionLoading === user.id}
-                      className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                      title="Iniciar sesion como este usuario"
+                      className="p-2 text-gray-500 hover:text-secondary hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="Iniciar sesión como este usuario"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
@@ -554,8 +544,8 @@ export default function AdminUsersPage() {
                         <button
                           onClick={() => setShowStrikeModal(user)}
                           disabled={actionLoading === user.id}
-                          className="p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50"
-                          title="Anadir strike"
+                          className="p-2 text-gray-500 hover:text-accent hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50"
+                          title="Añadir strike"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -565,7 +555,7 @@ export default function AdminUsersPage() {
                           <button
                             onClick={() => handleRemoveStrike(user)}
                             disabled={actionLoading === user.id}
-                            className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                            className="p-2 text-gray-500 hover:text-emerald hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
                             title="Eliminar strike"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -581,7 +571,7 @@ export default function AdminUsersPage() {
                       <button
                         onClick={() => handleUnban(user)}
                         disabled={actionLoading === user.id}
-                        className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-2 text-gray-500 hover:text-emerald hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
                         title="Desbanear usuario"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -592,7 +582,7 @@ export default function AdminUsersPage() {
                       <button
                         onClick={() => setShowBanModal(user)}
                         disabled={actionLoading === user.id}
-                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        className="p-2 text-gray-500 hover:text-primary hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                         title="Banear usuario"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -605,7 +595,7 @@ export default function AdminUsersPage() {
                     <button
                       onClick={() => handleDelete(user)}
                       disabled={actionLoading === user.id}
-                      className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      className="p-2 text-gray-500 hover:text-primary hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
                       title="Eliminar usuario"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -638,7 +628,7 @@ export default function AdminUsersPage() {
               Anterior
             </button>
             <span className="px-4 py-2 text-gray-600">
-              Pagina {page} de {data.pagination.pages}
+              Página {page} de {data.pagination.pages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(data.pagination.pages, p + 1))}
@@ -655,13 +645,13 @@ export default function AdminUsersPage() {
       {showStrikeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6">
-            <h3 className="font-semibold text-gray-900 mb-2">Anadir Strike</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">Añadir Strike</h3>
             <p className="text-sm text-gray-500 mb-4">
-              Estas a punto de anadir un strike a <strong>{showStrikeModal.name}</strong>.
+              Estás a punto de añadir un strike a <strong>{showStrikeModal.name}</strong>.
               Actualmente tiene {showStrikeModal.strikes}/3 strikes.
               {showStrikeModal.strikes === 2 && (
-                <span className="block text-red-600 mt-1">
-                  Atencion: Al anadir este strike, el usuario sera baneado automaticamente.
+                <span className="block text-primary mt-1">
+                  Atención: Al añadir este strike, el usuario será baneado automáticamente.
                 </span>
               )}
             </p>
@@ -691,7 +681,7 @@ export default function AdminUsersPage() {
                 disabled={!strikeReason.trim() || actionLoading === showStrikeModal.id}
                 className="flex-1 py-3 bg-amber-500 text-white font-medium rounded-xl hover:bg-amber-600 transition-colors disabled:opacity-50"
               >
-                {actionLoading === showStrikeModal.id ? 'Anadiendo...' : 'Anadir Strike'}
+                {actionLoading === showStrikeModal.id ? 'Añadiendo...' : 'Añadir Strike'}
               </button>
             </div>
           </div>
@@ -704,8 +694,8 @@ export default function AdminUsersPage() {
           <div className="bg-white rounded-2xl w-full max-w-md p-6">
             <h3 className="font-semibold text-gray-900 mb-2">Banear Usuario</h3>
             <p className="text-sm text-gray-500 mb-4">
-              Estas a punto de banear a <strong>{showBanModal.name}</strong>.
-              Esta accion impedira que el usuario acceda a la plataforma.
+              Estás a punto de banear a <strong>{showBanModal.name}</strong>.
+              Esta acción impedirá que el usuario acceda a la plataforma.
             </p>
 
             <div className="mb-4">
@@ -731,7 +721,7 @@ export default function AdminUsersPage() {
               <button
                 onClick={handleBan}
                 disabled={!banReason.trim() || actionLoading === showBanModal.id}
-                className="flex-1 py-3 bg-red-500 text-white font-medium rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+                className="flex-1 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50"
               >
                 {actionLoading === showBanModal.id ? 'Baneando...' : 'Banear Usuario'}
               </button>
@@ -739,6 +729,7 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </MainLayout>
   );
 }

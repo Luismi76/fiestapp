@@ -78,6 +78,9 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-noreply@fiestapp.es}
       # Translation Service
       LIBRETRANSLATE_URL: http://libretranslate:5000
+      # CORS
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://fiestapp.lmsc.es}
+      FRONTEND_URL: ${FRONTEND_URL:-https://fiestapp.lmsc.es}
     expose:
       - "3001"
     healthcheck:

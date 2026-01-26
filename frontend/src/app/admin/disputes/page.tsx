@@ -6,6 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getAvatarUrl } from '@/lib/utils';
 import { OptimizedAvatar } from '@/components/OptimizedImage';
+import { AdminHeader } from '@/components/admin';
+import MainLayout from '@/components/MainLayout';
 import api from '@/lib/api';
 
 interface Dispute {
@@ -48,7 +50,7 @@ interface DisputeStats {
 
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
   OPEN: { label: 'Abierta', bg: 'bg-amber-100', text: 'text-amber-700' },
-  UNDER_REVIEW: { label: 'En revision', bg: 'bg-blue-100', text: 'text-blue-700' },
+  UNDER_REVIEW: { label: 'En revisión', bg: 'bg-blue-100', text: 'text-blue-700' },
   RESOLVED_REFUND: { label: 'Resuelta (Reembolso)', bg: 'bg-emerald-100', text: 'text-emerald-700' },
   RESOLVED_PARTIAL_REFUND: { label: 'Resuelta (Parcial)', bg: 'bg-emerald-100', text: 'text-emerald-700' },
   RESOLVED_NO_REFUND: { label: 'Resuelta (Sin reembolso)', bg: 'bg-gray-100', text: 'text-gray-700' },
@@ -56,11 +58,11 @@ const statusConfig: Record<string, { label: string; bg: string; text: string }> 
 };
 
 const reasonLabels: Record<string, string> = {
-  NO_SHOW: 'No se presento',
-  EXPERIENCE_MISMATCH: 'No coincidio',
+  NO_SHOW: 'No se presentó',
+  EXPERIENCE_MISMATCH: 'No coincidió',
   SAFETY_CONCERN: 'Seguridad',
   PAYMENT_ISSUE: 'Pago',
-  COMMUNICATION: 'Comunicacion',
+  COMMUNICATION: 'Comunicación',
   OTHER: 'Otro',
 };
 
@@ -176,42 +178,29 @@ export default function AdminDisputesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/admin" className="text-gray-500 hover:text-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                </svg>
-              </Link>
-              <h1 className="text-xl font-bold text-gray-900">Gestion de Disputas</h1>
-            </div>
-          </div>
-        </div>
-      </header>
+    <MainLayout>
+      <div className="min-h-screen bg-gray-50">
+        <AdminHeader title="Gestión de Disputas" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <p className="text-sm text-gray-500">Abiertas</p>
-              <p className="text-2xl font-bold text-amber-600">{stats.byStatus.OPEN || 0}</p>
+              <p className="text-2xl font-bold text-accent">{stats.byStatus.OPEN || 0}</p>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm">
-              <p className="text-sm text-gray-500">En revision</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.byStatus.UNDER_REVIEW || 0}</p>
+              <p className="text-sm text-gray-500">En revisión</p>
+              <p className="text-2xl font-bold text-secondary">{stats.byStatus.UNDER_REVIEW || 0}</p>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm">
-              <p className="text-sm text-gray-500">Ultimos 30 dias</p>
+              <p className="text-sm text-gray-500">Últimos 30 días</p>
               <p className="text-2xl font-bold text-gray-900">{stats.last30Days}</p>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <p className="text-sm text-gray-500">Total reembolsado</p>
-              <p className="text-2xl font-bold text-emerald-600">{stats.totalRefunded.toFixed(2)}€</p>
+              <p className="text-2xl font-bold text-emerald">{stats.totalRefunded.toFixed(2)}€</p>
             </div>
           </div>
         )}
@@ -241,7 +230,7 @@ export default function AdminDisputesPage() {
                 filter === 'UNDER_REVIEW' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              En revision ({stats?.byStatus.UNDER_REVIEW || 0})
+              En revisión ({stats?.byStatus.UNDER_REVIEW || 0})
             </button>
           </div>
         </div>
@@ -265,97 +254,185 @@ export default function AdminDisputesPage() {
               <p className="text-gray-500">No hay disputas {filter ? 'con este filtro' : ''}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Experiencia</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Partes</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {disputes.map((dispute) => {
-                    const config = statusConfig[dispute.status] || statusConfig.OPEN;
-                    const canResolve = ['OPEN', 'UNDER_REVIEW'].includes(dispute.status);
+            <>
+              {/* Vista móvil - Tarjetas */}
+              <div className="md:hidden space-y-3 p-4">
+                {disputes.map((dispute) => {
+                  const config = statusConfig[dispute.status] || statusConfig.OPEN;
+                  const canResolve = ['OPEN', 'UNDER_REVIEW'].includes(dispute.status);
 
-                    return (
-                      <tr key={dispute.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
-                          <Link href={`/admin/disputes/${dispute.id}`} className="text-sm font-mono text-primary hover:underline">
-                            #{dispute.id.slice(0, 8)}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
-                            {dispute.match.experience.title}
-                          </p>
-                          <p className="text-xs text-gray-500">{dispute.match.experience.city}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <OptimizedAvatar
-                              src={getAvatarUrl(dispute.openedBy.avatar)}
-                              name={dispute.openedBy.name}
-                              size="sm"
-                            />
-                            <span className="text-xs text-gray-400">vs</span>
-                            <OptimizedAvatar
-                              src={getAvatarUrl(dispute.respondent.avatar)}
-                              name={dispute.respondent.name}
-                              size="sm"
-                            />
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">
-                            {reasonLabels[dispute.reason] || dispute.reason}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`text-xs px-2 py-1 rounded-full ${config.bg} ${config.text}`}>
-                            {config.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">
-                          {formatDate(dispute.createdAt)}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Link
-                              href={`/admin/disputes/${dispute.id}`}
-                              className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
-                            >
-                              Ver
+                  return (
+                    <div key={dispute.id} className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
+                      {/* Header con ID y Estado */}
+                      <div className="flex items-center justify-between">
+                        <Link href={`/admin/disputes/${dispute.id}`} className="text-sm font-mono text-primary hover:underline">
+                          #{dispute.id.slice(0, 8)}
+                        </Link>
+                        <span className={`text-xs px-2 py-1 rounded-full ${config.bg} ${config.text}`}>
+                          {config.label}
+                        </span>
+                      </div>
+
+                      {/* Experiencia */}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                          {dispute.match.experience.title}
+                        </p>
+                        <p className="text-xs text-gray-500">{dispute.match.experience.city}</p>
+                      </div>
+
+                      {/* Partes involucradas */}
+                      <div className="flex items-center gap-3 py-2 border-t border-b border-gray-100">
+                        <div className="flex items-center gap-2 flex-1">
+                          <OptimizedAvatar
+                            src={getAvatarUrl(dispute.openedBy.avatar)}
+                            name={dispute.openedBy.name}
+                            size="sm"
+                          />
+                          <span className="text-xs text-gray-600 truncate">{dispute.openedBy.name}</span>
+                        </div>
+                        <span className="text-xs text-gray-400">vs</span>
+                        <div className="flex items-center gap-2 flex-1 justify-end">
+                          <span className="text-xs text-gray-600 truncate">{dispute.respondent.name}</span>
+                          <OptimizedAvatar
+                            src={getAvatarUrl(dispute.respondent.avatar)}
+                            name={dispute.respondent.name}
+                            size="sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Info adicional */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="px-2 py-1 bg-gray-100 rounded text-gray-600">
+                          {reasonLabels[dispute.reason] || dispute.reason}
+                        </span>
+                        <span className="text-gray-500">{formatDate(dispute.createdAt)}</span>
+                      </div>
+
+                      {/* Acciones */}
+                      <div className="flex gap-2 pt-2">
+                        <Link
+                          href={`/admin/disputes/${dispute.id}`}
+                          className="flex-1 py-2 text-center text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+                        >
+                          Ver detalles
+                        </Link>
+                        {dispute.status === 'OPEN' && (
+                          <button
+                            onClick={() => handleMarkUnderReview(dispute.id)}
+                            className="flex-1 py-2 text-xs font-medium text-secondary bg-secondary/10 rounded-lg hover:bg-secondary/20"
+                          >
+                            Revisar
+                          </button>
+                        )}
+                        {canResolve && (
+                          <button
+                            onClick={() => setSelectedDispute(dispute.id)}
+                            className="flex-1 py-2 text-xs font-medium text-white bg-emerald rounded-lg hover:bg-emerald/80"
+                          >
+                            Resolver
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Vista desktop - Tabla */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Experiencia</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Partes</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {disputes.map((dispute) => {
+                      const config = statusConfig[dispute.status] || statusConfig.OPEN;
+                      const canResolve = ['OPEN', 'UNDER_REVIEW'].includes(dispute.status);
+
+                      return (
+                        <tr key={dispute.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <Link href={`/admin/disputes/${dispute.id}`} className="text-sm font-mono text-primary hover:underline">
+                              #{dispute.id.slice(0, 8)}
                             </Link>
-                            {dispute.status === 'OPEN' && (
-                              <button
-                                onClick={() => handleMarkUnderReview(dispute.id)}
-                                className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">
+                              {dispute.match.experience.title}
+                            </p>
+                            <p className="text-xs text-gray-500">{dispute.match.experience.city}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <OptimizedAvatar
+                                src={getAvatarUrl(dispute.openedBy.avatar)}
+                                name={dispute.openedBy.name}
+                                size="sm"
+                              />
+                              <span className="text-xs text-gray-400">vs</span>
+                              <OptimizedAvatar
+                                src={getAvatarUrl(dispute.respondent.avatar)}
+                                name={dispute.respondent.name}
+                                size="sm"
+                              />
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">
+                              {reasonLabels[dispute.reason] || dispute.reason}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`text-xs px-2 py-1 rounded-full ${config.bg} ${config.text}`}>
+                              {config.label}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500">
+                            {formatDate(dispute.createdAt)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Link
+                                href={`/admin/disputes/${dispute.id}`}
+                                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
                               >
-                                Revisar
-                              </button>
-                            )}
-                            {canResolve && (
-                              <button
-                                onClick={() => setSelectedDispute(dispute.id)}
-                                className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600"
-                              >
-                                Resolver
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                                Ver
+                              </Link>
+                              {dispute.status === 'OPEN' && (
+                                <button
+                                  onClick={() => handleMarkUnderReview(dispute.id)}
+                                  className="px-3 py-1.5 text-xs font-medium text-secondary bg-secondary/10 rounded-lg hover:bg-secondary/20"
+                                >
+                                  Revisar
+                                </button>
+                              )}
+                              {canResolve && (
+                                <button
+                                  onClick={() => setSelectedDispute(dispute.id)}
+                                  className="px-3 py-1.5 text-xs font-medium text-white bg-emerald rounded-lg hover:bg-emerald/80"
+                                >
+                                  Resolver
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
 
           {/* Pagination */}
@@ -369,7 +446,7 @@ export default function AdminDisputesPage() {
                 Anterior
               </button>
               <span className="text-sm text-gray-500">
-                Pagina {page} de {totalPages}
+                Página {page} de {totalPages}
               </span>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
@@ -392,17 +469,17 @@ export default function AdminDisputesPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo de resolucion
+                  Tipo de resolución
                 </label>
                 <select
                   value={resolutionForm.resolution}
                   onChange={(e) => setResolutionForm({ ...resolutionForm, resolution: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent"
                 >
                   <option value="RESOLVED_REFUND">Reembolso total (100%)</option>
                   <option value="RESOLVED_PARTIAL_REFUND">Reembolso parcial</option>
                   <option value="RESOLVED_NO_REFUND">Sin reembolso</option>
-                  <option value="CLOSED">Cerrar sin accion</option>
+                  <option value="CLOSED">Cerrar sin acción</option>
                 </select>
               </div>
 
@@ -425,14 +502,14 @@ export default function AdminDisputesPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripcion de la resolucion
+                  Descripción de la resolución
                 </label>
                 <textarea
                   value={resolutionForm.resolutionDescription}
                   onChange={(e) => setResolutionForm({ ...resolutionForm, resolutionDescription: e.target.value })}
                   rows={4}
-                  placeholder="Explica la decision tomada..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                  placeholder="Explica la decisión tomada..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent resize-none"
                 />
               </div>
             </div>
@@ -447,7 +524,7 @@ export default function AdminDisputesPage() {
               <button
                 onClick={handleResolve}
                 disabled={!resolutionForm.resolutionDescription || resolving}
-                className="flex-1 px-4 py-2 text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 disabled:opacity-50"
+                className="flex-1 px-4 py-2 text-white bg-emerald rounded-lg hover:bg-emerald/80 disabled:opacity-50"
               >
                 {resolving ? 'Resolviendo...' : 'Resolver'}
               </button>
@@ -455,6 +532,7 @@ export default function AdminDisputesPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </MainLayout>
   );
 }

@@ -14,6 +14,7 @@ import {
   TopHost,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import MainLayout from '@/components/MainLayout';
 
 // Simple Bar Chart Component
 function BarChart({ data, dataKey, color, label }: {
@@ -188,7 +189,7 @@ export default function AdminDashboardPage() {
         if (error.response?.status === 403) {
           setError('No tienes permisos de administrador');
         } else {
-          setError('Error al cargar estadisticas');
+          setError('Error al cargar estadísticas');
         }
       } finally {
         setLoading(false);
@@ -205,7 +206,7 @@ export default function AdminDashboardPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="spinner spinner-lg mx-auto mb-4" />
-          <div className="text-gray-500">Cargando panel de administracion...</div>
+          <div className="text-gray-500">Cargando panel de administración...</div>
         </div>
       </div>
     );
@@ -218,7 +219,7 @@ export default function AdminDashboardPage() {
           <div className="text-5xl mb-4">&#128683;</div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">Acceso Denegado</h1>
           <p className="text-gray-500 mb-6">{error}</p>
-          <Link href="/dashboard" className="text-blue-600 font-medium">
+          <Link href="/dashboard" className="text-secondary font-medium">
             Volver al inicio
           </Link>
         </div>
@@ -229,16 +230,17 @@ export default function AdminDashboardPage() {
   if (!stats) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
+    <MainLayout>
+      <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
         <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Panel de Administracion</h1>
+              <h1 className="text-xl font-bold text-gray-900">Panel de Administración</h1>
               <p className="text-sm text-gray-500">Hola, {user?.name}</p>
             </div>
-            <Link href="/dashboard" className="text-sm text-blue-600 font-medium">
+            <Link href="/dashboard" className="text-sm text-secondary font-medium">
               Volver a la app
             </Link>
           </div>
@@ -250,8 +252,8 @@ export default function AdminDashboardPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600">
+              <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-secondary">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                 </svg>
               </div>
@@ -264,8 +266,8 @@ export default function AdminDashboardPage() {
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-purple-600">
+              <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-secondary">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
                 </svg>
               </div>
@@ -278,8 +280,8 @@ export default function AdminDashboardPage() {
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-green-600">
+              <div className="w-10 h-10 bg-emerald/10 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-emerald">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                 </svg>
               </div>
@@ -292,13 +294,13 @@ export default function AdminDashboardPage() {
 
           <div className="bg-white rounded-xl p-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-green-600">
+              <div className="w-10 h-10 bg-emerald/10 rounded-full flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-emerald">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
                 </svg>
               </div>
               <div>
-                <div className="text-2xl font-bold text-green-600">{stats.revenue.platformCommissions.toFixed(2)} EUR</div>
+                <div className="text-2xl font-bold text-emerald">{stats.revenue.platformCommissions.toFixed(2)} EUR</div>
                 <div className="text-xs text-gray-500">Comisiones ({stats.revenue.agreementsClosed} acuerdos)</div>
               </div>
             </div>
@@ -320,7 +322,7 @@ export default function AdminDashboardPage() {
                 <span className="text-xs font-medium text-green-700">INGRESOS PLATAFORMA</span>
               </div>
               <div className="text-2xl font-bold text-green-700">{stats.revenue.platformCommissions.toFixed(2)} EUR</div>
-              <div className="text-xs text-green-600 mt-1">{stats.revenue.agreementsClosed} acuerdos cerrados (1,50 EUR c/u x 2)</div>
+              <div className="text-xs text-emerald mt-1">{stats.revenue.agreementsClosed} acuerdos cerrados (1,50 EUR c/u x 2)</div>
             </div>
 
             {/* Recargas de usuarios */}
@@ -334,7 +336,7 @@ export default function AdminDashboardPage() {
                 <span className="text-xs font-medium text-blue-700">RECARGAS USUARIOS</span>
               </div>
               <div className="text-2xl font-bold text-blue-700">{stats.revenue.userTopups.toFixed(2)} EUR</div>
-              <div className="text-xs text-blue-600 mt-1">{stats.revenue.topupsCount} recargas realizadas</div>
+              <div className="text-xs text-secondary mt-1">{stats.revenue.topupsCount} recargas realizadas</div>
             </div>
 
             {/* Saldo en monederos */}
@@ -348,7 +350,7 @@ export default function AdminDashboardPage() {
                 <span className="text-xs font-medium text-purple-700">SALDO EN MONEDEROS</span>
               </div>
               <div className="text-2xl font-bold text-purple-700">{stats.revenue.totalWalletBalance.toFixed(2)} EUR</div>
-              <div className="text-xs text-purple-600 mt-1">Fondos disponibles de usuarios</div>
+              <div className="text-xs text-secondary mt-1">Fondos disponibles de usuarios</div>
             </div>
 
             {/* Acuerdos cerrados */}
@@ -362,11 +364,11 @@ export default function AdminDashboardPage() {
                 <span className="text-xs font-medium text-amber-700">ACUERDOS CERRADOS</span>
               </div>
               <div className="text-2xl font-bold text-amber-700">{stats.revenue.agreementsClosed}</div>
-              <div className="text-xs text-amber-600 mt-1">Experiencias completadas con exito</div>
+              <div className="text-xs text-accent mt-1">Experiencias completadas con éxito</div>
             </div>
           </div>
           <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
-            <strong>Nota:</strong> Los ingresos de la plataforma provienen de la comision de 1,50 EUR que se cobra a cada usuario (anfitrion y huesped) cuando se cierra un acuerdo. Las recargas son el dinero que los usuarios depositan en sus monederos para poder operar.
+            <strong>Nota:</strong> Los ingresos de la plataforma provienen de la comisión de 1,50 EUR que se cobra a cada usuario (anfitrión y huésped) cuando se cierra un acuerdo. Las recargas son el dinero que los usuarios depositan en sus monederos para poder operar.
           </div>
         </div>
 
@@ -378,7 +380,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-3xl font-bold">{activeUsersStats.activeUsers}</div>
-                    <div className="text-blue-100 text-sm">Usuarios activos (ultimos {activeUsersStats.period})</div>
+                    <div className="text-blue-100 text-sm">Usuarios activos (últimos {activeUsersStats.period})</div>
                   </div>
                   <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -394,7 +396,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-3xl font-bold">+{conversionStats.newUsersLast30Days}</div>
-                    <div className="text-green-100 text-sm">Nuevos usuarios (30 dias)</div>
+                    <div className="text-green-100 text-sm">Nuevos usuarios (30 días)</div>
                   </div>
                   <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
@@ -454,7 +456,7 @@ export default function AdminDashboardPage() {
                   value={matchesStats.cancellationRate}
                   max={100}
                   color="#EF4444"
-                  label="Tasa de cancelacion"
+                  label="Tasa de cancelación"
                 />
                 {conversionStats && (
                   <>
@@ -530,20 +532,20 @@ export default function AdminDashboardPage() {
           <h2 className="font-semibold text-gray-900 mb-4">Desglose General</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{stats.users.verified}</div>
+              <div className="text-2xl font-bold text-emerald">{stats.users.verified}</div>
               <div className="text-xs text-gray-500">Usuarios verificados</div>
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-amber-600">{stats.users.unverified}</div>
+              <div className="text-2xl font-bold text-accent">{stats.users.unverified}</div>
               <div className="text-xs text-gray-500">Sin verificar</div>
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{stats.experiences.published}</div>
+              <div className="text-2xl font-bold text-secondary">{stats.experiences.published}</div>
               <div className="text-xs text-gray-500">Exp. publicadas</div>
             </div>
             <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{stats.reviews}</div>
-              <div className="text-xs text-gray-500">Resenas totales</div>
+              <div className="text-2xl font-bold text-secondary">{stats.reviews}</div>
+              <div className="text-xs text-gray-500">Reseñas totales</div>
             </div>
           </div>
         </div>
@@ -558,7 +560,7 @@ export default function AdminDashboardPage() {
               {topExperiences.map((exp, index) => (
                 <div key={exp.id} className="p-4 flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    index === 0 ? 'bg-amber-100 text-amber-700' :
+                    index === 0 ? 'bg-accent/10 text-amber-700' :
                     index === 1 ? 'bg-gray-200 text-gray-600' :
                     index === 2 ? 'bg-orange-100 text-orange-700' :
                     'bg-gray-100 text-gray-500'
@@ -576,7 +578,7 @@ export default function AdminDashboardPage() {
                       </svg>
                       <span className="font-semibold text-gray-900">{exp.avgRating.toFixed(1)}</span>
                     </div>
-                    <div className="text-xs text-gray-400">{exp.reviewCount} resenas</div>
+                    <div className="text-xs text-gray-400">{exp.reviewCount} reseñas</div>
                   </div>
                 </div>
               ))}
@@ -594,7 +596,7 @@ export default function AdminDashboardPage() {
               {topHosts.map((host, index) => (
                 <div key={host.id} className="p-4 flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    index === 0 ? 'bg-amber-100 text-amber-700' :
+                    index === 0 ? 'bg-accent/10 text-amber-700' :
                     index === 1 ? 'bg-gray-200 text-gray-600' :
                     index === 2 ? 'bg-orange-100 text-orange-700' :
                     'bg-gray-100 text-gray-500'
@@ -638,7 +640,7 @@ export default function AdminDashboardPage() {
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Usuarios recientes</h2>
-            <Link href="/admin/users" className="text-sm text-blue-600">Ver todos</Link>
+            <Link href="/admin/users" className="text-sm text-secondary">Ver todos</Link>
           </div>
           <div className="divide-y divide-gray-100">
             {stats.recentUsers.map((recentUser) => (
@@ -648,7 +650,7 @@ export default function AdminDashboardPage() {
                   <div className="text-sm text-gray-500">{recentUser.email}</div>
                 </div>
                 {recentUser.verified ? (
-                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Verificado</span>
+                  <span className="px-2 py-1 bg-emerald/10 text-green-700 text-xs rounded-full">Verificado</span>
                 ) : (
                   <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">Pendiente</span>
                 )}
@@ -661,7 +663,7 @@ export default function AdminDashboardPage() {
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Experiencias recientes</h2>
-            <Link href="/admin/experiences" className="text-sm text-blue-600">Ver todas</Link>
+            <Link href="/admin/experiences" className="text-sm text-secondary">Ver todas</Link>
           </div>
           <div className="divide-y divide-gray-100">
             {stats.recentExperiences.map((exp) => (
@@ -671,15 +673,16 @@ export default function AdminDashboardPage() {
                   <div className="text-sm text-gray-500">{exp.city} - {exp.host.name}</div>
                 </div>
                 {exp.published ? (
-                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Activa</span>
+                  <span className="px-2 py-1 bg-emerald/10 text-green-700 text-xs rounded-full">Activa</span>
                 ) : (
-                  <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full">Borrador</span>
+                  <span className="px-2 py-1 bg-accent/10 text-amber-700 text-xs rounded-full">Borrador</span>
                 )}
               </div>
             ))}
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </MainLayout>
   );
 }
