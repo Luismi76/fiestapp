@@ -22,6 +22,32 @@ interface TranslationResult {
 
 type TranslationProvider = 'libretranslate' | 'mymemory' | 'google';
 
+// API response types
+interface LibreTranslateDetectResponse {
+  language: string;
+  confidence: number;
+}
+
+interface LibreTranslateResponse {
+  translatedText: string;
+}
+
+interface MyMemoryResponse {
+  responseStatus: number;
+  responseData: {
+    translatedText: string;
+  };
+}
+
+interface GoogleTranslateResponse {
+  data: {
+    translations: Array<{
+      translatedText: string;
+      detectedSourceLanguage?: string;
+    }>;
+  };
+}
+
 @Injectable()
 export class TranslationService {
   private readonly provider: TranslationProvider;
@@ -129,7 +155,8 @@ export class TranslationService {
         throw new Error('LibreTranslate not available');
       }
 
-      const detectData = await detectResponse.json();
+      const detectData =
+        (await detectResponse.json()) as LibreTranslateDetectResponse[];
       const detectedLang = detectData[0]?.language;
 
       if (!detectedLang) {
@@ -161,7 +188,7 @@ export class TranslationService {
         throw new Error(`LibreTranslate error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as LibreTranslateResponse;
       return {
         translatedText: data.translatedText,
         detectedLanguage: detectedLang,
@@ -192,7 +219,7 @@ export class TranslationService {
         throw new Error(`MyMemory error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as MyMemoryResponse;
 
       if (data.responseStatus === 200 && data.responseData?.translatedText) {
         return {
@@ -231,7 +258,7 @@ export class TranslationService {
         throw new Error('Google Translate API error');
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as GoogleTranslateResponse;
       const translation = data.data.translations[0];
 
       return {

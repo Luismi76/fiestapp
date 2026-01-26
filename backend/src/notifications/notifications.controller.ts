@@ -41,7 +41,7 @@ export class NotificationsController {
    * (No requiere autenticación)
    */
   @Get('push/public-key')
-  async getPushPublicKey() {
+  getPushPublicKey() {
     return {
       enabled: this.pushService.isEnabled(),
       publicKey: this.pushService.getPublicKey(),

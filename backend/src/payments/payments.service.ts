@@ -288,15 +288,17 @@ export class PaymentsService {
   // Webhook handler para eventos de Stripe
   async handleWebhook(event: Stripe.Event): Promise<void> {
     switch (event.type) {
-      case 'payment_intent.succeeded':
+      case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;
         await this.confirmPaymentHeld(paymentIntent.id);
         break;
+      }
 
-      case 'payment_intent.payment_failed':
+      case 'payment_intent.payment_failed': {
         const failedPayment = event.data.object;
         await this.handlePaymentFailed(failedPayment.id);
         break;
+      }
     }
   }
 

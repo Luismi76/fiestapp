@@ -1,7 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '../notifications/dto/notification.dto';
 import { randomBytes } from 'crypto';
 
 const REFERRAL_CREDIT = 5; // Credito en EUR al referidor cuando el referido completa primera experiencia

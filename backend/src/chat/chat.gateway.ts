@@ -97,7 +97,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.userSockets.get(userId)!.add(client.id);
 
       // Join user's personal room
-      client.join(`user:${userId}`);
+      void client.join(`user:${userId}`);
 
       // Join all match rooms the user is part of
       const matches = await this.prisma.match.findMany({
@@ -113,7 +113,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       for (const match of matches) {
-        client.join(`match:${match.id}`);
+        void client.join(`match:${match.id}`);
         this.logger.log(
           `[handleConnection] User ${client.userId} (socket ${client.id}) joined match:${match.id}`,
         );
@@ -200,7 +200,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       this.logger.log(`[joinMatch] Balance OK, joining room...`);
-      client.join(`match:${matchId}`);
+      void client.join(`match:${matchId}`);
 
       // Debug: check sockets in room after joining (use optional chaining for safety)
       const room = this.server?.sockets?.adapter?.rooms?.get(
@@ -227,7 +227,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() matchId: string,
   ) {
-    client.leave(`match:${matchId}`);
+    void client.leave(`match:${matchId}`);
     return { success: true };
   }
 

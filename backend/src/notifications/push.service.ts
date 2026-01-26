@@ -132,8 +132,9 @@ export class PushService {
       return;
     }
 
-    // Verificar preferencias del usuario
-    const preferences = await this.notificationsService.getPreferences(userId);
+    // Verificar preferencias del usuario (futuro: usar para filtrar notificaciones)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _preferences = await this.notificationsService.getPreferences(userId);
 
     // Obtener todas las suscripciones del usuario
     const subscriptions = await this.prisma.pushSubscription.findMany({

@@ -138,6 +138,7 @@ export class ReportsController {
       adminNotes?: string;
     },
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return this.reportsService.resolveReport(id, req.user.userId, body as any);
   }
 

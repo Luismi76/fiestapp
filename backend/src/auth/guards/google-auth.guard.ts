@@ -27,12 +27,10 @@ export class GoogleAuthGuard extends AuthGuard('google') {
   }
 
   // Method signature required by Passport - extra params are part of the interface
+
   handleRequest<TUser = unknown>(
     err: Error | null,
     user: TUser | false,
-    _info?: unknown,
-    _context?: ExecutionContext,
-    _status?: unknown,
   ): TUser {
     if (err || !user) {
       throw err || new Error('No se pudo autenticar con Google');

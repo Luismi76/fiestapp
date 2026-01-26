@@ -6,8 +6,13 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { ReferralsService } from './referrals.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+
+interface AuthenticatedRequest extends ExpressRequest {
+  user: { id: string; email: string };
+}
 
 @Controller('referrals')
 export class ReferralsController {
@@ -28,7 +33,7 @@ export class ReferralsController {
    */
   @Get('my')
   @UseGuards(JwtAuthGuard)
-  getMyReferralStats(@Request() req) {
+  getMyReferralStats(@Request() req: AuthenticatedRequest) {
     return this.referralsService.getReferralStats(req.user.id);
   }
 
@@ -38,7 +43,7 @@ export class ReferralsController {
    */
   @Post('generate-code')
   @UseGuards(JwtAuthGuard)
-  async generateCode(@Request() req) {
+  async generateCode(@Request() req: AuthenticatedRequest) {
     const code = await this.referralsService.generateReferralCode(req.user.id);
     const referralLink = `${process.env.FRONTEND_URL || 'https://fiestapp.es'}/register?ref=${code}`;
     return { code, referralLink };
