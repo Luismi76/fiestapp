@@ -57,13 +57,15 @@ export class ExperiencesService {
   }
 
   async create(createDto: CreateExperienceDto, userId: string) {
-    // Verificar que el festival existe
-    const festival = await this.prisma.festival.findUnique({
-      where: { id: createDto.festivalId },
-    });
+    // Verificar que el festival existe solo si se proporciona
+    if (createDto.festivalId) {
+      const festival = await this.prisma.festival.findUnique({
+        where: { id: createDto.festivalId },
+      });
 
-    if (!festival) {
-      throw new NotFoundException('Festival no encontrado');
+      if (!festival) {
+        throw new NotFoundException('Festival no encontrado');
+      }
     }
 
     // Geocodificar la ciudad para obtener coordenadas
@@ -76,6 +78,7 @@ export class ExperiencesService {
           title: createDto.title,
           description: createDto.description,
           festivalId: createDto.festivalId,
+          category: createDto.category,
           city: createDto.city,
           latitude: coordinates?.latitude,
           longitude: coordinates?.longitude,
