@@ -74,7 +74,7 @@ export default function AvailabilityCalendar({
     return normalized;
   }, [minDateProp]);
   // Calcular si las fechas disponibles abarcan múltiples meses
-  const { spansMultipleMonths, firstMonth, lastMonth } = useMemo(() => {
+  const { spansMultipleMonths, lastMonth } = useMemo(() => {
     if (availableDates.length === 0) {
       return { spansMultipleMonths: false, firstMonth: null, lastMonth: null };
     }

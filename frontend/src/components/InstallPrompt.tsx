@@ -16,7 +16,6 @@ export default function InstallPrompt() {
   // Check PWA installation status - valid initialization pattern
   useEffect(() => {
     // Check if already installed (navigator.standalone is Safari-specific)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as { standalone?: boolean }).standalone === true;
     // eslint-disable-next-line react-hooks/set-state-in-effect

@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { experiencesApi, matchesApi, favoritesApi, GroupPriceResult } from '@/lib/api';
+import { experiencesApi, matchesApi, favoritesApi } from '@/lib/api';
 import { ExperienceDetail, DateOccupancy } from '@/types/experience';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
@@ -310,7 +310,7 @@ export default function ExperienceDetailPage() {
     }
   };
 
-  const handleParticipantsChange = useCallback((count: number, _result: GroupPriceResult | null) => {
+  const handleParticipantsChange = useCallback((count: number) => {
     setParticipants(count);
   }, []);
 

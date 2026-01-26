@@ -9,10 +9,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WalletService, MIN_TOPUP, PLATFORM_FEE } from './wallet.service';
-
-interface AuthenticatedRequest extends Request {
-  user: { userId: string; email: string };
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('wallet')
 @UseGuards(JwtAuthGuard)

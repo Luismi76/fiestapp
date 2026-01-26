@@ -9,20 +9,11 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
 import { ReportsService } from './reports.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
-
-interface AuthenticatedUser {
-  userId: string;
-  email: string;
-}
-
-interface AuthenticatedRequest extends ExpressRequest {
-  user: AuthenticatedUser;
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('reports')
 export class ReportsController {

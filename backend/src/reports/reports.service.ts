@@ -9,6 +9,34 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateReportDto } from './dto/create-report.dto';
 
+// Interfaces para entidades reportadas
+interface ReportedUser {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  strikes: number;
+  bannedAt: Date | null;
+}
+
+interface ReportedExperience {
+  id: string;
+  title: string;
+  city: string;
+  published: boolean;
+  host: { id: string; name: string };
+}
+
+interface ReportedMatch {
+  id: string;
+  status: string;
+  experience: { title: string };
+  host: { id: string; name: string };
+  requester: { id: string; name: string };
+}
+
+type ReportedEntity = ReportedUser | ReportedExperience | ReportedMatch | null;
+
 // Templates de respuesta para admins
 export const RESPONSE_TEMPLATES = {
   resolved_warning: {
@@ -269,7 +297,7 @@ export class ReportsService {
 
     const enrichedReports = await Promise.all(
       reports.map(async (report) => {
-        let reportedEntity: any = null;
+        let reportedEntity: ReportedEntity = null;
 
         if (report.reportedType === 'user') {
           reportedEntity = await this.prisma.user.findUnique({
@@ -310,7 +338,6 @@ export class ReportsService {
         // Determinar prioridad basada en factores
         const priority = this.calculatePriority(report, reportedEntity);
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         return { ...report, reportedEntity, priority };
       }),
     );
@@ -338,18 +365,22 @@ export class ReportsService {
    */
   private calculatePriority(
     report: { reason: string },
-
-    reportedEntity: any,
+    reportedEntity: ReportedEntity,
   ): 'low' | 'medium' | 'high' {
     // Alta prioridad: fraude, acoso, usuario con strikes
     if (['fraud', 'harassment'].includes(report.reason)) return 'high';
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (reportedEntity?.strikes >= 2) return 'high';
+
+    // Verificar strikes solo si es un usuario reportado
+    const isUserEntity = (entity: ReportedEntity): entity is ReportedUser =>
+      entity !== null && 'strikes' in entity;
+
+    if (isUserEntity(reportedEntity) && reportedEntity.strikes >= 2)
+      return 'high';
 
     // Media prioridad: contenido inapropiado, spam
     if (['inappropriate', 'spam'].includes(report.reason)) return 'medium';
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (reportedEntity?.strikes >= 1) return 'medium';
+    if (isUserEntity(reportedEntity) && reportedEntity.strikes >= 1)
+      return 'medium';
 
     return 'low';
   }

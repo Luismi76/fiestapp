@@ -9,19 +9,10 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-
-interface AuthenticatedUser {
-  userId: string;
-  email: string;
-}
-
-interface AuthenticatedRequest extends ExpressRequest {
-  user: AuthenticatedUser;
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('users')
 export class UsersController {

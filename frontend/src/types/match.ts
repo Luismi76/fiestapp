@@ -1,4 +1,4 @@
-import { Experience, Host, Festival } from './experience';
+import { Experience, Festival } from './experience';
 
 export type MatchStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'completed';
 

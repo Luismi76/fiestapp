@@ -61,6 +61,38 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// ============================================
+// UTILIDADES
+// ============================================
+
+/**
+ * Construye URLSearchParams a partir de un objeto de filtros
+ * Ignora valores undefined, null y strings vacíos
+ */
+function buildQueryParams(filters?: Record<string, unknown>): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, String(value));
+      }
+    });
+  }
+  return params;
+}
+
+/**
+ * Toggle genérico para recursos (favoritos, alertas, etc.)
+ * Si isActive es true, elimina el recurso (DELETE), sino lo crea (POST)
+ */
+async function toggleResource(endpoint: string, isActive: boolean): Promise<void> {
+  if (isActive) {
+    await api.delete(endpoint);
+  } else {
+    await api.post(endpoint);
+  }
+}
+
 export const authApi = {
   login: async (data: LoginData): Promise<AuthResponse> => {
     const response = await api.post<AuthResponse>('/auth/login', data);
@@ -100,14 +132,7 @@ export const authApi = {
 
 export const experiencesApi = {
   getAll: async (filters?: ExperienceFilters): Promise<ExperiencesResponse> => {
-    const params = new URLSearchParams();
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined) {
-          params.append(key, String(value));
-        }
-      });
-    }
+    const params = buildQueryParams(filters as Record<string, unknown>);
     const response = await api.get<ExperiencesResponse>(`/experiences?${params}`);
     return response.data;
   },
@@ -717,11 +742,7 @@ export const favoritesApi = {
 
   // Toggle favorito
   toggleFavorite: async (experienceId: string, isFavorite: boolean): Promise<void> => {
-    if (isFavorite) {
-      await api.delete(`/favorites/${experienceId}`);
-    } else {
-      await api.post(`/favorites/${experienceId}`);
-    }
+    await toggleResource(`/favorites/${experienceId}`, isFavorite);
   },
 
   // =============================================
@@ -758,11 +779,7 @@ export const favoritesApi = {
 
   // Toggle festival favorito
   toggleFestivalFavorite: async (festivalId: string, isFavorite: boolean): Promise<void> => {
-    if (isFavorite) {
-      await api.delete(`/favorites/festivals/${festivalId}`);
-    } else {
-      await api.post(`/favorites/festivals/${festivalId}`);
-    }
+    await toggleResource(`/favorites/festivals/${festivalId}`, isFavorite);
   },
 
   // =============================================
@@ -787,11 +804,7 @@ export const favoritesApi = {
 
   // Toggle alerta
   toggleAlert: async (experienceId: string, hasAlert: boolean): Promise<void> => {
-    if (hasAlert) {
-      await api.delete(`/favorites/${experienceId}/alert`);
-    } else {
-      await api.post(`/favorites/${experienceId}/alert`);
-    }
+    await toggleResource(`/favorites/${experienceId}/alert`, hasAlert);
   },
 
   // =============================================
@@ -897,7 +910,7 @@ export interface AdminExperience {
   };
 }
 
-export interface PaginatedResponse<T> {
+export interface PaginatedResponse {
   pagination: {
     page: number;
     limit: number;
@@ -906,7 +919,7 @@ export interface PaginatedResponse<T> {
   };
 }
 
-export interface AdminUsersResponse extends PaginatedResponse<AdminUser> {
+export interface AdminUsersResponse extends PaginatedResponse {
   users: AdminUser[];
 }
 

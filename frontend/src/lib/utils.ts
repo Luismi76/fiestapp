@@ -50,3 +50,56 @@ export function formatRelativeTime(date: string | Date): string {
 
   return then.toLocaleDateString('es-ES');
 }
+
+/**
+ * Formatea tiempo relativo en formato compacto (Ahora, 2h, 3d, etc.)
+ * Usado principalmente en listas de mensajes y matches
+ */
+export function formatTimeAgo(date: string | Date): string {
+  const diff = Date.now() - new Date(date).getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+
+  if (hours < 1) return 'Ahora';
+  if (hours < 24) return `${hours}h`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d`;
+
+  return new Date(date).toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'short'
+  });
+}
+
+/**
+ * Formatea una fecha en formato corto (15 ene, 23 mar, etc.)
+ */
+export function formatDateShort(date: string | Date | null): string | null {
+  if (!date) return null;
+  return new Date(date).toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'short',
+  });
+}
+
+/**
+ * Formatea una fecha en formato largo (15 de enero de 2024)
+ */
+export function formatDateLong(date: string | Date): string {
+  return new Date(date).toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+/**
+ * Formatea una fecha para mostrar en transacciones/wallet
+ */
+export function formatTransactionDate(date: string | Date): string {
+  return new Date(date).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}

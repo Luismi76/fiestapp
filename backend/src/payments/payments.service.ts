@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,6 +18,7 @@ export enum PaymentStatus {
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
   private stripe: Stripe | null = null;
 
   constructor(
@@ -25,7 +27,7 @@ export class PaymentsService {
   ) {
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!stripeKey) {
-      console.warn('⚠️ STRIPE_SECRET_KEY not configured - payments disabled');
+      this.logger.warn('STRIPE_SECRET_KEY not configured - payments disabled');
     } else {
       this.stripe = new Stripe(stripeKey);
     }

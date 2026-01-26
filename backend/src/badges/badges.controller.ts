@@ -6,13 +6,9 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BadgesService } from './badges.service';
-
-interface AuthenticatedRequest extends ExpressRequest {
-  user: { id: string; email: string };
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('badges')
 export class BadgesController {
@@ -34,7 +30,7 @@ export class BadgesController {
   @Get('my')
   @UseGuards(JwtAuthGuard)
   async getMyBadges(@Request() req: AuthenticatedRequest) {
-    return this.badgesService.getUserBadges(req.user.id);
+    return this.badgesService.getUserBadges(req.user.userId);
   }
 
   /**
@@ -62,7 +58,7 @@ export class BadgesController {
   @Get('reputation/my')
   @UseGuards(JwtAuthGuard)
   async getMyReputation(@Request() req: AuthenticatedRequest) {
-    return this.badgesService.getUserReputation(req.user.id);
+    return this.badgesService.getUserReputation(req.user.userId);
   }
 
   /**
@@ -72,7 +68,9 @@ export class BadgesController {
   @Post('check')
   @UseGuards(JwtAuthGuard)
   async checkBadges(@Request() req: AuthenticatedRequest) {
-    const awarded = await this.badgesService.checkAndAwardBadges(req.user.id);
+    const awarded = await this.badgesService.checkAndAwardBadges(
+      req.user.userId,
+    );
     return {
       message:
         awarded.length > 0 ? 'Badges otorgados!' : 'No hay nuevos badges',

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { usersApi, HostStats } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { getAvatarUrl } from '@/lib/utils';
+import { getAvatarUrl, formatTimeAgo } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
 
@@ -94,16 +94,6 @@ export default function StatsPage() {
       </MainLayout>
     );
   }
-
-  const formatTimeAgo = (date: string) => {
-    const diff = Date.now() - new Date(date).getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return 'Ahora';
-    if (hours < 24) return `Hace ${hours}h`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `Hace ${days}d`;
-    return new Date(date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-  };
 
   return (
     <MainLayout>

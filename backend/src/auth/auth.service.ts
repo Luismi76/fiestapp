@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -18,31 +19,17 @@ import {
 } from './dto/auth.dto';
 import { GoogleUser } from './dto/social-auth.dto';
 import { v4 as uuidv4 } from 'uuid';
-import * as fs from 'fs';
-import * as path from 'path';
 import { verifySync as verifyTOTP } from 'otplib';
 
 @Injectable()
 export class AuthService {
-  private logPath = path.join(process.cwd(), 'auth-debug.log');
+  private readonly logger = new Logger(AuthService.name);
 
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private emailService: EmailService,
   ) {}
-
-  private log(message: string) {
-    try {
-      const timestamp = new Date().toISOString();
-      fs.appendFileSync(
-        this.logPath,
-        `${timestamp} [${process.pid}] ${message}\n`,
-      );
-    } catch {
-      console.log(`[LOG_FAIL] ${message}`);
-    }
-  }
 
   async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
     const {
@@ -56,28 +43,28 @@ export class AuthService {
       childrenAges,
     } = registerDto;
 
-    this.log(`Attempting registration for: ${email}`);
+    this.logger.debug(`Attempting registration for: ${email}`);
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      this.log(`Registration failed: Email ${email} already exists`);
+      this.logger.debug(`Registration failed: Email ${email} already exists`);
       throw new UnauthorizedException('Email already registered');
     }
 
-    this.log('Hashing password...');
+    this.logger.debug('Hashing password...');
     const hashedPassword = await bcrypt.hash(password, 10);
-    this.log('Password hashed');
+    this.logger.debug('Password hashed');
 
     const verificationToken = uuidv4();
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     try {
-      this.log('Starting DB transaction...');
+      this.logger.debug('Starting DB transaction...');
       const user = await this.prisma.$transaction(async (tx) => {
-        this.log('Transaction: Creating User...');
+        this.logger.debug('Transaction: Creating User...');
         const newUser = await tx.user.create({
           data: {
             email,
@@ -93,27 +80,27 @@ export class AuthService {
             emailVerificationExpires: verificationExpires,
           },
         });
-        this.log(`Transaction: User created with ID ${newUser.id}`);
+        this.logger.debug(`Transaction: User created with ID ${newUser.id}`);
 
-        this.log('Transaction: Creating Wallet...');
+        this.logger.debug('Transaction: Creating Wallet...');
         await tx.wallet.create({
           data: {
             userId: newUser.id,
             balance: 0,
           },
         });
-        this.log('Transaction: Wallet created');
+        this.logger.debug('Transaction: Wallet created');
 
         return newUser;
       });
-      this.log('DB transaction finished successfully');
+      this.logger.debug('DB transaction finished successfully');
 
       await this.emailService.sendVerificationEmail(
         email,
         verificationToken,
         name,
       );
-      this.log(`Verification email sent to ${email}`);
+      this.logger.debug(`Verification email sent to ${email}`);
 
       return {
         message:
@@ -126,10 +113,13 @@ export class AuthService {
         Object.getOwnPropertyNames(error as object),
         2,
       );
-      this.log(`CRITICAL REGISTRATION ERROR: ${errorString}`);
-      this.log(`FULL ERROR OBJECT: ${String(error)}`);
+      this.logger.debug(`CRITICAL REGISTRATION ERROR: ${errorString}`);
+      this.logger.debug(`FULL ERROR OBJECT: ${String(error)}`);
 
-      console.error('Registration error:', error);
+      this.logger.error(
+        'Registration error',
+        error instanceof Error ? error.stack : String(error),
+      );
 
       if (error instanceof Error && 'code' in error && error.code === 'P2002') {
         throw new Error('Email already exists');
@@ -140,34 +130,34 @@ export class AuthService {
 
   async login(loginDto: LoginDto): Promise<LoginResponseDto> {
     const { email, password } = loginDto;
-    this.log(`Login attempt for: ${email}`);
+    this.logger.debug(`Login attempt for: ${email}`);
 
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
     if (!user) {
-      this.log(`Login failed: User ${email} not found`);
+      this.logger.debug(`Login failed: User ${email} not found`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      this.log(`Login failed: Invalid password for ${email}`);
+      this.logger.debug(`Login failed: Invalid password for ${email}`);
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Verificar si el usuario esta baneado
     if (user.bannedAt) {
-      this.log(`Login failed: User ${email} is banned`);
+      this.logger.debug(`Login failed: User ${email} is banned`);
       throw new UnauthorizedException(
         `Tu cuenta ha sido suspendida. Motivo: ${user.banReason || 'No especificado'}`,
       );
     }
 
     if (!user.verified) {
-      this.log(`Login failed: Email not verified for ${email}`);
+      this.logger.debug(`Login failed: Email not verified for ${email}`);
       throw new UnauthorizedException(
         'Por favor, verifica tu email antes de iniciar sesion. Revisa tu bandeja de entrada o solicita un nuevo email de verificacion.',
       );
@@ -175,7 +165,7 @@ export class AuthService {
 
     // Si 2FA está habilitado, devolver token temporal
     if (user.twoFactorEnabled) {
-      this.log(`2FA required for ${email}`);
+      this.logger.debug(`2FA required for ${email}`);
       // Crear token temporal para 2FA (expira en 5 minutos)
       const tempPayload = {
         sub: user.id,
@@ -193,7 +183,7 @@ export class AuthService {
 
     const payload = { sub: user.id, email: user.email };
     const access_token = this.jwtService.sign(payload);
-    this.log(`Login successful for ${email}`);
+    this.logger.debug(`Login successful for ${email}`);
 
     return {
       access_token,
@@ -218,7 +208,7 @@ export class AuthService {
     tempToken: string,
     twoFactorCode: string,
   ): Promise<AuthResponseDto> {
-    this.log(`2FA verification attempt`);
+    this.logger.debug(`2FA verification attempt`);
 
     let payload: { sub: string; email: string; type?: string };
     try {
@@ -246,14 +236,14 @@ export class AuthService {
     });
 
     if (!result.valid) {
-      this.log(`2FA verification failed for ${user.email}`);
+      this.logger.debug(`2FA verification failed for ${user.email}`);
       throw new UnauthorizedException('Código de autenticación inválido.');
     }
 
     // Generar el JWT completo
     const fullPayload = { sub: user.id, email: user.email };
     const access_token = this.jwtService.sign(fullPayload);
-    this.log(`2FA verification successful for ${user.email}`);
+    this.logger.debug(`2FA verification successful for ${user.email}`);
 
     return {
       access_token,
@@ -275,7 +265,7 @@ export class AuthService {
   }
 
   async verifyEmail(token: string): Promise<{ message: string }> {
-    this.log(`Attempting to verify email with token: ${token}`);
+    this.logger.debug(`Attempting to verify email with token: ${token}`);
 
     const user = await this.prisma.user.findFirst({
       where: {
@@ -284,7 +274,7 @@ export class AuthService {
     });
 
     if (!user) {
-      this.log(`Verification failed: Invalid token ${token}`);
+      this.logger.debug(`Verification failed: Invalid token ${token}`);
       throw new BadRequestException(
         'Token de verificacion invalido o expirado.',
       );
@@ -294,14 +284,14 @@ export class AuthService {
       user.emailVerificationExpires &&
       user.emailVerificationExpires < new Date()
     ) {
-      this.log(`Verification failed: Token expired for ${user.email}`);
+      this.logger.debug(`Verification failed: Token expired for ${user.email}`);
       throw new BadRequestException(
         'El token de verificacion ha expirado. Por favor, solicita uno nuevo.',
       );
     }
 
     if (user.verified) {
-      this.log(`Email already verified for ${user.email}`);
+      this.logger.debug(`Email already verified for ${user.email}`);
       return {
         message: 'Tu email ya ha sido verificado. Puedes iniciar sesion.',
       };
@@ -316,7 +306,7 @@ export class AuthService {
       },
     });
 
-    this.log(`Email verified successfully for ${user.email}`);
+    this.logger.debug(`Email verified successfully for ${user.email}`);
     return {
       message:
         'Email verificado correctamente. Ya puedes iniciar sesion en FiestApp.',
@@ -327,7 +317,7 @@ export class AuthService {
     resendDto: ResendVerificationDto,
   ): Promise<{ message: string }> {
     const { email } = resendDto;
-    this.log(`Resend verification requested for: ${email}`);
+    this.logger.debug(`Resend verification requested for: ${email}`);
 
     const user = await this.prisma.user.findUnique({
       where: { email },
@@ -341,7 +331,7 @@ export class AuthService {
     }
 
     if (user.verified) {
-      this.log(`Resend failed: Email already verified for ${email}`);
+      this.logger.debug(`Resend failed: Email already verified for ${email}`);
       throw new BadRequestException('Este email ya ha sido verificado.');
     }
 
@@ -353,7 +343,7 @@ export class AuthService {
         user.emailVerificationExpires.getTime() - 24 * 60 * 60 * 1000;
       const timeSinceLastSent = Date.now() - lastSent;
       if (timeSinceLastSent < 60 * 1000) {
-        this.log(`Resend failed: Too soon for ${email}`);
+        this.logger.debug(`Resend failed: Too soon for ${email}`);
         throw new BadRequestException(
           'Por favor, espera al menos 60 segundos antes de solicitar otro email de verificacion.',
         );
@@ -377,7 +367,7 @@ export class AuthService {
       user.name,
     );
 
-    this.log(`Verification email resent to ${email}`);
+    this.logger.debug(`Verification email resent to ${email}`);
     return {
       message:
         'Si el email existe en nuestro sistema, recibiras un correo de verificacion.',
@@ -411,7 +401,7 @@ export class AuthService {
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {
-    this.log(`Forgot password requested for: ${email}`);
+    this.logger.debug(`Forgot password requested for: ${email}`);
 
     const user = await this.prisma.user.findUnique({
       where: { email },
@@ -443,7 +433,7 @@ export class AuthService {
       resetToken,
       user.name,
     );
-    this.log(`Password reset email sent to ${email}`);
+    this.logger.debug(`Password reset email sent to ${email}`);
 
     return successMessage;
   }
@@ -452,7 +442,7 @@ export class AuthService {
     token: string,
     newPassword: string,
   ): Promise<{ message: string }> {
-    this.log(`Reset password attempt with token: ${token}`);
+    this.logger.debug(`Reset password attempt with token: ${token}`);
 
     const user = await this.prisma.user.findFirst({
       where: {
@@ -461,12 +451,12 @@ export class AuthService {
     });
 
     if (!user) {
-      this.log(`Reset failed: Invalid token ${token}`);
+      this.logger.debug(`Reset failed: Invalid token ${token}`);
       throw new BadRequestException('Token inválido o expirado.');
     }
 
     if (user.passwordResetExpires && user.passwordResetExpires < new Date()) {
-      this.log(`Reset failed: Token expired for ${user.email}`);
+      this.logger.debug(`Reset failed: Token expired for ${user.email}`);
       throw new BadRequestException(
         'El token ha expirado. Solicita uno nuevo.',
       );
@@ -483,7 +473,7 @@ export class AuthService {
       },
     });
 
-    this.log(`Password reset successful for ${user.email}`);
+    this.logger.debug(`Password reset successful for ${user.email}`);
     return {
       message:
         'Contraseña actualizada correctamente. Ya puedes iniciar sesión.',
@@ -491,7 +481,7 @@ export class AuthService {
   }
 
   async googleLogin(googleUser: GoogleUser): Promise<AuthResponseDto> {
-    this.log(`Google login attempt for: ${googleUser.email}`);
+    this.logger.debug(`Google login attempt for: ${googleUser.email}`);
 
     if (!googleUser.email) {
       throw new BadRequestException(
@@ -523,7 +513,9 @@ export class AuthService {
         user.verified = true;
       }
 
-      this.log(`Google login successful for existing user: ${user.email}`);
+      this.logger.debug(
+        `Google login successful for existing user: ${user.email}`,
+      );
     } else {
       // Crear nuevo usuario
       const randomPassword = uuidv4(); // Password aleatorio (el usuario no lo necesitará)
@@ -551,7 +543,7 @@ export class AuthService {
         return newUser;
       });
 
-      this.log(`New user created via Google: ${user.email}`);
+      this.logger.debug(`New user created via Google: ${user.email}`);
     }
 
     // Generar JWT

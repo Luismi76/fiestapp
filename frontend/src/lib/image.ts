@@ -2,9 +2,8 @@
  * Utilidades para optimización de imágenes con Cloudinary
  */
 
-// Cloudinary configuration
-const CLOUDINARY_CLOUD_NAME = 'dxgwtqbtt';
-const CLOUDINARY_BASE_URL = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image`;
+// Cloudinary configuration - cloud name used in optimizeCloudinaryUrl function
+// const CLOUDINARY_CLOUD_NAME = 'dxgwtqbtt';
 
 /**
  * Tipos de transformación de imagen

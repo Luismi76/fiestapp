@@ -33,11 +33,7 @@ import { TwoFactorService } from './services/two-factor.service';
 import { GoogleUser } from './dto/social-auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
-import { AuthenticatedUser } from './strategies/jwt.strategy';
-
-interface AuthenticatedRequest extends ExpressRequest {
-  user: AuthenticatedUser;
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @ApiTags('auth')
 @Controller('auth')

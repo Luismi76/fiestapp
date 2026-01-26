@@ -5,12 +5,9 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import * as Sentry from '@sentry/nestjs';
-
-interface AuthenticatedRequest extends Request {
-  user?: { userId: string; email: string };
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 interface ErrorResponse {
   message?: string;

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import { ConfigService } from '@nestjs/config';
 
@@ -6,6 +6,7 @@ const MAX_VOICE_DURATION_SECONDS = 60;
 
 @Injectable()
 export class VoiceService {
+  private readonly logger = new Logger(VoiceService.name);
   private isConfigured = false;
 
   constructor(private configService: ConfigService) {
@@ -105,9 +106,9 @@ export class VoiceService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error(
-        'Error uploading voice to Cloudinary:',
-        error instanceof Error ? error.message : error,
+      this.logger.error(
+        'Error uploading voice to Cloudinary',
+        error instanceof Error ? error.stack : String(error),
       );
       throw new BadRequestException('Error al subir el mensaje de voz');
     }
@@ -123,7 +124,10 @@ export class VoiceService {
         });
       }
     } catch (error) {
-      console.error('Error deleting voice message:', error);
+      this.logger.error(
+        'Error deleting voice message',
+        error instanceof Error ? error.stack : String(error),
+      );
       // No lanzamos error, es una operación de limpieza
     }
   }

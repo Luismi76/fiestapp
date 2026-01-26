@@ -9,18 +9,9 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
 import { QuickRepliesService } from './quick-replies.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-
-interface AuthenticatedUser {
-  userId: string;
-  email: string;
-}
-
-interface AuthenticatedRequest extends ExpressRequest {
-  user: AuthenticatedUser;
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('quick-replies')
 @UseGuards(JwtAuthGuard)

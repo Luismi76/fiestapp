@@ -3,12 +3,15 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 
 @Injectable()
 export class UploadsService {
+  private readonly logger = new Logger(UploadsService.name);
+
   constructor(
     private prisma: PrismaService,
     private storage: StorageService,
@@ -81,10 +84,10 @@ export class UploadsService {
     }
 
     if (experience.hostId !== userId) {
-      console.log('🚫 Permission denied for photo upload:');
-      console.log('   Experience ID:', experienceId);
-      console.log('   Experience hostId:', experience.hostId);
-      console.log('   Current userId:', userId);
+      this.logger.debug('🚫 Permission denied for photo upload:');
+      this.logger.debug('   Experience ID:', experienceId);
+      this.logger.debug('   Experience hostId:', experience.hostId);
+      this.logger.debug('   Current userId:', userId);
       throw new ForbiddenException(
         'No tienes permiso para modificar esta experiencia',
       );
@@ -125,7 +128,7 @@ export class UploadsService {
     userId: string,
     photoUrl: string,
   ): Promise<void> {
-    console.log('🗑️ deleteExperiencePhoto called:', {
+    this.logger.debug('🗑️ deleteExperiencePhoto called:', {
       experienceId,
       userId,
       photoUrl,
@@ -137,12 +140,12 @@ export class UploadsService {
     });
 
     if (!experience) {
-      console.log('❌ Experience not found');
+      this.logger.debug('❌ Experience not found');
       throw new NotFoundException('Experiencia no encontrada');
     }
 
     if (experience.hostId !== userId) {
-      console.log('❌ Permission denied:', {
+      this.logger.debug('❌ Permission denied:', {
         hostId: experience.hostId,
         userId,
       });
@@ -151,11 +154,11 @@ export class UploadsService {
       );
     }
 
-    console.log('📸 Current photos:', experience.photos);
-    console.log('🔍 Looking for:', photoUrl);
+    this.logger.debug('📸 Current photos:', experience.photos);
+    this.logger.debug('🔍 Looking for:', photoUrl);
 
     if (!experience.photos.includes(photoUrl)) {
-      console.log('❌ Photo not found in array');
+      this.logger.debug('❌ Photo not found in array');
       throw new NotFoundException('Foto no encontrada en esta experiencia');
     }
 
@@ -166,14 +169,14 @@ export class UploadsService {
 
     // Update experience photos
     const updatedPhotos = experience.photos.filter((p) => p !== photoUrl);
-    console.log('✅ Updated photos:', updatedPhotos);
+    this.logger.debug('✅ Updated photos:', updatedPhotos);
 
     await this.prisma.experience.update({
       where: { id: experienceId },
       data: { photos: updatedPhotos },
     });
 
-    console.log('✅ Photo deleted successfully');
+    this.logger.debug('✅ Photo deleted successfully');
   }
 
   async reorderExperiencePhotos(

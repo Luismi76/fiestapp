@@ -49,7 +49,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = async (data: LoginData) => {
         try {
             const response = await authApi.login(data);
-            localStorage.setItem('token', response.access_token);
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('token', response.access_token);
+            }
             setUser(response.user);
             router.push('/dashboard');
         } catch (error) {
@@ -69,13 +71,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const loginWithToken = (token: string, userData: User) => {
-        localStorage.setItem('token', token);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('token', token);
+        }
         setUser(userData);
         router.push('/dashboard');
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+        }
         setUser(null);
         router.push('/');
     };

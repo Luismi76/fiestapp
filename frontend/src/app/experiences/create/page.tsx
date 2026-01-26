@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { experiencesApi, uploadsApi } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { Festival, ExperienceType, ExperienceCategory, CreateExperienceData, CATEGORY_LABELS, CATEGORY_ICONS } from '@/types/experience';
+import { Festival, ExperienceType, ExperienceCategory, CreateExperienceData } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import FestivalSelector from '@/components/FestivalSelector';

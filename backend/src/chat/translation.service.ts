@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -50,6 +50,7 @@ interface GoogleTranslateResponse {
 
 @Injectable()
 export class TranslationService {
+  private readonly logger = new Logger(TranslationService.name);
   private readonly provider: TranslationProvider;
   private readonly googleApiKey?: string;
   private readonly libreTranslateUrl: string;
@@ -65,7 +66,7 @@ export class TranslationService {
 
     // Determinar proveedor: Google si hay API key, sino LibreTranslate
     this.provider = this.googleApiKey ? 'google' : 'libretranslate';
-    console.log(`[TranslationService] Using provider: ${this.provider}`);
+    this.logger.log(`Using provider: ${this.provider}`);
   }
 
   /**
@@ -149,8 +150,8 @@ export class TranslationService {
       });
 
       if (!detectResponse.ok) {
-        console.log(
-          '[TranslationService] LibreTranslate detect failed, falling back to MyMemory',
+        this.logger.warn(
+          'LibreTranslate detect failed, falling back to MyMemory',
         );
         throw new Error('LibreTranslate not available');
       }
@@ -160,9 +161,7 @@ export class TranslationService {
       const detectedLang = detectData[0]?.language;
 
       if (!detectedLang) {
-        console.log(
-          '[TranslationService] Could not detect language, falling back to MyMemory',
-        );
+        this.logger.warn('Could not detect language, falling back to MyMemory');
         throw new Error('Could not detect language');
       }
 
@@ -194,7 +193,10 @@ export class TranslationService {
         detectedLanguage: detectedLang,
       };
     } catch (error) {
-      console.error('LibreTranslate error:', error);
+      this.logger.error(
+        'LibreTranslate error',
+        error instanceof Error ? error.stack : String(error),
+      );
       return this.translateWithMyMemory(text, targetLang);
     }
   }
@@ -230,7 +232,10 @@ export class TranslationService {
 
       throw new Error('MyMemory returned invalid response');
     } catch (error) {
-      console.error('MyMemory error:', error);
+      this.logger.error(
+        'MyMemory error',
+        error instanceof Error ? error.stack : String(error),
+      );
       return this.mockTranslate(text, targetLang);
     }
   }
@@ -242,10 +247,13 @@ export class TranslationService {
   ): Promise<TranslationResult> {
     try {
       const response = await fetch(
-        `https://translation.googleapis.com/language/translate/v2?key=${this.googleApiKey}`,
+        'https://translation.googleapis.com/language/translate/v2',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': this.googleApiKey || '',
+          },
           body: JSON.stringify({
             q: text,
             target: targetLang,
@@ -266,7 +274,10 @@ export class TranslationService {
         detectedLanguage: translation.detectedSourceLanguage,
       };
     } catch (error) {
-      console.error('Google Translate error:', error);
+      this.logger.error(
+        'Google Translate error',
+        error instanceof Error ? error.stack : String(error),
+      );
       return this.translateWithMyMemory(text, targetLang);
     }
   }
@@ -400,8 +411,8 @@ export class TranslationService {
       if (lowerText.includes(word)) frenchCount++;
     });
 
-    console.log(
-      `[TranslationService] Language detection for "${text}": es=${spanishCount}, en=${englishCount}, fr=${frenchCount}`,
+    this.logger.debug(
+      `Language detection: es=${spanishCount}, en=${englishCount}, fr=${frenchCount}`,
     );
 
     if (englishCount > spanishCount && englishCount > frenchCount) {

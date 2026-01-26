@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 interface NominatimResponse {
   display_name: string;
@@ -16,6 +16,7 @@ interface NominatimResponse {
 
 @Injectable()
 export class LocationService {
+  private readonly logger = new Logger(LocationService.name);
   private readonly nominatimUrl = 'https://nominatim.openstreetmap.org';
   private readonly userAgent = 'FiestApp/1.0';
 
@@ -39,7 +40,10 @@ export class LocationService {
       // Construir nombre legible
       return this.formatLocationName(data);
     } catch (error) {
-      console.error('Reverse geocoding error:', error);
+      this.logger.error(
+        'Reverse geocoding error',
+        error instanceof Error ? error.stack : String(error),
+      );
       // Devolver coordenadas formateadas como fallback
       return `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
     }

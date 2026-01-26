@@ -16,13 +16,7 @@ import { VoiceService } from './voice.service';
 import { TranslationService } from './translation.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatGateway } from './chat.gateway';
-
-interface AuthenticatedRequest {
-  user: {
-    userId: string;
-    email: string;
-  };
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('chat')
 export class ChatController {

@@ -4,24 +4,17 @@ import {
   ExecutionContext,
   ForbiddenException,
 } from '@nestjs/common';
-import { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
-
-interface JwtPayload {
-  userId: string;
-  email: string;
-}
-
-interface AuthenticatedRequest extends Request {
-  user?: JwtPayload;
-}
+import { MaybeAuthenticatedRequest } from '../../common/interfaces/authenticated-request.interface';
 
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(private prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const request = context
+      .switchToHttp()
+      .getRequest<MaybeAuthenticatedRequest>();
     const user = request.user;
 
     if (!user?.userId) {

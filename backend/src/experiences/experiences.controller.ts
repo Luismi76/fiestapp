@@ -12,21 +12,12 @@ import {
   Request,
   BadRequestException,
 } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
 import { ExperiencesService } from './experiences.service';
 import { PricingService, GroupPricingTier } from './pricing.service';
 import { CreateExperienceDto } from './dto/create-experience.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-
-interface AuthenticatedUser {
-  userId: string;
-  email: string;
-}
-
-interface AuthenticatedRequest extends ExpressRequest {
-  user: AuthenticatedUser;
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('experiences')
 export class ExperiencesController {

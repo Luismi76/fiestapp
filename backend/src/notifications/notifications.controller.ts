@@ -11,9 +11,7 @@ import {
   Request,
   Headers,
 } from '@nestjs/common';
-import type { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AuthenticatedUser } from '../auth/strategies/jwt.strategy';
 import { NotificationsService } from './notifications.service';
 import { PushService } from './push.service';
 import {
@@ -22,10 +20,7 @@ import {
   NotificationType,
 } from './dto/notification.dto';
 import { SubscribePushDto, UnsubscribePushDto } from './dto/push.dto';
-
-interface AuthenticatedRequest extends ExpressRequest {
-  user: AuthenticatedUser;
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('notifications')
 export class NotificationsController {

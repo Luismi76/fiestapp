@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -10,11 +10,23 @@ import { Request, Response, NextFunction } from 'express';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Allowed origins from environment or defaults
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+    : ['http://localhost:3000', 'http://localhost:3001'];
+
   // RAW CORS middleware - handles preflight BEFORE anything else
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const origin = req.headers.origin || '*';
+    const origin = req.headers.origin;
 
-    res.header('Access-Control-Allow-Origin', origin);
+    // Validate origin against whitelist
+    if (origin && allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else if (!origin) {
+      // Allow requests without origin (e.g., mobile apps, Postman)
+      res.header('Access-Control-Allow-Origin', allowedOrigins[0]);
+    }
+
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header(
       'Access-Control-Allow-Methods',
@@ -106,8 +118,10 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`🚀 Backend running on http://localhost:${port}`);
-  console.log(
+
+  const logger = new Logger('Bootstrap');
+  logger.log(`🚀 Backend running on http://localhost:${port}`);
+  logger.log(
     `📚 API Documentation available at http://localhost:${port}/api/docs`,
   );
 }

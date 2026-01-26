@@ -3,6 +3,7 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  Logger,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { Observable } from 'rxjs';
@@ -91,6 +92,8 @@ const AUDITED_ACTIONS: Record<string, { action: string; entity: string }> = {
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(AuditInterceptor.name);
+
   constructor(private auditService: AuditService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
@@ -146,7 +149,10 @@ export class AuditInterceptor implements NestInterceptor {
               userAgent,
             })
             .catch((err: unknown) => {
-              console.error('Error logging audit:', err);
+              this.logger.error(
+                'Error logging audit',
+                err instanceof Error ? err.stack : String(err),
+              );
             });
         },
         error: (error: Error) => {
@@ -171,7 +177,10 @@ export class AuditInterceptor implements NestInterceptor {
                 userAgent,
               })
               .catch((err: unknown) => {
-                console.error('Error logging audit:', err);
+                this.logger.error(
+                  'Error logging audit',
+                  err instanceof Error ? err.stack : String(err),
+                );
               });
           }
         },

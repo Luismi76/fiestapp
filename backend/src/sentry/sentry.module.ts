@@ -1,4 +1,4 @@
-import { Module, Global, OnModuleInit } from '@nestjs/common';
+import { Module, Global, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Sentry from '@sentry/nestjs';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
@@ -6,6 +6,8 @@ import { nodeProfilingIntegration } from '@sentry/profiling-node';
 @Global()
 @Module({})
 export class SentryModule implements OnModuleInit {
+  private readonly logger = new Logger(SentryModule.name);
+
   constructor(private configService: ConfigService) {}
 
   onModuleInit() {
@@ -15,7 +17,7 @@ export class SentryModule implements OnModuleInit {
 
     // Solo inicializar Sentry si hay DSN configurado
     if (!dsn) {
-      console.log('Sentry DSN not configured, skipping initialization');
+      this.logger.log('Sentry DSN not configured, skipping initialization');
       return;
     }
 
@@ -40,7 +42,7 @@ export class SentryModule implements OnModuleInit {
       },
     });
 
-    console.log(`Sentry initialized for environment: ${environment}`);
+    this.logger.log(`Sentry initialized for environment: ${environment}`);
   }
 }
 

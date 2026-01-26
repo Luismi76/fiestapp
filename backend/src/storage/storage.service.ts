@@ -1,9 +1,11 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 
 @Injectable()
 export class StorageService implements OnModuleInit {
+  private readonly logger = new Logger(StorageService.name);
+
   constructor(private configService: ConfigService) {}
 
   onModuleInit() {
@@ -12,7 +14,7 @@ export class StorageService implements OnModuleInit {
       api_key: this.configService.get<string>('CLOUDINARY_API_KEY'),
       api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET'),
     });
-    console.log('✅ Cloudinary configured');
+    this.logger.log('Cloudinary configured');
   }
 
   async uploadFile(file: Express.Multer.File, folder: string): Promise<string> {
@@ -23,15 +25,17 @@ export class StorageService implements OnModuleInit {
             folder: `fiestapp/${folder}`,
             resource_type: 'image',
           },
-          (error, result: UploadApiResponse | undefined) => {
+          (error: unknown, result: UploadApiResponse | undefined) => {
             if (error) {
-              console.error('Error uploading to Cloudinary:', error);
-              const errorMessage =
-                error instanceof Error
-                  ? error.message
-                  : typeof error === 'object' && error !== null
-                    ? JSON.stringify(error)
-                    : String(error);
+              let errorMessage: string;
+              if (error instanceof Error) {
+                errorMessage = error.message;
+              } else if (typeof error === 'object' && error !== null) {
+                errorMessage = JSON.stringify(error);
+              } else {
+                errorMessage = String(error as string | number | boolean);
+              }
+              this.logger.error('Error uploading to Cloudinary', errorMessage);
               reject(new Error(errorMessage));
             } else if (result) {
               resolve(result.secure_url);
@@ -58,10 +62,13 @@ export class StorageService implements OnModuleInit {
 
       if (publicId) {
         await cloudinary.uploader.destroy(publicId);
-        console.log(`✅ Deleted from Cloudinary: ${publicId}`);
+        this.logger.debug(`Deleted from Cloudinary: ${publicId}`);
       }
     } catch (error) {
-      console.error('Error deleting file from Cloudinary:', error);
+      this.logger.error(
+        'Error deleting file from Cloudinary',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 

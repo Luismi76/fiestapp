@@ -262,7 +262,7 @@ const statusConfig: Record<MatchStatus, { label: string; bg: string; text: strin
 export default function MatchDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [match, setMatch] = useState<MatchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -312,7 +312,7 @@ export default function MatchDetailPage() {
   // Voice recorder hook - WhatsApp style (hold to record, release to send)
   const voiceRecorder = useVoiceRecorder({
     maxDuration: 60,
-    onRecordingComplete: async (audioBlob, duration) => {
+    onRecordingComplete: async (audioBlob) => {
       if (!match) return;
       setSending(true);
       try {

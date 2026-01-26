@@ -4,175 +4,17 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { matchesApi, walletApi, WalletInfo } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
 import { Match, MatchStatus } from '@/types/match';
-import { getAvatarUrl } from '@/lib/utils';
+import { getAvatarUrl, formatTimeAgo } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import ConfirmModal from '@/components/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 import logger from '@/lib/logger';
 import { getErrorMessage } from '@/lib/error';
-
-// Mock data for fallback (partial data for development)
-/* eslint-disable @typescript-eslint/no-explicit-any */
-const mockReceivedMatches: Match[] = [
-  {
-    id: '1',
-    status: 'pending',
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    experienceId: '1',
-    requesterId: '10',
-    hostId: '1',
-    experience: {
-      id: '1',
-      title: 'Vive la Feria como un sevillano',
-      city: 'Sevilla',
-      type: 'pago',
-      price: 45,
-    } as any,
-    requester: {
-      id: '10',
-      name: 'Ana Garcia',
-      avatar: '/images/user_ana.png',
-      verified: true,
-      city: 'Barcelona',
-    },
-    host: {
-      id: '1',
-      name: 'Maria Garcia',
-      avatar: '/images/user_maria.png',
-      verified: true,
-    },
-    _count: { messages: 1 },
-    unreadCount: 1,
-    lastMessage: {
-      content: 'Hola Maria! Me encantaria vivir la Feria contigo.',
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      senderId: '10',
-    },
-  },
-  {
-    id: '2',
-    status: 'accepted',
-    createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    experienceId: '2',
-    requesterId: '11',
-    hostId: '2',
-    experience: {
-      id: '2',
-      title: 'Encierro y tapas tradicionales',
-      city: 'Pamplona',
-      type: 'intercambio',
-    } as any,
-    requester: {
-      id: '11',
-      name: 'Carlos Ruiz',
-      avatar: '/images/user_carlos.png',
-      verified: false,
-      city: 'Madrid',
-    },
-    host: {
-      id: '2',
-      name: 'Carlos Martinez',
-      avatar: '/images/user_carlos.png',
-      verified: true,
-    },
-    _count: { messages: 5 },
-    unreadCount: 2,
-    lastMessage: {
-      content: 'Genial! Ahi estare. Muchas gracias!',
-      createdAt: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString(),
-      senderId: '11',
-    },
-  },
-  {
-    id: '3',
-    status: 'pending',
-    createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    experienceId: '3',
-    requesterId: '12',
-    hostId: '3',
-    experience: {
-      id: '3',
-      title: 'Macleta y paella valenciana',
-      city: 'Valencia',
-      type: 'pago',
-      price: 35,
-    } as any,
-    requester: {
-      id: '12',
-      name: 'Pierre Dubois',
-      avatar: '/images/user_pedro.png',
-      verified: true,
-      city: 'Lyon',
-    },
-    host: {
-      id: '3',
-      name: 'Laura Perez',
-      avatar: '/images/user_laura.png',
-      verified: true,
-    },
-    _count: { messages: 2 },
-    unreadCount: 0,
-    lastMessage: {
-      content: 'Hola Pierre! Si, claro. Tengo sitio para 4 personas.',
-      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      senderId: '3',
-    },
-  },
-  {
-    id: '4',
-    status: 'completed',
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    experienceId: '5',
-    requesterId: '13',
-    hostId: '5',
-    experience: {
-      id: '5',
-      title: 'Procesiones y saetas',
-      city: 'Sevilla',
-      type: 'pago',
-      price: 30,
-    } as any,
-    requester: {
-      id: '13',
-      name: 'Lucia Fernandez',
-      avatar: '/images/user_lucia.png',
-      verified: true,
-      city: 'Malaga',
-    },
-    host: {
-      id: '5',
-      name: 'Juan Romero',
-      avatar: '/images/user_juan.png',
-      verified: true,
-    },
-    _count: { messages: 12 },
-    unreadCount: 0,
-    lastMessage: {
-      content: 'Fue un placer! Hasta la proxima!',
-      createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
-      senderId: '5',
-    },
-  },
-];
-/* eslint-enable @typescript-eslint/no-explicit-any */
-
-const statusConfig: Record<MatchStatus, { label: string; bg: string; text: string; dot: string }> = {
-  pending: { label: 'Pendiente', bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
-  accepted: { label: 'Aceptada', bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  rejected: { label: 'Rechazada', bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500' },
-  cancelled: { label: 'Cancelada', bg: 'bg-gray-50', text: 'text-gray-600', dot: 'bg-gray-400' },
-  completed: { label: 'Completada', bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
-};
+import { mockReceivedMatches, statusConfig } from '@/__mocks__/matches';
 
 export default function ReceivedMatchesPage() {
   const router = useRouter();
-  const { isAuthenticated, loading: authLoading } = useAuth();
   const { success: showSuccess, error: showError } = useToast();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
@@ -200,7 +42,7 @@ export default function ReceivedMatchesPage() {
           setMatches(mockReceivedMatches);
           setUseMockData(true);
         }
-      } catch (err) {
+      } catch {
         logger.log('Using mock data for matches');
         setMatches(mockReceivedMatches);
         setUseMockData(true);
@@ -321,16 +163,6 @@ export default function ReceivedMatchesPage() {
     if (!avatar) return '/images/user_ana.png';
     if (avatar.startsWith('/images/')) return avatar;
     return getAvatarUrl(avatar);
-  };
-
-  const formatTimeAgo = (date: string) => {
-    const diff = Date.now() - new Date(date).getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 1) return 'Ahora';
-    if (hours < 24) return `${hours}h`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d`;
-    return new Date(date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
 
   if (loading) {

@@ -2,16 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 
 export interface JwtPayload {
   sub: string;
   email: string;
 }
 
-export interface AuthenticatedUser {
-  userId: string;
-  email: string;
-}
+// Re-export for backwards compatibility
+export { AuthenticatedUser };
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {

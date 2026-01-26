@@ -106,7 +106,7 @@ export default function ImageGallery({
     });
   };
 
-  const handleDoubleClick = (e: React.MouseEvent) => {
+  const handleDoubleClick = () => {
     if (scale > 1) {
       setScale(1);
       setPosition({ x: 0, y: 0 });
@@ -115,7 +115,7 @@ export default function ImageGallery({
     }
   };
 
-  const handleDrag = (e: React.MouseEvent) => {
+  const handleDrag = () => {
     if (scale === 1) return;
     // Simple drag implementation
     const handleMouseMove = (moveEvent: MouseEvent) => {

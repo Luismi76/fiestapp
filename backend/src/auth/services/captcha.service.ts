@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
@@ -9,6 +9,7 @@ interface CaptchaVerifyResponse {
 
 @Injectable()
 export class CaptchaService {
+  private readonly logger = new Logger(CaptchaService.name);
   private readonly hcaptchaSecret: string | undefined;
   private readonly recaptchaSecret: string | undefined;
   private readonly enabled: boolean;
@@ -19,8 +20,8 @@ export class CaptchaService {
     this.enabled = !!(this.hcaptchaSecret || this.recaptchaSecret);
 
     if (!this.enabled) {
-      console.warn(
-        '⚠️ CAPTCHA not configured (HCAPTCHA_SECRET or RECAPTCHA_SECRET). Captcha verification disabled.',
+      this.logger.warn(
+        'CAPTCHA not configured (HCAPTCHA_SECRET or RECAPTCHA_SECRET). Captcha verification disabled.',
       );
     }
   }
@@ -50,7 +51,10 @@ export class CaptchaService {
 
       return false;
     } catch (error) {
-      console.error('Error verifying captcha:', error);
+      this.logger.error(
+        'Error verifying captcha',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw new BadRequestException(
         'Error al verificar CAPTCHA. Por favor, inténtalo de nuevo.',
       );
@@ -74,7 +78,7 @@ export class CaptchaService {
     if (!response.data.success) {
       const errors =
         response.data['error-codes']?.join(', ') || 'Unknown error';
-      console.warn(`hCaptcha verification failed: ${errors}`);
+      this.logger.warn(`hCaptcha verification failed: ${errors}`);
       throw new BadRequestException(
         'Verificación de CAPTCHA fallida. Por favor, inténtalo de nuevo.',
       );
@@ -100,7 +104,7 @@ export class CaptchaService {
     if (!response.data.success) {
       const errors =
         response.data['error-codes']?.join(', ') || 'Unknown error';
-      console.warn(`reCAPTCHA verification failed: ${errors}`);
+      this.logger.warn(`reCAPTCHA verification failed: ${errors}`);
       throw new BadRequestException(
         'Verificación de CAPTCHA fallida. Por favor, inténtalo de nuevo.',
       );

@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,6 +16,7 @@ export type TransactionType = 'topup' | 'platform_fee' | 'refund';
 
 @Injectable()
 export class WalletService {
+  private readonly logger = new Logger(WalletService.name);
   private stripe: Stripe | null = null;
 
   constructor(
@@ -25,8 +27,8 @@ export class WalletService {
     if (stripeKey) {
       this.stripe = new Stripe(stripeKey);
     } else {
-      console.warn(
-        '⚠️ STRIPE_SECRET_KEY not configured - wallet topup disabled',
+      this.logger.warn(
+        'STRIPE_SECRET_KEY not configured - wallet topup disabled',
       );
     }
   }
@@ -115,7 +117,7 @@ export class WalletService {
           existingIntent.status === 'requires_payment_method' ||
           existingIntent.status === 'requires_confirmation'
         ) {
-          console.log(
+          this.logger.debug(
             'Reutilizando PaymentIntent existente:',
             existingPending.stripeId,
           );
@@ -125,7 +127,7 @@ export class WalletService {
           };
         }
       } catch {
-        console.log('PaymentIntent existente no válido, creando nuevo');
+        this.logger.debug('PaymentIntent existente no válido, creando nuevo');
       }
     }
 
@@ -174,13 +176,16 @@ export class WalletService {
 
   // Confirmar recarga después del pago exitoso
   async confirmTopUp(paymentIntentId: string): Promise<void> {
-    console.log('confirmTopUp called with paymentIntentId:', paymentIntentId);
+    this.logger.debug(
+      'confirmTopUp called with paymentIntentId:',
+      paymentIntentId,
+    );
 
     const transaction = await this.prisma.transaction.findFirst({
       where: { stripeId: paymentIntentId, type: 'topup' },
     });
 
-    console.log(
+    this.logger.debug(
       'Found transaction:',
       transaction
         ? {
@@ -196,21 +201,21 @@ export class WalletService {
     }
 
     if (transaction.status === 'completed') {
-      console.log('Transaction already completed, skipping');
+      this.logger.debug('Transaction already completed, skipping');
       // Ya procesada
       return;
     }
 
     // Verificar estado en Stripe
-    console.log('Retrieving PaymentIntent from Stripe...');
+    this.logger.debug('Retrieving PaymentIntent from Stripe...');
     const paymentIntent =
       await this.ensureStripe().paymentIntents.retrieve(paymentIntentId);
-    console.log('Stripe PaymentIntent status:', paymentIntent.status);
+    this.logger.debug('Stripe PaymentIntent status:', paymentIntent.status);
 
     // Aceptar 'succeeded' o 'processing' (algunos pagos tardan un momento)
     const validStatuses = ['succeeded', 'processing', 'requires_capture'];
     if (!validStatuses.includes(paymentIntent.status)) {
-      console.log(`Payment intent status: ${paymentIntent.status}`);
+      this.logger.debug(`Payment intent status: ${paymentIntent.status}`);
       throw new BadRequestException(
         `El pago no se ha completado. Estado: ${paymentIntent.status}`,
       );

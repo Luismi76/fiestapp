@@ -73,6 +73,11 @@
   --radius-lg: 20px;
   --radius-xl: 28px;
   --radius-full: 9999px;
+
+  /* Gradientes */
+  --gradient-primary: linear-gradient(135deg, #C41E3A 0%, #E63950 100%);
+  --gradient-festive: linear-gradient(135deg, #C41E3A 0%, #E6A817 100%);
+  --gradient-sunset: linear-gradient(135deg, #C41E3A 0%, #C45C26 50%, #E6A817 100%);
 }
 
 /* ============================================
@@ -167,7 +172,7 @@ input, textarea, select, button {
 
 /* Gradient backgrounds */
 .gradient-sunset {
-  background: linear-gradient(135deg, #C41E3A 0%, #E6A817 100%);
+  background: var(--gradient-festive);
 }
 
 .gradient-ocean {
@@ -175,16 +180,25 @@ input, textarea, select, button {
 }
 
 .gradient-festive {
-  background: linear-gradient(135deg, #C41E3A 0%, #C45C26 50%, #E6A817 100%);
+  background: var(--gradient-sunset);
 }
 
 .gradient-warm {
   background: linear-gradient(180deg, var(--surface-paper) 0%, var(--surface-tile) 100%);
 }
 
+/* Brand gradient - usado en CTAs y elementos destacados */
+.gradient-brand {
+  background: linear-gradient(to bottom right, var(--color-primary), #FF6B35);
+}
+
+.gradient-brand-subtle {
+  background: linear-gradient(to bottom right, rgba(196, 30, 58, 0.1), rgba(255, 107, 53, 0.1));
+}
+
 /* Text gradients */
 .text-gradient-festive {
-  background: linear-gradient(135deg, #C41E3A 0%, #E6A817 100%);
+  background: var(--gradient-festive);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -287,7 +301,7 @@ input, textarea, select, button {
   justify-content: center;
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #C41E3A 0%, #E63950 100%);
+  background: var(--gradient-primary);
   color: white;
   border-radius: 50%;
   margin-top: -20px;
@@ -394,7 +408,7 @@ input, textarea, select, button {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #C41E3A 0%, #E63950 100%);
+  background: var(--gradient-primary);
   color: white;
   box-shadow: 0 4px 16px rgba(196, 30, 58, 0.3);
 }
@@ -510,7 +524,7 @@ input, textarea, select, button {
 }
 
 .badge-primary {
-  background: linear-gradient(135deg, #C41E3A 0%, #E63950 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -778,7 +792,7 @@ input, textarea, select, button {
 }
 
 .message-sent {
-  background: linear-gradient(135deg, #C41E3A 0%, #E63950 100%);
+  background: var(--gradient-primary);
   color: white;
   margin-left: auto;
   border-bottom-right-radius: 4px;

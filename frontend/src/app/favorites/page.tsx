@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/MainLayout';
-import FavoriteButton from '@/components/FavoriteButton';
 import { favoritesApi, FavoriteExperience, FavoriteFestival } from '@/lib/api';
 import { getUploadUrl, getAvatarUrl } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';

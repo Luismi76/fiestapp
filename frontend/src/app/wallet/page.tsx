@@ -179,11 +179,6 @@ export default function WalletPage() {
     return 'Transacción';
   };
 
-  const getTransactionDescription = (tx: WalletTransaction) => {
-    if (tx.type === 'topup') return 'Añadido a tu monedero';
-    return tx.description || '';
-  };
-
   if (authLoading || loading) {
     return (
       <MainLayout>

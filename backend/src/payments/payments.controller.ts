@@ -8,19 +8,18 @@ import {
   Headers,
   Req,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PaymentsService } from './payments.service';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
-
-interface AuthenticatedRequest extends Request {
-  user: { userId: string; email: string };
-}
+import { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('payments')
 export class PaymentsController {
+  private readonly logger = new Logger(PaymentsController.name);
   private stripe: Stripe | null = null;
 
   constructor(
@@ -84,7 +83,7 @@ export class PaymentsController {
     );
 
     if (!webhookSecret) {
-      console.warn('⚠️ STRIPE_WEBHOOK_SECRET not configured');
+      this.logger.warn('STRIPE_WEBHOOK_SECRET not configured');
       return { received: true };
     }
 
@@ -99,7 +98,10 @@ export class PaymentsController {
 
       return { received: true };
     } catch (err) {
-      console.error('Webhook error:', err);
+      this.logger.error(
+        'Webhook error',
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }

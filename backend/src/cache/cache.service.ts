@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 
@@ -29,6 +29,8 @@ export const CACHE_KEYS = {
 
 @Injectable()
 export class CacheService {
+  private readonly logger = new Logger(CacheService.name);
+
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   /**
@@ -38,7 +40,10 @@ export class CacheService {
     try {
       return await this.cacheManager.get<T>(key);
     } catch (error) {
-      console.error(`Cache get error for key ${key}:`, error);
+      this.logger.error(
+        `Cache get error for key ${key}`,
+        error instanceof Error ? error.stack : String(error),
+      );
       return undefined;
     }
   }
@@ -50,7 +55,10 @@ export class CacheService {
     try {
       await this.cacheManager.set(key, value, ttl);
     } catch (error) {
-      console.error(`Cache set error for key ${key}:`, error);
+      this.logger.error(
+        `Cache set error for key ${key}`,
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 
@@ -61,7 +69,10 @@ export class CacheService {
     try {
       await this.cacheManager.del(key);
     } catch (error) {
-      console.error(`Cache del error for key ${key}:`, error);
+      this.logger.error(
+        `Cache del error for key ${key}`,
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 
@@ -90,7 +101,10 @@ export class CacheService {
         }
       }
     } catch (error) {
-      console.error(`Cache delByPattern error for pattern ${pattern}:`, error);
+      this.logger.error(
+        `Cache delByPattern error for pattern ${pattern}`,
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 
@@ -106,7 +120,10 @@ export class CacheService {
         await (this.cacheManager as any).clear();
       }
     } catch (error) {
-      console.error('Cache reset error:', error);
+      this.logger.error(
+        'Cache reset error',
+        error instanceof Error ? error.stack : String(error),
+      );
     }
   }
 

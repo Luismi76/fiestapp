@@ -30,7 +30,6 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 export default function TranslateButton({
   messageId,
-  originalText,
   originalLang,
   translations = {},
   targetLang = 'es',
