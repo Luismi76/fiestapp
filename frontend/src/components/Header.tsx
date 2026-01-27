@@ -4,12 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { matchesApi } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export default function Header() {
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuth();
+  const { unreadCount: notificationCount } = useNotifications();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -24,7 +26,7 @@ export default function Header() {
     }
   }, [isAuthenticated]);
 
-  // Initial fetch and polling - valid external data sync pattern
+  // Initial fetch and polling for messages only (notifications via WebSocket)
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUnreadCount();
@@ -32,7 +34,7 @@ export default function Header() {
     return () => clearInterval(interval);
   }, [fetchUnreadCount]);
 
-  // Refresh on navigation and close menu
+  // Refresh messages on navigation and close menu
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUnreadCount();
@@ -67,6 +69,7 @@ export default function Header() {
     { label: 'Explorar', href: '/experiences' },
     { label: 'Mis Experiencias', href: '/experiences/my', authRequired: true },
     { label: 'Mensajes', href: '/messages', authRequired: true, badge: unreadCount },
+    { label: 'Notificaciones', href: '/notifications', authRequired: true, badge: notificationCount },
   ];
 
   return (
@@ -118,6 +121,24 @@ export default function Header() {
               </svg>
               Crear experiencia
             </Link>
+
+            {/* Notifications bell - desktop */}
+            {isAuthenticated && (
+              <Link
+                href="/notifications"
+                className="hidden lg:flex relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Notificaciones"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 text-gray-600">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                </svg>
+                {notificationCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* User menu or login button */}
             {isAuthenticated ? (
@@ -183,8 +204,22 @@ export default function Header() {
                         </svg>
                         Mensajes
                         {unreadCount > 0 && (
-                          <span className="ml-auto min-w-[20px] h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
+                          <span className="ml-auto min-w-[20px] h-5 bg-primary text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
                             {unreadCount > 99 ? '99+' : unreadCount}
+                          </span>
+                        )}
+                      </Link>
+                      <Link
+                        href="/notifications"
+                        className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                        </svg>
+                        Notificaciones
+                        {notificationCount > 0 && (
+                          <span className="ml-auto min-w-[20px] h-5 bg-primary text-white text-xs font-bold rounded-full flex items-center justify-center px-1">
+                            {notificationCount > 99 ? '99+' : notificationCount}
                           </span>
                         )}
                       </Link>

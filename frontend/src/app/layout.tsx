@@ -3,12 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/components/ui/Toast";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { SkipLink } from "@/components/ui/SkipLink";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import AppWrapper from "@/components/AppWrapper";
 import InstallPrompt from "@/components/InstallPrompt";
-import RealtimeNotifications from "@/components/RealtimeNotifications";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -72,11 +72,12 @@ export default function RootLayout({
         <SkipLink />
         <AuthProvider>
           <ToastProvider>
-            <RealtimeNotifications />
-            <AppWrapper>
-              {children}
-            </AppWrapper>
-            <InstallPrompt />
+            <NotificationProvider>
+              <AppWrapper>
+                {children}
+              </AppWrapper>
+              <InstallPrompt />
+            </NotificationProvider>
           </ToastProvider>
         </AuthProvider>
       </body>

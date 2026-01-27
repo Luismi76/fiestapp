@@ -5,10 +5,12 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState, useCallback } from 'react';
 import { matchesApi } from '@/lib/api';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
+  const { unreadCount: notificationCount } = useNotifications();
   const [unreadCount, setUnreadCount] = useState(0);
 
   const fetchUnreadCount = useCallback(async () => {
@@ -22,17 +24,15 @@ export default function BottomNav() {
     }
   }, [isAuthenticated]);
 
-  // Initial fetch and polling - valid external data sync pattern
+  // Initial fetch and polling for messages only (notifications via WebSocket)
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUnreadCount();
-
-    // Poll every 30 seconds for new messages
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, [fetchUnreadCount]);
 
-  // Refresh when pathname changes (e.g., coming back from chat)
+  // Refresh messages when pathname changes (e.g., coming back from chat)
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUnreadCount();
@@ -42,7 +42,8 @@ export default function BottomNav() {
     if (id === 'home') return pathname === '/dashboard' || pathname === '/';
     if (id === 'explore') return pathname === '/experiences' || pathname.startsWith('/experiences/') && !pathname.includes('/create') && !pathname.includes('/my');
     if (id === 'my') return pathname === '/experiences/my';
-    if (id === 'notifications') return pathname === '/messages' || pathname.startsWith('/matches');
+    if (id === 'notifications') return pathname === '/notifications';
+    if (id === 'messages') return pathname === '/messages' || pathname.startsWith('/matches');
     return pathname.startsWith(href);
   };
 
@@ -80,9 +81,9 @@ export default function BottomNav() {
     },
     {
       id: 'notifications',
-      label: 'Mensajes',
-      href: '/messages',
-      badge: unreadCount,
+      label: 'Actividad',
+      href: '/notifications',
+      badge: unreadCount + notificationCount,
       authRequired: true,
       icon: (active: boolean) => (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={active ? 0 : 2} className="w-6 h-6">

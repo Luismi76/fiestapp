@@ -1532,4 +1532,67 @@ export const chatApi = {
   },
 };
 
+// Notifications types
+export type NotificationType = 'match_request' | 'match_accepted' | 'match_rejected' | 'match_completed' | 'match_cancelled' | 'new_message' | 'new_review' | 'system' | 'warning' | 'strike';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  data?: Record<string, unknown>;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+}
+
+export const notificationsApi = {
+  // Obtener notificaciones del usuario
+  getAll: async (
+    page = 1,
+    limit = 20,
+    options?: { unreadOnly?: boolean; type?: NotificationType }
+  ): Promise<NotificationsResponse> => {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit)
+    });
+    if (options?.unreadOnly) params.append('unreadOnly', 'true');
+    if (options?.type) params.append('type', options.type);
+    const response = await api.get<NotificationsResponse>(`/notifications?${params}`);
+    return response.data;
+  },
+
+  // Obtener conteo de no leídas
+  getUnreadCount: async (): Promise<{ unreadCount: number }> => {
+    const response = await api.get<{ unreadCount: number }>('/notifications/unread-count');
+    return response.data;
+  },
+
+  // Marcar como leída
+  markAsRead: async (notificationId: string): Promise<void> => {
+    await api.put(`/notifications/${notificationId}/read`);
+  },
+
+  // Marcar todas como leídas
+  markAllAsRead: async (): Promise<void> => {
+    await api.put('/notifications/read-all');
+  },
+
+  // Eliminar notificación
+  delete: async (notificationId: string): Promise<void> => {
+    await api.delete(`/notifications/${notificationId}`);
+  },
+};
+
 export default api;
