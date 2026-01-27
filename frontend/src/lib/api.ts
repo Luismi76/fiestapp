@@ -1548,12 +1548,11 @@ export interface Notification {
 
 export interface NotificationsResponse {
   notifications: Notification[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    pages: number;
-  };
+  total: number;
+  unreadCount: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
 }
 
 export const notificationsApi = {

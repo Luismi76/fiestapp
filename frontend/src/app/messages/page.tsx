@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { matchesApi } from '@/lib/api';
+import { useMessages } from '@/contexts/MessageContext';
 import { Match, MatchStatus } from '@/types/match';
 import { getAvatarUrl, getUploadUrl, formatTimeAgo } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
@@ -32,6 +33,7 @@ const statusConfig: Record<MatchStatus, { label: string; bg: string; text: strin
 
 export default function MessagesPage() {
   const { success: showSuccess, error: showError } = useToast();
+  const { unreadCount, refreshUnreadCount } = useMessages();
   const [activeTab, setActiveTab] = useState<TabType>('received');
   const [receivedMatches, setReceivedMatches] = useState<Match[]>([]);
   const [sentMatches, setSentMatches] = useState<Match[]>([]);
@@ -68,7 +70,6 @@ export default function MessagesPage() {
   const filteredMatches = filter === 'all' ? matches : matches.filter(m => m.status === filter);
 
   const pendingReceivedCount = receivedMatches.filter(m => m.status === 'pending').length;
-  const unreadCount = [...receivedMatches, ...sentMatches].reduce((acc, m) => acc + (m.unreadCount || 0), 0);
 
   // Actions
   const handleAccept = async () => {
@@ -80,6 +81,7 @@ export default function MessagesPage() {
         m.id === acceptModal.match!.id ? { ...m, status: 'accepted' as MatchStatus } : m
       ));
       showSuccess('Solicitud aceptada', `Has aceptado la solicitud de ${acceptModal.match.requester.name}`);
+      void refreshUnreadCount();
     } catch (err) {
       showError('Error', getErrorMessage(err, 'No se pudo aceptar'));
     } finally {
@@ -97,6 +99,7 @@ export default function MessagesPage() {
         m.id === rejectModal.match!.id ? { ...m, status: 'rejected' as MatchStatus } : m
       ));
       showSuccess('Solicitud rechazada', `Has rechazado la solicitud de ${rejectModal.match.requester.name}`);
+      void refreshUnreadCount();
     } catch (err) {
       showError('Error', getErrorMessage(err, 'No se pudo rechazar'));
     } finally {
@@ -263,7 +266,7 @@ export default function MessagesPage() {
               return (
                 <Link
                   key={match.id}
-                  href={`/matches/${match.id}`}
+                  href={`/messages/${match.id}`}
                   className="card block hover:shadow-lg transition-all active:scale-[0.99]"
                 >
                   <div className="p-4">

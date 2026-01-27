@@ -34,8 +34,8 @@ interface NotificationContextType {
   recentNotifications: Notification[];
   isConnected: boolean;
   refreshCount: () => Promise<void>;
-  markAsRead: (notificationId: string) => void;
-  markAllAsRead: () => void;
+  markAsRead: (notificationId: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
@@ -98,18 +98,36 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useSocketEvent(socket, 'notification', handleNotification);
 
   // Mark single notification as read
-  const markAsRead = useCallback((notificationId: string) => {
+  const markAsRead = useCallback(async (notificationId: string) => {
+    // Optimistic update
     setUnreadCount((prev) => Math.max(0, prev - 1));
     setRecentNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
     );
-  }, []);
+    // Sync with backend
+    try {
+      await notificationsApi.markAsRead(notificationId);
+    } catch (error) {
+      logger.error('Failed to mark notification as read:', error);
+      // Revert on error
+      void refreshCount();
+    }
+  }, [refreshCount]);
 
   // Mark all as read
-  const markAllAsRead = useCallback(() => {
+  const markAllAsRead = useCallback(async () => {
+    // Optimistic update
     setUnreadCount(0);
     setRecentNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+    // Sync with backend
+    try {
+      await notificationsApi.markAllAsRead();
+    } catch (error) {
+      logger.error('Failed to mark all notifications as read:', error);
+      // Revert on error
+      void refreshCount();
+    }
+  }, [refreshCount]);
 
   // Clear state when user changes
   useEffect(() => {

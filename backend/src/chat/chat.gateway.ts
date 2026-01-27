@@ -322,25 +322,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data: { updatedAt: new Date() },
       });
 
-      // Get the other user info
-      const otherUserId =
-        match.hostId === client.userId ? match.requesterId : match.hostId;
-
-      this.logger.log(
-        `[sendMessage] Broadcasting to match:${data.matchId}, other user: ${otherUserId}`,
-      );
+      this.logger.log(`[sendMessage] Broadcasting to match:${data.matchId}`);
 
       // Broadcast message to all users in the match room
       this.server.to(`match:${data.matchId}`).emit('newMessage', message);
-
-      // ALSO emit directly to the other user's personal room as backup
-      this.server.to(`user:${otherUserId}`).emit('newMessage', message);
-
-      // Notification for badge updates
-      this.server.to(`user:${otherUserId}`).emit('messageNotification', {
-        matchId: data.matchId,
-        message,
-      });
 
       this.logger.log(`[sendMessage] Message sent successfully`);
       return { success: true, message };
@@ -464,14 +449,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Broadcast
       this.server.to(`match:${data.matchId}`).emit('newMessage', message);
 
-      // Notify other user
-      const otherUserId =
-        match.hostId === client.userId ? match.requesterId : match.hostId;
-      this.server.to(`user:${otherUserId}`).emit('messageNotification', {
-        matchId: data.matchId,
-        message,
-      });
-
       return { success: true, message };
     } catch (error) {
       this.logger.error(`Error sending voice message: ${error}`);
@@ -564,14 +541,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Broadcast
       this.server.to(`match:${data.matchId}`).emit('newMessage', message);
 
-      // Notify other user
-      const otherUserId =
-        match.hostId === client.userId ? match.requesterId : match.hostId;
-      this.server.to(`user:${otherUserId}`).emit('messageNotification', {
-        matchId: data.matchId,
-        message,
-      });
-
       return { success: true, message };
     } catch (error) {
       this.logger.error(`Error sending location message: ${error}`);
@@ -627,23 +596,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * Método público para emitir un nuevo mensaje desde el controller REST.
    * Útil para mensajes de voz que se suben via HTTP pero deben notificarse via WebSocket.
    */
-  emitNewMessage(
-    matchId: string,
-    message: unknown,
-    senderId: string,
-    otherUserId: string,
-  ) {
+  emitNewMessage(matchId: string, message: unknown) {
     // Emitir a la sala del match
     this.server.to(`match:${matchId}`).emit('newMessage', message);
 
-    // Notificar al otro usuario para actualizar badges
-    this.server.to(`user:${otherUserId}`).emit('messageNotification', {
-      matchId,
-      message,
-    });
-
-    this.logger.log(
-      `[emitNewMessage] Emitted to match:${matchId} and user:${otherUserId}`,
-    );
+    this.logger.log(`[emitNewMessage] Emitted to match:${matchId}`);
   }
 }

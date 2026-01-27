@@ -1,45 +1,24 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { matchesApi } from '@/lib/api';
+import { useMessages } from '@/contexts/MessageContext';
 import { cn } from '@/lib/utils';
 
 export default function Header() {
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuth();
   const { unreadCount: notificationCount } = useNotifications();
+  const { unreadCount } = useMessages();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchUnreadCount = useCallback(async () => {
-    if (isAuthenticated) {
-      try {
-        const count = await matchesApi.getUnreadCount();
-        setUnreadCount(count);
-      } catch {
-        setUnreadCount(0);
-      }
-    }
-  }, [isAuthenticated]);
-
-  // Initial fetch and polling for messages only (notifications via WebSocket)
+  // Close menu on navigation
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
-
-  // Refresh messages on navigation and close menu
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchUnreadCount();
     setIsMenuOpen(false);
-  }, [pathname, fetchUnreadCount]);
+  }, [pathname]);
 
   // Close menu on escape key
   useEffect(() => {
@@ -69,11 +48,21 @@ export default function Header() {
     { label: 'Explorar', href: '/experiences' },
     { label: 'Mis Experiencias', href: '/experiences/my', authRequired: true },
     { label: 'Mensajes', href: '/messages', authRequired: true, badge: unreadCount },
-    { label: 'Notificaciones', href: '/notifications', authRequired: true, badge: notificationCount },
   ];
 
   return (
     <>
+      {/* Floating notification badge - mobile only, appears when there are notifications */}
+      {isAuthenticated && notificationCount > 0 && (
+        <Link
+          href="/notifications"
+          className="md:hidden fixed top-3 right-3 z-50 min-w-[22px] h-[22px] bg-primary text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 shadow-md animate-in fade-in zoom-in duration-300"
+          aria-label="Notificaciones"
+        >
+          {notificationCount > 99 ? '99+' : notificationCount}
+        </Link>
+      )}
+
       {/* Header - visible en desktop */}
       <header className="hidden md:flex fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-b border-gray-100 z-40">
         <div className="max-w-7xl mx-auto w-full px-4 flex items-center justify-between">

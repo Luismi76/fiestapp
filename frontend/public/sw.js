@@ -1,5 +1,5 @@
-// FiestApp Service Worker v3
-const CACHE_NAME = 'fiestapp-v3';
+// FiestApp Service Worker v4
+const CACHE_NAME = 'fiestapp-v4';
 const OFFLINE_URL = '/offline';
 
 // Assets to cache immediately (critical for app shell)

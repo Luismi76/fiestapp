@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { notificationsApi, Notification, NotificationType } from '@/lib/api';
 
 const TYPE_CONFIG: Record<string, { icon: string; color: string; bg: string; label: string }> = {
@@ -83,6 +84,12 @@ const FILTER_OPTIONS: { value: string; label: string }[] = [
 export default function NotificationsPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const {
+    unreadCount,
+    markAsRead: contextMarkAsRead,
+    markAllAsRead: contextMarkAllAsRead,
+    refreshCount
+  } = useNotifications();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +98,6 @@ export default function NotificationsPage() {
   const [total, setTotal] = useState(0);
   const [filter, setFilter] = useState<NotificationType | ''>('');
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(async (reset = false) => {
@@ -109,23 +115,14 @@ export default function NotificationsPage() {
         setNotifications(prev => [...prev, ...response.notifications]);
       }
 
-      setTotal(response.pagination.total);
-      setHasMore(currentPage < response.pagination.pages);
+      setTotal(response.total);
+      setHasMore(response.hasMore);
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
     }
   }, [page, filter, unreadOnly]);
-
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const response = await notificationsApi.getUnreadCount();
-      setUnreadCount(response.unreadCount);
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
-  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -137,18 +134,18 @@ export default function NotificationsPage() {
     if (user) {
       setLoading(true);
       fetchNotifications(true);
-      fetchUnreadCount();
     }
-  }, [user, filter, unreadOnly, fetchNotifications, fetchUnreadCount]);
+  }, [user, filter, unreadOnly, fetchNotifications]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     setActionLoading(notificationId);
     try {
-      await notificationsApi.markAsRead(notificationId);
+      // Update local state
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      // Update global context (calls API internally)
+      await contextMarkAsRead(notificationId);
     } catch (error) {
       console.error('Error marking as read:', error);
     } finally {
@@ -159,9 +156,10 @@ export default function NotificationsPage() {
   const handleMarkAllAsRead = async () => {
     setActionLoading('all');
     try {
-      await notificationsApi.markAllAsRead();
+      // Update local state
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
+      // Update global context (calls API internally)
+      await contextMarkAllAsRead();
     } catch (error) {
       console.error('Error marking all as read:', error);
     } finally {
@@ -174,12 +172,13 @@ export default function NotificationsPage() {
 
     setActionLoading(notificationId);
     try {
-      await notificationsApi.delete(notificationId);
       const notification = notifications.find(n => n.id === notificationId);
+      await notificationsApi.delete(notificationId);
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       setTotal(prev => prev - 1);
+      // Refresh global count if deleted notification was unread
       if (notification && !notification.read) {
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        void refreshCount();
       }
     } catch (error) {
       console.error('Error deleting notification:', error);
@@ -211,10 +210,10 @@ export default function NotificationsPage() {
     const data = notification.data as Record<string, string> | undefined;
 
     if (notification.type.startsWith('match_') && data?.matchId) {
-      return `/matches/${data.matchId}`;
+      return `/messages/${data.matchId}`;
     }
     if (notification.type === 'new_message' && data?.matchId) {
-      return `/matches/${data.matchId}`;
+      return `/messages/${data.matchId}`;
     }
     if (notification.type === 'new_review' && data?.experienceId) {
       return `/experiences/${data.experienceId}/reviews`;
@@ -262,25 +261,6 @@ export default function NotificationsPage() {
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Quick access to messages */}
-          <Link
-            href="/messages"
-            className="flex items-center gap-3 bg-white rounded-xl p-4 border border-gray-100 hover:bg-gray-50 transition-colors"
-          >
-            <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-gray-900">Ir a Mensajes</p>
-              <p className="text-xs text-gray-500">Conversaciones con anfitriones y viajeros</p>
-            </div>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-400">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-            </svg>
-          </Link>
-
           {/* Stats */}
           <div className="flex gap-3">
             <div className="flex-1 bg-white rounded-xl p-3 text-center border border-gray-100">

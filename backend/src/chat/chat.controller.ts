@@ -108,14 +108,7 @@ export class ChatController {
     });
 
     // Emitir evento WebSocket para que el mensaje aparezca en el chat
-    const otherUserId =
-      match.hostId === req.user.userId ? match.requesterId : match.hostId;
-    this.chatGateway.emitNewMessage(
-      matchId,
-      message,
-      req.user.userId,
-      otherUserId,
-    );
+    this.chatGateway.emitNewMessage(matchId, message);
 
     return {
       url,

@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/components/ui/Toast";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { MessageProvider } from "@/contexts/MessageContext";
 import { SkipLink } from "@/components/ui/SkipLink";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
@@ -136,10 +137,12 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             <NotificationProvider>
-              <AppWrapper>
-                {children}
-              </AppWrapper>
-              <InstallPrompt />
+              <MessageProvider>
+                <AppWrapper>
+                  {children}
+                </AppWrapper>
+                <InstallPrompt />
+              </MessageProvider>
             </NotificationProvider>
           </ToastProvider>
         </AuthProvider>
