@@ -27,6 +27,7 @@ model User {
   emailVerificationExpires  DateTime?
   passwordResetToken        String?
   passwordResetExpires      DateTime?
+  termsAcceptedAt           DateTime?        // Fecha de aceptación de términos y privacidad
   twoFactorSecret           String?          // Secret para TOTP 2FA
   twoFactorEnabled          Boolean          @default(false)
   // Sistema de verificación de identidad

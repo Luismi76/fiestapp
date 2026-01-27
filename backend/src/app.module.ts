@@ -36,6 +36,8 @@ import { CancellationsModule } from './cancellations/cancellations.module';
 import { DisputesModule } from './disputes/disputes.module';
 import { VerificationModule } from './verification/verification.module';
 import { CurrencyModule } from './currency/currency.module';
+import { GdprModule } from './gdpr/gdpr.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -90,6 +92,8 @@ import { CurrencyModule } from './currency/currency.module';
     DisputesModule,
     VerificationModule,
     CurrencyModule,
+    GdprModule,
+    HealthModule,
   ],
   controllers: [AppController],
   providers: [

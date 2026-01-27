@@ -18,6 +18,9 @@ const registerSchema = z.object({
   childrenAges: z.string().optional(),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   confirmPassword: z.string(),
+  termsAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'Debes aceptar los términos de servicio y política de privacidad' }),
+  }),
 }).refine(data => data.password === data.confirmPassword, {
   message: 'Las contraseñas no coinciden',
   path: ['confirmPassword'],
@@ -323,13 +326,34 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Terms */}
-            <p className="text-xs text-gray-500 text-center py-2">
-              Al registrarte, aceptas nuestros{' '}
-              <Link href="/terms" className="text-blue-600 hover:underline font-medium">Términos de servicio</Link>
-              {' '}y{' '}
-              <Link href="/privacy" className="text-blue-600 hover:underline font-medium">Política de privacidad</Link>
-            </p>
+            {/* Terms Acceptance */}
+            <div className="space-y-2">
+              <label className="flex items-start gap-3 cursor-pointer p-3 bg-gray-50 rounded-xl border border-gray-200 hover:border-blue-300 transition-colors">
+                <input
+                  {...register('termsAccepted')}
+                  type="checkbox"
+                  className="w-5 h-5 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
+                />
+                <span className="text-sm text-gray-700">
+                  He leído y acepto los{' '}
+                  <Link href="/terms" className="text-blue-600 hover:underline font-medium" target="_blank">
+                    Términos de servicio
+                  </Link>
+                  {' '}y la{' '}
+                  <Link href="/privacy" className="text-blue-600 hover:underline font-medium" target="_blank">
+                    Política de privacidad
+                  </Link>
+                </span>
+              </label>
+              {errors.termsAccepted && (
+                <p className="text-red-500 text-sm flex items-center gap-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
+                    <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clipRule="evenodd" />
+                  </svg>
+                  {errors.termsAccepted.message}
+                </p>
+              )}
+            </div>
 
             {/* Submit button */}
             <button

@@ -826,6 +826,58 @@ export class PaymentsService {
     }
   }
 
+  // Verify PayPal webhook signature
+  async verifyPayPalWebhook(params: {
+    transmissionId: string;
+    transmissionTime: string;
+    transmissionSig: string;
+    certUrl: string;
+    authAlgo: string;
+    webhookId: string;
+    body: unknown;
+  }): Promise<boolean> {
+    try {
+      const accessToken = await this.getPayPalAccessToken();
+
+      const verificationPayload = {
+        transmission_id: params.transmissionId,
+        transmission_time: params.transmissionTime,
+        cert_url: params.certUrl,
+        auth_algo: params.authAlgo,
+        transmission_sig: params.transmissionSig,
+        webhook_id: params.webhookId,
+        webhook_event: params.body,
+      };
+
+      const response = await fetch(
+        `${this.paypalBaseUrl}/v1/notifications/verify-webhook-signature`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(verificationPayload),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        this.logger.error('PayPal webhook verification error:', errorText);
+        return false;
+      }
+
+      const result = (await response.json()) as { verification_status: string };
+      return result.verification_status === 'SUCCESS';
+    } catch (error) {
+      this.logger.error(
+        'PayPal webhook verification exception:',
+        error instanceof Error ? error.message : String(error),
+      );
+      return false;
+    }
+  }
+
   // Handle PayPal webhook events
   async handlePayPalWebhook(event: {
     event_type: string;

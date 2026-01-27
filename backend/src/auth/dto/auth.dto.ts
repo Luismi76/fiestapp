@@ -74,6 +74,13 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   captchaToken?: string;
+
+  @ApiProperty({
+    example: true,
+    description: 'Aceptación de términos de servicio y política de privacidad',
+  })
+  @IsBoolean({ message: 'Debes aceptar los términos de servicio' })
+  termsAccepted: boolean;
 }
 
 export class LoginDto {

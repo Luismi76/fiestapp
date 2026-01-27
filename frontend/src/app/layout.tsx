@@ -33,8 +33,27 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "FiestApp - Vive las Fiestas desde Dentro",
-  description: "Conecta con locales y descubre experiencias auténticas en las fiestas más emblemáticas de España",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://fiestapp.es'),
+  title: {
+    default: "FiestApp - Vive las Fiestas desde Dentro",
+    template: "%s | FiestApp",
+  },
+  description: "Conecta con locales y descubre experiencias auténticas en las fiestas más emblemáticas de España. Feria de Abril, San Fermín, Las Fallas y más.",
+  keywords: [
+    "fiestas España",
+    "experiencias locales",
+    "Feria de Abril",
+    "San Fermín",
+    "Las Fallas",
+    "La Tomatina",
+    "turismo auténtico",
+    "anfitriones locales",
+    "cultura española",
+    "festivales España",
+  ],
+  authors: [{ name: "FiestApp" }],
+  creator: "FiestApp",
+  publisher: "FiestApp",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -47,6 +66,50 @@ export const metadata: Metadata = {
     address: true,
     email: true,
   },
+  openGraph: {
+    type: "website",
+    locale: "es_ES",
+    url: "/",
+    siteName: "FiestApp",
+    title: "FiestApp - Vive las Fiestas desde Dentro",
+    description: "Conecta con locales y descubre experiencias auténticas en las fiestas más emblemáticas de España",
+    images: [
+      {
+        url: "/images/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "FiestApp - Experiencias auténticas en fiestas españolas",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FiestApp - Vive las Fiestas desde Dentro",
+    description: "Conecta con locales y descubre experiencias auténticas en las fiestas más emblemáticas de España",
+    images: ["/images/og-image.jpg"],
+    creator: "@fiestapp",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "/",
+    languages: {
+      "es-ES": "/",
+    },
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+  },
+  category: "travel",
 };
 
 export default function RootLayout({

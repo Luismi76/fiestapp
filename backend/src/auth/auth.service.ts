@@ -41,7 +41,15 @@ export class AuthService {
       hasPartner,
       hasChildren,
       childrenAges,
+      termsAccepted,
     } = registerDto;
+
+    // Verificar aceptación de términos
+    if (!termsAccepted) {
+      throw new BadRequestException(
+        'Debes aceptar los términos de servicio y la política de privacidad',
+      );
+    }
 
     this.logger.debug(`Attempting registration for: ${email}`);
 
@@ -78,6 +86,7 @@ export class AuthService {
             verified: false,
             emailVerificationToken: verificationToken,
             emailVerificationExpires: verificationExpires,
+            termsAcceptedAt: new Date(),
           },
         });
         this.logger.debug(`Transaction: User created with ID ${newUser.id}`);

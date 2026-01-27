@@ -61,6 +61,35 @@ async function bootstrap() {
   // Compression (gzip)
   app.use(compression());
 
+  // Cache headers para assets estáticos
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Cache para imágenes y assets estáticos
+    if (
+      req.path.match(
+        /\.(jpg|jpeg|png|gif|ico|svg|webp|avif|woff|woff2|ttf|eot)$/i,
+      )
+    ) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 1 año
+    }
+    // Cache para CSS y JS
+    else if (req.path.match(/\.(css|js)$/i)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800'); // 1 semana
+    }
+    // Cache para API responses públicas
+    else if (
+      req.path.startsWith('/api/festivals') ||
+      req.path.startsWith('/api/experiences')
+    ) {
+      if (req.method === 'GET' && !req.headers.authorization) {
+        res.setHeader(
+          'Cache-Control',
+          'public, max-age=300, stale-while-revalidate=600',
+        ); // 5 min
+      }
+    }
+    next();
+  });
+
   // Global pipes: sanitize inputs and validate
   app.useGlobalPipes(
     new SanitizePipe(),

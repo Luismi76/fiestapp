@@ -24,6 +24,24 @@ export class StorageService implements OnModuleInit {
           {
             folder: `fiestapp/${folder}`,
             resource_type: 'image',
+            // Optimización automática de imágenes
+            quality: 'auto:good', // Calidad automática optimizada
+            fetch_format: 'auto', // WebP/AVIF cuando el navegador lo soporte
+            flags: 'progressive', // JPEG progresivo
+            // Transformaciones para optimizar tamaño
+            transformation: [
+              {
+                width: 1920,
+                height: 1920,
+                crop: 'limit', // No aumentar, solo reducir si es mayor
+              },
+            ],
+            // Generar versiones eager (thumbnails)
+            eager: [
+              { width: 400, height: 400, crop: 'fill', quality: 'auto:low' },
+              { width: 800, height: 600, crop: 'fill', quality: 'auto:good' },
+            ],
+            eager_async: true,
           },
           (error: unknown, result: UploadApiResponse | undefined) => {
             if (error) {

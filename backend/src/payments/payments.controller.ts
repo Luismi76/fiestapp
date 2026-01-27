@@ -186,8 +186,6 @@ export class PaymentsController {
     @Headers('paypal-auth-algo') authAlgo: string,
     @Body() event: { event_type: string; resource: Record<string, unknown> },
   ) {
-    // En producción, verificar la firma del webhook
-    // Por ahora, procesamos el evento directamente
     const webhookId = this.configService.get<string>('PAYPAL_WEBHOOK_ID');
 
     if (!webhookId) {
@@ -195,15 +193,23 @@ export class PaymentsController {
         'PAYPAL_WEBHOOK_ID not configured - skipping webhook verification',
       );
     } else {
-      // TODO: Implement webhook signature verification
-      this.logger.log(
-        `PayPal webhook headers: ${JSON.stringify({
-          transmissionId,
-          transmissionTime,
-          authAlgo,
-          certUrl: certUrl?.substring(0, 50),
-        })}`,
-      );
+      // Verificar la firma del webhook con PayPal
+      const isValid = await this.paymentsService.verifyPayPalWebhook({
+        transmissionId,
+        transmissionTime,
+        transmissionSig,
+        certUrl,
+        authAlgo,
+        webhookId,
+        body: event,
+      });
+
+      if (!isValid) {
+        this.logger.error('PayPal webhook signature verification failed');
+        throw new BadRequestException('Firma del webhook inválida');
+      }
+
+      this.logger.log('PayPal webhook signature verified successfully');
     }
 
     try {

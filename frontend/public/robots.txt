@@ -1,0 +1,47 @@
+# FiestApp - Robots.txt
+# https://fiestapp.es
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://fiestapp.es/sitemap.xml
+
+# Disallow private/admin areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /matches/
+Disallow: /profile/edit
+Disallow: /profile/data
+Disallow: /wallet/
+Disallow: /notifications/
+Disallow: /settings/
+
+# Disallow auth pages (low SEO value)
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verification-pending
+Disallow: /verify-email
+
+# Allow crawlers to see these important pages
+Allow: /
+Allow: /experiences/
+Allow: /festivals/
+Allow: /profile/
+Allow: /terms
+Allow: /privacy
+
+# Crawl delay (be nice to the server)
+Crawl-delay: 1
+
+# Google specific
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Bing specific
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
