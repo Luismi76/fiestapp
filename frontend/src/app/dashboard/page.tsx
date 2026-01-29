@@ -71,7 +71,7 @@ export default function DashboardPage() {
   };
 
   const getAvatarSrc = (avatar?: string) => {
-    if (!avatar) return '/images/placeholder-user.jpg';
+    if (!avatar) return '/images/user_demo.png';
     if (avatar.startsWith('/images/')) return avatar;
     return getAvatarUrl(avatar);
   };
