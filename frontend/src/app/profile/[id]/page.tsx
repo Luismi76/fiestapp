@@ -224,7 +224,7 @@ export default function PublicProfilePage() {
         <div className="lg:max-w-5xl xl:max-w-6xl lg:mx-auto">
 
         {/* === MOBILE HEADER (hidden on lg+) === */}
-        <div className="profile-mobile-header">
+        <div className="block lg:hidden">
           {/* Header with gradient */}
           <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 relative overflow-hidden">
             {/* Decorative elements */}
@@ -322,7 +322,7 @@ export default function PublicProfilePage() {
         </div>
 
         {/* === DESKTOP HEADER (hidden on mobile) === */}
-        <div className="profile-desktop-header">
+        <div className="hidden lg:block">
           {/* Compact header bar */}
           <div className="bg-white border-b border-gray-200 px-6 py-4 mt-4 mx-4 rounded-2xl shadow-sm">
             <div className="flex items-center gap-6">

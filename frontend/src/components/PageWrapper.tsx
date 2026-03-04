@@ -15,8 +15,8 @@ interface PageWrapperProps {
  */
 export default function PageWrapper({ children, noBg = false }: PageWrapperProps) {
   return (
-    <div className={`min-h-screen ${noBg ? '' : 'md:bg-gray-100'}`}>
-      <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl mx-auto md:my-4 md:shadow-2xl md:rounded-2xl md:overflow-hidden md:border md:border-gray-200">
+    <div className={`min-h-screen ${noBg ? '' : 'md:bg-[var(--surface-warm)]'}`}>
+      <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto md:my-4 md:shadow-2xl md:rounded-2xl md:overflow-hidden md:border md:border-gray-200">
         {children}
       </div>
     </div>

@@ -48,17 +48,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-});
-
-// Add token to requests if available
-api.interceptors.request.use((config) => {
-  if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  }
-  return config;
+  withCredentials: true,
 });
 
 // ============================================
@@ -127,6 +117,10 @@ export const authApi = {
   resetPassword: async (token: string, newPassword: string): Promise<ResetPasswordResponse> => {
     const response = await api.post<ResetPasswordResponse>('/auth/reset-password', { token, newPassword });
     return response.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await api.post('/auth/logout');
   },
 };
 
@@ -544,15 +538,12 @@ export const uploadsApi = {
     const formData = new FormData();
     formData.append('avatar', file);
 
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-    const response = await axios.post<{ avatar: string }>(
-      `${API_URL}/uploads/avatar`,
+    const response = await api.post<{ avatar: string }>(
+      '/uploads/avatar',
       formData,
       {
         headers: {
           'Content-Type': 'multipart/form-data',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       }
     );
@@ -571,15 +562,12 @@ export const uploadsApi = {
       formData.append('photos', file);
     });
 
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-    const response = await axios.post<{ photos: string[] }>(
-      `${API_URL}/uploads/experiences/${experienceId}/photos`,
+    const response = await api.post<{ photos: string[] }>(
+      `/uploads/experiences/${experienceId}/photos`,
       formData,
       {
         headers: {
           'Content-Type': 'multipart/form-data',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       }
     );
@@ -1505,17 +1493,13 @@ export const chatApi = {
     const audioFile = new File([file], 'voice.webm', { type: file.type || 'audio/webm' });
     formData.append('audio', audioFile);
 
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
     // IMPORTANT: Do NOT set Content-Type header manually for FormData
     // Axios/browser will automatically set it with the correct boundary
-    const response = await axios.post<VoiceUploadResponse>(
-      `${API_URL}/chat/voice/${matchId}`,
+    const response = await api.post<VoiceUploadResponse>(
+      `/chat/voice/${matchId}`,
       formData,
       {
         headers: {
-          // Let axios set Content-Type automatically for FormData
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       }
     );

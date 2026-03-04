@@ -17,7 +17,7 @@ interface MainLayoutProps {
  */
 export default function MainLayout({ children, hideNav = false, hideHeader = false }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--surface-warm)]">
       {/* Header: visible en desktop */}
       {!hideNav && !hideHeader && <Header />}
 
@@ -26,7 +26,7 @@ export default function MainLayout({ children, hideNav = false, hideHeader = fal
         id="main-content"
         role="main"
         tabIndex={-1}
-        className="w-full max-w-7xl mx-auto"
+        className="w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6"
       >
         {children}
       </main>

@@ -7,6 +7,7 @@ import {
   Request,
   Query,
   Res,
+  HttpCode,
 } from '@nestjs/common';
 import type { Request as ExpressRequest, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
@@ -44,6 +45,27 @@ export class AuthController {
     private configService: ConfigService,
     private twoFactorService: TwoFactorService,
   ) {}
+
+  private setAuthCookie(res: Response, token: string) {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+      path: '/',
+    });
+  }
+
+  private clearAuthCookie(res: Response) {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/',
+    });
+  }
 
   @Post('register')
   @ApiOperation({
@@ -96,8 +118,15 @@ export class AuthController {
     medium: { limit: 5, ttl: 60000 },
     long: { limit: 20, ttl: 3600000 },
   })
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.login(loginDto);
+    if ('access_token' in result) {
+      this.setAuthCookie(res, result.access_token);
+    }
+    return result;
   }
 
   @Get('verify-email')
@@ -207,11 +236,18 @@ export class AuthController {
     medium: { limit: 5, ttl: 60000 },
     long: { limit: 15, ttl: 3600000 },
   })
-  async verifyTwoFactorLogin(@Body() dto: LoginWith2FADto) {
-    return this.authService.verifyTwoFactorLogin(
+  async verifyTwoFactorLogin(
+    @Body() dto: LoginWith2FADto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyTwoFactorLogin(
       dto.tempToken,
       dto.twoFactorCode,
     );
+    if ('access_token' in result) {
+      this.setAuthCookie(res, result.access_token);
+    }
+    return result;
   }
 
   // Iniciar configuración de 2FA
@@ -251,6 +287,15 @@ export class AuthController {
     return { enabled };
   }
 
+  @Post('logout')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Cerrar sesión' })
+  @ApiResponse({ status: 200, description: 'Sesión cerrada correctamente' })
+  async logout(@Res({ passthrough: true }) res: Response) {
+    this.clearAuthCookie(res);
+    return { message: 'Sesión cerrada correctamente' };
+  }
+
   // Iniciar flujo de Google OAuth
   @Get('google')
   @UseGuards(GoogleAuthGuard)
@@ -267,11 +312,12 @@ export class AuthController {
   ) {
     const result = await this.authService.googleLogin(req.user);
 
-    // Redirigir al frontend con el token
+    // Set httpOnly cookie
+    this.setAuthCookie(res, result.access_token);
+
+    // Redirigir al frontend (sin token en URL)
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const redirectUrl = `${frontendUrl}/auth/callback?token=${result.access_token}`;
-
-    res.redirect(redirectUrl);
+    res.redirect(`${frontendUrl}/auth/callback`);
   }
 }

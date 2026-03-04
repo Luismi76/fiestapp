@@ -45,11 +45,7 @@ export function useSocket(): UseSocketReturn {
       return;
     }
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      logger.socket('No token found');
-      return;
-    }
+    // Cookie is sent automatically via withCredentials
 
     // If socket exists for same user, reuse it
     if (globalSocket && globalSocketUserId === user.id) {
@@ -70,7 +66,7 @@ export function useSocket(): UseSocketReturn {
     logger.socket('Creating new socket for user:', user.id);
 
     const newSocket = io(`${SOCKET_URL}/chat`, {
-      auth: { token },
+      withCredentials: true,
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,

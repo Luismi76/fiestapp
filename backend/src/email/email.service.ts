@@ -878,4 +878,15 @@ export class EmailService {
       html,
     );
   }
+
+  /**
+   * Envía un email genérico con HTML personalizado
+   */
+  async sendGenericEmail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<boolean> {
+    return this.sendEmail(to, subject, html);
+  }
 }

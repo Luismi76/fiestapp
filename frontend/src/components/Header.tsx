@@ -283,11 +283,11 @@ export default function Header() {
       {isMenuOpen && (
         <>
           <div
-            className="lg:hidden fixed inset-0 bg-black/50 z-40 md:hidden"
+            className="lg:hidden fixed inset-0 bg-black/50 z-40"
             onClick={() => setIsMenuOpen(false)}
             aria-hidden="true"
           />
-          <div className="lg:hidden md:fixed md:inset-y-0 md:right-0 md:w-80 md:bg-white md:shadow-xl md:z-50 md:flex md:flex-col hidden animate-in slide-in-from-right duration-300">
+          <div className="lg:hidden fixed inset-y-0 right-0 w-80 bg-white shadow-xl z-50 flex flex-col animate-in slide-in-from-right duration-300">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between">
               <span className="font-semibold text-lg">Menu</span>
               <button

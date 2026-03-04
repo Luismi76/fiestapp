@@ -58,10 +58,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         `[handleConnection] New connection attempt: ${client.id}`,
       );
 
+      // Extract token from auth, authorization header, or cookie
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const cookieHeader = client.handshake.headers?.cookie || '';
+      const cookieToken = cookieHeader
+        .split(';')
+        .map((c: string) => c.trim())
+        .find((c: string) => c.startsWith('access_token='))
+        ?.split('=')[1];
+
       const token: string | undefined =
         client.handshake.auth?.token ||
-        client.handshake.headers?.authorization?.replace('Bearer ', '');
+        client.handshake.headers?.authorization?.replace('Bearer ', '') ||
+        cookieToken;
 
       if (!token) {
         this.logger.warn(

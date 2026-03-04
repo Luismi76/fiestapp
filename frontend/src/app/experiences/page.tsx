@@ -7,6 +7,7 @@ import MainLayout from '@/components/MainLayout';
 import ExperienceCard from '@/components/ExperienceCard';
 import { ExperienceGridSkeleton } from '@/components/ui/Skeleton';
 import BottomSheet from '@/components/BottomSheet';
+import PriceRangeSlider from '@/components/PriceRangeSlider';
 import { experiencesApi, festivalsApi } from '@/lib/api';
 import { Experience, Festival, ExperienceFilters, ExperienceType } from '@/types/experience';
 import logger from '@/lib/logger';
@@ -214,62 +215,146 @@ function ExperiencesContent() {
           </div>
         </header>
 
-        {/* Results count */}
-        {!loading && (
-          <div className="px-4 py-3 flex items-center justify-between">
-            <p className="text-sm text-[#8B7355]">
-              <span className="font-semibold text-[#1A1410]">{totalResults}</span> experiencia{totalResults !== 1 ? 's' : ''}
-            </p>
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={clearFilters}
-                className="text-sm text-primary font-semibold flex items-center gap-1 hover:text-primary-dark transition-colors"
-              >
-                Limpiar filtros
-              </button>
+        {/* Desktop layout: sidebar + content */}
+        <div className="lg:flex lg:gap-6 px-4 md:px-6 lg:px-8">
+          {/* Desktop sidebar filters */}
+          <aside className="hidden lg:block lg:w-72 lg:flex-shrink-0 lg:sticky lg:top-20 lg:self-start">
+            <div className="card p-5 space-y-5">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-lg text-[#1A1410]">Filtros</h3>
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-sm text-primary font-semibold hover:text-primary-dark transition-colors"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+
+              {/* Type */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Tipo de experiencia</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: '', label: 'Todas' },
+                    { value: 'pago', label: 'De pago' },
+                    { value: 'intercambio', label: 'Intercambio' },
+                    { value: 'ambos', label: 'Flexible' },
+                  ].map((type) => (
+                    <button
+                      key={type.value}
+                      onClick={() => setSelectedType(type.value)}
+                      className={`py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                        selectedType === type.value
+                          ? 'bg-primary text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Festival */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Festival</label>
+                <select
+                  value={selectedFestival}
+                  onChange={(e) => setSelectedFestival(e.target.value)}
+                  className="w-full py-2.5 px-3 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">Todos los festivales</option>
+                  {festivals.map((f) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* City */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Ciudad</label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="w-full py-2.5 px-3 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">Todas las ciudades</option>
+                  {cities.map((city) => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Price range */}
+              <PriceRangeSlider
+                minValue={minPrice}
+                maxValue={maxPrice}
+                onMinChange={setMinPrice}
+                onMaxChange={setMaxPrice}
+              />
+            </div>
+          </aside>
+
+          {/* Main content */}
+          <div className="flex-1 min-w-0">
+            {/* Results count */}
+            {!loading && (
+              <div className="py-3 flex items-center justify-between">
+                <p className="text-sm text-[#8B7355]">
+                  <span className="font-semibold text-[#1A1410]">{totalResults}</span> experiencia{totalResults !== 1 ? 's' : ''}
+                </p>
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="lg:hidden text-sm text-primary font-semibold flex items-center gap-1 hover:text-primary-dark transition-colors"
+                  >
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Results */}
+            {loading ? (
+              <ExperienceGridSkeleton count={8} />
+            ) : experiences.length === 0 ? (
+              <div className="empty-state">
+                <div className="text-[#A89880] mb-4">
+                  <SparklesIcon />
+                </div>
+                <h3 className="empty-state-title">Sin resultados</h3>
+                <p className="empty-state-text">
+                  No encontramos experiencias con esos criterios. Prueba a cambiar los filtros.
+                </p>
+                <button onClick={clearFilters} className="btn btn-primary">
+                  Ver todas las experiencias
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 stagger-children">
+                  {experiences.map((exp) => (
+                    <ExperienceCard key={exp.id} experience={exp} />
+                  ))}
+                </div>
+
+                {/* Load more trigger */}
+                <div ref={loadMoreRef} className="h-20 flex items-center justify-center">
+                  {loadingMore && (
+                    <div className="spinner" />
+                  )}
+                  {!hasMore && experiences.length > 0 && (
+                    <p className="text-sm text-[#A89880]">Has visto todas las experiencias</p>
+                  )}
+                </div>
+              </>
             )}
           </div>
-        )}
-
-        {/* Results */}
-        <div className="px-4 md:px-6 lg:px-8">
-          {loading ? (
-            <ExperienceGridSkeleton count={8} />
-          ) : experiences.length === 0 ? (
-            <div className="empty-state">
-              <div className="text-[#A89880] mb-4">
-                <SparklesIcon />
-              </div>
-              <h3 className="empty-state-title">Sin resultados</h3>
-              <p className="empty-state-text">
-                No encontramos experiencias con esos criterios. Prueba a cambiar los filtros.
-              </p>
-              <button onClick={clearFilters} className="btn btn-primary">
-                Ver todas las experiencias
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 stagger-children">
-                {experiences.map((exp) => (
-                  <ExperienceCard key={exp.id} experience={exp} />
-                ))}
-              </div>
-
-              {/* Load more trigger */}
-              <div ref={loadMoreRef} className="h-20 flex items-center justify-center">
-                {loadingMore && (
-                  <div className="spinner" />
-                )}
-                {!hasMore && experiences.length > 0 && (
-                  <p className="text-sm text-[#A89880]">Has visto todas las experiencias</p>
-                )}
-              </div>
-            </>
-          )}
         </div>
 
-        {/* Filters BottomSheet */}
+        {/* Filters BottomSheet - mobile only */}
         <BottomSheet
           isOpen={showFiltersModal}
           onClose={() => setShowFiltersModal(false)}
@@ -349,28 +434,12 @@ function ExperiencesContent() {
             </div>
 
             {/* Price range */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Rango de precio</label>
-              <div className="flex gap-3 items-center">
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Mín €"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  className="flex-1 py-3 px-4 bg-gray-100 rounded-xl text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <span className="text-gray-400">—</span>
-                <input
-                  type="number"
-                  min="0"
-                  placeholder="Máx €"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  className="flex-1 py-3 px-4 bg-gray-100 rounded-xl text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-            </div>
+            <PriceRangeSlider
+              minValue={minPrice}
+              maxValue={maxPrice}
+              onMinChange={setMinPrice}
+              onMaxChange={setMaxPrice}
+            />
           </div>
         </BottomSheet>
       </div>

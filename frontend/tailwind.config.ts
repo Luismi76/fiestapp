@@ -16,26 +16,6 @@ const config: Config = {
             '2xl': '1536px',
         },
         extend: {
-            colors: {
-                primary: {
-                    DEFAULT: '#FF385C',
-                    light: '#FF5A7A',
-                    dark: '#E31C5F',
-                },
-                secondary: {
-                    DEFAULT: '#00A699',
-                    light: '#00C4B4',
-                    dark: '#008F84',
-                },
-                accent: {
-                    DEFAULT: '#FFB800',
-                    light: '#FFD54F',
-                    dark: '#E6A600',
-                },
-            },
-            fontFamily: {
-                sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
-            },
             animation: {
                 'float': 'float 3s ease-in-out infinite',
                 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

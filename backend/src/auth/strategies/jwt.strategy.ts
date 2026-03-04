@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import type { Request } from 'express';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
 
 export interface JwtPayload {
@@ -12,15 +13,25 @@ export interface JwtPayload {
 // Re-export for backwards compatibility
 export type { AuthenticatedUser };
 
+function extractJwtFromCookieOrHeader(req: Request): string | null {
+  // Try cookie first, then Bearer header
+  if (req.cookies?.access_token) {
+    return req.cookies.access_token;
+  }
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+  return null;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private configService: ConfigService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: extractJwtFromCookieOrHeader,
       ignoreExpiration: false,
-      secretOrKey:
-        configService.get<string>('JWT_SECRET') ||
-        'dev-secret-key-change-in-production-12345',
+      secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
 

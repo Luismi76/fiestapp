@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { envValidationSchema } from './config/env.validation';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
@@ -38,11 +39,16 @@ import { VerificationModule } from './verification/verification.module';
 import { CurrencyModule } from './currency/currency.module';
 import { GdprModule } from './gdpr/gdpr.module';
 import { HealthModule } from './health/health.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      validationSchema: envValidationSchema,
+      validationOptions: {
+        abortEarly: true,
+      },
     }),
     ScheduleModule.forRoot(),
     EmailModule,
@@ -94,6 +100,7 @@ import { HealthModule } from './health/health.module';
     CurrencyModule,
     GdprModule,
     HealthModule,
+    FeedbackModule,
   ],
   controllers: [AppController],
   providers: [

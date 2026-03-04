@@ -3,6 +3,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { SanitizePipe } from './common/pipes/sanitize.pipe';
 import { Request, Response, NextFunction } from 'express';
@@ -57,6 +58,9 @@ async function bootstrap() {
       crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     }),
   );
+
+  // Cookie parser
+  app.use(cookieParser());
 
   // Compression (gzip)
   app.use(compression());

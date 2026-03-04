@@ -12,6 +12,7 @@ import {
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { AdminService } from './admin.service';
 import { FinancialReportService } from './financial-report.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,6 +24,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly financialReportService: FinancialReportService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Get('dashboard')
@@ -79,8 +81,20 @@ export class AdminController {
   }
 
   @Post('users/:id/impersonate')
-  impersonateUser(@Param('id') id: string) {
-    return this.adminService.impersonateUser(id);
+  async impersonateUser(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.adminService.impersonateUser(id);
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    res.cookie('access_token', result.access_token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+    return result;
   }
 
   // ============================================

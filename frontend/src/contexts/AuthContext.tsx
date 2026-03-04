@@ -14,7 +14,7 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     login: (data: LoginData) => Promise<void>;
-    loginWithToken: (token: string, user: User) => void;
+    loginWithToken: () => Promise<void>;
     register: (data: RegisterData) => Promise<string>;
     logout: () => void;
     refreshUser: () => Promise<void>;
@@ -28,17 +28,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    // Check if user is logged in on mount
+    // Check if user is logged in on mount (cookie is sent automatically)
     useEffect(() => {
         const checkAuth = async () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    const userData = await authApi.getProfile();
-                    setUser(userData);
-                } catch {
-                    localStorage.removeItem('token');
-                }
+            try {
+                const userData = await authApi.getProfile();
+                setUser(userData);
+            } catch {
+                // Not authenticated - cookie invalid or missing
             }
             setLoading(false);
         };
@@ -49,11 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = async (data: LoginData) => {
         try {
             const response = await authApi.login(data);
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('token', response.access_token);
-            }
             setUser(response.user);
-            router.push('/dashboard');
+            router.push('/experiences');
         } catch (error) {
             const axiosError = error as AxiosError<ApiErrorResponse>;
             throw new Error(axiosError.response?.data?.message || 'Error al iniciar sesión');
@@ -70,17 +64,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const loginWithToken = (token: string, userData: User) => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('token', token);
+    // Used after Google OAuth callback - cookie is already set by backend
+    const loginWithToken = async () => {
+        try {
+            const userData = await authApi.getProfile();
+            setUser(userData);
+            router.push('/experiences');
+        } catch {
+            // Cookie invalid
         }
-        setUser(userData);
-        router.push('/dashboard');
     };
 
-    const logout = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
+    const logout = async () => {
+        try {
+            await authApi.logout();
+        } catch {
+            // Ignore errors on logout
         }
         setUser(null);
         router.push('/');

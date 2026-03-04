@@ -113,8 +113,8 @@ export default function AdminUsersPage() {
 
     setActionLoading(user.id);
     try {
-      const response = await adminApi.impersonateUser(user.id);
-      loginWithToken(response.access_token, response.user);
+      await adminApi.impersonateUser(user.id);
+      await loginWithToken();
     } catch {
       alert('Error al impersonar usuario');
       setActionLoading(null);
