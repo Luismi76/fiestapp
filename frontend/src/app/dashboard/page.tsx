@@ -269,9 +269,9 @@ export default function DashboardPage() {
                           <span className="text-xs text-[#A89880]">
                             {formatTimeAgo(match.lastMessage?.createdAt || match.updatedAt)}
                           </span>
-                          {match.unreadCount && match.unreadCount > 0 && (
+                          {(match.unreadCount ?? 0) > 0 && (
                             <span className="w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                              {match.unreadCount > 9 ? '9+' : match.unreadCount}
+                              {match.unreadCount! > 9 ? '9+' : match.unreadCount}
                             </span>
                           )}
                         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/match';
@@ -169,7 +169,7 @@ export function useSocket(): UseSocketReturn {
     }
   }, []);
 
-  return {
+  return useMemo(() => ({
     socket,
     isConnected,
     sendMessage,
@@ -177,7 +177,7 @@ export function useSocket(): UseSocketReturn {
     leaveMatch,
     setTyping,
     markAsRead,
-  };
+  }), [socket, isConnected, sendMessage, joinMatch, leaveMatch, setTyping, markAsRead]);
 }
 
 // Hook for listening to socket events

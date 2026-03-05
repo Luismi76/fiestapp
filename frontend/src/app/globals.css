@@ -1376,3 +1376,17 @@ div[style*="z-index: 2147483647"] {
   display: none !important;
   visibility: hidden !important;
 }
+
+/* ============================================
+   CONTENT-VISIBILITY OPTIMIZATION
+   ============================================ */
+.card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+.space-y-3 > a,
+.space-y-3 > div {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 80px;
+}

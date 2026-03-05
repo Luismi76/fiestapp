@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
-import PaymentForm from './PaymentForm';
 import PayPalButton from './PayPalButton';
 import api from '@/lib/api';
 import { getErrorMessage } from '@/lib/error';
+
+const PaymentForm = dynamic(() => import('./PaymentForm'), { ssr: false });
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''

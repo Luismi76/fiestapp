@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import dynamic from "next/dynamic";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -6,10 +7,11 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { MessageProvider } from "@/contexts/MessageContext";
 import { SkipLink } from "@/components/ui/SkipLink";
-import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
-import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import AppWrapper from "@/components/AppWrapper";
-import InstallPrompt from "@/components/InstallPrompt";
+
+const GoogleAnalytics = dynamic(() => import("@/components/analytics/GoogleAnalytics"));
+const ServiceWorkerRegistration = dynamic(() => import("@/components/ServiceWorkerRegistration"));
+const InstallPrompt = dynamic(() => import("@/components/InstallPrompt"));
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

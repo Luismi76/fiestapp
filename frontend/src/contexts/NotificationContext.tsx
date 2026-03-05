@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useCallback, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useCallback, useEffect, useState, useMemo, useRef, ReactNode } from 'react';
 import { useSocket, useSocketEvent } from '@/hooks/useSocket';
 import { useToast } from '@/components/ui/Toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,6 +44,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const { socket, isConnected } = useSocket();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentNotifications, setRecentNotifications] = useState<Notification[]>([]);
 
@@ -84,14 +86,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       // Show toast
       const toastType = notificationTypeToToastType[notification.type] || 'info';
-      toast.addToast({
+      toastRef.current.addToast({
         type: toastType,
         title: notification.title,
         message: notification.message,
         duration: 6000,
       });
     },
-    [toast]
+    []
   );
 
   // Subscribe to WebSocket notification events
@@ -129,25 +131,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshCount]);
 
-  // Clear state when user changes
-  useEffect(() => {
-    if (!user) {
-      setUnreadCount(0);
-      setRecentNotifications([]);
-    }
-  }, [user?.id]);
+  const value = useMemo(() => ({
+    unreadCount,
+    recentNotifications,
+    isConnected,
+    refreshCount,
+    markAsRead,
+    markAllAsRead,
+  }), [unreadCount, recentNotifications, isConnected, refreshCount, markAsRead, markAllAsRead]);
 
   return (
-    <NotificationContext.Provider
-      value={{
-        unreadCount,
-        recentNotifications,
-        isConnected,
-        refreshCount,
-        markAsRead,
-        markAllAsRead,
-      }}
-    >
+    <NotificationContext.Provider value={value}>
       {children}
     </NotificationContext.Provider>
   );

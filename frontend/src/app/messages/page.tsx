@@ -309,9 +309,9 @@ export default function MessagesPage() {
                             <span className="text-xs text-[#A89880]">
                               {formatTimeAgo(match.lastMessage?.createdAt || match.createdAt)}
                             </span>
-                            {match.unreadCount && match.unreadCount > 0 && (
+                            {(match.unreadCount ?? 0) > 0 && (
                               <span className="w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                                {match.unreadCount > 9 ? '9+' : match.unreadCount}
+                                {match.unreadCount! > 9 ? '9+' : match.unreadCount}
                               </span>
                             )}
                           </div>
@@ -319,7 +319,7 @@ export default function MessagesPage() {
 
                         {/* Last message */}
                         <p className={`text-sm mt-1.5 line-clamp-1 ${
-                          match.unreadCount && match.unreadCount > 0 ? 'text-[#1A1410] font-medium' : 'text-[#8B7355]'
+                          (match.unreadCount ?? 0) > 0 ? 'text-[#1A1410] font-medium' : 'text-[#8B7355]'
                         }`}>
                           {match.lastMessage?.content || 'Sin mensajes aún'}
                         </p>

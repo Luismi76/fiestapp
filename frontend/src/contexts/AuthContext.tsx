@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { User, LoginData, RegisterData } from '@/types/auth';
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkAuth();
     }, []);
 
-    const login = async (data: LoginData) => {
+    const login = useCallback(async (data: LoginData) => {
         try {
             const response = await authApi.login(data);
             setUser(response.user);
@@ -52,9 +52,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const axiosError = error as AxiosError<ApiErrorResponse>;
             throw new Error(axiosError.response?.data?.message || 'Error al iniciar sesión');
         }
-    };
+    }, [router]);
 
-    const register = async (data: RegisterData): Promise<string> => {
+    const register = useCallback(async (data: RegisterData): Promise<string> => {
         try {
             const response = await authApi.register(data);
             return response.email;
@@ -62,10 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const axiosError = error as AxiosError<ApiErrorResponse>;
             throw new Error(axiosError.response?.data?.message || 'Error al registrarse');
         }
-    };
+    }, []);
 
     // Used after Google OAuth callback - cookie is already set by backend
-    const loginWithToken = async () => {
+    const loginWithToken = useCallback(async () => {
         try {
             const userData = await authApi.getProfile();
             setUser(userData);
@@ -73,9 +73,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {
             // Cookie invalid
         }
-    };
+    }, [router]);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         try {
             await authApi.logout();
         } catch {
@@ -83,30 +83,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setUser(null);
         router.push('/');
-    };
+    }, [router]);
 
-    const refreshUser = async () => {
+    const refreshUser = useCallback(async () => {
         try {
             const userData = await authApi.getProfile();
             setUser(userData);
         } catch {
             // Si falla, no hacer nada
         }
-    };
+    }, []);
+
+    const value = useMemo(() => ({
+        user,
+        loading,
+        login,
+        loginWithToken,
+        register,
+        logout,
+        refreshUser,
+        isAuthenticated: !!user,
+    }), [user, loading, login, loginWithToken, register, logout, refreshUser]);
 
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                loading,
-                login,
-                loginWithToken,
-                register,
-                logout,
-                refreshUser,
-                isAuthenticated: !!user,
-            }}
-        >
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

@@ -154,19 +154,17 @@ export default function ChatPage() {
         const data = await matchesApi.getById(id);
         setMatch(data);
 
-        // Check wallet balance for chat access
-        if (data.status === 'pending' || data.status === 'accepted') {
-          try {
-            const wallet = await walletApi.getWallet();
-            setWalletInfo(wallet);
-          } catch {
-            // Ignore wallet errors
-          }
-        }
+        // Parallel fetch of wallet and review data
+        const needsWallet = data.status === 'pending' || data.status === 'accepted';
+        const needsReview = data.status === 'completed';
 
-        if (data.status === 'completed') {
-          const reviewCheck = await reviewsApi.canReview(data.experienceId);
-          setCanReviewData(reviewCheck);
+        if (needsWallet || needsReview) {
+          const [walletResult, reviewResult] = await Promise.all([
+            needsWallet ? walletApi.getWallet().catch(() => null) : Promise.resolve(null),
+            needsReview ? reviewsApi.canReview(data.experienceId).catch(() => null) : Promise.resolve(null),
+          ]);
+          if (walletResult) setWalletInfo(walletResult);
+          if (reviewResult) setCanReviewData(reviewResult);
         }
       } catch {
         setError('No se pudo cargar la conversación');

@@ -30,15 +30,15 @@ export function isCloudinaryUrl(url: string): boolean {
   return url.includes('cloudinary.com') || url.includes('res.cloudinary');
 }
 
+const CLOUDINARY_PUBLIC_ID_RE = /\/upload\/(?:v\d+\/)?(?:[a-z_]+[,:][^/]+\/)*(.+)$/;
+
 /**
  * Extrae el public_id de una URL de Cloudinary (incluyendo extensión)
  */
 export function extractPublicId(url: string): string | null {
   if (!isCloudinaryUrl(url)) return null;
 
-  // Formato: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{public_id}.{ext}
-  // o con transformaciones: .../upload/f_auto,q_auto/{public_id}.{ext}
-  const match = url.match(/\/upload\/(?:v\d+\/)?(?:[a-z_]+[,:][^/]+\/)*(.+)$/);
+  const match = url.match(CLOUDINARY_PUBLIC_ID_RE);
   return match ? match[1] : null;
 }
 
@@ -168,10 +168,11 @@ export function getNextImageProps(url: string, options: ImageOptions = {}) {
  * Hook-friendly: Genera todas las URLs necesarias para una imagen
  */
 export function prepareImage(url: string, options: ImageOptions = {}) {
+  const isCloudinary = isCloudinaryUrl(url);
   return {
-    src: optimizeImage(url, options),
-    srcSet: generateSrcSet(url, undefined, options),
-    placeholder: getBlurPlaceholder(url),
-    isCloudinary: isCloudinaryUrl(url),
+    src: isCloudinary ? optimizeImage(url, options) : url,
+    srcSet: isCloudinary ? generateSrcSet(url, undefined, options) : url,
+    placeholder: isCloudinary ? getBlurPlaceholder(url) : url,
+    isCloudinary,
   };
 }

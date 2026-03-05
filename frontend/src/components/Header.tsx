@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +8,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useMessages } from '@/contexts/MessageContext';
 import { cn } from '@/lib/utils';
 
-export default function Header() {
+function Header() {
   const pathname = usePathname();
   const { isAuthenticated, user, logout } = useAuth();
   const { unreadCount: notificationCount } = useNotifications();
@@ -41,14 +41,14 @@ export default function Header() {
     };
   }, [isMenuOpen]);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+  const isActive = useCallback((href: string) => pathname === href || pathname.startsWith(href + '/'), [pathname]);
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { label: 'Inicio', href: '/dashboard' },
     { label: 'Explorar', href: '/experiences' },
     { label: 'Mis Experiencias', href: '/experiences/my', authRequired: true },
     { label: 'Mensajes', href: '/messages', authRequired: true, badge: unreadCount },
-  ];
+  ], [unreadCount]);
 
   return (
     <>
@@ -133,7 +133,7 @@ export default function Header() {
             {isAuthenticated ? (
               <div className="relative">
                 <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  onClick={() => setIsMenuOpen(prev => !prev)}
                   className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                   aria-expanded={isMenuOpen}
                   aria-haspopup="true"
@@ -255,7 +255,7 @@ export default function Header() {
 
             {/* Hamburger - tablet */}
             <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              onClick={() => setIsMenuOpen(prev => !prev)}
               className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Menu"
               aria-expanded={isMenuOpen}
@@ -367,3 +367,5 @@ export default function Header() {
     </>
   );
 }
+
+export default memo(Header);

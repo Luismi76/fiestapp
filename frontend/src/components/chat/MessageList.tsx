@@ -1,6 +1,6 @@
 'use client';
 
-import { RefObject } from 'react';
+import { memo, RefObject } from 'react';
 import { Message } from '@/types/match';
 import { OptimizedAvatar } from '@/components/OptimizedImage';
 import VoiceMessage from './VoiceMessage';
@@ -46,7 +46,7 @@ const formatMessageDate = (date: string) => {
   }
 };
 
-export default function MessageList({
+function MessageList({
   messages,
   currentUserId,
   otherUser,
@@ -214,3 +214,5 @@ export default function MessageList({
     </div>
   );
 }
+
+export default memo(MessageList);

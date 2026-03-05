@@ -1,19 +1,21 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { experiencesApi, matchesApi, favoritesApi } from '@/lib/api';
 import { ExperienceDetail, DateOccupancy } from '@/types/experience';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl, getUploadUrl } from '@/lib/utils';
-import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import ShareButton from '@/components/ShareButton';
 import ReportButton from '@/components/ReportButton';
-import ImageGallery from '@/components/ImageGallery';
 import ParticipantSelector from '@/components/ParticipantSelector';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
+
+const ImageGallery = dynamic(() => import('@/components/ImageGallery'));
+const AvailabilityCalendar = dynamic(() => import('@/components/AvailabilityCalendar'));
 
 // Helper to generate availability dates for mock data
 const generateMockAvailability = (baseMonth: number, count: number): Date[] => {
@@ -253,16 +255,19 @@ export default function ExperienceDetailPage() {
     const fetchExperience = async () => {
       const id = params.id as string;
       try {
-        const data = await experiencesApi.getById(id);
-        setExperience(data);
+        const [data, occupancyResult] = await Promise.allSettled([
+          experiencesApi.getById(id),
+          experiencesApi.getOccupancy(id),
+        ]);
+
+        if (data.status === 'rejected') throw data.reason;
+
+        setExperience(data.value);
         setUseMockData(false);
 
-        // Cargar ocupación para mostrar disponibilidad real
-        try {
-          const occupancyData = await experiencesApi.getOccupancy(id);
-          setOccupancy(occupancyData.dates);
-        } catch {
-          // Si falla la carga de ocupación, continuamos sin ella
+        if (occupancyResult.status === 'fulfilled') {
+          setOccupancy(occupancyResult.value.dates);
+        } else {
           logger.debug('No se pudo cargar la ocupación');
         }
       } catch {

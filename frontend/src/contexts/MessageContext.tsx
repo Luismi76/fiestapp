@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useCallback, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
 import { useSocket, useSocketEvent } from '@/hooks/useSocket';
 import { useAuth } from '@/contexts/AuthContext';
 import { matchesApi } from '@/lib/api';
@@ -72,13 +72,6 @@ export function MessageProvider({ children }: { children: ReactNode }) {
     [isConnected, markAsRead, refreshUnreadCount]
   );
 
-  // Clear state when user changes
-  useEffect(() => {
-    if (!user) {
-      setUnreadCount(0);
-    }
-  }, [user?.id]);
-
   // Polling every 30 seconds for message count (fallback for when WebSocket misses messages)
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -90,15 +83,15 @@ export function MessageProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, [isAuthenticated, refreshUnreadCount]);
 
+  const value = useMemo(() => ({
+    unreadCount,
+    refreshUnreadCount,
+    markMatchAsRead,
+    isConnected,
+  }), [unreadCount, refreshUnreadCount, markMatchAsRead, isConnected]);
+
   return (
-    <MessageContext.Provider
-      value={{
-        unreadCount,
-        refreshUnreadCount,
-        markMatchAsRead,
-        isConnected,
-      }}
-    >
+    <MessageContext.Provider value={value}>
       {children}
     </MessageContext.Provider>
   );

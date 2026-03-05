@@ -27,7 +27,12 @@ export function useVoiceRecorder({
 }: UseVoiceRecorderOptions = {}): UseVoiceRecorderReturn {
   const [state, setState] = useState<RecorderState>('idle');
   const [duration, setDuration] = useState(0);
-  const [isSupported, setIsSupported] = useState(true);
+  const [isSupported] = useState(() =>
+    typeof window !== 'undefined' &&
+    !!navigator.mediaDevices &&
+    typeof navigator.mediaDevices.getUserMedia === 'function' &&
+    typeof MediaRecorder !== 'undefined'
+  );
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -35,17 +40,6 @@ export function useVoiceRecorder({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const stopRef = useRef<() => void>(() => {});
   const startTimeRef = useRef<number>(0);
-
-  // Check browser support - valid initialization pattern
-  useEffect(() => {
-    const supported =
-      typeof window !== 'undefined' &&
-      navigator.mediaDevices &&
-      typeof navigator.mediaDevices.getUserMedia === 'function' &&
-      typeof MediaRecorder !== 'undefined';
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsSupported(supported);
-  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -141,7 +135,7 @@ export function useVoiceRecorder({
         if (elapsed >= maxDuration) {
           stopRef.current();
         }
-      }, 100);
+      }, 1000);
     } catch (error) {
       logger.error('Error starting recording:', error);
       if (error instanceof DOMException) {

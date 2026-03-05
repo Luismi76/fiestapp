@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { memo, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Experience } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
@@ -178,7 +178,24 @@ let MapContainer: React.ComponentType<any>, TileLayer: React.ComponentType<any>,
 let L: any;
 let leafletReady = false;
 
-export default function ExperienceMap({
+const LEAFLET_STYLES = `
+  .leaflet-container { z-index: 1 !important; }
+  .leaflet-pane { z-index: 1 !important; }
+  .leaflet-tile-pane { z-index: 1 !important; }
+  .leaflet-overlay-pane { z-index: 2 !important; }
+  .leaflet-marker-pane { z-index: 3 !important; }
+  .leaflet-tooltip-pane { z-index: 4 !important; }
+  .leaflet-popup-pane { z-index: 5 !important; }
+  .leaflet-control { z-index: 10 !important; }
+  .leaflet-top, .leaflet-bottom { z-index: 10 !important; }
+  .leaflet-popup-content-wrapper { border-radius: 12px !important; padding: 0 !important; }
+  .leaflet-popup-content { margin: 8px !important; }
+  .leaflet-popup-close-button { display: none !important; }
+`;
+
+const LEAFLET_CSS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+
+function ExperienceMap({
   experiences,
   onExperienceClick,
   height = 'h-[50vh] sm:h-[400px] md:h-[500px]',
@@ -186,6 +203,18 @@ export default function ExperienceMap({
 }: ExperienceMapProps) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+
+  // Inject Leaflet CSS into <head>
+  useEffect(() => {
+    const id = 'leaflet-css';
+    if (!document.getElementById(id)) {
+      const link = document.createElement('link');
+      link.id = id;
+      link.rel = 'stylesheet';
+      link.href = LEAFLET_CSS_URL;
+      document.head.appendChild(link);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -299,21 +328,7 @@ export default function ExperienceMap({
 
   return (
     <>
-      <style>{`
-        .leaflet-container { z-index: 1 !important; }
-        .leaflet-pane { z-index: 1 !important; }
-        .leaflet-tile-pane { z-index: 1 !important; }
-        .leaflet-overlay-pane { z-index: 2 !important; }
-        .leaflet-marker-pane { z-index: 3 !important; }
-        .leaflet-tooltip-pane { z-index: 4 !important; }
-        .leaflet-popup-pane { z-index: 5 !important; }
-        .leaflet-control { z-index: 10 !important; }
-        .leaflet-top, .leaflet-bottom { z-index: 10 !important; }
-        .leaflet-popup-content-wrapper { border-radius: 12px !important; padding: 0 !important; }
-        .leaflet-popup-content { margin: 8px !important; }
-        .leaflet-popup-close-button { display: none !important; }
-      `}</style>
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+      <style>{LEAFLET_STYLES}</style>
       <div className={`${height} rounded-xl overflow-hidden`}>
         <MapContainer
           center={center}
@@ -380,3 +395,5 @@ export default function ExperienceMap({
     </>
   );
 }
+
+export default memo(ExperienceMap);

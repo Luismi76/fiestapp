@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Link from 'next/link';
 import { cn, getUploadUrl } from '@/lib/utils';
 import { Experience, ExperienceType } from '@/types/experience';
@@ -64,7 +65,7 @@ function Rating({ avgRating }: { avgRating?: number }) {
  * Card de experiencia responsive y optimizada para movil.
  * Diseño "Verbena Digital" - Festivo y vibrante.
  */
-export default function ExperienceCard({
+function ExperienceCard({
   experience,
   variant = 'default',
   showHost = true,
@@ -326,6 +327,8 @@ export default function ExperienceCard({
   );
 }
 
+export default memo(ExperienceCard);
+
 // Grid component for responsive experience cards
 interface ExperienceGridProps {
   experiences: Experience[];
@@ -333,7 +336,7 @@ interface ExperienceGridProps {
   className?: string;
 }
 
-export function ExperienceGrid({ experiences, variant = 'compact', className }: ExperienceGridProps) {
+function ExperienceGridInner({ experiences, variant = 'compact', className }: ExperienceGridProps) {
   if (experiences.length === 0) {
     return (
       <div className="empty-state">
@@ -364,3 +367,5 @@ export function ExperienceGrid({ experiences, variant = 'compact', className }: 
     </div>
   );
 }
+
+export const ExperienceGrid = memo(ExperienceGridInner);

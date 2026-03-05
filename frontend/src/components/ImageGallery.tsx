@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { OptimizedImage } from '@/components/OptimizedImage';
 
 interface ImageGalleryProps {
@@ -12,7 +12,7 @@ interface ImageGalleryProps {
   showCounter?: boolean;
 }
 
-export default function ImageGallery({
+function ImageGallery({
   images,
   alt = 'Image',
   className = '',
@@ -342,3 +342,5 @@ export default function ImageGallery({
     </>
   );
 }
+
+export default memo(ImageGallery);

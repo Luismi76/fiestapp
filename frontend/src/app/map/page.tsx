@@ -1,13 +1,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { experiencesApi } from '@/lib/api';
 import { Experience } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
-import ExperienceMap, { MapFilter } from '@/components/ExperienceMap';
+import type { MapFilter } from '@/components/ExperienceMap';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
+
+const ExperienceMap = dynamic(() => import('@/components/ExperienceMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 gap-3">
+      <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-gray-500">Cargando mapa...</p>
+    </div>
+  ),
+});
 
 // Iconos
 const CloseIcon = () => (

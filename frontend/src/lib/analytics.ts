@@ -22,19 +22,32 @@ export const isGAEnabled = (): boolean => {
 };
 
 // Verificar si el usuario actual es admin (no trackear admins)
+let cachedIsAdmin: boolean | null = null;
+
 const isAdmin = (): boolean => {
   if (typeof window === 'undefined') return false;
+  if (cachedIsAdmin !== null) return cachedIsAdmin;
   try {
     const userData = localStorage.getItem('user');
     if (userData) {
       const user = JSON.parse(userData);
-      return user.role === 'admin';
+      cachedIsAdmin = user.role === 'admin';
+      return cachedIsAdmin;
     }
   } catch {
+    cachedIsAdmin = false;
     return false;
   }
+  cachedIsAdmin = false;
   return false;
 };
+
+// Invalidate admin cache when localStorage changes
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'user') cachedIsAdmin = null;
+  });
+}
 
 // Tipo para window con gtag
 declare global {

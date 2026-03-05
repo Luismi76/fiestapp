@@ -1,27 +1,28 @@
 'use client';
 
+import { memo, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useMessages } from '@/contexts/MessageContext';
 
-export default function BottomNav() {
+function BottomNav() {
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
   const { unreadCount: notificationCount } = useNotifications();
   const { unreadCount: messageCount } = useMessages();
 
-  const isActive = (href: string, id?: string) => {
+  const isActive = useCallback((href: string, id?: string) => {
     if (id === 'home') return pathname === '/dashboard' || pathname === '/';
     if (id === 'explore') return pathname === '/experiences' || pathname.startsWith('/experiences/') && !pathname.includes('/create') && !pathname.includes('/my');
     if (id === 'my') return pathname === '/experiences/my';
     if (id === 'notifications') return pathname === '/notifications';
     if (id === 'messages') return pathname === '/messages' || pathname.startsWith('/matches');
     return pathname.startsWith(href);
-  };
+  }, [pathname]);
 
-  const navItems = [
+  const navItems = useMemo(() => [
     {
       id: 'home',
       label: 'Inicio',
@@ -77,7 +78,7 @@ export default function BottomNav() {
         </svg>
       ),
     },
-  ];
+  ], [messageCount]);
 
   return (
     <nav className="bottom-nav">
@@ -120,3 +121,5 @@ export default function BottomNav() {
     </nav>
   );
 }
+
+export default memo(BottomNav);
