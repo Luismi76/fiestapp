@@ -11,7 +11,8 @@ import { getErrorMessage } from '@/lib/error';
 const PaymentForm = dynamic(() => import('./PaymentForm'), { ssr: false });
 
 const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+  { developerTools: { assistant: { enabled: false } } }
 );
 
 type PaymentMethod = 'stripe' | 'paypal';
