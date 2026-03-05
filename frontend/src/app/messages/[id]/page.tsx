@@ -476,33 +476,19 @@ export default function ChatPage() {
 
         {/* Review Form Modal */}
         {showReviewForm && canReviewData?.targetUser && (
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Formulario de reseña"
-          >
-            {/* Backdrop clickable para cerrar */}
-            <div
-              className="absolute inset-0"
-              onClick={() => setShowReviewForm(false)}
-              aria-hidden="true"
-            />
-            <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl p-6 max-h-[90vh] overflow-y-auto animate-slide-up sm:animate-scale-in">
-              {/* Drag handle (solo móvil) */}
-              <div className="bottom-sheet-handle sm:hidden" aria-hidden="true" />
-
-              {/* Botón de cierre - arriba a la derecha */}
-              <button
-                onClick={() => setShowReviewForm(false)}
-                className="absolute top-5 right-5 w-9 h-9 rounded-full bg-[var(--surface-tile)] flex items-center justify-center hover:bg-[var(--surface-tile)] transition-colors"
-                aria-label="Cerrar formulario de reseña"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-[#8B7355]">
-                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-                </svg>
-              </button>
-
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50">
+            <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto animate-fade-in-up">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Dejar reseña</h2>
+                <button
+                  onClick={() => setShowReviewForm(false)}
+                  className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-500">
+                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                  </svg>
+                </button>
+              </div>
               <ReviewForm
                 experienceId={match.experienceId}
                 targetId={canReviewData.targetUser.id}

@@ -169,24 +169,24 @@ export default function MatchActions({
   // Completed - Review prompt
   if (status === 'completed' && canReviewData?.canReview && !reviewSubmitted) {
     return (
-      <div className="mx-4 mt-4">
-        <div className="review-prompt animate-fade-in-up">
-          <div className="review-prompt-icon" aria-hidden="true">
-            ⭐
+      <div className="mx-4 mt-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-emerald-600">
+              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
+            </svg>
           </div>
-          <div className="review-prompt-body">
-            <p className="review-prompt-title">
-              ¡Cuéntanos cómo fue!
-            </p>
-            <p className="review-prompt-subtitle">
-              Tu opinión sobre {canReviewData.targetUser?.name} ayuda a la comunidad
+          <div className="flex-1">
+            <h3 className="font-semibold text-emerald-800">¡Experiencia completada!</h3>
+            <p className="text-sm text-emerald-600">
+              Deja una reseña para {canReviewData.targetUser?.name}
             </p>
           </div>
           <button
             onClick={onShowReviewForm}
-            className="review-prompt-cta ripple"
+            className="px-4 py-2 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition-colors shadow-md"
           >
-            Valorar
+            Reseñar
           </button>
         </div>
       </div>
@@ -196,17 +196,17 @@ export default function MatchActions({
   // Completed - Already reviewed
   if (status === 'completed' && (canReviewData?.canReview === false || reviewSubmitted)) {
     return (
-      <div className="mx-4 mt-4">
-        <div className="review-prompt-done animate-fade-in">
-          <div className="review-prompt-done-icon" aria-hidden="true">
-            ✅
+      <div className="mx-4 mt-4 bg-gray-50 border border-gray-200 rounded-2xl p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-gray-500">
+              <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+            </svg>
           </div>
-          <div>
-            <p className="review-prompt-done-title">
-              {reviewSubmitted ? '¡Reseña enviada!' : 'Experiencia completada'}
-            </p>
-            <p className="review-prompt-done-subtitle">
-              {reviewSubmitted ? 'Gracias por ayudar a la comunidad' : canReviewData?.reason || 'Ya dejaste tu reseña'}
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-700">Experiencia completada</h3>
+            <p className="text-sm text-gray-500">
+              {reviewSubmitted ? '¡Gracias por tu reseña!' : canReviewData?.reason || 'Ya has dejado tu reseña'}
             </p>
           </div>
         </div>
