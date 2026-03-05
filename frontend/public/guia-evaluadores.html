@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FiestApp - Guia para Evaluadores</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #F8F6F3;
+      color: #2D2318;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1E5F8C 0%, #0D7355 60%, #E6A817 100%);
+      padding: 60px 24px 48px;
+      text-align: center;
+      color: white;
+    }
+
+    .header-logo {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 8px;
+    }
+
+    .header-subtitle {
+      font-size: 18px;
+      opacity: 0.9;
+      font-weight: 400;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .header-badge {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 8px 20px;
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      backdrop-filter: blur(4px);
+    }
+
+    /* Container */
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Sections */
+    .section {
+      background: white;
+      border-radius: 16px;
+      padding: 36px 32px;
+      margin-top: -24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      position: relative;
+    }
+
+    .section + .section {
+      margin-top: 20px;
+    }
+
+    .section-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #1E5F8C, #0D7355);
+      color: white;
+      border-radius: 50%;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1A1410;
+      margin-bottom: 16px;
+      line-height: 1.3;
+    }
+
+    .section-intro {
+      color: #6B5D4F;
+      margin-bottom: 20px;
+      font-size: 15px;
+    }
+
+    /* Steps */
+    .steps {
+      list-style: none;
+      counter-reset: step;
+    }
+
+    .steps li {
+      counter-increment: step;
+      padding: 12px 0 12px 44px;
+      position: relative;
+      border-bottom: 1px solid #F0EBE4;
+      font-size: 15px;
+      color: #4A3F34;
+    }
+
+    .steps li:last-child { border-bottom: none; }
+
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 28px;
+      height: 28px;
+      background: #F0EBE4;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #6B5D4F;
+    }
+
+    /* Code block */
+    .code-block {
+      display: block;
+      background: #1A1410;
+      color: #E6A817;
+      padding: 16px 20px;
+      border-radius: 10px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-align: center;
+      margin: 16px 0;
+      user-select: all;
+    }
+
+    .code-inline {
+      background: #F0EBE4;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #C41E3A;
+    }
+
+    /* Link */
+    .link-block {
+      display: block;
+      background: linear-gradient(135deg, #1E5F8C, #0D7355);
+      color: white;
+      text-decoration: none;
+      padding: 16px 24px;
+      border-radius: 12px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 16px;
+      margin: 16px 0;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .link-block:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(30, 95, 140, 0.3);
+    }
+
+    .link-block small {
+      display: block;
+      margin-top: 4px;
+      font-weight: 400;
+      font-size: 13px;
+      opacity: 0.85;
+    }
+
+    /* Table */
+    .accounts-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+
+    .accounts-table th {
+      background: #F8F6F3;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      color: #6B5D4F;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 2px solid #E8E2D9;
+    }
+
+    .accounts-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #F0EBE4;
+      color: #4A3F34;
+    }
+
+    .accounts-table tr:last-child td { border-bottom: none; }
+
+    .accounts-table .email {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 13px;
+      color: #1E5F8C;
+    }
+
+    .badge-recommended {
+      display: inline-block;
+      background: #E6A817;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 100px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    .badge-admin {
+      display: inline-block;
+      background: #C41E3A;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 100px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* Card de tarjeta */
+    .card-mock {
+      background: linear-gradient(135deg, #1A1410 0%, #3D3428 100%);
+      border-radius: 14px;
+      padding: 28px 24px;
+      color: white;
+      margin: 20px 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-mock::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 120px;
+      height: 120px;
+      background: rgba(230, 168, 23, 0.15);
+      border-radius: 50%;
+    }
+
+    .card-mock-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      opacity: 0.6;
+      margin-bottom: 4px;
+    }
+
+    .card-mock-number {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 22px;
+      letter-spacing: 3px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #E6A817;
+    }
+
+    .card-mock-row {
+      display: flex;
+      gap: 32px;
+    }
+
+    .card-mock-field span {
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.5;
+      margin-bottom: 2px;
+    }
+
+    .card-mock-field strong {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .card-mock-stripe {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      opacity: 0.3;
+    }
+
+    /* Info box */
+    .info-box {
+      background: #FEF9E7;
+      border-left: 4px solid #E6A817;
+      border-radius: 0 10px 10px 0;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 14px;
+      color: #6B5D4F;
+    }
+
+    .info-box strong { color: #1A1410; }
+
+    /* Checklist */
+    .checklist {
+      list-style: none;
+    }
+
+    .checklist li {
+      padding: 8px 0 8px 32px;
+      position: relative;
+      font-size: 15px;
+      color: #4A3F34;
+    }
+
+    .checklist li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 18px;
+      height: 18px;
+      border: 2px solid #D4C4A0;
+      border-radius: 4px;
+    }
+
+    .checklist-group {
+      margin-bottom: 20px;
+    }
+
+    .checklist-group-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: #1A1410;
+      margin-bottom: 6px;
+      padding-left: 4px;
+    }
+
+    /* Feedback categories */
+    .feedback-types {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .feedback-type {
+      text-align: center;
+      padding: 20px 12px;
+      background: #F8F6F3;
+      border-radius: 12px;
+      border: 1.5px solid #E8E2D9;
+    }
+
+    .feedback-type-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      font-size: 20px;
+    }
+
+    .feedback-type-name {
+      font-weight: 700;
+      font-size: 13px;
+      color: #1A1410;
+      margin-bottom: 4px;
+    }
+
+    .feedback-type-desc {
+      font-size: 12px;
+      color: #8B7355;
+      line-height: 1.4;
+    }
+
+    .ft-problema .feedback-type-icon { background: #FDE8E8; }
+    .ft-mejora .feedback-type-icon { background: #E8F0FE; }
+    .ft-opinion .feedback-type-icon { background: #E8F5F0; }
+
+    /* Questions */
+    .questions {
+      list-style: none;
+    }
+
+    .questions li {
+      padding: 12px 0;
+      border-bottom: 1px solid #F0EBE4;
+      font-size: 15px;
+      color: #4A3F34;
+      font-style: italic;
+    }
+
+    .questions li:last-child { border-bottom: none; }
+
+    /* Flow steps */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin: 16px 0;
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #F8F6F3;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #4A3F34;
+    }
+
+    .flow-step-num {
+      width: 28px;
+      height: 28px;
+      background: white;
+      border: 2px solid #D4C4A0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #8B7355;
+      flex-shrink: 0;
+    }
+
+    .flow-step-account {
+      margin-left: auto;
+      font-size: 12px;
+      color: #8B7355;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .flow-arrow {
+      text-align: center;
+      color: #D4C4A0;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: #A89880;
+      font-size: 13px;
+    }
+
+    .footer p + p { margin-top: 6px; }
+
+    .footer a {
+      color: #1E5F8C;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .header { padding: 40px 20px 36px; }
+      .header-logo { font-size: 32px; }
+      .header-subtitle { font-size: 16px; }
+      .section { padding: 28px 20px; border-radius: 12px; }
+      .section-title { font-size: 19px; }
+      .card-mock-number { font-size: 17px; letter-spacing: 2px; }
+      .feedback-types { grid-template-columns: 1fr; }
+      .accounts-table { font-size: 13px; }
+      .accounts-table th, .accounts-table td { padding: 8px 6px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-logo">FiestApp</div>
+    <div class="header-subtitle">Guia para evaluadores del prototipo</div>
+    <div class="header-badge">DOCUMENTO CONFIDENCIAL</div>
+  </div>
+
+  <div class="container">
+
+    <!-- Bienvenida -->
+    <div class="section">
+      <p style="font-size: 16px; color: #4A3F34; line-height: 1.8;">
+        Gracias por participar en la evaluacion de FiestApp. Vuestras impresiones son fundamentales para construir un producto que realmente funcione. En este documento encontrareis todo lo necesario para acceder a la aplicacion, probar sus funcionalidades y enviarnos vuestros comentarios de forma sencilla.
+      </p>
+      <div class="info-box" style="margin-top: 20px;">
+        <strong>No hace falta ser experto en tecnologia.</strong> Simplemente navegad por la aplicacion como lo hariais normalmente y, cuando algo os llame la atencion (positiva o negativamente), usad el boton de feedback para contarnoslo.
+      </div>
+    </div>
+
+    <!-- Paso 1: Activar feedback -->
+    <div class="section">
+      <div class="section-number">1</div>
+      <div class="section-title">Activar el sistema de feedback</div>
+      <p class="section-intro">
+        Antes de empezar, activad el modo evaluacion para poder enviarnos comentarios desde cualquier pantalla.
+      </p>
+
+      <a href="https://fiestapp.lmsc.es/evaluar" class="link-block" target="_blank">
+        Acceder al panel de evaluacion
+        <small>fiestapp.lmsc.es/evaluar</small>
+      </a>
+
+      <ol class="steps">
+        <li>Entrad en el enlace de arriba</li>
+        <li>Introducid el codigo de acceso:
+          <div class="code-block">FIESTAPP-EVAL-2026</div>
+        </li>
+        <li>Escribid vuestro nombre completo (para identificar quien envia cada comentario)</li>
+        <li>Pulsad <strong>Activar modo evaluacion</strong></li>
+      </ol>
+
+      <div class="info-box">
+        A partir de ese momento vereis un boton azul <strong>&laquo;Feedback&raquo;</strong> en la parte inferior derecha de todas las pantallas. Solo teneis que pulsarlo cuando querais decirnos algo.
+      </div>
+    </div>
+
+    <!-- Paso 2: Como enviar feedback -->
+    <div class="section">
+      <div class="section-number">2</div>
+      <div class="section-title">Como enviar feedback</div>
+      <p class="section-intro">
+        Cada vez que pulseis el boton de feedback, se abrira un panel donde podeis clasificar vuestra observacion:
+      </p>
+
+      <div class="feedback-types">
+        <div class="feedback-type ft-problema">
+          <div class="feedback-type-icon">&#x26A0;</div>
+          <div class="feedback-type-name">Problema</div>
+          <div class="feedback-type-desc">Algo no funciona bien o da error</div>
+        </div>
+        <div class="feedback-type ft-mejora">
+          <div class="feedback-type-icon">&#x1F4A1;</div>
+          <div class="feedback-type-name">Mejora</div>
+          <div class="feedback-type-desc">Algo que cambiariais o anadiriais</div>
+        </div>
+        <div class="feedback-type ft-opinion">
+          <div class="feedback-type-icon">&#x1F4AC;</div>
+          <div class="feedback-type-name">Opinion</div>
+          <div class="feedback-type-desc">Impresion general sobre lo que veis</div>
+        </div>
+      </div>
+
+      <p style="font-size: 14px; color: #6B5D4F;">
+        Tambien podeis indicar la <strong>prioridad</strong> (baja, media o alta) y escribir vuestra descripcion. Cada comentario nos llega al instante por correo electronico junto con la pagina donde estabais en ese momento.
+      </p>
+    </div>
+
+    <!-- Paso 3: Cuentas -->
+    <div class="section">
+      <div class="section-number">3</div>
+      <div class="section-title">Cuentas de prueba disponibles</div>
+      <p class="section-intro">
+        Hay varias cuentas ya creadas con datos de ejemplo. Podeis usar cualquiera de ellas para explorar la aplicacion desde diferentes perspectivas: como viajero, como anfitrion o como administrador.
+      </p>
+
+      <div class="info-box">
+        <strong>Contrasena para todas las cuentas:</strong>
+        <div class="code-block" style="margin-bottom: 0;">password123</div>
+      </div>
+
+      <table class="accounts-table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Ciudad</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Usuario Demo <span class="badge-recommended">recomendada</span></td>
+            <td class="email">demo@test.com</td>
+            <td>Madrid</td>
+          </tr>
+          <tr>
+            <td>Maria Garcia</td>
+            <td class="email">maria@test.com</td>
+            <td>Sevilla</td>
+          </tr>
+          <tr>
+            <td>Carlos Martinez</td>
+            <td class="email">carlos@test.com</td>
+            <td>Pamplona</td>
+          </tr>
+          <tr>
+            <td>Laura Perez</td>
+            <td class="email">laura@test.com</td>
+            <td>Valencia</td>
+          </tr>
+          <tr>
+            <td>Pedro Sanchez</td>
+            <td class="email">pedro@test.com</td>
+            <td>Valencia</td>
+          </tr>
+          <tr>
+            <td>Juan Romero</td>
+            <td class="email">juan@test.com</td>
+            <td>Sevilla</td>
+          </tr>
+          <tr>
+            <td>Ana Lopez</td>
+            <td class="email">ana@test.com</td>
+            <td>Cadiz</td>
+          </tr>
+          <tr>
+            <td>Administrador <span class="badge-admin">admin</span></td>
+            <td class="email">admin@fiestapp.com</td>
+            <td>Madrid</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="font-size: 13px; color: #8B7355; margin-top: 12px;">
+        La cuenta <strong>demo@test.com</strong> es la que mas datos tiene precargados: solicitudes en curso, conversaciones con anfitriones y saldo en el monedero. Es la mejor para empezar a explorar.
+      </p>
+    </div>
+
+    <!-- Paso 4: Tarjeta de prueba -->
+    <div class="section">
+      <div class="section-number">4</div>
+      <div class="section-title">Tarjeta para recargar el monedero</div>
+      <p class="section-intro">
+        Para participar en experiencias de pago necesitais saldo en el monedero. La recarga se hace con tarjeta de credito. Como estamos en modo prueba, usad esta tarjeta ficticia &mdash; <strong>no se cobra dinero real</strong>.
+      </p>
+
+      <div class="card-mock">
+        <div class="card-mock-stripe">MODO PRUEBA</div>
+        <div class="card-mock-label">Numero de tarjeta</div>
+        <div class="card-mock-number">4242 4242 4242 4242</div>
+        <div class="card-mock-row">
+          <div class="card-mock-field">
+            <span>Caducidad</span>
+            <strong>12/27</strong>
+          </div>
+          <div class="card-mock-field">
+            <span>CVC</span>
+            <strong>123</strong>
+          </div>
+          <div class="card-mock-field">
+            <span>Nombre</span>
+            <strong>Cualquiera</strong>
+          </div>
+        </div>
+      </div>
+
+      <p style="font-size: 14px; color: #6B5D4F;">
+        La fecha de caducidad puede ser cualquier fecha futura y el CVC cualquier numero de 3 cifras. Es la tarjeta de prueba de Stripe, la pasarela de pago que usamos.
+      </p>
+    </div>
+
+    <!-- Paso 5: Flujo completo -->
+    <div class="section">
+      <div class="section-number">5</div>
+      <div class="section-title">Probar una reserva completa</div>
+      <p class="section-intro">
+        Este es el flujo principal de la aplicacion. Os animamos a probarlo entero para tener una vision completa del producto:
+      </p>
+
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-step-num">1</div>
+          Entrad con la cuenta demo
+          <div class="flow-step-account">demo@test.com</div>
+        </div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-step">
+          <div class="flow-step-num">2</div>
+          Id a Monedero y recargad saldo con la tarjeta de prueba
+        </div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-step">
+          <div class="flow-step-num">3</div>
+          Buscad una experiencia y solicitad participar
+        </div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-step">
+          <div class="flow-step-num">4</div>
+          Cerrad sesion y entrad con la cuenta del anfitrion
+          <div class="flow-step-account">ej: maria@test.com</div>
+        </div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-step">
+          <div class="flow-step-num">5</div>
+          Aceptad la solicitud desde los mensajes
+        </div>
+        <div class="flow-arrow">&darr;</div>
+        <div class="flow-step">
+          <div class="flow-step-num">6</div>
+          Usad el chat para coordinar los detalles de la experiencia
+        </div>
+      </div>
+    </div>
+
+    <!-- Paso 6: Que probar -->
+    <div class="section">
+      <div class="section-number">6</div>
+      <div class="section-title">Que secciones probar</div>
+      <p class="section-intro">
+        No es necesario probarlo todo en un solo dia. Id a vuestro ritmo y enviad feedback cada vez que se os ocurra algo.
+      </p>
+
+      <div class="checklist-group">
+        <div class="checklist-group-title">Registro y perfil</div>
+        <ul class="checklist">
+          <li>Crear una cuenta nueva (o usar una existente)</li>
+          <li>Editar el perfil: foto, biografia, ciudad</li>
+          <li>Ver como queda el perfil publico</li>
+        </ul>
+      </div>
+
+      <div class="checklist-group">
+        <div class="checklist-group-title">Explorar experiencias</div>
+        <ul class="checklist">
+          <li>Pagina de inicio: se entiende que ofrece la app?</li>
+          <li>Buscar experiencias por ciudad o festival</li>
+          <li>Ver el mapa con las experiencias</li>
+          <li>Detalle de una experiencia (fotos, descripcion, precio, resenas)</li>
+          <li>Anadir a favoritos</li>
+        </ul>
+      </div>
+
+      <div class="checklist-group">
+        <div class="checklist-group-title">Crear una experiencia (como anfitrion)</div>
+        <ul class="checklist">
+          <li>Publicar una experiencia propia</li>
+          <li>Ver como queda publicada</li>
+          <li>Editarla despues de publicar</li>
+        </ul>
+      </div>
+
+      <div class="checklist-group">
+        <div class="checklist-group-title">Reservar y comunicarse</div>
+        <ul class="checklist">
+          <li>Solicitar participar en una experiencia</li>
+          <li>Ver el estado de las solicitudes</li>
+          <li>Usar el chat (texto, ubicacion, notas de voz)</li>
+        </ul>
+      </div>
+
+      <div class="checklist-group">
+        <div class="checklist-group-title">Monedero y pagos</div>
+        <ul class="checklist">
+          <li>Recargar el monedero con la tarjeta de prueba</li>
+          <li>Entender el sistema de saldo y comisiones</li>
+        </ul>
+      </div>
+
+      <div class="checklist-group">
+        <div class="checklist-group-title">Otras secciones</div>
+        <ul class="checklist">
+          <li>Calendario de experiencias</li>
+          <li>Notificaciones</li>
+          <li>Navegacion general entre pantallas</li>
+          <li>Funcionamiento en el movil</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Lo que mas nos interesa -->
+    <div class="section">
+      <div class="section-number">7</div>
+      <div class="section-title">Lo que mas nos interesa saber</div>
+      <p class="section-intro">
+        Mientras probais la aplicacion, tened en mente estas preguntas. Cualquier impresion, por pequena que sea, nos resulta util:
+      </p>
+
+      <ul class="questions">
+        <li>La aplicacion os resulta intuitiva o hay momentos en los que os perdeis?</li>
+        <li>Echais en falta alguna funcionalidad?</li>
+        <li>Hay algo del diseno que no os convenza?</li>
+        <li>Encontrais algun error o algo que no funcione?</li>
+        <li>Los textos y botones son claros?</li>
+        <li>Usariais esta aplicacion para planificar vuestra experiencia en unas fiestas?</li>
+        <li>Que es lo primero que mejorariais?</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p><strong>FiestApp</strong> &mdash; Vive las fiestas como un local</p>
+    <p>Documento para uso interno de evaluadores &middot; Marzo 2026</p>
+    <p style="margin-top: 12px;">
+      <a href="https://fiestapp.lmsc.es" target="_blank">fiestapp.lmsc.es</a>
+    </p>
+  </div>
+
+</body>
+</html>
