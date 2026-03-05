@@ -60,6 +60,8 @@ export interface Match {
   participants?: number;
   participantNames?: string[];
   totalPrice?: number;
+  hostConfirmed?: boolean;
+  requesterConfirmed?: boolean;
   createdAt: string;
   updatedAt: string;
   experience: MatchExperience;

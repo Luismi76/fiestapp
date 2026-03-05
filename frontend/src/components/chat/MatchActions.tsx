@@ -11,11 +11,41 @@ interface MatchActionsProps {
   walletInfo: WalletInfo | null;
   canReviewData: CanReviewResponse | null;
   reviewSubmitted: boolean;
+  hostConfirmed?: boolean;
+  requesterConfirmed?: boolean;
+  otherUserName?: string;
   onAccept: () => void;
   onReject: () => void;
   onCancel: () => void;
   onComplete: () => void;
+  onConfirm: () => void;
   onShowReviewForm: () => void;
+}
+
+function WalletWarning({ walletInfo }: { walletInfo: WalletInfo }) {
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600">
+            <path d="M2.273 5.625A4.483 4.483 0 0 1 5.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 3H5.25a3 3 0 0 0-2.977 2.625ZM2.273 8.625A4.483 4.483 0 0 1 5.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 6H5.25a3 3 0 0 0-2.977 2.625ZM5.25 9a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H15a.75.75 0 0 0-.75.75 2.25 2.25 0 0 1-4.5 0A.75.75 0 0 0 9 9H5.25Z" />
+          </svg>
+        </div>
+        <div>
+          <p className="font-medium text-amber-800">Saldo insuficiente</p>
+          <p className="text-sm text-amber-600">
+            Necesitas {walletInfo.platformFee}€ en tu monedero. Saldo actual: {walletInfo.balance.toFixed(2)}€
+          </p>
+        </div>
+      </div>
+      <Link
+        href="/wallet"
+        className="block w-full py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors text-center"
+      >
+        Recargar monedero
+      </Link>
+    </div>
+  );
 }
 
 export default function MatchActions({
@@ -24,41 +54,21 @@ export default function MatchActions({
   walletInfo,
   canReviewData,
   reviewSubmitted,
+  hostConfirmed,
+  requesterConfirmed,
+  otherUserName,
   onAccept,
   onReject,
   onCancel,
   onComplete,
+  onConfirm,
   onShowReviewForm,
 }: MatchActionsProps) {
   // Pending - Host actions
   if (status === 'pending' && isHost) {
     return (
-      <div className="mx-4 mt-4 space-y-3">
-        {/* Wallet balance warning for host */}
-        {walletInfo && !walletInfo.canOperate && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600">
-                  <path d="M2.273 5.625A4.483 4.483 0 0 1 5.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 3H5.25a3 3 0 0 0-2.977 2.625ZM2.273 8.625A4.483 4.483 0 0 1 5.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 6H5.25a3 3 0 0 0-2.977 2.625ZM5.25 9a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H15a.75.75 0 0 0-.75.75 2.25 2.25 0 0 1-4.5 0A.75.75 0 0 0 9 9H5.25Z" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-amber-800">Saldo insuficiente</p>
-                <p className="text-sm text-amber-600">
-                  Necesitas {walletInfo.platformFee}€ en tu monedero para usar el chat. Saldo actual: {walletInfo.balance.toFixed(2)}€
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/wallet"
-              className="block w-full py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors text-center"
-            >
-              Recargar monedero
-            </Link>
-          </div>
-        )}
-
+      <div className="mx-4 mt-3 space-y-3">
+        {walletInfo && !walletInfo.canOperate && <WalletWarning walletInfo={walletInfo} />}
         <div className="flex gap-2">
           <button
             onClick={onAccept}
@@ -86,33 +96,8 @@ export default function MatchActions({
   // Pending - Requester actions
   if (status === 'pending' && !isHost) {
     return (
-      <div className="mx-4 mt-4 space-y-3">
-        {/* Wallet balance warning for requester */}
-        {walletInfo && !walletInfo.canOperate && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600">
-                  <path d="M2.273 5.625A4.483 4.483 0 0 1 5.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 3H5.25a3 3 0 0 0-2.977 2.625ZM2.273 8.625A4.483 4.483 0 0 1 5.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 6H5.25a3 3 0 0 0-2.977 2.625ZM5.25 9a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H15a.75.75 0 0 0-.75.75 2.25 2.25 0 0 1-4.5 0A.75.75 0 0 0 9 9H5.25Z" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-amber-800">Saldo insuficiente</p>
-                <p className="text-sm text-amber-600">
-                  Necesitas {walletInfo.platformFee}€ en tu monedero para usar el chat. Saldo actual: {walletInfo.balance.toFixed(2)}€
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/wallet"
-              className="block w-full py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors text-center"
-            >
-              Recargar monedero
-            </Link>
-          </div>
-        )}
-
-        {/* Wallet OK */}
+      <div className="mx-4 mt-3 space-y-3">
+        {walletInfo && !walletInfo.canOperate && <WalletWarning walletInfo={walletInfo} />}
         {walletInfo && walletInfo.canOperate && (
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
             <div className="flex items-center gap-3">
@@ -124,13 +109,12 @@ export default function MatchActions({
               <div>
                 <p className="font-medium text-emerald-800">Saldo disponible</p>
                 <p className="text-sm text-emerald-600">
-                  Tienes {walletInfo.balance.toFixed(2)}€. Al completar la experiencia se cobrarán {walletInfo.platformFee}€ de comisión.
+                  Tienes {walletInfo.balance.toFixed(2)}€. Al completar se cobrarán {walletInfo.platformFee}€ de comisión.
                 </p>
               </div>
             </div>
           </div>
         )}
-
         <button
           onClick={onCancel}
           className="w-full py-3 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition-colors"
@@ -141,27 +125,76 @@ export default function MatchActions({
     );
   }
 
-  // Accepted
+  // Accepted - Confirmation + cancel
   if (status === 'accepted') {
+    const myConfirmed = isHost ? hostConfirmed : requesterConfirmed;
+    const otherConfirmed = isHost ? requesterConfirmed : hostConfirmed;
+
     return (
-      <div className="mx-4 mt-4 flex gap-2">
-        {isHost && (
+      <div className="mx-4 mt-3 space-y-3">
+        {/* Confirmation status */}
+        <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Confirmacion de experiencia</div>
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                myConfirmed ? 'bg-emerald-500' : 'bg-gray-200'
+              }`}>
+                {myConfirmed ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-white">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+                )}
+              </div>
+              <span className={`text-sm font-medium ${myConfirmed ? 'text-emerald-700' : 'text-gray-600'}`}>
+                Tu {myConfirmed ? 'has confirmado' : 'pendiente de confirmar'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                otherConfirmed ? 'bg-emerald-500' : 'bg-gray-200'
+              }`}>
+                {otherConfirmed ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-white">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+                )}
+              </div>
+              <span className={`text-sm font-medium ${otherConfirmed ? 'text-emerald-700' : 'text-gray-500'}`}>
+                {otherUserName || 'El otro usuario'} {otherConfirmed ? 'ha confirmado' : 'pendiente'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          {!myConfirmed ? (
+            <button
+              onClick={onConfirm}
+              className="flex-1 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-colors shadow-md flex items-center justify-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
+              </svg>
+              Confirmar experiencia
+            </button>
+          ) : (
+            <div className="flex-1 py-3 bg-emerald-50 text-emerald-600 font-semibold rounded-xl text-center text-sm">
+              Esperando confirmacion de {otherUserName || 'el otro usuario'}
+            </div>
+          )}
           <button
-            onClick={onComplete}
-            className="flex-1 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-colors shadow-md flex items-center justify-center gap-2"
+            onClick={onCancel}
+            className="py-3 px-4 bg-red-50 text-red-500 font-semibold rounded-xl hover:bg-red-100 transition-colors text-sm"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-              <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
-            </svg>
-            Marcar completada
+            Cancelar
           </button>
-        )}
-        <button
-          onClick={onCancel}
-          className={`${isHost ? 'flex-1' : 'w-full'} py-3 bg-red-50 text-red-600 font-semibold rounded-xl hover:bg-red-100 transition-colors`}
-        >
-          Cancelar
-        </button>
+        </div>
       </div>
     );
   }
@@ -169,24 +202,21 @@ export default function MatchActions({
   // Completed - Review prompt
   if (status === 'completed' && canReviewData?.canReview && !reviewSubmitted) {
     return (
-      <div className="mx-4 mt-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-emerald-600">
-              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-emerald-800">¡Experiencia completada!</h3>
-            <p className="text-sm text-emerald-600">
-              Deja una reseña para {canReviewData.targetUser?.name}
-            </p>
-          </div>
+      <div className="mx-4 mt-3">
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 text-center">
+          <div className="text-4xl mb-3">🎉</div>
+          <h3 className="font-bold text-lg text-emerald-800 mb-1">Experiencia completada</h3>
+          <p className="text-sm text-emerald-600 mb-4">
+            ¿Que tal fue con {canReviewData.targetUser?.name}? Tu opinion ayuda a la comunidad.
+          </p>
           <button
             onClick={onShowReviewForm}
-            className="px-4 py-2 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition-colors shadow-md"
+            className="w-full py-3 bg-emerald-500 text-white font-semibold rounded-xl hover:bg-emerald-600 transition-colors shadow-md flex items-center justify-center gap-2"
           >
-            Reseñar
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+              <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
+            </svg>
+            Dejar resena
           </button>
         </div>
       </div>
@@ -196,7 +226,7 @@ export default function MatchActions({
   // Completed - Already reviewed
   if (status === 'completed' && (canReviewData?.canReview === false || reviewSubmitted)) {
     return (
-      <div className="mx-4 mt-4 bg-gray-50 border border-gray-200 rounded-2xl p-4">
+      <div className="mx-4 mt-3 bg-gray-50 border border-gray-200 rounded-2xl p-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-gray-500">
@@ -206,7 +236,7 @@ export default function MatchActions({
           <div className="flex-1">
             <h3 className="font-semibold text-gray-700">Experiencia completada</h3>
             <p className="text-sm text-gray-500">
-              {reviewSubmitted ? '¡Gracias por tu reseña!' : canReviewData?.reason || 'Ya has dejado tu reseña'}
+              {reviewSubmitted ? '¡Gracias por tu resena!' : canReviewData?.reason || 'Ya has dejado tu resena'}
             </p>
           </div>
         </div>

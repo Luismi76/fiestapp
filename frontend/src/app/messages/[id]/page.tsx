@@ -365,6 +365,28 @@ export default function ChatPage() {
     }
   };
 
+  const handleConfirm = async () => {
+    if (!match) return;
+    try {
+      const updated = await matchesApi.confirm(match.id);
+      setMatch(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          status: updated.status,
+          hostConfirmed: updated.hostConfirmed,
+          requesterConfirmed: updated.requesterConfirmed,
+        };
+      });
+      if (updated.status === 'completed') {
+        const reviewCheck = await reviewsApi.canReview(match.experienceId);
+        setCanReviewData(reviewCheck);
+      }
+    } catch {
+      setError('No se pudo confirmar la experiencia');
+    }
+  };
+
   const getAvatarSrc = (avatar?: string): string => {
     if (!avatar) return '/images/user_ana.png';
     if (avatar.startsWith('/images/')) return avatar;
@@ -439,10 +461,14 @@ export default function ChatPage() {
           walletInfo={walletInfo}
           canReviewData={canReviewData}
           reviewSubmitted={reviewSubmitted}
+          hostConfirmed={match.hostConfirmed}
+          requesterConfirmed={match.requesterConfirmed}
+          otherUserName={otherUser?.name}
           onAccept={handleAccept}
           onReject={handleReject}
           onCancel={handleCancel}
           onComplete={handleComplete}
+          onConfirm={handleConfirm}
           onShowReviewForm={() => setShowReviewForm(true)}
         />
 

@@ -381,9 +381,15 @@ export const matchesApi = {
     return response.data;
   },
 
-  // Marcar como completado
+  // Marcar como completado (legacy, solo host)
   complete: async (id: string): Promise<Match> => {
     const response = await api.patch<Match>(`/matches/${id}/complete`);
+    return response.data;
+  },
+
+  // Confirmar completación (bidireccional)
+  confirm: async (id: string): Promise<Match> => {
+    const response = await api.patch<Match>(`/matches/${id}/confirm`);
     return response.data;
   },
 
