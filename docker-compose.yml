@@ -92,6 +92,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fiestapp-backend.rule=Host(`fiestapp-api.lmsc.es`)"
+      - "traefik.http.routers.fiestapp-backend.priority=2000"
       - "traefik.http.routers.fiestapp-backend.entrypoints=http"
       - "traefik.http.routers.fiestapp-backend.service=fiestapp-backend"
       - "traefik.http.services.fiestapp-backend.loadbalancer.server.port=3001"
