@@ -34,8 +34,17 @@ export class MatchesController {
   findReceived(
     @Request() req: AuthenticatedRequest,
     @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
-    return this.matchesService.findReceivedMatches(req.user.userId, status);
+    return this.matchesService.findReceivedMatches(
+      req.user.userId,
+      status,
+      page ? parseInt(page, 10) : undefined,
+      limit ? parseInt(limit, 10) : undefined,
+      search,
+    );
   }
 
   // Mis solicitudes (soy requester)
@@ -43,8 +52,17 @@ export class MatchesController {
   findSent(
     @Request() req: AuthenticatedRequest,
     @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
-    return this.matchesService.findSentMatches(req.user.userId, status);
+    return this.matchesService.findSentMatches(
+      req.user.userId,
+      status,
+      page ? parseInt(page, 10) : undefined,
+      limit ? parseInt(limit, 10) : undefined,
+      search,
+    );
   }
 
   // Estadísticas de matches

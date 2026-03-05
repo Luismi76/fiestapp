@@ -321,127 +321,185 @@ export class MatchesService {
     return match;
   }
 
+  // Select común para listas de matches
+  private matchListSelect(includeRequester: boolean) {
+    return {
+      id: true,
+      experienceId: true,
+      requesterId: true,
+      hostId: true,
+      status: true,
+      paymentStatus: true,
+      hostConfirmed: true,
+      requesterConfirmed: true,
+      startDate: true,
+      endDate: true,
+      participants: true,
+      participantNames: true,
+      totalPrice: true,
+      createdAt: true,
+      updatedAt: true,
+      experience: {
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          price: true,
+          city: true,
+          photos: true,
+          festival: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      ...(includeRequester
+        ? {
+            requester: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                verified: true,
+                city: true,
+                bio: true,
+              },
+            },
+          }
+        : {
+            host: {
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                verified: true,
+                city: true,
+              },
+            },
+          }),
+      _count: {
+        select: {
+          messages: true,
+        },
+      },
+    };
+  }
+
+  // Construir filtro de búsqueda
+  private buildSearchFilter(search: string) {
+    return {
+      OR: [
+        { experience: { title: { contains: search, mode: 'insensitive' as const } } },
+        { experience: { city: { contains: search, mode: 'insensitive' as const } } },
+        { experience: { festival: { name: { contains: search, mode: 'insensitive' as const } } } },
+      ],
+    };
+  }
+
   // Obtener matches donde soy el host (solicitudes recibidas)
-  async findReceivedMatches(hostId: string, status?: string) {
+  async findReceivedMatches(
+    hostId: string,
+    status?: string,
+    page?: number,
+    limit?: number,
+    search?: string,
+  ) {
     const where: Record<string, unknown> = { hostId };
     if (status) {
       where.status = status;
     }
+    if (search) {
+      const searchFilter = this.buildSearchFilter(search);
+      where.OR = searchFilter.OR;
+    }
 
-    return this.prisma.match.findMany({
-      where,
-      select: {
-        id: true,
-        experienceId: true,
-        requesterId: true,
-        hostId: true,
-        status: true,
-        paymentStatus: true,
-        hostConfirmed: true,
-        requesterConfirmed: true,
-        startDate: true,
-        endDate: true,
-        participants: true,
-        participantNames: true,
-        totalPrice: true,
-        createdAt: true,
-        updatedAt: true,
-        experience: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            price: true,
-            city: true,
-            festival: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-        requester: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-            verified: true,
-            city: true,
-            bio: true,
-          },
-        },
-        _count: {
-          select: {
-            messages: true,
-          },
-        },
+    // Si no hay paginación, devolver todo (retrocompatible)
+    if (!page) {
+      return this.prisma.match.findMany({
+        where,
+        select: this.matchListSelect(true),
+        orderBy: { updatedAt: 'desc' },
+      });
+    }
+
+    const take = Math.min(limit || 20, 50);
+    const skip = (page - 1) * take;
+
+    const [matches, total] = await Promise.all([
+      this.prisma.match.findMany({
+        where,
+        select: this.matchListSelect(true),
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.match.count({ where }),
+    ]);
+
+    return {
+      matches,
+      pagination: {
+        page,
+        limit: take,
+        total,
+        totalPages: Math.ceil(total / take),
+        hasMore: skip + matches.length < total,
       },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-    });
+    };
   }
 
   // Obtener matches donde soy el requester (mis solicitudes)
-  async findSentMatches(requesterId: string, status?: string) {
+  async findSentMatches(
+    requesterId: string,
+    status?: string,
+    page?: number,
+    limit?: number,
+    search?: string,
+  ) {
     const where: Record<string, unknown> = { requesterId };
     if (status) {
       where.status = status;
     }
+    if (search) {
+      const searchFilter = this.buildSearchFilter(search);
+      where.OR = searchFilter.OR;
+    }
 
-    return this.prisma.match.findMany({
-      where,
-      select: {
-        id: true,
-        experienceId: true,
-        requesterId: true,
-        hostId: true,
-        status: true,
-        paymentStatus: true,
-        hostConfirmed: true,
-        requesterConfirmed: true,
-        startDate: true,
-        endDate: true,
-        participants: true,
-        participantNames: true,
-        totalPrice: true,
-        createdAt: true,
-        updatedAt: true,
-        experience: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            price: true,
-            city: true,
-            festival: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-        host: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-            verified: true,
-            city: true,
-          },
-        },
-        _count: {
-          select: {
-            messages: true,
-          },
-        },
+    // Si no hay paginación, devolver todo (retrocompatible)
+    if (!page) {
+      return this.prisma.match.findMany({
+        where,
+        select: this.matchListSelect(false),
+        orderBy: { updatedAt: 'desc' },
+      });
+    }
+
+    const take = Math.min(limit || 20, 50);
+    const skip = (page - 1) * take;
+
+    const [matches, total] = await Promise.all([
+      this.prisma.match.findMany({
+        where,
+        select: this.matchListSelect(false),
+        orderBy: { updatedAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.match.count({ where }),
+    ]);
+
+    return {
+      matches,
+      pagination: {
+        page,
+        limit: take,
+        total,
+        totalPages: Math.ceil(total / take),
+        hasMore: skip + matches.length < total,
       },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-    });
+    };
   }
 
   // Obtener un match por ID
@@ -878,6 +936,11 @@ export class MatchesService {
   async confirmCompletion(id: string, userId: string) {
     const match = await this.prisma.match.findUnique({
       where: { id },
+      include: {
+        experience: { select: { title: true } },
+        host: { select: { id: true, name: true } },
+        requester: { select: { id: true, name: true } },
+      },
     });
 
     if (!match) {
@@ -925,9 +988,40 @@ export class MatchesService {
       (isRequester && match.hostConfirmed && updatedMatch.requesterConfirmed);
 
     if (bothConfirmed) {
-      // Completar el match automáticamente
-      return this.completeMatch(id);
+      // Notificar a ambos que la experiencia se ha completado
+      const completedMatch = await this.completeMatch(id);
+
+      await Promise.all([
+        this.notificationsService.create({
+          userId: match.hostId,
+          type: 'match_completed',
+          title: 'Experiencia completada',
+          message: `La experiencia "${match.experience.title}" ha sido completada por ambas partes`,
+          data: { matchId: id },
+        }),
+        this.notificationsService.create({
+          userId: match.requesterId,
+          type: 'match_completed',
+          title: 'Experiencia completada',
+          message: `La experiencia "${match.experience.title}" ha sido completada por ambas partes`,
+          data: { matchId: id },
+        }),
+      ]);
+
+      return completedMatch;
     }
+
+    // Notificar al otro usuario que uno ha confirmado
+    const otherUserId = isHost ? match.requesterId : match.hostId;
+    const confirmerName = isHost ? match.host.name : match.requester.name;
+
+    await this.notificationsService.create({
+      userId: otherUserId,
+      type: 'match_confirmed',
+      title: 'Confirmacion recibida',
+      message: `${confirmerName} ha confirmado la experiencia "${match.experience.title}". Confirma tu tambien para completarla.`,
+      data: { matchId: id },
+    });
 
     return updatedMatch;
   }

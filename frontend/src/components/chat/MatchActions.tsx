@@ -20,6 +20,7 @@ interface MatchActionsProps {
   onComplete: () => void;
   onConfirm: () => void;
   onShowReviewForm: () => void;
+  onOpenDispute?: () => void;
 }
 
 function WalletWarning({ walletInfo }: { walletInfo: WalletInfo }) {
@@ -63,6 +64,7 @@ export default function MatchActions({
   onComplete,
   onConfirm,
   onShowReviewForm,
+  onOpenDispute,
 }: MatchActionsProps) {
   // Pending - Host actions
   if (status === 'pending' && isHost) {
@@ -195,6 +197,19 @@ export default function MatchActions({
             Cancelar
           </button>
         </div>
+
+        {/* Dispute button */}
+        {onOpenDispute && (
+          <button
+            onClick={onOpenDispute}
+            className="w-full py-2.5 text-xs text-gray-400 hover:text-red-500 font-medium transition-colors flex items-center justify-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+            </svg>
+            Reportar un problema
+          </button>
+        )}
       </div>
     );
   }
@@ -202,7 +217,7 @@ export default function MatchActions({
   // Completed - Review prompt
   if (status === 'completed' && canReviewData?.canReview && !reviewSubmitted) {
     return (
-      <div className="mx-4 mt-3">
+      <div className="mx-4 mt-3 space-y-2">
         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 text-center">
           <div className="text-4xl mb-3">🎉</div>
           <h3 className="font-bold text-lg text-emerald-800 mb-1">Experiencia completada</h3>
@@ -219,6 +234,17 @@ export default function MatchActions({
             Dejar resena
           </button>
         </div>
+        {onOpenDispute && (
+          <button
+            onClick={onOpenDispute}
+            className="w-full py-2.5 text-xs text-gray-400 hover:text-red-500 font-medium transition-colors flex items-center justify-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+            </svg>
+            Reportar un problema
+          </button>
+        )}
       </div>
     );
   }
@@ -226,20 +252,33 @@ export default function MatchActions({
   // Completed - Already reviewed
   if (status === 'completed' && (canReviewData?.canReview === false || reviewSubmitted)) {
     return (
-      <div className="mx-4 mt-3 bg-gray-50 border border-gray-200 rounded-2xl p-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-gray-500">
-              <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-700">Experiencia completada</h3>
-            <p className="text-sm text-gray-500">
-              {reviewSubmitted ? '¡Gracias por tu resena!' : canReviewData?.reason || 'Ya has dejado tu resena'}
-            </p>
+      <div className="mx-4 mt-3 space-y-2">
+        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-gray-500">
+                <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-gray-700">Experiencia completada</h3>
+              <p className="text-sm text-gray-500">
+                {reviewSubmitted ? '¡Gracias por tu resena!' : canReviewData?.reason || 'Ya has dejado tu resena'}
+              </p>
+            </div>
           </div>
         </div>
+        {onOpenDispute && (
+          <button
+            onClick={onOpenDispute}
+            className="w-full py-2.5 text-xs text-gray-400 hover:text-red-500 font-medium transition-colors flex items-center justify-center gap-1.5"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+            </svg>
+            Reportar un problema
+          </button>
+        )}
       </div>
     );
   }

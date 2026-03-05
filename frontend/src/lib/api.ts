@@ -412,6 +412,65 @@ export const matchesApi = {
   },
 };
 
+// Disputas API
+export type DisputeReason = 'NO_SHOW' | 'EXPERIENCE_MISMATCH' | 'SAFETY_CONCERN' | 'PAYMENT_ISSUE' | 'COMMUNICATION' | 'OTHER';
+export type DisputeStatus = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED_REFUND' | 'RESOLVED_PARTIAL_REFUND' | 'RESOLVED_NO_REFUND' | 'CLOSED';
+
+export interface Dispute {
+  id: string;
+  matchId: string;
+  openedById: string;
+  respondentId: string;
+  reason: DisputeReason;
+  description: string;
+  status: DisputeStatus;
+  evidence?: string[];
+  resolution?: string;
+  refundAmount?: number;
+  refundPercentage?: number;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+  openedBy: { id: string; name: string; avatar?: string };
+  respondent: { id: string; name: string; avatar?: string };
+  match: { experience: { id: string; title: string; city: string } };
+  messages?: DisputeMessage[];
+  _count?: { messages: number };
+}
+
+export interface DisputeMessage {
+  id: string;
+  disputeId: string;
+  senderId: string;
+  content: string;
+  isAdmin: boolean;
+  createdAt: string;
+  sender: { id: string; name: string; avatar?: string };
+}
+
+export const disputesApi = {
+  create: async (data: { matchId: string; reason: DisputeReason; description: string; evidence?: string[] }): Promise<Dispute> => {
+    const response = await api.post<Dispute>('/disputes', data);
+    return response.data;
+  },
+
+  getMyDisputes: async (status?: string): Promise<Dispute[]> => {
+    const params = status ? `?status=${status}` : '';
+    const response = await api.get<Dispute[]>(`/disputes${params}`);
+    return response.data;
+  },
+
+  getDetail: async (id: string): Promise<Dispute> => {
+    const response = await api.get<Dispute>(`/disputes/${id}`);
+    return response.data;
+  },
+
+  addMessage: async (id: string, content: string): Promise<DisputeMessage> => {
+    const response = await api.post<DisputeMessage>(`/disputes/${id}/messages`, { content });
+    return response.data;
+  },
+};
+
 export const reviewsApi = {
   // Crear reseña
   create: async (data: CreateReviewData): Promise<Review> => {

@@ -39,12 +39,20 @@ export default function MessagesPage() {
   const [sentMatches, setSentMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<MatchStatus | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Modal states
   const [acceptModal, setAcceptModal] = useState<{ isOpen: boolean; match: Match | null }>({ isOpen: false, match: null });
   const [rejectModal, setRejectModal] = useState<{ isOpen: boolean; match: Match | null }>({ isOpen: false, match: null });
   const [cancelModal, setCancelModal] = useState<{ isOpen: boolean; match: Match | null }>({ isOpen: false, match: null });
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -67,7 +75,21 @@ export default function MessagesPage() {
   }, []);
 
   const matches = activeTab === 'received' ? receivedMatches : sentMatches;
-  const filteredMatches = filter === 'all' ? matches : matches.filter(m => m.status === filter);
+
+  // Filter by status and search
+  const filteredMatches = matches.filter(m => {
+    if (filter !== 'all' && m.status !== filter) return false;
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      const person = activeTab === 'received' ? m.requester : m.host;
+      return (
+        m.experience.title.toLowerCase().includes(q) ||
+        m.experience.city?.toLowerCase().includes(q) ||
+        person?.name?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   const pendingReceivedCount = receivedMatches.filter(m => m.status === 'pending').length;
 
@@ -206,6 +228,32 @@ export default function MessagesPage() {
 
         {/* Content container for desktop */}
         <div className="max-w-4xl mx-auto">
+          {/* Search bar */}
+          <div className="px-4 md:px-6 lg:px-8 py-3 bg-white border-b border-primary/10">
+            <div className="relative">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2">
+                <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clipRule="evenodd" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por experiencia, ciudad o persona..."
+                className="w-full pl-9 pr-9 py-2.5 bg-[var(--surface-tile)] rounded-xl text-sm text-[#1A1410] placeholder:text-[#A89880] focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Filters - Accessible with touch targets */}
           <div
             role="tablist"

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { matchesApi, reviewsApi, walletApi, chatApi, quickRepliesApi, WalletInfo } from '@/lib/api';
+import { matchesApi, reviewsApi, walletApi, chatApi, quickRepliesApi, WalletInfo, disputesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessages } from '@/contexts/MessageContext';
 import { MatchDetail, Message } from '@/types/match';
@@ -26,6 +26,7 @@ import MessageList from '@/components/chat/MessageList';
 import ChatInput from '@/components/chat/ChatInput';
 import LocationPicker from '@/components/chat/LocationPicker';
 import QuickRepliesDrawer from '@/components/chat/QuickRepliesDrawer';
+import DisputeModal from '@/components/chat/DisputeModal';
 
 export default function ChatPage() {
   const params = useParams();
@@ -59,6 +60,8 @@ export default function ChatPage() {
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [userQuickReplies, setUserQuickReplies] = useState<{ id: string; text: string; emoji: string | null }[]>([]);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeSubmitted, setDisputeSubmitted] = useState(false);
 
   const isHost = user?.id === match?.hostId;
   const otherUser = isHost ? match?.requester : match?.host;
@@ -471,6 +474,11 @@ export default function ChatPage() {
           onComplete={handleComplete}
           onConfirm={handleConfirm}
           onShowReviewForm={() => setShowReviewForm(true)}
+          onOpenDispute={
+            (match.status === 'accepted' || match.status === 'completed') && !disputeSubmitted
+              ? () => setShowDisputeModal(true)
+              : undefined
+          }
         />
 
         <MessageList
@@ -544,6 +552,19 @@ export default function ChatPage() {
           <LocationPicker
             onSelect={handleSendLocation}
             onCancel={() => setShowLocationPicker(false)}
+          />
+        )}
+
+        {/* Dispute Modal */}
+        {showDisputeModal && match && (
+          <DisputeModal
+            matchId={match.id}
+            experienceTitle={match.experience.title}
+            onClose={() => setShowDisputeModal(false)}
+            onSuccess={() => {
+              setShowDisputeModal(false);
+              setDisputeSubmitted(true);
+            }}
           />
         )}
 
