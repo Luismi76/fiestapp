@@ -19,7 +19,8 @@ import { ChatSkeleton } from '@/components/ui/Skeleton';
 
 // Chat components
 import ChatHeader from '@/components/chat/ChatHeader';
-import ExperienceCard from '@/components/chat/ExperienceCard';
+import MatchProgressBar from '@/components/chat/MatchProgressBar';
+import MatchSummaryCard from '@/components/chat/MatchSummaryCard';
 import MatchActions from '@/components/chat/MatchActions';
 import MessageList from '@/components/chat/MessageList';
 import ChatInput from '@/components/chat/ChatInput';
@@ -422,7 +423,15 @@ export default function ChatPage() {
           getAvatarSrc={getAvatarSrc}
         />
 
-        <ExperienceCard experience={match.experience} />
+        <MatchProgressBar status={match.status} />
+
+        <MatchSummaryCard
+          experience={match.experience}
+          startDate={match.startDate}
+          participants={match.participants}
+          totalPrice={match.totalPrice}
+          status={match.status}
+        />
 
         <MatchActions
           status={match.status}
