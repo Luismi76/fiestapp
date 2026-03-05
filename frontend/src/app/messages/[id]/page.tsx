@@ -452,6 +452,7 @@ export default function ChatPage() {
           startDate={match.startDate}
           participants={match.participants}
           totalPrice={match.totalPrice}
+          offerDescription={match.offerDescription}
           status={match.status}
         />
 

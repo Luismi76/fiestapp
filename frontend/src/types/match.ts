@@ -60,6 +60,7 @@ export interface Match {
   participants?: number;
   participantNames?: string[];
   totalPrice?: number;
+  offerDescription?: string;
   hostConfirmed?: boolean;
   requesterConfirmed?: boolean;
   createdAt: string;
@@ -90,6 +91,7 @@ export interface CreateMatchData {
   endDate?: string;
   participants?: number;
   participantNames?: string[];
+  offerDescription?: string;
 }
 
 export interface MatchStats {

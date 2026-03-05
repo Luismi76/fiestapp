@@ -63,6 +63,7 @@ export default function BookingPage() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [participants, setParticipants] = useState(1);
   const [message, setMessage] = useState('');
+  const [offerDescription, setOfferDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [occupancy, setOccupancy] = useState<DateOccupancy[]>([]);
@@ -225,6 +226,7 @@ export default function BookingPage() {
         message: message.trim() || undefined,
         startDate: formattedDate,
         participants: participants > 1 ? participants : undefined,
+        offerDescription: offerDescription.trim() || undefined,
       });
 
       vibrate('success');
@@ -307,6 +309,7 @@ export default function BookingPage() {
   }
 
   const isPaid = experience.type === 'pago' || experience.type === 'ambos';
+  const isExchange = experience.type === 'intercambio';
   const totalPrice = priceResult?.totalPrice || (experience.price ? experience.price * participants : 0);
 
   return (
@@ -320,7 +323,7 @@ export default function BookingPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <span className="mobile-header-title">Reservar</span>
+          <span className="mobile-header-title">{isExchange ? 'Proponer intercambio' : 'Reservar'}</span>
           <div className="w-11" />
         </div>
       </header>
@@ -507,20 +510,96 @@ export default function BookingPage() {
           )}
         </div>
 
+        {/* Exchange offer - only for intercambio */}
+        {isExchange && (
+          <div className="card p-4 border-l-4 border-l-secondary">
+            <h2 className="font-semibold text-[#1A1410] mb-2 flex items-center gap-2">
+              <span className="text-lg">🔄</span> Tu propuesta de intercambio
+            </h2>
+            <p className="text-xs text-[#8B7355] mb-3">
+              Describe que ofreces a cambio: un tour por tu ciudad, clases de cocina, alojamiento...
+            </p>
+            <textarea
+              value={offerDescription}
+              onChange={(e) => setOfferDescription(e.target.value)}
+              placeholder="Puedo ofrecer a cambio..."
+              rows={4}
+              className="input resize-none"
+            />
+          </div>
+        )}
+
         {/* Message (optional) */}
         <div className="card p-4">
           <h2 className="font-semibold text-[#1A1410] mb-3 flex items-center gap-2">
-            <span className="text-lg">💬</span> Mensaje <span className="text-[#A89880] font-normal text-sm">(opcional)</span>
+            <span className="text-lg">💬</span> {isExchange ? 'Presentate' : 'Mensaje'} <span className="text-[#A89880] font-normal text-sm">(opcional)</span>
           </h2>
 
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Preséntate brevemente al anfitrión..."
+            placeholder={isExchange ? 'Cuentale al anfitrion sobre ti...' : 'Presentate brevemente al anfitrion...'}
             rows={3}
             className="input resize-none"
           />
         </div>
+
+        {/* Cancellation policy */}
+        {isPaid && experience.cancellationPolicy && (
+          <div className="card p-4">
+            <h2 className="font-semibold text-[#1A1410] mb-2 flex items-center gap-2">
+              <span className="text-lg">🛡️</span> Politica de cancelacion
+            </h2>
+            {experience.cancellationPolicy === 'FLEXIBLE' && (
+              <div className="text-sm text-[#8B7355] space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>Reembolso del 100% hasta 24h antes</span>
+                </div>
+                <p className="text-xs text-emerald-600 font-medium mt-1">Flexible - puedes cancelar sin coste</p>
+              </div>
+            )}
+            {experience.cancellationPolicy === 'MODERATE' && (
+              <div className="text-sm text-[#8B7355] space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>100% si cancelas con +72h de antelacion</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span>50% si cancelas entre 24-72h antes</span>
+                </div>
+                <p className="text-xs text-amber-600 font-medium mt-1">Moderada</p>
+              </div>
+            )}
+            {experience.cancellationPolicy === 'STRICT' && (
+              <div className="text-sm text-[#8B7355] space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>100% si cancelas con +7 dias de antelacion</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span>50% si cancelas entre 72h y 7 dias antes</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <span>Sin reembolso con menos de 72h</span>
+                </div>
+                <p className="text-xs text-red-600 font-medium mt-1">Estricta</p>
+              </div>
+            )}
+            {experience.cancellationPolicy === 'NON_REFUNDABLE' && (
+              <div className="text-sm text-[#8B7355] space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <span>No se admiten cancelaciones con reembolso</span>
+                </div>
+                <p className="text-xs text-red-600 font-medium mt-1">Sin reembolso</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Error message */}
         {submitError && (

@@ -32,4 +32,8 @@ export class CreateMatchDto {
   @IsArray()
   @IsString({ each: true })
   participantNames?: string[];
+
+  @IsOptional()
+  @IsString()
+  offerDescription?: string;
 }

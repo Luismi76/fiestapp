@@ -263,6 +263,7 @@ export class MatchesService {
         participants,
         participantNames: createDto.participantNames || [],
         totalPrice,
+        offerDescription: createDto.offerDescription,
       },
       include: {
         experience: {

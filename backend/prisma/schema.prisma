@@ -188,6 +188,7 @@ model Match {
   endDate               DateTime?
   reminderOneDaySent    Boolean       @default(false)
   reminderThreeDaysSent Boolean       @default(false)
+  offerDescription      String?       // Propuesta de intercambio del viajero
   // Campos para grupos (FASE 4)
   participants          Int           @default(1)
   participantNames      String[]      // Nombres opcionales de los participantes

@@ -66,6 +66,7 @@ export interface Experience {
   minParticipants?: number;
   maxParticipants?: number | null;
   groupPricing?: GroupPricingTier[];
+  cancellationPolicy?: 'FLEXIBLE' | 'MODERATE' | 'STRICT' | 'NON_REFUNDABLE';
   published: boolean;
   createdAt: string;
   updatedAt: string;

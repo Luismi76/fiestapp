@@ -17,6 +17,7 @@ interface MatchSummaryCardProps {
   startDate?: string;
   participants?: number;
   totalPrice?: number;
+  offerDescription?: string;
   status: string;
 }
 
@@ -25,6 +26,7 @@ export default function MatchSummaryCard({
   startDate,
   participants,
   totalPrice,
+  offerDescription,
   status,
 }: MatchSummaryCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -125,6 +127,13 @@ export default function MatchSummaryCard({
               <div className="text-sm font-medium text-gray-800 mt-0.5 capitalize">{experience.type || 'pago'}</div>
             </div>
           </div>
+
+          {offerDescription && (
+            <div className="mt-3 p-3 bg-secondary/5 border border-secondary/20 rounded-xl">
+              <div className="text-[10px] font-semibold text-secondary uppercase tracking-wider mb-1">Propuesta de intercambio</div>
+              <div className="text-sm text-gray-700 leading-relaxed">{offerDescription}</div>
+            </div>
+          )}
 
           <Link
             href={`/experiences/${experience.id}`}
