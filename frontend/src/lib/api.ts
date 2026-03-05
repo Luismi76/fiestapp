@@ -1553,22 +1553,26 @@ export interface VoiceUploadResponse {
 export const chatApi = {
   // Subir mensaje de voz
   uploadVoice: async (file: Blob, matchId: string): Promise<VoiceUploadResponse> => {
-    const formData = new FormData();
-    // Append with explicit type to ensure proper Content-Type in the form part
-    const audioFile = new File([file], 'voice.webm', { type: file.type || 'audio/webm' });
-    formData.append('audio', audioFile);
+    if (file.size === 0) {
+      throw new Error('El archivo de audio está vacío');
+    }
 
-    // IMPORTANT: Do NOT set Content-Type header manually for FormData
-    // Axios/browser will automatically set it with the correct boundary
-    const response = await api.post<VoiceUploadResponse>(
-      `/chat/voice/${matchId}`,
-      formData,
-      {
-        headers: {
-        },
-      }
-    );
-    return response.data;
+    const formData = new FormData();
+    formData.append('audio', file, 'voice.webm');
+
+    // Use native fetch to avoid Axios default Content-Type: application/json
+    const res = await fetch(`${API_URL}/chat/voice/${matchId}`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: 'Error al subir audio' }));
+      throw new Error(err.message || `Error ${res.status}`);
+    }
+
+    return res.json();
   },
 
   // Traducir mensaje (via REST para casos sin WebSocket)

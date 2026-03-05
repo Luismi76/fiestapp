@@ -109,6 +109,13 @@ export function useVoiceRecorder({
           (Date.now() - startTimeRef.current) / 1000
         );
 
+        if (blob.size === 0 || recordedDuration < 1) {
+          onError?.('Grabación demasiado corta. Mantén pulsado al menos 1 segundo.');
+          cleanup();
+          setState('idle');
+          return;
+        }
+
         setState('processing');
         onRecordingComplete?.(blob, recordedDuration);
         cleanup();
@@ -122,7 +129,7 @@ export function useVoiceRecorder({
       };
 
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(1000); // Guardar chunks cada segundo
+      mediaRecorder.start(250); // Chunks cada 250ms para capturar grabaciones cortas
 
       startTimeRef.current = Date.now();
       setState('recording');
@@ -171,6 +178,10 @@ export function useVoiceRecorder({
       timerRef.current = null;
     }
 
+    // Flush pending audio data before stopping
+    if (mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.requestData();
+    }
     mediaRecorderRef.current.stop();
   }, [state]);
 

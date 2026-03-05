@@ -41,7 +41,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(self)',
+            value: 'camera=(), microphone=(self), geolocation=(self)',
           },
           {
             key: 'Content-Security-Policy',
@@ -52,6 +52,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' https://fonts.gstatic.com",
               "connect-src 'self' http://localhost:* https://fiestapp-api.lmsc.es https://*.stripe.com https://*.sentry.io https://*.google-analytics.com https://hcaptcha.com https://*.hcaptcha.com https://res.cloudinary.com https://nominatim.openstreetmap.org wss: ws:",
+              "media-src 'self' https://res.cloudinary.com",
               "frame-src https://js.stripe.com https://hcaptcha.com https://*.hcaptcha.com https://www.openstreetmap.org",
               "object-src 'none'",
               "base-uri 'self'",
