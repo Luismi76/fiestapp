@@ -35,7 +35,7 @@ async function bootstrap() {
     );
     res.header(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, Accept, X-Requested-With',
+      'Content-Type, Authorization, Accept, X-Requested-With, X-Eval-Code',
     );
     res.header(
       'Access-Control-Expose-Headers',
