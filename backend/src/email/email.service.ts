@@ -68,6 +68,14 @@ export class EmailService {
       return true;
     }
 
+    // Redirigir todos los emails a DEV_EMAIL si está configurado (para pruebas)
+    const devEmail = this.configService.get<string>('DEV_EMAIL');
+    if (devEmail) {
+      this.logger.log(`[DEV_EMAIL] Redirecting email from ${to} → ${devEmail}`);
+      subject = `[Para: ${to}] ${subject}`;
+      to = devEmail;
+    }
+
     if (this.useQueue && this.emailQueue) {
       try {
         await this.emailQueue.add(
