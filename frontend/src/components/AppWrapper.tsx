@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import SplashScreen from './SplashScreen';
+import EvalWidget from './evaluation/EvalWidget';
 
 interface AppWrapperProps {
   children: React.ReactNode;
@@ -45,6 +46,7 @@ export default function AppWrapper({ children }: AppWrapperProps) {
       <div className={showSplash && isFirstVisit ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
         {children}
       </div>
+      <EvalWidget />
     </>
   );
 }

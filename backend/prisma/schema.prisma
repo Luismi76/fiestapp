@@ -722,3 +722,45 @@ model IdentityVerification {
   @@index([createdAt])
   @@map("identity_verifications")
 }
+
+// ============================================
+// Evaluación del prototipo por clientes
+// ============================================
+
+model Evaluation {
+  id            String             @id @default(uuid())
+  evaluatorName String             // Nombre del evaluador
+  page          String             // Ruta de la página donde se hizo
+  category      EvaluationCategory
+  priority      EvaluationPriority @default(MEDIA)
+  comment       String
+  screenshotUrl String?            // Captura de pantalla opcional
+  status        EvaluationStatus   @default(PENDIENTE)
+  adminNotes    String?            // Notas internas del admin
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+  @@map("evaluations")
+}
+
+enum EvaluationCategory {
+  PROBLEMA
+  MEJORA
+  OPINION
+}
+
+enum EvaluationPriority {
+  BAJA
+  MEDIA
+  ALTA
+}
+
+enum EvaluationStatus {
+  PENDIENTE
+  EN_REVISION
+  RESUELTO
+  DESCARTADO
+}

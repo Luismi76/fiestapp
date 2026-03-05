@@ -40,6 +40,7 @@ import { CurrencyModule } from './currency/currency.module';
 import { GdprModule } from './gdpr/gdpr.module';
 import { HealthModule } from './health/health.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { EvaluationModule } from './evaluation/evaluation.module';
 
 @Module({
   imports: [
@@ -101,6 +102,7 @@ import { FeedbackModule } from './feedback/feedback.module';
     GdprModule,
     HealthModule,
     FeedbackModule,
+    EvaluationModule,
   ],
   controllers: [AppController],
   providers: [
