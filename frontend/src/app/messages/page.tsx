@@ -328,8 +328,8 @@ export default function MessagesPage() {
                         ) : (
                           <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white shadow-sm">
                             <img
-                              src={getAvatarSrc(person.avatar)}
-                              alt={person.name}
+                              src={getAvatarSrc(person?.avatar)}
+                              alt={person?.name || ''}
                               className="w-full h-full object-cover"
                             />
                           </div>
@@ -345,9 +345,9 @@ export default function MessagesPage() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
                               <h3 className="font-semibold text-[#1A1410] truncate">
-                                {person.name}
+                                {person?.name || 'Usuario'}
                               </h3>
-                              {person.verified && <VerifiedIcon />}
+                              {person?.verified && <VerifiedIcon />}
                             </div>
                             <p className="text-xs text-primary font-semibold truncate mt-0.5">
                               {match.experience.title}
