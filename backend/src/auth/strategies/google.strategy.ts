@@ -12,7 +12,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
     const callbackURL =
       configService.get<string>('GOOGLE_CALLBACK_URL') ||
-      'http://localhost:3001/api/auth/google/callback';
+      'google-callback-not-configured';
 
     super({
       clientID: clientID || 'not-configured',

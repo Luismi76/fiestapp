@@ -316,8 +316,7 @@ export class AuthController {
     this.setAuthCookie(res, result.access_token);
 
     // Redirigir al frontend (sin token en URL)
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
     res.redirect(`${frontendUrl}/auth/callback`);
   }
 }

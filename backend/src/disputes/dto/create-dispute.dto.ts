@@ -4,6 +4,9 @@ import {
   IsEnum,
   IsOptional,
   IsArray,
+  IsNumber,
+  Min,
+  Max,
 } from 'class-validator';
 import { DisputeReason } from '@prisma/client';
 
@@ -54,5 +57,12 @@ export class ResolveDisputeDto {
   resolutionDescription: string;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
   refundPercentage?: number; // 0-100, solo para RESOLVED_PARTIAL_REFUND
+
+  @IsOptional()
+  @IsEnum(['opener', 'respondent'])
+  favoredParty?: 'opener' | 'respondent'; // A quién va el reembolso (por defecto: requester del match)
 }

@@ -9,6 +9,7 @@ import {
   Headers,
   Req,
   BadRequestException,
+  ServiceUnavailableException,
   Logger,
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
@@ -93,8 +94,9 @@ export class PaymentsController {
     );
 
     if (!webhookSecret) {
-      this.logger.warn('STRIPE_WEBHOOK_SECRET not configured');
-      return { received: true };
+      throw new ServiceUnavailableException(
+        'Stripe webhook not configured',
+      );
     }
 
     try {
@@ -189,8 +191,8 @@ export class PaymentsController {
     const webhookId = this.configService.get<string>('PAYPAL_WEBHOOK_ID');
 
     if (!webhookId) {
-      this.logger.warn(
-        'PAYPAL_WEBHOOK_ID not configured - skipping webhook verification',
+      throw new ServiceUnavailableException(
+        'PayPal webhook not configured',
       );
     } else {
       // Verificar la firma del webhook con PayPal

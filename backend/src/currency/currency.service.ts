@@ -1,4 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 export enum Currency {
   EUR = 'EUR',
@@ -12,12 +13,15 @@ export interface ExchangeRates {
   lastUpdated: Date;
 }
 
+interface ExchangeRateApiResponse {
+  rates: Record<string, number>;
+}
+
 @Injectable()
-export class CurrencyService {
+export class CurrencyService implements OnModuleInit {
   private readonly logger = new Logger(CurrencyService.name);
 
-  // Default exchange rates (EUR as base)
-  // In production, these should be fetched from an API like exchangerate-api.com
+  // Default exchange rates (EUR as base) - used as fallback
   private exchangeRates: ExchangeRates = {
     base: Currency.EUR,
     rates: {
@@ -30,9 +34,9 @@ export class CurrencyService {
 
   // Currency symbols for display
   private readonly symbols: Record<Currency, string> = {
-    [Currency.EUR]: '€',
+    [Currency.EUR]: '\u20ac',
     [Currency.USD]: '$',
-    [Currency.GBP]: '£',
+    [Currency.GBP]: '\u00a3',
   };
 
   // Currency names
@@ -41,6 +45,10 @@ export class CurrencyService {
     [Currency.USD]: 'US Dollar',
     [Currency.GBP]: 'British Pound',
   };
+
+  async onModuleInit() {
+    await this.updateRates();
+  }
 
   /**
    * Convert amount from one currency to another
@@ -144,26 +152,39 @@ export class CurrencyService {
   }
 
   /**
-   * Update exchange rates (for future API integration)
-   * In production, this would be called by a cron job
+   * Update exchange rates from API, with fallback to hardcoded rates
    */
-  updateRates(): void {
-    // In production, this would be async and fetch from an API like:
-    // const response = await fetch('https://api.exchangerate-api.com/v4/latest/EUR');
-    // const data = await response.json();
-    // this.exchangeRates = {
-    //   base: Currency.EUR,
-    //   rates: {
-    //     EUR: 1,
-    //     USD: data.rates.USD,
-    //     GBP: data.rates.GBP,
-    //   },
-    //   lastUpdated: new Date(),
-    // };
+  @Cron(CronExpression.EVERY_DAY_AT_6AM)
+  async updateRates(): Promise<void> {
+    try {
+      const response = await fetch(
+        'https://api.exchangerate-api.com/v4/latest/EUR',
+      );
 
-    this.exchangeRates.lastUpdated = new Date();
-    this.logger.log(
-      'Exchange rates updated (using default rates in development)',
-    );
+      if (!response.ok) {
+        throw new Error(`API responded with status ${response.status}`);
+      }
+
+      const data = (await response.json()) as ExchangeRateApiResponse;
+
+      this.exchangeRates = {
+        base: Currency.EUR,
+        rates: {
+          [Currency.EUR]: 1,
+          [Currency.USD]: data.rates.USD,
+          [Currency.GBP]: data.rates.GBP,
+        },
+        lastUpdated: new Date(),
+      };
+
+      this.logger.log(
+        `Exchange rates updated: USD=${data.rates.USD}, GBP=${data.rates.GBP}`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch exchange rates, using fallback: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      this.exchangeRates.lastUpdated = new Date();
+    }
   }
 }

@@ -32,6 +32,11 @@ export class AdminController {
     return this.adminService.getDashboardStats();
   }
 
+  @Get('dashboard/alerts')
+  getDashboardAlerts() {
+    return this.adminService.getDashboardAlerts();
+  }
+
   @Get('users')
   getUsers(
     @Query('page') page?: string,

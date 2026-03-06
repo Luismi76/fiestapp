@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { matchesApi, reviewsApi, walletApi, chatApi, quickRepliesApi, WalletInfo, disputesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessages } from '@/contexts/MessageContext';
 import { MatchDetail, Message } from '@/types/match';
 import { CanReviewResponse } from '@/types/review';
-import ReviewForm from '@/components/ReviewForm';
 import { getAvatarUrl } from '@/lib/utils';
 import { useSocket, useSocketEvent } from '@/hooks/useSocket';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
@@ -17,16 +17,19 @@ import { getErrorMessage } from '@/lib/error';
 import MainLayout from '@/components/MainLayout';
 import { ChatSkeleton } from '@/components/ui/Skeleton';
 
-// Chat components
+// Chat components (always visible)
 import ChatHeader from '@/components/chat/ChatHeader';
 import MatchProgressBar from '@/components/chat/MatchProgressBar';
 import MatchSummaryCard from '@/components/chat/MatchSummaryCard';
 import MatchActions from '@/components/chat/MatchActions';
 import MessageList from '@/components/chat/MessageList';
 import ChatInput from '@/components/chat/ChatInput';
-import LocationPicker from '@/components/chat/LocationPicker';
-import QuickRepliesDrawer from '@/components/chat/QuickRepliesDrawer';
-import DisputeModal from '@/components/chat/DisputeModal';
+
+// Modals — lazy loaded (bundle-dynamic-imports)
+const ReviewForm = dynamic(() => import('@/components/ReviewForm'));
+const LocationPicker = dynamic(() => import('@/components/chat/LocationPicker'));
+const QuickRepliesDrawer = dynamic(() => import('@/components/chat/QuickRepliesDrawer'));
+const DisputeModal = dynamic(() => import('@/components/chat/DisputeModal'));
 
 export default function ChatPage() {
   const params = useParams();
@@ -62,6 +65,7 @@ export default function ChatPage() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeSubmitted, setDisputeSubmitted] = useState(false);
+  const [hasActiveDispute, setHasActiveDispute] = useState(false);
 
   const isHost = user?.id === match?.hostId;
   const otherUser = isHost ? match?.requester : match?.host;
@@ -101,6 +105,13 @@ export default function ChatPage() {
       setTimeout(() => setVoiceError(null), 3000);
     },
   });
+
+  // Memoize voiceRecorder state object to avoid re-creating on every render
+  const voiceRecorderState = useMemo(() => ({
+    state: voiceRecorder.state,
+    duration: voiceRecorder.duration,
+    isSupported: voiceRecorder.isSupported,
+  }), [voiceRecorder.state, voiceRecorder.duration, voiceRecorder.isSupported]);
 
   const handleVoiceStart = () => {
     if (!sending && voiceRecorder.isSupported) {
@@ -158,18 +169,19 @@ export default function ChatPage() {
         const data = await matchesApi.getById(id);
         setMatch(data);
 
-        // Parallel fetch of wallet and review data
+        // Parallel fetch of wallet, review data, and active dispute
         const needsWallet = data.status === 'pending' || data.status === 'accepted';
         const needsReview = data.status === 'completed';
+        const checkDispute = ['accepted', 'completed'].includes(data.status);
 
-        if (needsWallet || needsReview) {
-          const [walletResult, reviewResult] = await Promise.all([
-            needsWallet ? walletApi.getWallet().catch(() => null) : Promise.resolve(null),
-            needsReview ? reviewsApi.canReview(data.experienceId).catch(() => null) : Promise.resolve(null),
-          ]);
-          if (walletResult) setWalletInfo(walletResult);
-          if (reviewResult) setCanReviewData(reviewResult);
-        }
+        const [walletResult, reviewResult, disputeResult] = await Promise.all([
+          needsWallet ? walletApi.getWallet().catch(() => null) : Promise.resolve(null),
+          needsReview ? reviewsApi.canReview(data.experienceId).catch(() => null) : Promise.resolve(null),
+          checkDispute ? disputesApi.getActiveForMatch(id).catch(() => null) : Promise.resolve(null),
+        ]);
+        if (walletResult) setWalletInfo(walletResult);
+        if (reviewResult) setCanReviewData(reviewResult);
+        if (disputeResult?.dispute) setHasActiveDispute(true);
       } catch {
         setError('No se pudo cargar la conversación');
       } finally {
@@ -329,7 +341,7 @@ export default function ChatPage() {
     if (!match) return;
     try {
       await matchesApi.accept(match.id);
-      setMatch({ ...match, status: 'accepted' });
+      setMatch(prev => prev ? { ...prev, status: 'accepted' } : prev);
     } catch {
       setError('No se pudo aceptar la solicitud');
     }
@@ -339,7 +351,7 @@ export default function ChatPage() {
     if (!match) return;
     try {
       await matchesApi.reject(match.id);
-      setMatch({ ...match, status: 'rejected' });
+      setMatch(prev => prev ? { ...prev, status: 'rejected' } : prev);
     } catch {
       setError('No se pudo rechazar la solicitud');
     }
@@ -350,7 +362,7 @@ export default function ChatPage() {
     if (!confirm('¿Estás seguro de que quieres cancelar?')) return;
     try {
       await matchesApi.cancel(match.id);
-      setMatch({ ...match, status: 'cancelled' });
+      setMatch(prev => prev ? { ...prev, status: 'cancelled' } : prev);
     } catch {
       setError('No se pudo cancelar');
     }
@@ -360,7 +372,7 @@ export default function ChatPage() {
     if (!match) return;
     try {
       await matchesApi.complete(match.id);
-      setMatch({ ...match, status: 'completed' });
+      setMatch(prev => prev ? { ...prev, status: 'completed' } : prev);
       const reviewCheck = await reviewsApi.canReview(match.experienceId);
       setCanReviewData(reviewCheck);
     } catch {
@@ -440,46 +452,50 @@ export default function ChatPage() {
   if (!match) return null;
 
   return (
-    <MainLayout>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+    <MainLayout hideNav hideHeader>
+      <div className="fixed inset-0 bg-gray-50 flex flex-col z-30">
         <ChatHeader
           otherUser={otherUser}
           status={match.status}
+          hasActiveDispute={hasActiveDispute}
           getAvatarSrc={getAvatarSrc}
         />
 
-        <MatchProgressBar status={match.status} />
+        {/* Match info — scrollable if too tall, never takes more than 40vh */}
+        <div className="flex-shrink-0 overflow-y-auto max-h-[40vh]">
+          <MatchProgressBar status={match.status} />
 
-        <MatchSummaryCard
-          experience={match.experience}
-          startDate={match.startDate}
-          participants={match.participants}
-          totalPrice={match.totalPrice}
-          offerDescription={match.offerDescription}
-          status={match.status}
-        />
+          <MatchSummaryCard
+            experience={match.experience}
+            startDate={match.startDate}
+            participants={match.participants}
+            totalPrice={match.totalPrice}
+            offerDescription={match.offerDescription}
+            status={match.status}
+          />
 
-        <MatchActions
-          status={match.status}
-          isHost={isHost}
-          walletInfo={walletInfo}
-          canReviewData={canReviewData}
-          reviewSubmitted={reviewSubmitted}
-          hostConfirmed={match.hostConfirmed}
-          requesterConfirmed={match.requesterConfirmed}
-          otherUserName={otherUser?.name}
-          onAccept={handleAccept}
-          onReject={handleReject}
-          onCancel={handleCancel}
-          onComplete={handleComplete}
-          onConfirm={handleConfirm}
-          onShowReviewForm={() => setShowReviewForm(true)}
-          onOpenDispute={
-            (match.status === 'accepted' || match.status === 'completed') && !disputeSubmitted
-              ? () => setShowDisputeModal(true)
-              : undefined
-          }
-        />
+          <MatchActions
+            status={match.status}
+            isHost={isHost}
+            walletInfo={walletInfo}
+            canReviewData={canReviewData}
+            reviewSubmitted={reviewSubmitted}
+            hostConfirmed={match.hostConfirmed}
+            requesterConfirmed={match.requesterConfirmed}
+            otherUserName={otherUser?.name}
+            onAccept={handleAccept}
+            onReject={handleReject}
+            onCancel={handleCancel}
+            onComplete={handleComplete}
+            onConfirm={handleConfirm}
+            onShowReviewForm={() => setShowReviewForm(true)}
+            onOpenDispute={
+              (match.status === 'accepted' || match.status === 'completed') && !disputeSubmitted
+                ? () => setShowDisputeModal(true)
+                : undefined
+            }
+          />
+        </div>
 
         <MessageList
           messages={match.messages}
@@ -499,11 +515,7 @@ export default function ChatPage() {
           useMockData={false}
           walletError={walletError}
           error={error}
-          voiceRecorder={{
-            state: voiceRecorder.state,
-            duration: voiceRecorder.duration,
-            isSupported: voiceRecorder.isSupported,
-          }}
+          voiceRecorder={voiceRecorderState}
           voiceError={voiceError}
           textareaRef={textareaRef}
           onMessageChange={handleInputChange}
@@ -564,6 +576,7 @@ export default function ChatPage() {
             onSuccess={() => {
               setShowDisputeModal(false);
               setDisputeSubmitted(true);
+              setHasActiveDispute(true);
             }}
           />
         )}

@@ -27,6 +27,7 @@ export class EmailService {
   private fromEmail: string;
   private readonly useQueue: boolean;
   private readonly isConfigured: boolean;
+  private readonly frontendUrl: string;
 
   constructor(
     private configService: ConfigService,
@@ -39,9 +40,17 @@ export class EmailService {
       this.resend = new Resend(apiKey);
       this.logger.log('Email service configured with Resend');
     } else {
-      this.logger.warn(
-        'RESEND_API_KEY not configured - emails will be logged only',
-      );
+      const isProduction =
+        this.configService.get<string>('NODE_ENV') === 'production';
+      if (isProduction) {
+        this.logger.warn(
+          'RESEND_API_KEY not configured - emails will be logged only',
+        );
+      } else {
+        this.logger.log(
+          'RESEND_API_KEY not configured - emails will be logged only',
+        );
+      }
     }
 
     this.fromEmail =
@@ -51,6 +60,18 @@ export class EmailService {
 
     if (this.useQueue) {
       this.logger.log('Email queue enabled (Redis connected)');
+    }
+
+    this.frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+
+    if (
+      this.frontendUrl.includes('localhost') &&
+      this.configService.get<string>('NODE_ENV') === 'production'
+    ) {
+      this.logger.warn(
+        'FRONTEND_URL contains localhost in production! Set FRONTEND_URL env var.',
+      );
     }
   }
 
@@ -122,9 +143,7 @@ export class EmailService {
     token: string,
     name: string,
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const verificationUrl = `${frontendUrl}/verify-email?token=${token}`;
+    const verificationUrl = `${this.frontendUrl}/verify-email?token=${token}`;
 
     const html = this.getVerificationEmailTemplate(name, verificationUrl);
     return this.sendEmail(email, 'Verifica tu cuenta en FiestApp', html);
@@ -135,9 +154,7 @@ export class EmailService {
     token: string,
     name: string,
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+    const resetUrl = `${this.frontendUrl}/reset-password?token=${token}`;
 
     const html = this.getPasswordResetEmailTemplate(name, resetUrl);
     return this.sendEmail(email, 'Restablecer contraseña - FiestApp', html);
@@ -220,9 +237,7 @@ export class EmailService {
     daysUntil: number,
     matchId: string,
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const matchUrl = `${frontendUrl}/matches/${matchId}`;
+    const matchUrl = `${this.frontendUrl}/matches/${matchId}`;
 
     const html = this.getReminderEmailTemplate(
       name,
@@ -430,9 +445,7 @@ export class EmailService {
     matchId: string,
     currency: string = 'EUR',
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const matchUrl = `${frontendUrl}/matches/${matchId}`;
+    const matchUrl = `${this.frontendUrl}/matches/${matchId}`;
 
     const html = getMatchRequestTemplate({
       hostName,
@@ -465,10 +478,8 @@ export class EmailService {
     currency: string = 'EUR',
     meetingPoint?: string,
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const matchUrl = `${frontendUrl}/matches/${matchId}`;
-    const chatUrl = `${frontendUrl}/messages?match=${matchId}`;
+    const matchUrl = `${this.frontendUrl}/matches/${matchId}`;
+    const chatUrl = `${this.frontendUrl}/messages?match=${matchId}`;
 
     const html = getMatchAcceptedTemplate({
       requesterName,
@@ -499,9 +510,7 @@ export class EmailService {
     startDate: Date,
     reason?: string,
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const searchUrl = `${frontendUrl}/experiences?city=${encodeURIComponent(experienceCity)}`;
+    const searchUrl = `${this.frontendUrl}/experiences?city=${encodeURIComponent(experienceCity)}`;
 
     const html = getMatchRejectedTemplate({
       requesterName,
@@ -533,10 +542,8 @@ export class EmailService {
     refundPercentage?: number,
     currency: string = 'EUR',
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const walletUrl = `${frontendUrl}/wallet`;
-    const searchUrl = `${frontendUrl}/experiences`;
+    const walletUrl = `${this.frontendUrl}/wallet`;
+    const searchUrl = `${this.frontendUrl}/experiences`;
 
     const html = getMatchCancelledTemplate({
       userName,
@@ -572,9 +579,7 @@ export class EmailService {
     earnedAmount?: number,
     currency: string = 'EUR',
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const reviewUrl = `${frontendUrl}/matches/${matchId}/review`;
+    const reviewUrl = `${this.frontendUrl}/matches/${matchId}/review`;
 
     const html = getMatchCompletedTemplate({
       userName,
@@ -609,9 +614,7 @@ export class EmailService {
     reason: string,
     description: string,
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const disputeUrl = `${frontendUrl}/disputes/${disputeId}`;
+    const disputeUrl = `${this.frontendUrl}/disputes/${disputeId}`;
 
     const html = getDisputeOpenedTemplate({
       userName,
@@ -639,9 +642,7 @@ export class EmailService {
     disputeId: string,
     messagePreview: string,
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const disputeUrl = `${frontendUrl}/disputes/${disputeId}`;
+    const disputeUrl = `${this.frontendUrl}/disputes/${disputeId}`;
 
     const html = getDisputeMessageTemplate({
       userName,
@@ -675,10 +676,8 @@ export class EmailService {
     refundPercentage?: number,
     currency: string = 'EUR',
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const disputeUrl = `${frontendUrl}/disputes/${disputeId}`;
-    const walletUrl = `${frontendUrl}/wallet`;
+    const disputeUrl = `${this.frontendUrl}/disputes/${disputeId}`;
+    const walletUrl = `${this.frontendUrl}/wallet`;
 
     const html = getDisputeResolvedTemplate({
       userName,
@@ -713,9 +712,7 @@ export class EmailService {
     newBalance: number,
     currency: string = 'EUR',
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const walletUrl = `${frontendUrl}/wallet`;
+    const walletUrl = `${this.frontendUrl}/wallet`;
 
     const html = getWalletChargedTemplate({
       userName,
@@ -747,9 +744,7 @@ export class EmailService {
     threshold: number,
     currency: string = 'EUR',
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const topupUrl = `${frontendUrl}/wallet/topup`;
+    const topupUrl = `${this.frontendUrl}/wallet/topup`;
 
     const html = getWalletLowBalanceTemplate({
       userName,
@@ -775,9 +770,7 @@ export class EmailService {
     matchId: string,
     currency: string = 'EUR',
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const matchUrl = `${frontendUrl}/matches/${matchId}`;
+    const matchUrl = `${this.frontendUrl}/matches/${matchId}`;
 
     const html = getPaymentReceiptTemplate({
       userName,
@@ -804,9 +797,7 @@ export class EmailService {
     currency: string = 'EUR',
     bankLast4?: string,
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const walletUrl = `${frontendUrl}/wallet`;
+    const walletUrl = `${this.frontendUrl}/wallet`;
 
     const html = getPayoutProcessedTemplate({
       hostName,
@@ -839,9 +830,7 @@ export class EmailService {
     experienceDate: Date,
     matchId: string,
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const reviewUrl = `${frontendUrl}/matches/${matchId}/review`;
+    const reviewUrl = `${this.frontendUrl}/matches/${matchId}/review`;
 
     const html = getReviewRequestTemplate({
       userName,
@@ -866,9 +855,7 @@ export class EmailService {
     reviewId: string,
     canRespond: boolean = true,
   ): Promise<boolean> {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const reviewUrl = `${frontendUrl}/reviews/${reviewId}`;
+    const reviewUrl = `${this.frontendUrl}/reviews/${reviewId}`;
 
     const html = getReviewReceivedTemplate({
       userName,

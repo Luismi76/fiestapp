@@ -14,33 +14,33 @@ export default function TermsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </Link>
-          <h1 className="text-xl font-bold text-gray-900">Terminos de Uso</h1>
+          <h1 className="text-xl font-bold text-gray-900">Términos de Uso</h1>
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Terminos y Condiciones</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Términos y Condiciones</h2>
 
           <div className="prose prose-gray max-w-none space-y-6">
             <p className="text-gray-600">
-              Ultima actualizacion: Enero 2026
+              Última actualización: Enero 2026
             </p>
 
             <section>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">1. Aceptacion de los terminos</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">1. Aceptación de los términos</h3>
               <p className="text-gray-600">
-                Al acceder y utilizar FiestApp, aceptas estar sujeto a estos terminos y condiciones de uso.
-                Si no estas de acuerdo con alguna parte de estos terminos, no podras usar nuestros servicios.
+                Al acceder y utilizar FiestApp, aceptas estar sujeto a estos términos y condiciones de uso.
+                Si no estás de acuerdo con alguna parte de estos términos, no podrás usar nuestros servicios.
               </p>
             </section>
 
             <section>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">2. Descripcion del servicio</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">2. Descripción del servicio</h3>
               <p className="text-gray-600">
                 FiestApp es una plataforma que conecta viajeros con anfitriones locales para vivir experiencias
-                autenticas durante las fiestas populares espanolas. Facilitamos el contacto entre usuarios,
+                auténticas durante las fiestas populares españolas. Facilitamos el contacto entre usuarios,
                 pero no somos responsables directos de las experiencias ofrecidas.
               </p>
             </section>
@@ -51,9 +51,9 @@ export default function TermsPage() {
                 Para usar FiestApp debes:
               </p>
               <ul className="list-disc list-inside text-gray-600 mt-2 space-y-1">
-                <li>Tener al menos 18 anos de edad</li>
-                <li>Proporcionar informacion veraz y actualizada</li>
-                <li>Mantener la confidencialidad de tu contrasena</li>
+                <li>Tener al menos 18 años de edad</li>
+                <li>Proporcionar información veraz y actualizada</li>
+                <li>Mantener la confidencialidad de tu contraseña</li>
                 <li>Ser responsable de toda actividad en tu cuenta</li>
               </ul>
             </section>
@@ -75,40 +75,40 @@ export default function TermsPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-3">5. Pagos y tarifas</h3>
               <p className="text-gray-600">
                 FiestApp cobra una tarifa de servicio de 1,50 EUR por cada match completado. Los pagos entre
-                usuarios se procesan de forma segura a traves de nuestra plataforma. Los reembolsos se gestionan
-                segun nuestra politica de cancelacion.
+                usuarios se procesan de forma segura a través de nuestra plataforma. Los reembolsos se gestionan
+                según nuestra política de cancelación.
               </p>
             </section>
 
             <section>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">6. Responsabilidad</h3>
               <p className="text-gray-600">
-                FiestApp actua como intermediario y no es responsable de las acciones de los usuarios ni de
-                la calidad de las experiencias ofrecidas. Recomendamos siempre verificar las resenas y
+                FiestApp actúa como intermediario y no es responsable de las acciones de los usuarios ni de
+                la calidad de las experiencias ofrecidas. Recomendamos siempre verificar las reseñas y
                 comunicarse claramente antes de confirmar una experiencia.
               </p>
             </section>
 
             <section>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">7. Cancelacion de cuenta</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">7. Cancelación de cuenta</h3>
               <p className="text-gray-600">
-                Puedes cancelar tu cuenta en cualquier momento desde la configuracion. Nos reservamos el
-                derecho de suspender o cancelar cuentas que violen estos terminos.
+                Puedes cancelar tu cuenta en cualquier momento desde la configuración. Nos reservamos el
+                derecho de suspender o cancelar cuentas que violen estos términos.
               </p>
             </section>
 
             <section>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">8. Modificaciones</h3>
               <p className="text-gray-600">
-                Podemos modificar estos terminos en cualquier momento. Te notificaremos de cambios
-                significativos a traves de la plataforma o por correo electronico.
+                Podemos modificar estos términos en cualquier momento. Te notificaremos de cambios
+                significativos a través de la plataforma o por correo electrónico.
               </p>
             </section>
 
             <section>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">9. Contacto</h3>
               <p className="text-gray-600">
-                Para preguntas sobre estos terminos, contactanos en:
+                Para preguntas sobre estos términos, contáctanos en:
                 <a href="mailto:legal@fiestapp.es" className="text-blue-600 hover:underline ml-1">
                   legal@fiestapp.es
                 </a>

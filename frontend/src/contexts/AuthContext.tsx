@@ -50,7 +50,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             router.push('/experiences');
         } catch (error) {
             const axiosError = error as AxiosError<ApiErrorResponse>;
-            throw new Error(axiosError.response?.data?.message || 'Error al iniciar sesión');
+            const status = axiosError.response?.status;
+            const message = axiosError.response?.data?.message || '';
+            const err = new Error(message || 'Error al iniciar sesión');
+            (err as Error & { status?: number }).status = status;
+            throw err;
         }
     }, [router]);
 
@@ -60,7 +64,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return response.email;
         } catch (error) {
             const axiosError = error as AxiosError<ApiErrorResponse>;
-            throw new Error(axiosError.response?.data?.message || 'Error al registrarse');
+            const status = axiosError.response?.status;
+            const message = axiosError.response?.data?.message || '';
+            const err = new Error(message || 'Error al registrarse');
+            (err as Error & { status?: number }).status = status;
+            throw err;
         }
     }, []);
 

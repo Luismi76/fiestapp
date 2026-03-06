@@ -99,6 +99,7 @@ describe('AuthService', () => {
       email: 'test@example.com',
       password: 'Password123!',
       name: 'Test User',
+      termsAccepted: true,
     };
 
     it('should throw UnauthorizedException if email already exists', async () => {

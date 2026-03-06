@@ -95,7 +95,7 @@ export default function MatchSummaryCard({
         <div className="px-3 pb-3 border-t border-gray-50 animate-fade-in">
           <div className="grid grid-cols-2 gap-3 pt-3">
             <div>
-              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Festival</div>
+              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Festividad</div>
               <div className="text-sm font-medium text-gray-800 mt-0.5">{experience.festival?.name || '—'}</div>
             </div>
             {experience.city && (

@@ -11,6 +11,8 @@ interface ExperienceCardProps {
   variant?: 'default' | 'compact' | 'horizontal' | 'horizontal-compact' | 'featured';
   showHost?: boolean;
   className?: string;
+  isFavorite?: boolean;
+  onToggleFavorite?: (experienceId: string) => void;
 }
 
 // Extracted components to avoid recreation during render
@@ -51,6 +53,39 @@ function HostInfo({ host, avatarSrc }: { host: Experience['host']; avatarSrc: st
   );
 }
 
+function FavoriteButton({
+  experienceId,
+  isFavorite,
+  onToggleFavorite,
+}: {
+  experienceId: string;
+  isFavorite: boolean;
+  onToggleFavorite: (experienceId: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={isFavorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onToggleFavorite(experienceId);
+      }}
+      className="absolute top-2 right-2 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 transition-colors"
+    >
+      {isFavorite ? (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-red-500">
+          <path d="m11.645 20.91-.007-.003-.022-.012a15.247 15.247 0 0 1-.383-.218 25.18 25.18 0 0 1-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0 1 12 5.052 5.5 5.5 0 0 1 16.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 0 1-4.244 3.17 15.247 15.247 0 0 1-.383.219l-.022.012-.007.004-.003.001a.752.752 0 0 1-.704 0l-.003-.001Z" />
+        </svg>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-white">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 function Rating({ avgRating }: { avgRating?: number }) {
   if (!avgRating || avgRating <= 0) return null;
   return (
@@ -70,7 +105,10 @@ function ExperienceCard({
   variant = 'default',
   showHost = true,
   className,
+  isFavorite,
+  onToggleFavorite,
 }: ExperienceCardProps) {
+  const showFavorite = isFavorite !== undefined && onToggleFavorite !== undefined;
   const getImageUrl = (): string => {
     if (experience.photos && experience.photos.length > 0) {
       const photo = experience.photos[0];
@@ -110,7 +148,10 @@ function ExperienceCard({
             preset="cardThumbnail"
             className="transition-transform duration-300 group-hover:scale-105"
           />
-          <div className="absolute top-2.5 right-2.5 z-10">
+          {showFavorite && (
+            <FavoriteButton experienceId={experience.id} isFavorite={isFavorite!} onToggleFavorite={onToggleFavorite!} />
+          )}
+          <div className="absolute top-2.5 left-2.5 z-10">
             <TypeBadge type={experience.type} price={experience.price} />
           </div>
         </div>
@@ -151,6 +192,9 @@ function ExperienceCard({
             fill
             preset="cardThumbnail"
           />
+          {showFavorite && (
+            <FavoriteButton experienceId={experience.id} isFavorite={isFavorite!} onToggleFavorite={onToggleFavorite!} />
+          )}
           <div className="absolute top-2 left-2 z-10">
             <TypeBadge type={experience.type} price={experience.price} />
           </div>
@@ -194,6 +238,9 @@ function ExperienceCard({
             fill
             preset="cardThumbnail"
           />
+          {showFavorite && (
+            <FavoriteButton experienceId={experience.id} isFavorite={isFavorite!} onToggleFavorite={onToggleFavorite!} />
+          )}
           <div className="absolute top-1 left-1 z-10">
             <TypeBadge type={experience.type} price={experience.price} />
           </div>
@@ -239,7 +286,10 @@ function ExperienceCard({
             className="transition-transform duration-500 hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent z-[1]" />
-          <div className="absolute top-3 right-3 z-10">
+          {showFavorite && (
+            <FavoriteButton experienceId={experience.id} isFavorite={isFavorite!} onToggleFavorite={onToggleFavorite!} />
+          )}
+          <div className="absolute top-3 left-3 z-10">
             <TypeBadge type={experience.type} price={experience.price} />
           </div>
           <div className="absolute bottom-3 left-3 right-3 z-10">
@@ -288,7 +338,10 @@ function ExperienceCard({
           className="transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent z-[1]" />
-        <div className="absolute top-3 right-3 z-10">
+        {showFavorite && (
+          <FavoriteButton experienceId={experience.id} isFavorite={isFavorite!} onToggleFavorite={onToggleFavorite!} />
+        )}
+        <div className="absolute top-3 left-3 z-10">
           <TypeBadge type={experience.type} price={experience.price} />
         </div>
         {experience.festival && (
@@ -334,9 +387,11 @@ interface ExperienceGridProps {
   experiences: Experience[];
   variant?: 'default' | 'compact';
   className?: string;
+  favoriteIds?: Set<string>;
+  onToggleFavorite?: (experienceId: string) => void;
 }
 
-function ExperienceGridInner({ experiences, variant = 'compact', className }: ExperienceGridProps) {
+function ExperienceGridInner({ experiences, variant = 'compact', className, favoriteIds, onToggleFavorite }: ExperienceGridProps) {
   if (experiences.length === 0) {
     return (
       <div className="empty-state">
@@ -362,6 +417,8 @@ function ExperienceGridInner({ experiences, variant = 'compact', className }: Ex
           key={exp.id}
           experience={exp}
           variant={variant}
+          isFavorite={favoriteIds ? favoriteIds.has(exp.id) : undefined}
+          onToggleFavorite={onToggleFavorite}
         />
       ))}
     </div>

@@ -41,7 +41,7 @@ import {
   UpdateProfileData,
 } from '@/types/user';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -324,15 +324,14 @@ export const festivalsApi = {
 
   // Obtener URL de descarga iCal
   getICalUrl: (festivalId?: string, filters?: { region?: string; type?: string; city?: string }): string => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
     if (festivalId) {
-      return `${baseUrl}/festivals/${festivalId}/ical`;
+      return `${API_URL}/festivals/${festivalId}/ical`;
     }
     const params = new URLSearchParams();
     if (filters?.region) params.append('region', filters.region);
     if (filters?.type) params.append('type', filters.type);
     if (filters?.city) params.append('city', filters.city);
-    return `${baseUrl}/festivals/ical?${params}`;
+    return `${API_URL}/festivals/ical?${params}`;
   },
 };
 
@@ -468,6 +467,88 @@ export const disputesApi = {
   addMessage: async (id: string, content: string): Promise<DisputeMessage> => {
     const response = await api.post<DisputeMessage>(`/disputes/${id}/messages`, { content });
     return response.data;
+  },
+
+  getActiveForMatch: async (matchId: string): Promise<{ dispute: { id: string; status: string; reason: string; createdAt: string } | null }> => {
+    const response = await api.get<{ dispute: { id: string; status: string; reason: string; createdAt: string } | null }>(`/disputes/match/${matchId}/active`);
+    return response.data;
+  },
+};
+
+// Admin Disputes API
+export interface AdminDisputeFilters {
+  status?: string;
+  reason?: string;
+  search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface DisputesPaginatedResponse {
+  disputes: Dispute[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
+export interface DisputeStats {
+  byStatus: Record<string, number>;
+  byReason: Record<string, number>;
+  last30Days: number;
+  totalRefunded: number;
+}
+
+export const adminDisputesApi = {
+  getAll: async (filters: AdminDisputeFilters = {}): Promise<DisputesPaginatedResponse> => {
+    const params = new URLSearchParams();
+    if (filters.status) params.append('status', filters.status);
+    if (filters.reason) params.append('reason', filters.reason);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    const response = await api.get<DisputesPaginatedResponse>(`/admin/disputes?${params}`);
+    return response.data;
+  },
+
+  getStats: async (): Promise<DisputeStats> => {
+    const response = await api.get<DisputeStats>('/admin/disputes/stats');
+    return response.data;
+  },
+
+  getDetail: async (id: string): Promise<Dispute> => {
+    const response = await api.get<Dispute>(`/admin/disputes/${id}`);
+    return response.data;
+  },
+
+  markUnderReview: async (id: string): Promise<Dispute> => {
+    const response = await api.patch<Dispute>(`/admin/disputes/${id}/review`);
+    return response.data;
+  },
+
+  resolve: async (id: string, data: {
+    resolution: string;
+    resolutionDescription: string;
+    refundPercentage?: number;
+    favoredParty?: 'opener' | 'respondent';
+  }): Promise<Dispute> => {
+    const response = await api.patch<Dispute>(`/admin/disputes/${id}/resolve`, data);
+    return response.data;
+  },
+
+  addMessage: async (id: string, content: string): Promise<DisputeMessage> => {
+    const response = await api.post<DisputeMessage>(`/admin/disputes/${id}/messages`, { content });
+    return response.data;
+  },
+
+  exportCsvUrl: (filters: Omit<AdminDisputeFilters, 'page' | 'limit'> = {}): string => {
+    const params = new URLSearchParams();
+    if (filters.status) params.append('status', filters.status);
+    if (filters.reason) params.append('reason', filters.reason);
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    return `${API_URL}/admin/disputes/export/csv?${params}`;
   },
 };
 
@@ -890,6 +971,15 @@ export const paymentsApi = {
   },
 };
 
+// Admin alerts type
+export interface AdminDashboardAlerts {
+  disputes: { open: number; underReview: number; total: number };
+  reports: { pending: number };
+  verifications: { pending: number };
+  users: { withStrikes: number; banned: number };
+  totalPending: number;
+}
+
 // Admin types
 export interface AdminDashboardStats {
   users: {
@@ -1281,6 +1371,11 @@ export const adminApi = {
   // Dashboard stats
   getDashboardStats: async (): Promise<AdminDashboardStats> => {
     const response = await api.get<AdminDashboardStats>('/admin/dashboard');
+    return response.data;
+  },
+
+  getDashboardAlerts: async (): Promise<AdminDashboardAlerts> => {
+    const response = await api.get<AdminDashboardAlerts>('/admin/dashboard/alerts');
     return response.data;
   },
 

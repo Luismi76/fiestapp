@@ -14,6 +14,7 @@ interface ChatHeaderProps {
     city?: string;
   } | undefined;
   status: MatchStatus;
+  hasActiveDispute?: boolean;
   getAvatarSrc: (avatar?: string) => string;
 }
 
@@ -25,12 +26,12 @@ const statusConfig: Record<MatchStatus, { label: string; bg: string; text: strin
   completed: { label: 'Completada', bg: 'bg-blue-100', text: 'text-blue-700' },
 };
 
-export default function ChatHeader({ otherUser, status, getAvatarSrc }: ChatHeaderProps) {
+export default function ChatHeader({ otherUser, status, hasActiveDispute, getAvatarSrc }: ChatHeaderProps) {
   const router = useRouter();
   const config = statusConfig[status];
 
   return (
-    <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+    <header className="bg-white border-b border-gray-100 flex-shrink-0 z-40">
       <div className="flex items-center gap-3 px-4 h-16">
         <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center flex-shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
@@ -60,6 +61,16 @@ export default function ChatHeader({ otherUser, status, getAvatarSrc }: ChatHead
             <p className="text-xs text-gray-500 truncate">{otherUser?.city}</p>
           </div>
         </Link>
+
+        {/* Dispute indicator */}
+        {hasActiveDispute && (
+          <span className="px-2 py-1 rounded-full text-[10px] font-medium bg-red-100 text-red-700 flex-shrink-0 flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+              <path fillRule="evenodd" d="M6.701 2.25c.577-1 2.02-1 2.598 0l5.196 9a1.5 1.5 0 0 1-1.299 2.25H2.804a1.5 1.5 0 0 1-1.3-2.25l5.197-9ZM8 5a.75.75 0 0 1 .75.75v2a.75.75 0 0 1-1.5 0v-2A.75.75 0 0 1 8 5Zm0 6a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" />
+            </svg>
+            Disputa
+          </span>
+        )}
 
         {/* Status badge */}
         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text} flex-shrink-0`}>

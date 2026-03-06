@@ -5,16 +5,31 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
 import {
   CreateDisputeDto,
   AddDisputeMessageDto,
   ResolveDisputeDto,
 } from './dto/create-dispute.dto';
-import { DisputeStatus, DisputeReason } from '@prisma/client';
+import { DisputeStatus, DisputeReason, Prisma } from '@prisma/client';
+
+const MAX_DISPUTES_PER_MATCH = 3;
+const STALE_DISPUTE_DAYS = 30;
+
+export interface DisputeFilters {
+  status?: string;
+  reason?: string;
+  search?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+  page?: number;
+  limit?: number;
+}
 
 @Injectable()
 export class DisputesService {
@@ -25,6 +40,7 @@ export class DisputesService {
     private walletService: WalletService,
     private emailService: EmailService,
     private notificationsService: NotificationsService,
+    private auditService: AuditService,
   ) {}
 
   /**
@@ -88,6 +104,17 @@ export class DisputesService {
       );
     }
 
+    // Verificar límite de disputas por match
+    const totalDisputes = await this.prisma.dispute.count({
+      where: { matchId: dto.matchId },
+    });
+
+    if (totalDisputes >= MAX_DISPUTES_PER_MATCH) {
+      throw new BadRequestException(
+        `Se ha alcanzado el límite de ${MAX_DISPUTES_PER_MATCH} disputas para esta reserva. Contacta con soporte.`,
+      );
+    }
+
     // Determinar quién es el respondent
     const respondentId = isHost ? match.requesterId : match.hostId;
 
@@ -111,6 +138,15 @@ export class DisputesService {
           },
         },
       },
+    });
+
+    // Audit log
+    await this.auditService.log({
+      userId,
+      action: 'dispute_opened',
+      entity: 'dispute',
+      entityId: dispute.id,
+      data: { matchId: dto.matchId, reason: dto.reason },
     });
 
     // Notificar al respondent
@@ -380,6 +416,14 @@ export class DisputesService {
     let refundAmount: number | undefined;
     let refundPercentage: number | undefined;
 
+    // Determinar a quién va el reembolso (por defecto al requester)
+    let refundRecipientId = dispute.match.requesterId;
+    if (dto.favoredParty === 'opener') {
+      refundRecipientId = dispute.openedById;
+    } else if (dto.favoredParty === 'respondent') {
+      refundRecipientId = dispute.respondentId;
+    }
+
     // Calcular reembolso si aplica
     if (dispute.match.totalPrice) {
       switch (dto.resolution) {
@@ -401,10 +445,10 @@ export class DisputesService {
           break;
       }
 
-      // Procesar reembolso al viajero si hay monto
+      // Procesar reembolso al beneficiario
       if (refundAmount && refundAmount > 0) {
         await this.walletService.addBalance(
-          dispute.match.requesterId,
+          refundRecipientId,
           refundAmount,
           `Reembolso por disputa: ${dispute.match.experience.title}`,
           dispute.matchId,
@@ -434,6 +478,21 @@ export class DisputesService {
       },
     });
 
+    // Audit log
+    await this.auditService.logAdminAction(
+      adminId,
+      'resolve_dispute',
+      'dispute',
+      disputeId,
+      {
+        resolution: dto.resolution,
+        refundAmount,
+        refundPercentage,
+        favoredParty: dto.favoredParty || 'requester',
+        refundRecipientId,
+      },
+    );
+
     // Notificar y enviar emails a ambas partes
     const notifyPromises = [
       // Opener
@@ -451,8 +510,12 @@ export class DisputesService {
         dispute.match.experience.title,
         dto.resolution,
         dto.resolutionDescription,
-        refundAmount,
-        refundPercentage,
+        refundRecipientId === dispute.openedById
+          ? refundAmount
+          : undefined,
+        refundRecipientId === dispute.openedById
+          ? refundPercentage
+          : undefined,
       ),
       // Respondent
       this.notificationsService.create({
@@ -469,11 +532,11 @@ export class DisputesService {
         dispute.match.experience.title,
         dto.resolution,
         dto.resolutionDescription,
-        // Solo mostrar reembolso al que lo recibe (el viajero si es opener o respondent)
-        dispute.match.requesterId === dispute.openedById
+        // Solo mostrar reembolso al que lo recibe
+        refundRecipientId === dispute.respondentId
           ? refundAmount
           : undefined,
-        dispute.match.requesterId === dispute.openedById
+        refundRecipientId === dispute.respondentId
           ? refundPercentage
           : undefined,
       ),
@@ -489,14 +552,31 @@ export class DisputesService {
   }
 
   /**
-   * Obtener todas las disputas (admin)
+   * Obtener todas las disputas (admin) con filtros avanzados
    */
-  async getAllDisputes(status?: string, page = 1, limit = 20) {
+  async getAllDisputes(filters: DisputeFilters = {}) {
+    const { status, reason, search, dateFrom, dateTo, page = 1, limit = 20 } = filters;
     const skip = (page - 1) * limit;
-    const where: Record<string, unknown> = {};
+    const where: Prisma.DisputeWhereInput = {};
 
     if (status) {
-      where.status = status;
+      where.status = status as DisputeStatus;
+    }
+    if (reason) {
+      where.reason = reason as DisputeReason;
+    }
+    if (dateFrom || dateTo) {
+      where.createdAt = {};
+      if (dateFrom) where.createdAt.gte = dateFrom;
+      if (dateTo) where.createdAt.lte = dateTo;
+    }
+    if (search) {
+      where.OR = [
+        { description: { contains: search, mode: 'insensitive' } },
+        { openedBy: { name: { contains: search, mode: 'insensitive' } } },
+        { respondent: { name: { contains: search, mode: 'insensitive' } } },
+        { match: { experience: { title: { contains: search, mode: 'insensitive' } } } },
+      ];
     }
 
     const [disputes, total] = await Promise.all([
@@ -559,10 +639,172 @@ export class DisputesService {
       );
     }
 
-    return this.prisma.dispute.update({
+    const updated = await this.prisma.dispute.update({
       where: { id: disputeId },
       data: { status: DisputeStatus.UNDER_REVIEW },
     });
+
+    await this.auditService.logAdminAction(
+      adminId,
+      'mark_under_review',
+      'dispute',
+      disputeId,
+    );
+
+    return updated;
+  }
+
+  /**
+   * Obtener disputa activa para un match (para indicador en chat)
+   */
+  async getActiveDisputeForMatch(userId: string, matchId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      select: { hostId: true, requesterId: true },
+    });
+
+    if (!match) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    if (match.hostId !== userId && match.requesterId !== userId) {
+      throw new ForbiddenException('No tienes acceso a esta reserva');
+    }
+
+    const dispute = await this.prisma.dispute.findFirst({
+      where: {
+        matchId,
+        status: { in: ['OPEN', 'UNDER_REVIEW'] },
+      },
+      select: {
+        id: true,
+        status: true,
+        reason: true,
+        createdAt: true,
+      },
+    });
+
+    return { dispute };
+  }
+
+  /**
+   * Auto-cerrar disputas sin actividad en 30 días
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async autoCloseStaleDisputes() {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - STALE_DISPUTE_DAYS);
+
+    const staleDisputes = await this.prisma.dispute.findMany({
+      where: {
+        status: { in: ['OPEN', 'UNDER_REVIEW'] },
+        updatedAt: { lt: cutoff },
+      },
+      include: {
+        openedBy: { select: { id: true, name: true, email: true } },
+        respondent: { select: { id: true, name: true, email: true } },
+        match: {
+          include: { experience: { select: { title: true } } },
+        },
+      },
+    });
+
+    if (staleDisputes.length === 0) return;
+
+    for (const dispute of staleDisputes) {
+      await this.prisma.dispute.update({
+        where: { id: dispute.id },
+        data: {
+          status: DisputeStatus.CLOSED,
+          resolution: `Cerrada automáticamente por inactividad (${STALE_DISPUTE_DAYS} días sin actividad)`,
+          resolvedAt: new Date(),
+        },
+      });
+
+      await this.auditService.log({
+        action: 'dispute_auto_closed',
+        entity: 'dispute',
+        entityId: dispute.id,
+        data: { reason: 'stale', daysSinceUpdate: STALE_DISPUTE_DAYS },
+      });
+
+      // Notificar a ambas partes
+      await Promise.all([
+        this.notificationsService.create({
+          userId: dispute.openedById,
+          type: 'dispute_closed',
+          title: 'Disputa cerrada',
+          message: `Tu disputa sobre "${dispute.match.experience.title}" ha sido cerrada por inactividad`,
+          data: { disputeId: dispute.id },
+        }),
+        this.notificationsService.create({
+          userId: dispute.respondentId,
+          type: 'dispute_closed',
+          title: 'Disputa cerrada',
+          message: `La disputa sobre "${dispute.match.experience.title}" ha sido cerrada por inactividad`,
+          data: { disputeId: dispute.id },
+        }),
+      ]);
+    }
+
+    this.logger.log(
+      `Auto-cerradas ${staleDisputes.length} disputas por inactividad`,
+    );
+  }
+
+  /**
+   * Exportar disputas a CSV
+   */
+  async exportDisputesCsv(filters: Omit<DisputeFilters, 'page' | 'limit'> = {}) {
+    const where: Prisma.DisputeWhereInput = {};
+
+    if (filters.status) where.status = filters.status as DisputeStatus;
+    if (filters.reason) where.reason = filters.reason as DisputeReason;
+    if (filters.dateFrom || filters.dateTo) {
+      where.createdAt = {};
+      if (filters.dateFrom) where.createdAt.gte = filters.dateFrom;
+      if (filters.dateTo) where.createdAt.lte = filters.dateTo;
+    }
+
+    const disputes = await this.prisma.dispute.findMany({
+      where,
+      include: {
+        openedBy: { select: { name: true, email: true } },
+        respondent: { select: { name: true, email: true } },
+        resolvedBy: { select: { name: true } },
+        match: {
+          include: {
+            experience: { select: { title: true, city: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const header = 'ID,Fecha,Estado,Motivo,Experiencia,Ciudad,Abierta por,Email opener,Contra,Email respondent,Resuelta por,Reembolso,Porcentaje,Descripcion,Resolucion\n';
+    const rows = disputes.map((d) => {
+      const escape = (s: string | null | undefined) =>
+        `"${(s || '').replace(/"/g, '""')}"`;
+      return [
+        d.id,
+        d.createdAt.toISOString(),
+        d.status,
+        d.reason,
+        escape(d.match.experience.title),
+        escape(d.match.experience.city),
+        escape(d.openedBy.name),
+        d.openedBy.email,
+        escape(d.respondent.name),
+        d.respondent.email,
+        escape(d.resolvedBy?.name),
+        d.refundAmount ?? '',
+        d.refundPercentage ?? '',
+        escape(d.description),
+        escape(d.resolution),
+      ].join(',');
+    });
+
+    return '\uFEFF' + header + rows.join('\n');
   }
 
   /**

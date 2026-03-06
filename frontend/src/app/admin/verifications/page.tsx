@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/MainLayout';
 import { AdminHeader } from '@/components/admin';
+import AdminNav from '@/components/admin/AdminNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/lib/api';
@@ -210,7 +211,7 @@ export default function AdminVerificationsPage() {
 
   if (authLoading || loading) {
     return (
-      <MainLayout>
+      <MainLayout hideNav>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
@@ -219,9 +220,10 @@ export default function AdminVerificationsPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout hideNav>
       <div className="min-h-screen bg-gray-50">
 <AdminHeader title="Verificaciones de Identidad" />
+        <AdminNav />
 
         <div className="p-4 space-y-4">
           {/* Stats */}

@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { ReactNode } from 'react';
+import { API_URL } from '@/lib/api';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -9,8 +10,7 @@ interface Props {
 // Fetch experience data for metadata
 async function getExperience(id: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-    const response = await fetch(`${apiUrl}/experiences/${id}`, {
+    const response = await fetch(`${API_URL}/experiences/${id}`, {
       next: { revalidate: 3600 }, // Cache for 1 hour
     });
 
@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? experience.photos[0].startsWith('http')
       ? experience.photos[0]
       : `${process.env.NEXT_PUBLIC_CLOUDINARY_URL || ''}/${experience.photos[0]}`
-    : '/images/og-image.jpg';
+    : '/opengraph-image';
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://fiestapp.es';
   const url = `${baseUrl}/experiences/${id}`;

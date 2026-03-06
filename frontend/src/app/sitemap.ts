@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { API_URL } from '@/lib/api';
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://fiestapp.es';
 
@@ -52,8 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Obtener experiencias dinámicas del API
   let experiencePages: MetadataRoute.Sitemap = [];
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-    const response = await fetch(`${apiUrl}/experiences?published=true&limit=100`, {
+    const response = await fetch(`${API_URL}/experiences?published=true&limit=100`, {
       next: { revalidate: 3600 }, // Revalidar cada hora
     });
 
@@ -75,8 +75,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Obtener festivales dinámicos del API
   let festivalPages: MetadataRoute.Sitemap = [];
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-    const response = await fetch(`${apiUrl}/festivals`, {
+    const response = await fetch(`${API_URL}/festivals`, {
       next: { revalidate: 86400 }, // Revalidar cada día
     });
 

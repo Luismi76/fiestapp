@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { evaluationsApi, Evaluation } from '@/lib/api';
 import MainLayout from '@/components/MainLayout';
+import { AdminHeader } from '@/components/admin';
+import AdminNav from '@/components/admin/AdminNav';
 
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   PENDIENTE: { label: 'Pendiente', color: '#E6A817', bg: '#FEF9E7' },
@@ -96,7 +98,7 @@ export default function AdminEvaluacionesPage() {
 
   if (authLoading) {
     return (
-      <MainLayout>
+      <MainLayout hideNav>
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
@@ -105,20 +107,10 @@ export default function AdminEvaluacionesPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout hideNav>
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-100">
-          <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-            <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-              </svg>
-            </button>
-            <h1 className="font-bold text-gray-900">Evaluaciones ({total})</h1>
-            <div className="w-10" />
-          </div>
-        </header>
+        <AdminHeader title={`Evaluaciones (${total})`} />
+        <AdminNav />
 
         <div className="max-w-4xl mx-auto p-4 space-y-4">
           {/* Filtros */}

@@ -1,15 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
 import ExperienceCard from '@/components/ExperienceCard';
 import { ExperienceGridSkeleton } from '@/components/ui/Skeleton';
 import BottomSheet from '@/components/BottomSheet';
 import PriceRangeSlider from '@/components/PriceRangeSlider';
-import { experiencesApi, festivalsApi } from '@/lib/api';
+import { experiencesApi, festivalsApi, favoritesApi } from '@/lib/api';
 import { Experience, Festival, ExperienceFilters, ExperienceType } from '@/types/experience';
+import { useAuth } from '@/contexts/AuthContext';
 import logger from '@/lib/logger';
 
 // Icons
@@ -47,6 +48,9 @@ const ITEMS_PER_PAGE = 12;
 
 function ExperiencesContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user } = useAuth();
 
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [festivals, setFestivals] = useState<Festival[]>([]);
@@ -56,9 +60,10 @@ function ExperiencesContent() {
   const [totalResults, setTotalResults] = useState(0);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   // Search and filters
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [selectedType, setSelectedType] = useState<string>(searchParams.get('type') || '');
   const [selectedFestival, setSelectedFestival] = useState<string>(searchParams.get('festival') || '');
   const [selectedCity, setSelectedCity] = useState<string>(searchParams.get('city') || '');
@@ -67,6 +72,91 @@ function ExperiencesContent() {
   const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Load favorite IDs when user is authenticated
+  useEffect(() => {
+    if (!user) {
+      setFavoriteIds(new Set());
+      return;
+    }
+    const loadFavorites = async () => {
+      try {
+        const ids = await favoritesApi.getFavoriteIds();
+        setFavoriteIds(new Set(ids));
+      } catch (error) {
+        logger.error('Error loading favorite IDs:', error);
+      }
+    };
+    loadFavorites();
+  }, [user]);
+
+  // Optimistic toggle favorite
+  const handleToggleFavorite = useCallback(async (experienceId: string) => {
+    if (!user) return;
+
+    const wasFavorite = favoriteIds.has(experienceId);
+
+    // Optimistic update
+    setFavoriteIds(prev => {
+      const next = new Set(prev);
+      if (wasFavorite) {
+        next.delete(experienceId);
+      } else {
+        next.add(experienceId);
+      }
+      return next;
+    });
+
+    try {
+      await favoritesApi.toggleFavorite(experienceId, wasFavorite);
+    } catch (error) {
+      // Revert on error
+      setFavoriteIds(prev => {
+        const next = new Set(prev);
+        if (wasFavorite) {
+          next.add(experienceId);
+        } else {
+          next.delete(experienceId);
+        }
+        return next;
+      });
+      logger.error('Error toggling favorite:', error);
+    }
+  }, [user, favoriteIds]);
+
+  // Sync filters to URL query params
+  const updateUrlParams = useCallback((filters: {
+    q?: string;
+    type?: string;
+    festival?: string;
+    city?: string;
+    minPrice?: string;
+    maxPrice?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters.q) params.set('q', filters.q);
+    if (filters.type) params.set('type', filters.type);
+    if (filters.festival) params.set('festival', filters.festival);
+    if (filters.city) params.set('city', filters.city);
+    if (filters.minPrice) params.set('minPrice', filters.minPrice);
+    if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+
+    const queryString = params.toString();
+    const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
+    router.replace(newUrl, { scroll: false });
+  }, [pathname, router]);
+
+  // Update URL when filters change
+  useEffect(() => {
+    updateUrlParams({
+      q: searchQuery,
+      type: selectedType,
+      festival: selectedFestival,
+      city: selectedCity,
+      minPrice,
+      maxPrice,
+    });
+  }, [searchQuery, selectedType, selectedFestival, selectedCity, minPrice, maxPrice, updateUrlParams]);
 
   // Load initial data
   useEffect(() => {
@@ -165,7 +255,7 @@ function ExperiencesContent() {
   const activeFiltersCount = [selectedType, selectedFestival, selectedCity, minPrice, maxPrice].filter(Boolean).length;
 
   // Clear all filters
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSelectedType('');
     setSelectedFestival('');
     setSelectedCity('');
@@ -173,7 +263,7 @@ function ExperiencesContent() {
     setMaxPrice('');
     setSearchQuery('');
     setShowFiltersModal(false);
-  };
+  }, []);
 
   return (
     <MainLayout>
@@ -189,7 +279,7 @@ function ExperiencesContent() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar experiencias..."
+                placeholder="Busca por fiesta, ciudad o tipo de experiencia..."
                 className="w-full h-10 pl-10 pr-4 bg-gray-100 rounded-full text-sm placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/20"
               />
             </div>
@@ -257,15 +347,15 @@ function ExperiencesContent() {
                 </div>
               </div>
 
-              {/* Festival */}
+              {/* Festividad */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Festival</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Festividad</label>
                 <select
                   value={selectedFestival}
                   onChange={(e) => setSelectedFestival(e.target.value)}
                   className="w-full py-2.5 px-3 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="">Todos los festivales</option>
+                  <option value="">Todas las festividades</option>
                   {festivals.map((f) => (
                     <option key={f.id} value={f.id}>{f.name}</option>
                   ))}
@@ -321,22 +411,85 @@ function ExperiencesContent() {
               <ExperienceGridSkeleton count={8} />
             ) : experiences.length === 0 ? (
               <div className="empty-state">
-                <div className="text-[#A89880] mb-4">
-                  <SparklesIcon />
-                </div>
-                <h3 className="empty-state-title">Sin resultados</h3>
-                <p className="empty-state-text">
-                  No encontramos experiencias con esos criterios. Prueba a cambiar los filtros.
-                </p>
-                <button onClick={clearFilters} className="btn btn-primary">
-                  Ver todas las experiencias
-                </button>
+                {activeFiltersCount > 0 || searchQuery ? (
+                  <>
+                    <div className="text-[#A89880] mb-4">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+                      </svg>
+                    </div>
+                    <h3 className="empty-state-title">Sin resultados para tu búsqueda</h3>
+                    <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+                      {searchQuery && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-full text-sm text-gray-700">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                          </svg>
+                          &ldquo;{searchQuery}&rdquo;
+                        </span>
+                      )}
+                      {selectedType && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/10 rounded-full text-sm text-primary font-medium">
+                          {selectedType === 'pago' ? 'De pago' : selectedType === 'intercambio' ? 'Intercambio' : 'Flexible'}
+                        </span>
+                      )}
+                      {selectedFestival && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-secondary/10 rounded-full text-sm text-secondary font-medium">
+                          {festivals.find(f => f.id === selectedFestival)?.name || 'Festividad'}
+                        </span>
+                      )}
+                      {selectedCity && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-accent/10 rounded-full text-sm text-accent font-medium">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                          </svg>
+                          {selectedCity}
+                        </span>
+                      )}
+                      {(minPrice || maxPrice) && (
+                        <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-50 rounded-full text-sm text-green-700 font-medium">
+                          {minPrice && maxPrice ? `${minPrice}€ - ${maxPrice}€` : minPrice ? `Desde ${minPrice}€` : `Hasta ${maxPrice}€`}
+                        </span>
+                      )}
+                    </div>
+                    <p className="empty-state-text">
+                      No encontramos experiencias con estos filtros. Prueba a ampliar tu búsqueda.
+                    </p>
+                    <button onClick={clearFilters} className="btn btn-primary">
+                      Limpiar filtros y ver todo
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[#A89880] mb-4">
+                      <SparklesIcon />
+                    </div>
+                    <h3 className="empty-state-title">Aún no hay experiencias publicadas</h3>
+                    <p className="empty-state-text">
+                      Sé el primero en compartir una experiencia festiva o explora las festividades más populares de España.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Link href="/calendar" className="btn btn-primary">
+                        Explorar festividades
+                      </Link>
+                      <Link href="/experiences/create" className="btn btn-secondary">
+                        Crear experiencia
+                      </Link>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 stagger-children">
                   {experiences.map((exp) => (
-                    <ExperienceCard key={exp.id} experience={exp} />
+                    <ExperienceCard
+                      key={exp.id}
+                      experience={exp}
+                      isFavorite={user ? favoriteIds.has(exp.id) : undefined}
+                      onToggleFavorite={user ? handleToggleFavorite : undefined}
+                    />
                   ))}
                 </div>
 
@@ -403,15 +556,15 @@ function ExperiencesContent() {
               </div>
             </div>
 
-            {/* Festival */}
+            {/* Festividad */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Festival</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Festividad</label>
               <select
                 value={selectedFestival}
                 onChange={(e) => setSelectedFestival(e.target.value)}
                 className="w-full py-3 px-4 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                <option value="">Todos los festivales</option>
+                <option value="">Todas las festividades</option>
                 {festivals.map((f) => (
                   <option key={f.id} value={f.id}>{f.name}</option>
                 ))}

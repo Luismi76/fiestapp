@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -32,12 +32,24 @@ interface NewFestival {
   isNew: true;
 }
 
+const DRAFT_KEY = 'fiestapp_experience_draft';
+
+interface DraftData {
+  formValues: Partial<FormData>;
+  selectedFestival: (Festival | NewFestival) | null;
+  highlights: string[];
+  selectedDates: string[]; // ISO strings
+  capacity: number;
+  noFestival: boolean;
+  category: ExperienceCategory | '';
+  currentStep: number;
+  savedAt: number;
+}
+
 const STEPS = [
-  { id: 1, title: 'Básicos', icon: 'sparkles' },
-  { id: 2, title: 'Detalles', icon: 'document' },
-  { id: 3, title: 'Fotos', icon: 'camera' },
-  { id: 4, title: 'Disponibilidad', icon: 'calendar' },
-  { id: 5, title: 'Publicar', icon: 'rocket' },
+  { id: 1, title: 'Qué ofreces', icon: 'sparkles' },
+  { id: 2, title: 'Fotos y disponibilidad', icon: 'camera' },
+  { id: 3, title: 'Revisar y publicar', icon: 'rocket' },
 ];
 
 const TYPE_OPTIONS = [
@@ -155,6 +167,8 @@ export default function CreateExperiencePage() {
   const [noFestival, setNoFestival] = useState(false);
   const [category, setCategory] = useState<ExperienceCategory | ''>('');
   const [categoryError, setCategoryError] = useState('');
+  const [hasDraft, setHasDraft] = useState(false);
+  const draftLoaded = useRef(false);
 
   const {
     register,
@@ -171,6 +185,112 @@ export default function CreateExperiencePage() {
 
   const watchedValues = watch();
   const selectedType = watchedValues.type as ExperienceType;
+
+  // --- Borrador: cargar al montar ---
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft: DraftData = JSON.parse(raw);
+
+      // Restaurar campos del formulario
+      if (draft.formValues) {
+        Object.entries(draft.formValues).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            setValue(key as keyof FormData, value as string);
+          }
+        });
+      }
+
+      // Restaurar estados adicionales
+      if (draft.selectedFestival) setSelectedFestival(draft.selectedFestival);
+      if (draft.highlights && draft.highlights.length > 0) setHighlights(draft.highlights);
+      if (draft.selectedDates && draft.selectedDates.length > 0) {
+        setSelectedDates(draft.selectedDates.map(d => new Date(d)));
+      }
+      if (draft.capacity) setCapacity(draft.capacity);
+      if (draft.noFestival !== undefined) setNoFestival(draft.noFestival);
+      if (draft.category) setCategory(draft.category);
+      if (draft.currentStep && draft.currentStep >= 1) {
+        // Mapear pasos antiguos (de wizard de 5 pasos) al nuevo de 3
+        setCurrentStep(Math.min(draft.currentStep, STEPS.length));
+      }
+
+      setHasDraft(true);
+    } catch {
+      // Si el borrador está corrupto, lo eliminamos
+      localStorage.removeItem(DRAFT_KEY);
+    } finally {
+      draftLoaded.current = true;
+    }
+    // Solo ejecutar al montar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // --- Borrador: guardar con debounce ---
+  useEffect(() => {
+    if (!draftLoaded.current) return;
+
+    const timeout = setTimeout(() => {
+      const draft: DraftData = {
+        formValues: {
+          title: watchedValues.title,
+          description: watchedValues.description,
+          festivalId: watchedValues.festivalId,
+          city: watchedValues.city,
+          price: watchedValues.price,
+          type: watchedValues.type,
+        },
+        selectedFestival,
+        highlights,
+        selectedDates: selectedDates.map(d => d.toISOString()),
+        capacity,
+        noFestival,
+        category,
+        currentStep,
+        savedAt: Date.now(),
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      setHasDraft(true);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [
+    watchedValues.title, watchedValues.description, watchedValues.festivalId,
+    watchedValues.city, watchedValues.price, watchedValues.type,
+    selectedFestival, highlights, selectedDates, capacity, noFestival,
+    category, currentStep,
+  ]);
+
+  // --- Borrador: descartar ---
+  const discardDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_KEY);
+    setHasDraft(false);
+
+    // Resetear formulario
+    setValue('title', '');
+    setValue('description', '');
+    setValue('festivalId', '');
+    setValue('city', '');
+    setValue('price', '');
+    setValue('type', 'pago');
+
+    // Resetear estados
+    setSelectedFestival(null);
+    setHighlights(['']);
+    setSelectedDates([]);
+    setCapacity(1);
+    setNoFestival(false);
+    setCategory('');
+    setCurrentStep(1);
+    setPendingPhotos([]);
+  }, [setValue]);
+
+  // --- Borrador: limpiar al publicar ---
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_KEY);
+    setHasDraft(false);
+  }, []);
 
   // Auto-fill city when festival is selected
   useEffect(() => {
@@ -199,8 +319,13 @@ export default function CreateExperiencePage() {
 
   const validateStep = async (step: number): Promise<boolean> => {
     switch (step) {
-      case 1:
-        const titleCityValid = await trigger(['title', 'city', 'type']);
+      case 1: {
+        // Paso 1: "Qué ofreces" - combina básicos + detalles
+        const fieldsToValidate: (keyof FormData)[] = ['title', 'city', 'type', 'description'];
+        if (selectedType !== 'intercambio') {
+          fieldsToValidate.push('price');
+        }
+        const fieldsValid = await trigger(fieldsToValidate);
         // Si no es sin festividad, debe tener una festividad seleccionada
         if (!noFestival && !selectedFestival) {
           setFestivalError('Selecciona una festividad o marca "Sin festividad asociada"');
@@ -211,15 +336,18 @@ export default function CreateExperiencePage() {
           setCategoryError('Selecciona una categoría');
           return false;
         }
-        return titleCityValid;
+        return fieldsValid;
+      }
       case 2:
-        return await trigger(['description']);
-      case 3:
-        return true; // Photos are optional
-      case 4:
-        if (selectedType !== 'intercambio') {
-          return await trigger(['price']);
+        // Paso 2: "Fotos y disponibilidad" - al menos 1 foto
+        if (pendingPhotos.length === 0) {
+          setError('Añade al menos una foto para continuar');
+          return false;
         }
+        setError('');
+        return true;
+      case 3:
+        // Paso 3: "Revisar y publicar" - sin validación extra
         return true;
       default:
         return true;
@@ -297,11 +425,13 @@ export default function CreateExperiencePage() {
             setError('Error al subir las fotos. La experiencia se creó correctamente, puedes añadir las fotos más tarde.');
           }
           // Still redirect to the experience page
+          clearDraft();
           router.push(`/experiences/${experience.id}`);
           return;
         }
       }
 
+      clearDraft();
       router.push(`/experiences/${experience.id}`);
     } catch (err) {
       logger.error('Error creating experience:', err);
@@ -423,15 +553,34 @@ export default function CreateExperiencePage() {
           </div>
         )}
 
-        {/* Step 1: Basics */}
+        {hasDraft && (
+          <div className="mx-4 mt-4 bg-blue-50 border border-blue-200 text-blue-700 p-3 rounded-xl text-sm flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 flex-shrink-0 text-blue-500">
+                <path d="M15.988 3.012A2.25 2.25 0 0 1 18 5.25v6.5A2.25 2.25 0 0 1 15.75 14H13.5V7A2.5 2.5 0 0 0 11 4.5H8.128a2.252 2.252 0 0 1 1.884-1.488A2.25 2.25 0 0 1 12.25 1h1.5a2.25 2.25 0 0 1 2.238 2.012ZM11.5 3.25a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v.25h-3v-.25Z" />
+                <path fillRule="evenodd" d="M2 7a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7Zm2 3.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75Zm0 3.5a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+              </svg>
+              <span>Se ha restaurado tu borrador anterior</span>
+            </div>
+            <button
+              type="button"
+              onClick={discardDraft}
+              className="flex-shrink-0 px-3 py-1.5 bg-white border border-blue-200 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition-colors"
+            >
+              Descartar borrador
+            </button>
+          </div>
+        )}
+
+        {/* Step 1: Qué ofreces (básicos + detalles + precio + capacidad) */}
         {currentStep === 1 && (
           <div className="p-4 space-y-6 animate-fadeIn">
             <div className="text-center py-4">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/30">
                 <StepIcon name="sparkles" className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Empecemos con lo básico</h2>
-              <p className="text-gray-500 mt-1">Cuéntanos sobre tu experiencia</p>
+              <h2 className="text-xl font-bold text-gray-900">¿Qué ofreces?</h2>
+              <p className="text-gray-500 mt-1">Cuéntanos todos los detalles de tu experiencia</p>
             </div>
 
             {/* Title */}
@@ -578,19 +727,46 @@ export default function CreateExperiencePage() {
                 ))}
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Step 2: Details */}
-        {currentStep === 2 && (
-          <div className="p-4 space-y-6 animate-fadeIn">
-            <div className="text-center py-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-indigo-500/30">
-                <StepIcon name="document" className="w-8 h-8 text-white" />
+            {/* Price (if applicable) */}
+            {selectedType !== 'intercambio' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Precio por persona
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    className={`w-full px-4 py-3.5 pr-12 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 text-2xl font-bold transition-colors focus:outline-none focus:border-blue-500 ${
+                      errors.price ? 'border-red-300' : 'border-gray-200'
+                    }`}
+                    placeholder="0"
+                    min="0"
+                    step="1"
+                    {...register('price', {
+                      validate: (value) => {
+                        if (!value && watchedValues.type !== 'intercambio') {
+                          return 'El precio es obligatorio';
+                        }
+                        return true;
+                      },
+                    })}
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">
+                    €
+                  </div>
+                </div>
+                {errors.price && (
+                  <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
+                      <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clipRule="evenodd" />
+                    </svg>
+                    {errors.price.message}
+                  </p>
+                )}
+                <p className="text-xs text-gray-400 mt-1.5">Precio que pagarán los participantes</p>
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Describe tu experiencia</h2>
-              <p className="text-gray-500 mt-1">Ayuda a los viajeros a entender qué ofreces</p>
-            </div>
+            )}
 
             {/* Description */}
             <div>
@@ -668,18 +844,51 @@ export default function CreateExperiencePage() {
                 </button>
               )}
             </div>
+
+            {/* Capacity */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Capacidad máxima
+              </label>
+              <p className="text-sm text-gray-500 mb-3">
+                ¿Cuántas personas puedes atender por día?
+              </p>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setCapacity(Math.max(1, capacity - 1))}
+                  className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 transition-colors"
+                >
+                  −
+                </button>
+                <div className="flex-1 text-center">
+                  <span className="text-4xl font-bold text-gray-900">{capacity}</span>
+                  <p className="text-sm text-gray-500">{capacity === 1 ? 'persona' : 'personas'}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCapacity(capacity + 1)}
+                  className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 transition-colors"
+                >
+                  +
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-3 text-center">
+                Las fechas se marcarán como completas cuando alcances esta capacidad
+              </p>
+            </div>
           </div>
         )}
 
-        {/* Step 3: Photos */}
-        {currentStep === 3 && (
+        {/* Step 2: Fotos y disponibilidad */}
+        {currentStep === 2 && (
           <div className="p-4 space-y-6 animate-fadeIn">
             <div className="text-center py-4">
               <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-pink-500/30">
                 <StepIcon name="camera" className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-xl font-bold text-gray-900">Añade fotos increíbles</h2>
-              <p className="text-gray-500 mt-1">Las experiencias con fotos reciben 3x más solicitudes</p>
+              <h2 className="text-xl font-bold text-gray-900">Fotos y disponibilidad</h2>
+              <p className="text-gray-500 mt-1">Añade fotos y selecciona cuándo estás disponible</p>
             </div>
 
             {/* Photo Grid Preview */}
@@ -757,92 +966,6 @@ export default function CreateExperiencePage() {
                 </li>
               </ul>
             </div>
-          </div>
-        )}
-
-        {/* Step 4: Availability & Price */}
-        {currentStep === 4 && (
-          <div className="p-4 space-y-6 animate-fadeIn">
-            <div className="text-center py-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-green-500/30">
-                <StepIcon name="calendar" className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900">Disponibilidad y precio</h2>
-              <p className="text-gray-500 mt-1">¿Cuándo y a qué precio ofreces tu experiencia?</p>
-            </div>
-
-            {/* Price (if applicable) */}
-            {selectedType !== 'intercambio' && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Precio por persona
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    className={`w-full px-4 py-3.5 pr-12 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 text-2xl font-bold transition-colors focus:outline-none focus:border-blue-500 ${
-                      errors.price ? 'border-red-300' : 'border-gray-200'
-                    }`}
-                    placeholder="0"
-                    min="0"
-                    step="1"
-                    {...register('price', {
-                      validate: (value) => {
-                        if (!value && watchedValues.type !== 'intercambio') {
-                          return 'El precio es obligatorio';
-                        }
-                        return true;
-                      },
-                    })}
-                  />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">
-                    €
-                  </div>
-                </div>
-                {errors.price && (
-                  <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
-                      <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clipRule="evenodd" />
-                    </svg>
-                    {errors.price.message}
-                  </p>
-                )}
-                <p className="text-xs text-gray-400 mt-1.5">Precio que pagarán los participantes</p>
-              </div>
-            )}
-
-            {/* Capacity */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Capacidad máxima
-              </label>
-              <p className="text-sm text-gray-500 mb-3">
-                ¿Cuántas personas puedes atender por día?
-              </p>
-              <div className="flex items-center gap-4">
-                <button
-                  type="button"
-                  onClick={() => setCapacity(Math.max(1, capacity - 1))}
-                  className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 transition-colors"
-                >
-                  −
-                </button>
-                <div className="flex-1 text-center">
-                  <span className="text-4xl font-bold text-gray-900">{capacity}</span>
-                  <p className="text-sm text-gray-500">{capacity === 1 ? 'persona' : 'personas'}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCapacity(capacity + 1)}
-                  className="w-12 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 transition-colors"
-                >
-                  +
-                </button>
-              </div>
-              <p className="text-xs text-gray-400 mt-3 text-center">
-                Las fechas se marcarán como completas cuando alcances esta capacidad
-              </p>
-            </div>
 
             {/* Calendar */}
             <div>
@@ -894,8 +1017,8 @@ export default function CreateExperiencePage() {
           </div>
         )}
 
-        {/* Step 5: Preview */}
-        {currentStep === 5 && (
+        {/* Step 3: Revisar y publicar */}
+        {currentStep === 3 && (
           <div className="p-4 space-y-6 animate-fadeIn">
             <div className="text-center py-4">
               <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-violet-500/30">

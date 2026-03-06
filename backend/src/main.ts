@@ -12,9 +12,19 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Allowed origins from environment or defaults
+  const isProduction = process.env.NODE_ENV === 'production';
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
-    : ['http://localhost:3000', 'http://localhost:3001'];
+    : isProduction
+      ? []
+      : ['http://localhost:3000', 'http://localhost:3001'];
+
+  if (isProduction && !process.env.ALLOWED_ORIGINS) {
+    const logger = new Logger('Bootstrap');
+    logger.error(
+      'ALLOWED_ORIGINS not set in production! CORS will block all cross-origin requests.',
+    );
+  }
 
   // RAW CORS middleware - handles preflight BEFORE anything else
   app.use((req: Request, res: Response, next: NextFunction) => {

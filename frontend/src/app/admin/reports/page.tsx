@@ -7,6 +7,7 @@ import { reportsApi, Report, ReportsResponse, ReportStats } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
 import { AdminHeader } from '@/components/admin';
+import AdminNav from '@/components/admin/AdminNav';
 
 const REASON_LABELS: Record<string, string> = {
   spam: 'Spam',
@@ -272,7 +273,7 @@ export default function AdminReportsPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout hideNav>
       <div className="min-h-screen bg-gray-50 pb-8">
         <AdminHeader
           title="Reportes y Denuncias"
@@ -280,6 +281,7 @@ export default function AdminReportsPage() {
           filterActive={showFilters}
           onFilterToggle={() => setShowFilters(!showFilters)}
         />
+        <AdminNav />
 
       <div className="p-4 space-y-4">
         {/* Stats Cards */}

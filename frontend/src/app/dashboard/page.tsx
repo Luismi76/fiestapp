@@ -11,8 +11,6 @@ import { getUploadUrl, getAvatarUrl, formatTimeAgo } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import logger from '@/lib/logger';
 import {
-  MessageIcon,
-  CalendarIcon,
   SparklesIcon,
   PlusIcon,
   ChevronRightIcon,
@@ -60,7 +58,6 @@ export default function DashboardPage() {
   // Stats
   const pendingReceived = receivedMatches.filter(m => m.status === 'pending').length;
   const acceptedMatches = [...receivedMatches, ...sentMatches].filter(m => m.status === 'accepted');
-  const unreadMessages = [...receivedMatches, ...sentMatches].reduce((acc, m) => acc + (m.unreadCount || 0), 0);
 
   // Helpers
   const getImageUrl = (photos?: string[]) => {
@@ -141,49 +138,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </header>
-
-        {/* Quick Stats */}
-        <div className="px-4 -mt-2">
-          <div className="grid grid-cols-3 gap-3">
-            <Link href="/messages" className="card p-4 text-center group">
-              <div className="relative inline-block mb-2">
-                <div className="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center mx-auto text-secondary group-hover:scale-110 transition-transform">
-                  <MessageIcon />
-                </div>
-                {unreadMessages > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
-                    {unreadMessages > 9 ? '9+' : unreadMessages}
-                  </span>
-                )}
-              </div>
-              <p className="text-2xl font-bold text-[#1A1410]">{receivedMatches.length + sentMatches.length}</p>
-              <p className="text-xs text-[#8B7355]">Conversaciones</p>
-            </Link>
-
-            <Link href="/messages?tab=received" className="card p-4 text-center group">
-              <div className="relative inline-block mb-2">
-                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mx-auto text-accent group-hover:scale-110 transition-transform">
-                  <CalendarIcon />
-                </div>
-                {pendingReceived > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-accent text-[#1A1410] text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
-                    {pendingReceived}
-                  </span>
-                )}
-              </div>
-              <p className="text-2xl font-bold text-[#1A1410]">{pendingReceived}</p>
-              <p className="text-xs text-[#8B7355]">Pendientes</p>
-            </Link>
-
-            <Link href="/experiences/my" className="card p-4 text-center group">
-              <div className="w-12 h-12 bg-emerald/10 rounded-xl flex items-center justify-center mx-auto text-emerald group-hover:scale-110 transition-transform mb-2">
-                <SparklesIcon />
-              </div>
-              <p className="text-2xl font-bold text-[#1A1410]">{myExperiences.length}</p>
-              <p className="text-xs text-[#8B7355]">Mis experiencias</p>
-            </Link>
-          </div>
-        </div>
 
         {/* Desktop multi-column layout */}
         <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:px-4 lg:mt-6">
@@ -311,6 +265,31 @@ export default function DashboardPage() {
 
           {/* Sidebar - col-span-1 */}
           <div className="lg:col-span-1">
+            {/* Host Stats */}
+            {myExperiences.length > 0 && (
+              <section className="px-4 lg:px-0 mt-6 lg:mt-0 mb-6">
+                <h2 className="section-title mb-3">Tu actividad como anfitrión</h2>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="card p-3 text-center">
+                    <p className="text-2xl font-bold text-primary">{myExperiences.length}</p>
+                    <p className="text-xs text-[#8B7355] mt-0.5">Experiencias</p>
+                  </div>
+                  <div className="card p-3 text-center">
+                    <p className="text-2xl font-bold text-accent">{pendingReceived}</p>
+                    <p className="text-xs text-[#8B7355] mt-0.5">Pendientes</p>
+                  </div>
+                  <div className="card p-3 text-center">
+                    <p className="text-2xl font-bold text-secondary">
+                      {receivedMatches.length > 0
+                        ? Math.round((receivedMatches.filter(m => m.status === 'accepted' || m.status === 'completed').length / receivedMatches.length) * 100)
+                        : 0}%
+                    </p>
+                    <p className="text-xs text-[#8B7355] mt-0.5">Aceptación</p>
+                  </div>
+                </div>
+              </section>
+            )}
+
             {/* My Experiences */}
             <section className="px-4 lg:px-0 mt-6 lg:mt-0">
               <div className="section-header">
@@ -321,18 +300,33 @@ export default function DashboardPage() {
               </div>
 
               {myExperiences.length === 0 ? (
-                <Link
-                  href="/experiences/create"
-                  className="card p-5 flex items-center gap-4 border-2 border-dashed border-primary/30 hover:border-primary hover:shadow-lg transition-all group"
-                >
-                  <div className="w-14 h-14 rounded-xl gradient-sunset flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                    <PlusIcon />
+                <div className="card p-5 border-2 border-dashed border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-xl gradient-sunset flex items-center justify-center text-white flex-shrink-0">
+                      <PlusIcon />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[#1A1410] mb-1">Comparte lo que hace especial tu ciudad</p>
+                      <p className="text-sm text-[#8B7355] leading-relaxed">
+                        Ofrece a los viajeros una experiencia auténtica en las fiestas de tu zona: gastronomía, tradiciones, los mejores rincones...
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-[#1A1410]">Crea tu primera experiencia</p>
-                    <p className="text-sm text-[#8B7355]">Comparte tu conocimiento local con viajeros</p>
+                  <div className="flex items-center gap-3 ml-16">
+                    <Link
+                      href="/experiences/create"
+                      className="btn btn-primary btn-sm"
+                    >
+                      Crear experiencia
+                    </Link>
+                    <Link
+                      href="/experiences"
+                      className="text-sm text-primary font-medium hover:text-primary-dark transition-colors"
+                    >
+                      Ver ejemplos
+                    </Link>
                   </div>
-                </Link>
+                </div>
               ) : (
                 <div className="space-y-3 stagger-children">
                   {myExperiences.slice(0, 3).map(exp => (
@@ -377,8 +371,8 @@ export default function DashboardPage() {
               )}
             </section>
 
-            {/* Quick Actions - desktop sidebar */}
-            <section className="hidden lg:block mt-6">
+            {/* Quick Actions */}
+            <section className="mt-6">
               <h3 className="section-title mb-3">Acciones rápidas</h3>
               <div className="space-y-2">
                 <Link href="/experiences" className="card flex items-center gap-3 p-4 group">
@@ -388,6 +382,14 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                   <span className="font-medium text-[#1A1410] text-sm">Explorar experiencias</span>
+                </Link>
+                <Link href="/favorites" className="card flex items-center gap-3 p-4 group">
+                  <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
+                    </svg>
+                  </div>
+                  <span className="font-medium text-[#1A1410] text-sm">Mis favoritos</span>
                 </Link>
                 <Link href="/stats" className="card flex items-center gap-3 p-4 group">
                   <div className="w-10 h-10 bg-secondary/10 rounded-xl flex items-center justify-center text-secondary">

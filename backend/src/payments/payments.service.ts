@@ -5,12 +5,14 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import Stripe from 'stripe';
 
 export enum PaymentStatus {
   PENDING = 'pending',
   HELD = 'held', // Pago retenido (escrow)
+  CAPTURING = 'capturing', // Captura iniciada en pasarela, pendiente de confirmar en BD
   RELEASED = 'released', // Liberado al anfitrión
   REFUNDED = 'refunded', // Reembolsado al viajero
   FAILED = 'failed',
@@ -287,27 +289,51 @@ export class PaymentsService {
       throw new BadRequestException('No hay pago retenido para este match');
     }
 
-    // Capturar el pago (transferir al anfitrión)
-    await this.ensureStripe().paymentIntents.capture(transaction.stripeId);
-
-    // Actualizar transacción
+    // Marcar como CAPTURING antes de llamar a la pasarela
     await this.prisma.transaction.update({
       where: { id: transaction.id },
-      data: { status: PaymentStatus.RELEASED },
+      data: { status: PaymentStatus.CAPTURING },
     });
 
-    // Actualizar match
-    await this.prisma.match.update({
-      where: { id: matchId },
-      data: { paymentStatus: PaymentStatus.RELEASED },
-    });
+    // Capturar el pago (transferir al anfitrión)
+    try {
+      await this.ensureStripe().paymentIntents.capture(transaction.stripeId);
+    } catch (error) {
+      // Revertir a HELD si la captura falla
+      await this.prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { status: PaymentStatus.HELD },
+      });
+      throw error;
+    }
 
-    // Actualizar wallet del anfitrión
-    await this.prisma.wallet.upsert({
-      where: { userId: hostId },
-      update: { balance: { increment: transaction.amount } },
-      create: { userId: hostId, balance: transaction.amount },
-    });
+    // Actualizar BD atómicamente
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.transaction.update({
+          where: { id: transaction.id },
+          data: { status: PaymentStatus.RELEASED },
+        });
+
+        await tx.match.update({
+          where: { id: matchId },
+          data: { paymentStatus: PaymentStatus.RELEASED },
+        });
+
+        await tx.wallet.upsert({
+          where: { userId: hostId },
+          update: { balance: { increment: transaction.amount } },
+          create: { userId: hostId, balance: transaction.amount },
+        });
+      });
+    } catch (error) {
+      // Queda en CAPTURING → el cron de reconciliación lo detectará y completará
+      this.logger.error(
+        `CRITICAL: Stripe payment captured but DB update failed for match ${matchId}. Status left as CAPTURING for reconciliation.`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
   }
 
   // Reembolsar el pago al viajero (si se cancela o rechaza)
@@ -691,44 +717,74 @@ export class PaymentsService {
       );
     }
 
+    // Marcar como CAPTURING antes de llamar a la pasarela
+    await this.prisma.transaction.update({
+      where: { id: transaction.id },
+      data: { status: PaymentStatus.CAPTURING },
+    });
+
     const accessToken = await this.getPayPalAccessToken();
 
     // Capture the authorization
-    const response = await fetch(
-      `${this.paypalBaseUrl}/v2/payments/authorizations/${transaction.stripeId}/capture`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+    let response: Response;
+    try {
+      response = await fetch(
+        `${this.paypalBaseUrl}/v2/payments/authorizations/${transaction.stripeId}/capture`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
         },
-      },
-    );
+      );
+    } catch (error) {
+      // Revertir a HELD si la captura falla por red
+      await this.prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { status: PaymentStatus.HELD },
+      });
+      throw error;
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       this.logger.error('PayPal capture error:', errorText);
+      // Revertir a HELD
+      await this.prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { status: PaymentStatus.HELD },
+      });
       throw new BadRequestException('Error al capturar pago de PayPal');
     }
 
-    // Update transaction
-    await this.prisma.transaction.update({
-      where: { id: transaction.id },
-      data: { status: PaymentStatus.RELEASED },
-    });
+    // Actualizar BD atómicamente
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.transaction.update({
+          where: { id: transaction.id },
+          data: { status: PaymentStatus.RELEASED },
+        });
 
-    // Update match
-    await this.prisma.match.update({
-      where: { id: matchId },
-      data: { paymentStatus: PaymentStatus.RELEASED },
-    });
+        await tx.match.update({
+          where: { id: matchId },
+          data: { paymentStatus: PaymentStatus.RELEASED },
+        });
 
-    // Update host wallet
-    await this.prisma.wallet.upsert({
-      where: { userId: hostId },
-      update: { balance: { increment: transaction.amount } },
-      create: { userId: hostId, balance: transaction.amount },
-    });
+        await tx.wallet.upsert({
+          where: { userId: hostId },
+          update: { balance: { increment: transaction.amount } },
+          create: { userId: hostId, balance: transaction.amount },
+        });
+      });
+    } catch (error) {
+      // Queda en CAPTURING → el cron de reconciliación lo detectará y completará
+      this.logger.error(
+        `CRITICAL: PayPal payment captured but DB update failed for match ${matchId}. Status left as CAPTURING for reconciliation.`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
   }
 
   // Refund PayPal payment (void authorization or refund capture)
@@ -967,5 +1023,63 @@ export class PaymentsService {
       methods.push(PaymentMethod.PAYPAL);
     }
     return methods;
+  }
+
+  // Reconciliación: detecta transacciones en CAPTURING (capturadas en pasarela pero BD falló)
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async reconcileCapturingPayments(): Promise<void> {
+    const staleTransactions = await this.prisma.transaction.findMany({
+      where: {
+        status: PaymentStatus.CAPTURING,
+        updatedAt: { lt: new Date(Date.now() - 2 * 60 * 1000) }, // >2 min en CAPTURING
+      },
+      include: { match: true },
+    });
+
+    if (staleTransactions.length === 0) return;
+
+    this.logger.warn(
+      `Reconciliation: found ${staleTransactions.length} transactions stuck in CAPTURING`,
+    );
+
+    for (const transaction of staleTransactions) {
+      try {
+        const hostId = transaction.match?.hostId;
+        const matchId = transaction.matchId;
+        if (!hostId || !matchId) {
+          this.logger.error(
+            `Reconciliation: transaction ${transaction.id} has no host or match, skipping`,
+          );
+          continue;
+        }
+
+        await this.prisma.$transaction(async (tx) => {
+          await tx.transaction.update({
+            where: { id: transaction.id },
+            data: { status: PaymentStatus.RELEASED },
+          });
+
+          await tx.match.update({
+            where: { id: matchId },
+            data: { paymentStatus: PaymentStatus.RELEASED },
+          });
+
+          await tx.wallet.upsert({
+            where: { userId: hostId },
+            update: { balance: { increment: transaction.amount } },
+            create: { userId: hostId, balance: transaction.amount },
+          });
+        });
+
+        this.logger.log(
+          `Reconciliation: transaction ${transaction.id} for match ${transaction.matchId} completed successfully`,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Reconciliation: failed to complete transaction ${transaction.id}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
   }
 }

@@ -217,7 +217,7 @@ export default function CalendarPage() {
 
               {/* Contador */}
               <span className="text-sm text-gray-500">
-                {totalFestivals} festival{totalFestivals !== 1 ? 'es' : ''}
+                {totalFestivals} festividad{totalFestivals !== 1 ? 'es' : ''}
               </span>
             </div>
 
@@ -276,8 +276,8 @@ export default function CalendarPage() {
               <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CalendarIcon />
               </div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Sin festivales</h2>
-              <p className="text-gray-500 mb-4">No hay festivales con los filtros seleccionados</p>
+              <h2 className="text-lg font-semibold text-gray-900 mb-2">Sin festividades</h2>
+              <p className="text-gray-500 mb-4">No hay festividades con los filtros seleccionados</p>
               {activeFiltersCount > 0 && (
                 <button
                   onClick={clearFilters}
@@ -295,7 +295,7 @@ export default function CalendarPage() {
                   <div className="px-4 py-3 bg-gradient-to-r from-primary/5 to-orange-500/5 flex items-center justify-between">
                     <div>
                       <h2 className="font-bold text-gray-900">{monthData.monthName}</h2>
-                      <p className="text-xs text-gray-500">{monthData.festivals.length} festival{monthData.festivals.length !== 1 ? 'es' : ''}</p>
+                      <p className="text-xs text-gray-500">{monthData.festivals.length} festividad{monthData.festivals.length !== 1 ? 'es' : ''}</p>
                     </div>
                     <span className="text-2xl">
                       {monthData.month === 1 && '❄️'}
@@ -388,7 +388,7 @@ export default function CalendarPage() {
 
               {/* Header */}
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Filtrar festivales</h3>
+                <h3 className="text-lg font-semibold">Filtrar festividades</h3>
                 <button onClick={() => setShowFiltersModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
                   <CloseIcon />
                 </button>

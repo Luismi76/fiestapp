@@ -18,6 +18,35 @@ export class AdminService {
     private notificationsService: NotificationsService,
   ) {}
 
+  /**
+   * Obtiene contadores de alertas pendientes para el dashboard admin
+   */
+  async getDashboardAlerts() {
+    const [
+      openDisputes,
+      underReviewDisputes,
+      pendingReports,
+      pendingVerifications,
+      usersWithStrikes,
+      bannedUsers,
+    ] = await Promise.all([
+      this.prisma.dispute.count({ where: { status: 'OPEN' } }),
+      this.prisma.dispute.count({ where: { status: 'UNDER_REVIEW' } }),
+      this.prisma.report.count({ where: { status: 'pending' } }),
+      this.prisma.identityVerification.count({ where: { status: 'PENDING' } }),
+      this.prisma.user.count({ where: { strikes: { gt: 0 }, bannedAt: null } }),
+      this.prisma.user.count({ where: { bannedAt: { not: null } } }),
+    ]);
+
+    return {
+      disputes: { open: openDisputes, underReview: underReviewDisputes, total: openDisputes + underReviewDisputes },
+      reports: { pending: pendingReports },
+      verifications: { pending: pendingVerifications },
+      users: { withStrikes: usersWithStrikes, banned: bannedUsers },
+      totalPending: openDisputes + underReviewDisputes + pendingReports + pendingVerifications,
+    };
+  }
+
   async getDashboardStats() {
     const [
       totalUsers,

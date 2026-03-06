@@ -9,10 +9,10 @@ import { useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
 
 const resetPasswordSchema = z.object({
-  password: z.string().min(6, 'La contrasena debe tener al menos 6 caracteres'),
-  confirmPassword: z.string().min(6, 'La contrasena debe tener al menos 6 caracteres'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  confirmPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: 'Las contrasenas no coinciden',
+  message: 'Las contraseñas no coinciden',
   path: ['confirmPassword'],
 });
 
@@ -57,7 +57,7 @@ function ResetPasswordContent() {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError('Error al restablecer la contrasena. El enlace puede haber expirado.');
+        setError('Error al restablecer la contraseña. El enlace puede haber expirado.');
       }
     } finally {
       setLoading(false);
@@ -89,8 +89,8 @@ function ResetPasswordContent() {
               <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z" clipRule="evenodd" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold mb-1">Nueva contrasena</h1>
-          <p className="text-white/70 text-sm">Crea una contrasena segura</p>
+          <h1 className="text-2xl font-bold mb-1">Nueva contraseña</h1>
+          <p className="text-white/70 text-sm">Crea una contraseña segura</p>
         </div>
       </div>
 
@@ -104,9 +104,9 @@ function ResetPasswordContent() {
                   <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Contrasena actualizada</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Contraseña actualizada</h2>
               <p className="text-gray-600 mb-6">
-                Tu contrasena ha sido restablecida correctamente. Ya puedes iniciar sesion con tu nueva contrasena.
+                Tu contraseña ha sido restablecida correctamente. Ya puedes iniciar sesion con tu nueva contraseña.
               </p>
               <Link
                 href="/login"
@@ -156,7 +156,7 @@ function ResetPasswordContent() {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 {/* Password field */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Nueva contrasena</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nueva contraseña</label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -201,7 +201,7 @@ function ResetPasswordContent() {
 
                 {/* Confirm Password field */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Confirmar contrasena</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Confirmar contraseña</label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -214,7 +214,7 @@ function ResetPasswordContent() {
                       className={`w-full pl-12 pr-12 py-3.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all ${
                         errors.confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-200'
                       }`}
-                      placeholder="Repite la contrasena"
+                      placeholder="Repite la contraseña"
                     />
                     <button
                       type="button"
@@ -257,7 +257,7 @@ function ResetPasswordContent() {
                     </>
                   ) : (
                     <>
-                      Guardar contrasena
+                      Guardar contraseña
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                         <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
                       </svg>

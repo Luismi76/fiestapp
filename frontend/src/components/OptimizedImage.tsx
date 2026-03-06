@@ -90,12 +90,15 @@ export function OptimizedImage({
       <div
         className={`bg-gray-200 flex items-center justify-center ${className}`}
         style={!fill ? { width: finalWidth, height: finalHeight } : undefined}
+        role="img"
+        aria-label={alt || 'Imagen no disponible'}
       >
         <svg
           className="w-12 h-12 text-gray-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <path
             strokeLinecap="round"
@@ -172,6 +175,8 @@ export function OptimizedAvatar({ src, name, size = 'md', className = '' }: Avat
       <div
         className={`rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold ${fontSize} ${className}`}
         style={{ width: dimension, height: dimension }}
+        role="img"
+        aria-label={`Avatar de ${name}`}
       >
         {initials}
       </div>

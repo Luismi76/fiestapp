@@ -8,8 +8,12 @@ import {
   Query,
   UseGuards,
   Request,
+  Res,
+  Header,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 import { DisputesService } from './disputes.service';
 import {
   CreateDisputeDto,
@@ -55,6 +59,20 @@ export class DisputesController {
   }
 
   /**
+   * Verificar si hay una disputa activa para un match
+   */
+  @Get('match/:matchId/active')
+  getActiveDisputeForMatch(
+    @Param('matchId') matchId: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.disputesService.getActiveDisputeForMatch(
+      req.user.userId || req.user.sub,
+      matchId,
+    );
+  }
+
+  /**
    * Obtener detalle de una disputa
    */
   @Get(':id')
@@ -86,24 +104,32 @@ export class DisputesController {
 }
 
 @Controller('admin/disputes')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminDisputesController {
   constructor(private disputesService: DisputesService) {}
 
   /**
-   * Obtener todas las disputas (admin)
+   * Obtener todas las disputas (admin) con filtros avanzados
    */
   @Get()
   getAllDisputes(
     @Query('status') status?: string,
+    @Query('reason') reason?: string,
+    @Query('search') search?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.disputesService.getAllDisputes(
+    return this.disputesService.getAllDisputes({
       status,
-      page ? parseInt(page, 10) : 1,
-      limit ? parseInt(limit, 10) : 20,
-    );
+      reason,
+      search,
+      dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      dateTo: dateTo ? new Date(dateTo) : undefined,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+    });
   }
 
   /**
@@ -112,6 +138,31 @@ export class AdminDisputesController {
   @Get('stats')
   getStats() {
     return this.disputesService.getDisputeStats();
+  }
+
+  /**
+   * Exportar disputas como CSV (admin)
+   */
+  @Get('export/csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  async exportCsv(
+    @Res() res: Response,
+    @Query('status') status?: string,
+    @Query('reason') reason?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+  ) {
+    const csv = await this.disputesService.exportDisputesCsv({
+      status,
+      reason,
+      dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      dateTo: dateTo ? new Date(dateTo) : undefined,
+    });
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="disputas-${new Date().toISOString().slice(0, 10)}.csv"`,
+    );
+    res.send(csv);
   }
 
   /**

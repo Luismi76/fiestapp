@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { adminApi, AdminExperience, AdminExperiencesResponse } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminHeader } from '@/components/admin';
+import AdminNav from '@/components/admin/AdminNav';
 import MainLayout from '@/components/MainLayout';
 
 export default function AdminExperiencesPage() {
@@ -187,9 +188,10 @@ export default function AdminExperiencesPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout hideNav>
       <div className="min-h-screen bg-gray-50 pb-8">
         <AdminHeader title="Gestión de Experiencias" />
+        <AdminNav />
 
         {/* Filter tabs */}
         <div className="flex gap-2 px-4 py-3 bg-white border-b border-gray-100">
@@ -217,7 +219,7 @@ export default function AdminExperiencesPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por título, ciudad, host o festival..."
+            placeholder="Buscar por título, ciudad, host o festividad..."
             className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/50"
           />
           <button type="submit" className="px-4 py-2 bg-secondary text-white rounded-xl font-medium">
@@ -475,7 +477,7 @@ export default function AdminExperiencesPage() {
                     <p className="font-medium text-gray-900">{showDetails.city}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Festival</span>
+                    <span className="text-gray-500">Festividad</span>
                     <p className="font-medium text-gray-900">{showDetails.festival.name}</p>
                   </div>
                   <div>

@@ -17,7 +17,7 @@ interface SearchAutocompleteProps {
 export default function SearchAutocomplete({
   initialValue = '',
   onSearch,
-  placeholder = 'Buscar experiencias, festivales...',
+  placeholder = 'Buscar experiencias, festividades...',
   className = '',
 }: SearchAutocompleteProps) {
   const router = useRouter();
@@ -243,10 +243,10 @@ export default function SearchAutocomplete({
                 </div>
               )}
 
-              {/* Festivales */}
+              {/* Festividades */}
               {results.festivals.length > 0 && (
                 <div className="p-2 border-t border-gray-100">
-                  <span className="text-xs font-medium text-gray-500 px-2">Festivales</span>
+                  <span className="text-xs font-medium text-gray-500 px-2">Festividades</span>
                   {results.festivals.map((fest) => (
                     <button
                       key={fest.id}

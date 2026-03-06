@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import SplashScreen from './SplashScreen';
 import EvalWidget from './evaluation/EvalWidget';
 
@@ -9,10 +10,16 @@ interface AppWrapperProps {
 }
 
 export default function AppWrapper({ children }: AppWrapperProps) {
+  const pathname = usePathname();
   // Start with consistent state for SSR hydration
   const [isFirstVisit, setIsFirstVisit] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   // Check sessionStorage after hydration to avoid mismatch
   // This is a valid hydration pattern - we need to set state after mount

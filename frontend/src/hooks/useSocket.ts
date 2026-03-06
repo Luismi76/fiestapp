@@ -5,8 +5,9 @@ import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Message } from '@/types/match';
 import logger from '@/lib/logger';
+import { API_URL } from '@/lib/api';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+const SOCKET_URL = API_URL.replace('/api', '');
 
 // Singleton socket instance to survive React Strict Mode
 let globalSocket: Socket | null = null;

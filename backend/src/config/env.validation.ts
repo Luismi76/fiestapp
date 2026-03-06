@@ -15,7 +15,15 @@ export const envValidationSchema = Joi.object({
   PORT: Joi.number().default(3001),
 
   // Frontend URL (required for CORS and emails)
-  FRONTEND_URL: Joi.string().uri().default('http://localhost:3000'),
+  FRONTEND_URL: Joi.string()
+    .uri()
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.string().uri().required().messages({
+        'any.required': 'FRONTEND_URL es obligatorio en producción',
+      }),
+      otherwise: Joi.string().uri().default('http://localhost:3000'),
+    }),
 
   // Optional services - validated if present
   REDIS_URL: Joi.string().uri().optional().allow(''),
@@ -24,6 +32,12 @@ export const envValidationSchema = Joi.object({
   // Stripe
   STRIPE_SECRET_KEY: Joi.string().optional().allow(''),
   STRIPE_WEBHOOK_SECRET: Joi.string().optional().allow(''),
+
+  // PayPal
+  PAYPAL_CLIENT_ID: Joi.string().optional().allow(''),
+  PAYPAL_CLIENT_SECRET: Joi.string().optional().allow(''),
+  PAYPAL_WEBHOOK_ID: Joi.string().optional().allow(''),
+  PAYPAL_SANDBOX: Joi.string().valid('true', 'false').default('true'),
 
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: Joi.string().optional().allow(''),
@@ -42,6 +56,14 @@ export const envValidationSchema = Joi.object({
   // Captcha
   HCAPTCHA_SECRET_KEY: Joi.string().optional().allow(''),
 
-  // Seed
-  RUN_SEED: Joi.string().valid('true', 'false').default('false'),
+  // Seed - blocked in production
+  RUN_SEED: Joi.string()
+    .valid('true', 'false')
+    .default('false')
+    .when('NODE_ENV', {
+      is: 'production',
+      then: Joi.string().invalid('true').messages({
+        'any.invalid': 'RUN_SEED=true is not allowed in production',
+      }),
+    }),
 }).unknown(true);

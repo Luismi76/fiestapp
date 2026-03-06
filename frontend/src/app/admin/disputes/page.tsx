@@ -7,46 +7,13 @@ import { useRouter } from 'next/navigation';
 import { getAvatarUrl } from '@/lib/utils';
 import { OptimizedAvatar } from '@/components/OptimizedImage';
 import { AdminHeader } from '@/components/admin';
+import AdminNav from '@/components/admin/AdminNav';
 import MainLayout from '@/components/MainLayout';
-import api from '@/lib/api';
-
-interface Dispute {
-  id: string;
-  matchId: string;
-  reason: string;
-  description: string;
-  status: string;
-  refundAmount?: number;
-  createdAt: string;
-  updatedAt: string;
-  openedBy: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-  respondent: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-  match: {
-    experience: {
-      id: string;
-      title: string;
-      city: string;
-    };
-  };
-  _count: {
-    messages: number;
-  };
-}
-
-interface DisputeStats {
-  byStatus: Record<string, number>;
-  byReason: Record<string, number>;
-  last30Days: number;
-  totalRefunded: number;
-}
+import {
+  adminDisputesApi,
+  type Dispute,
+  type DisputeStats,
+} from '@/lib/api';
 
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
   OPEN: { label: 'Abierta', bg: 'bg-amber-100', text: 'text-amber-700' },
@@ -74,6 +41,8 @@ export default function AdminDisputesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<string>('');
+  const [reasonFilter, setReasonFilter] = useState<string>('');
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedDispute, setSelectedDispute] = useState<string | null>(null);
@@ -82,6 +51,7 @@ export default function AdminDisputesPage() {
     resolution: 'RESOLVED_REFUND' as string,
     resolutionDescription: '',
     refundPercentage: 100,
+    favoredParty: '' as '' | 'opener' | 'respondent',
   });
 
   // Check if admin
@@ -95,19 +65,20 @@ export default function AdminDisputesPage() {
   useEffect(() => {
     const fetchDisputes = async () => {
       try {
-        const params = new URLSearchParams();
-        if (filter) params.append('status', filter);
-        params.append('page', page.toString());
-        params.append('limit', '10');
-
         const [disputesRes, statsRes] = await Promise.all([
-          api.get(`/admin/disputes?${params}`),
-          api.get('/admin/disputes/stats'),
+          adminDisputesApi.getAll({
+            status: filter || undefined,
+            reason: reasonFilter || undefined,
+            search: search || undefined,
+            page,
+            limit: 10,
+          }),
+          adminDisputesApi.getStats(),
         ]);
 
-        setDisputes(disputesRes.data.disputes);
-        setTotalPages(disputesRes.data.pagination.totalPages);
-        setStats(statsRes.data);
+        setDisputes(disputesRes.disputes);
+        setTotalPages(disputesRes.pagination.totalPages);
+        setStats(statsRes);
       } catch {
         setError('No se pudieron cargar las disputas');
       } finally {
@@ -116,13 +87,13 @@ export default function AdminDisputesPage() {
     };
 
     fetchDisputes();
-  }, [filter, page]);
+  }, [filter, reasonFilter, search, page]);
 
   const handleMarkUnderReview = async (disputeId: string) => {
     try {
-      await api.patch(`/admin/disputes/${disputeId}/review`);
-      setDisputes(disputes.map(d =>
-        d.id === disputeId ? { ...d, status: 'UNDER_REVIEW' } : d
+      await adminDisputesApi.markUnderReview(disputeId);
+      setDisputes(prev => prev.map(d =>
+        d.id === disputeId ? { ...d, status: 'UNDER_REVIEW' as Dispute['status'] } : d
       ));
     } catch {
       setError('No se pudo actualizar la disputa');
@@ -134,28 +105,38 @@ export default function AdminDisputesPage() {
 
     setResolving(true);
     try {
-      await api.patch(`/admin/disputes/${selectedDispute}/resolve`, {
+      await adminDisputesApi.resolve(selectedDispute, {
         resolution: resolutionForm.resolution,
         resolutionDescription: resolutionForm.resolutionDescription,
         refundPercentage: resolutionForm.resolution === 'RESOLVED_PARTIAL_REFUND'
           ? resolutionForm.refundPercentage
           : undefined,
+        favoredParty: resolutionForm.favoredParty || undefined,
       });
 
-      setDisputes(disputes.map(d =>
-        d.id === selectedDispute ? { ...d, status: resolutionForm.resolution } : d
+      setDisputes(prev => prev.map(d =>
+        d.id === selectedDispute ? { ...d, status: resolutionForm.resolution as Dispute['status'] } : d
       ));
       setSelectedDispute(null);
       setResolutionForm({
         resolution: 'RESOLVED_REFUND',
         resolutionDescription: '',
         refundPercentage: 100,
+        favoredParty: '',
       });
     } catch {
       setError('No se pudo resolver la disputa');
     } finally {
       setResolving(false);
     }
+  };
+
+  const handleExportCsv = () => {
+    const url = adminDisputesApi.exportCsvUrl({
+      status: filter || undefined,
+      reason: reasonFilter || undefined,
+    });
+    window.open(url, '_blank');
   };
 
   const formatDate = (date: string) => {
@@ -178,9 +159,10 @@ export default function AdminDisputesPage() {
   }
 
   return (
-    <MainLayout>
+    <MainLayout hideNav>
       <div className="min-h-screen bg-gray-50">
         <AdminHeader title="Gestión de Disputas" />
+        <AdminNav />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
@@ -206,7 +188,8 @@ export default function AdminDisputesPage() {
         )}
 
         {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 space-y-3">
+          {/* Status tabs */}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => { setFilter(''); setPage(1); }}
@@ -231,6 +214,35 @@ export default function AdminDisputesPage() {
               }`}
             >
               En revisión ({stats?.byStatus.UNDER_REVIEW || 0})
+            </button>
+          </div>
+          {/* Advanced filters row */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <input
+              type="text"
+              placeholder="Buscar por nombre, experiencia..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              className="flex-1 min-w-[200px] px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-transparent"
+            />
+            <select
+              value={reasonFilter}
+              onChange={(e) => { setReasonFilter(e.target.value); setPage(1); }}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+            >
+              <option value="">Todos los motivos</option>
+              {Object.entries(reasonLabels).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleExportCsv}
+              className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center gap-1.5"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              CSV
             </button>
           </div>
         </div>
@@ -497,6 +509,23 @@ export default function AdminDisputesPage() {
                     onChange={(e) => setResolutionForm({ ...resolutionForm, refundPercentage: parseInt(e.target.value) })}
                     className="w-full"
                   />
+                </div>
+              )}
+
+              {['RESOLVED_REFUND', 'RESOLVED_PARTIAL_REFUND'].includes(resolutionForm.resolution) && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Beneficiario del reembolso
+                  </label>
+                  <select
+                    value={resolutionForm.favoredParty}
+                    onChange={(e) => setResolutionForm({ ...resolutionForm, favoredParty: e.target.value as '' | 'opener' | 'respondent' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-transparent"
+                  >
+                    <option value="">Viajero (por defecto)</option>
+                    <option value="opener">Quien abrió la disputa</option>
+                    <option value="respondent">Demandado</option>
+                  </select>
                 </div>
               )}
 

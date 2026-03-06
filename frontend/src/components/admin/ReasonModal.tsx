@@ -51,12 +51,13 @@ export default function ReasonModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-6" role="dialog" aria-modal="true" aria-labelledby="reason-modal-title">
         <div className="flex items-start justify-between mb-4">
-          <h3 className="font-semibold text-gray-900">{title}</h3>
+          <h3 id="reason-modal-title" className="font-semibold text-gray-900">{title}</h3>
           <button
             onClick={handleClose}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Cerrar"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
               <path fillRule="evenodd" d="M15.75 1.5a6.75 6.75 0 0 0-6.651 7.906c.067.39-.032.717-.221.906l-6.5 6.499a3 3 0 0 0-.878 2.121v2.818c0 .414.336.75.75.75H6a.75.75 0 0 0 .75-.75v-1.5h1.5A.75.75 0 0 0 9 19.5V18h1.5a.75.75 0 0 0 .53-.22l2.658-2.658c.19-.189.517-.288.906-.22A6.75 6.75 0 1 0 15.75 1.5Zm0 3a.75.75 0 0 0 0 1.5A2.25 2.25 0 0 1 18 8.25a.75.75 0 0 0 1.5 0 3.75 3.75 0 0 0-3.75-3.75Z" clipRule="evenodd" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold mb-1">Recuperar contrasena</h1>
+          <h1 className="text-2xl font-bold mb-1">Recuperar contraseña</h1>
           <p className="text-white/70 text-sm">Te enviaremos un enlace para restablecerla</p>
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function ForgotPasswordPage() {
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">Email enviado</h2>
               <p className="text-gray-600 mb-6">
-                Si el email existe en nuestro sistema, recibiras un enlace para restablecer tu contrasena. Revisa tu bandeja de entrada.
+                Si el email existe en nuestro sistema, recibiras un enlace para restablecer tu contraseña. Revisa tu bandeja de entrada.
               </p>
               <Link
                 href="/login"
@@ -107,7 +107,7 @@ export default function ForgotPasswordPage() {
 
               {/* Instructions */}
               <p className="text-gray-600 text-sm mb-6">
-                Introduce tu email y te enviaremos un enlace para restablecer tu contrasena.
+                Introduce tu email y te enviaremos un enlace para restablecer tu contraseña.
               </p>
 
               {/* Form */}

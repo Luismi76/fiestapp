@@ -294,9 +294,12 @@ export class TranslationService {
       };
     }
 
-    // En desarrollo, simplemente indicar que es una traducción mock
+    // Fallback: devolver texto original sin modificar
+    this.logger.warn(
+      `Translation fallback: returning original text (target: ${targetLang})`,
+    );
     return {
-      translatedText: `[${targetLang.toUpperCase()}] ${text}`,
+      translatedText: text,
       detectedLanguage: detectedLang,
     };
   }

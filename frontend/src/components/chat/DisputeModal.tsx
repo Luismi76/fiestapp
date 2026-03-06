@@ -23,6 +23,7 @@ const REASONS: { value: DisputeReason; label: string; description: string }[] = 
 export default function DisputeModal({ matchId, experienceTitle, onClose, onSuccess }: DisputeModalProps) {
   const [reason, setReason] = useState<DisputeReason | null>(null);
   const [description, setDescription] = useState('');
+  const [evidenceUrls, setEvidenceUrls] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,10 +31,20 @@ export default function DisputeModal({ matchId, experienceTitle, onClose, onSucc
     e.preventDefault();
     if (!reason || !description.trim()) return;
 
+    const evidence = evidenceUrls
+      .split('\n')
+      .map(u => u.trim())
+      .filter(Boolean);
+
     setLoading(true);
     setError('');
     try {
-      await disputesApi.create({ matchId, reason, description: description.trim() });
+      await disputesApi.create({
+        matchId,
+        reason,
+        description: description.trim(),
+        evidence: evidence.length > 0 ? evidence : undefined,
+      });
       onSuccess();
     } catch (err) {
       setError(getErrorMessage(err, 'No se pudo abrir la disputa'));
@@ -44,16 +55,17 @@ export default function DisputeModal({ matchId, experienceTitle, onClose, onSucc
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50">
-      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl max-h-[90vh] overflow-y-auto animate-fade-in-up">
+      <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl max-h-[90vh] overflow-y-auto animate-fade-in-up" role="dialog" aria-modal="true" aria-labelledby="dispute-modal-title">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Abrir disputa</h2>
+            <h2 id="dispute-modal-title" className="text-lg font-bold text-gray-900">Abrir disputa</h2>
             <p className="text-xs text-gray-500 mt-0.5">{experienceTitle}</p>
           </div>
           <button
             onClick={onClose}
             className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+            aria-label="Cerrar"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-500">
               <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
@@ -98,6 +110,21 @@ export default function DisputeModal({ matchId, experienceTitle, onClose, onSucc
               maxLength={1000}
             />
             <div className="text-xs text-gray-400 text-right mt-1">{description.length}/1000</div>
+          </div>
+
+          {/* Evidence URLs */}
+          <div>
+            <label className="text-sm font-semibold text-gray-700 block mb-2">
+              Evidencia (opcional)
+            </label>
+            <textarea
+              value={evidenceUrls}
+              onChange={(e) => setEvidenceUrls(e.target.value)}
+              placeholder="Pega URLs de capturas o fotos, una por linea..."
+              rows={2}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-none"
+            />
+            <p className="text-xs text-gray-400 mt-1">Una URL por linea (imagenes, capturas de pantalla)</p>
           </div>
 
           {error && (

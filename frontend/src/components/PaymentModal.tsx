@@ -96,15 +96,16 @@ export default function PaymentModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
-      <div className="bg-white w-full sm:w-[450px] sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white w-full sm:w-[450px] sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between rounded-t-2xl">
-          <h2 className="text-lg font-bold">Confirmar pago</h2>
+          <h2 id="payment-modal-title" className="text-lg font-bold">Confirmar pago</h2>
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+            aria-label="Cerrar"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
           </button>

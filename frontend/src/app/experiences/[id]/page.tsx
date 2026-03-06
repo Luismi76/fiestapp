@@ -17,220 +17,6 @@ import logger from '@/lib/logger';
 const ImageGallery = dynamic(() => import('@/components/ImageGallery'));
 const AvailabilityCalendar = dynamic(() => import('@/components/AvailabilityCalendar'));
 
-// Helper to generate availability dates for mock data
-const generateMockAvailability = (baseMonth: number, count: number): Date[] => {
-  const dates: Date[] = [];
-  const year = new Date().getFullYear();
-  const month = baseMonth - 1;
-
-  for (let i = 0; i < count; i++) {
-    const day = Math.floor(Math.random() * 28) + 1;
-    const date = new Date(year, month, day);
-    if (date > new Date() && !dates.some(d => d.getDate() === day)) {
-      dates.push(date);
-    }
-  }
-  return dates.sort((a, b) => a.getTime() - b.getTime());
-};
-
-// Mock experiences for fallback (partial data for development)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockExperiencesMap: Record<string, any> = {
-  'exp-1': {
-    id: 'exp-1',
-    title: 'Vive la Feria como un sevillano',
-    description: 'Disfruta de la auténtica experiencia de la Feria de Abril con una familia local. Incluye traje de flamenca y acceso a caseta privada.',
-    highlights: [
-      'Traje de flamenca/traje corto auténtico incluido',
-      'Acceso a caseta familiar con comida y bebida',
-      'Clase de sevillanas con mi abuela',
-      'Historia y tradiciones de la Feria',
-      'Ambiente único del Real de la Feria'
-    ],
-    city: 'Sevilla',
-    price: 45,
-    type: 'pago',
-    photos: ['/images/feria_abril.png'],
-    published: true,
-    hostId: 'user-maria',
-    festivalId: 'fest-feria',
-    host: {
-      id: 'user-maria',
-      name: 'María García',
-      avatar: '/images/user_maria.png',
-      verified: true,
-      bio: 'Sevillana de toda la vida. Me encanta compartir nuestras tradiciones con visitantes de todo el mundo.',
-      city: 'Sevilla'
-    },
-    festival: { id: 'fest-feria', name: 'Feria de Abril', city: 'Sevilla' },
-    avgRating: 4.9,
-    _count: { reviews: 127, matches: 3800 },
-    reviews: [
-      { id: '1', rating: 5, comment: '¡Increíble experiencia! María fue muy amable y la caseta estaba genial.', createdAt: '2024-04-20', author: { id: '10', name: 'Laura M.', avatar: '/images/user_laura.png' } },
-      { id: '2', rating: 5, comment: 'La mejor forma de vivir la Feria. Totalmente recomendado.', createdAt: '2024-04-18', author: { id: '11', name: 'Carlos P.', avatar: '/images/user_carlos.png' } },
-    ],
-    availability: generateMockAvailability(4, 12),
-  },
-  'exp-2': {
-    id: 'exp-2',
-    title: 'Encierro y tapas tradicionales',
-    description: 'Vive San Fermín desde dentro. Te llevaré a ver el encierro desde los mejores spots y después tapeo por el casco antiguo.',
-    highlights: [
-      'Acceso a balcón privilegiado para el encierro',
-      'Ruta de tapas por el casco antiguo',
-      'Historia y tradiciones de San Fermín',
-      'Consejos de un local'
-    ],
-    city: 'Pamplona',
-    price: null,
-    type: 'intercambio',
-    photos: ['/images/san_fermin.png'],
-    published: true,
-    hostId: 'user-carlos',
-    festivalId: 'fest-sanfermin',
-    host: {
-      id: 'user-carlos',
-      name: 'Carlos Martínez',
-      avatar: '/images/user_carlos.png',
-      verified: true,
-      bio: 'Pamplonés de nacimiento. Llevo corriendo encierros desde los 18 años.',
-      city: 'Pamplona'
-    },
-    festival: { id: 'fest-sanfermin', name: 'San Fermín', city: 'Pamplona' },
-    avgRating: 4.8,
-    _count: { reviews: 89, matches: 2100 },
-    reviews: [
-      { id: '3', rating: 5, comment: 'Carlos conoce todos los rincones de Pamplona. Auténtico.', createdAt: '2024-07-10', author: { id: '12', name: 'Anna S.', avatar: null, verified: false } },
-    ],
-    availability: generateMockAvailability(7, 8),
-  },
-  'exp-3': {
-    id: 'exp-3',
-    title: 'Mascletà y paella valenciana',
-    description: 'Experiencia completa de Fallas: mascletà en la plaza del Ayuntamiento, visita a las fallas y paella en mi casa.',
-    highlights: [
-      'Plaza reservada para la mascletà',
-      'Tour guiado por las mejores fallas',
-      'Paella tradicional en casa',
-      'Receta secreta de mi abuela'
-    ],
-    city: 'Valencia',
-    price: 35,
-    type: 'pago',
-    photos: ['/images/las_fallas.png'],
-    published: true,
-    hostId: 'user-laura',
-    festivalId: 'fest-fallas',
-    host: {
-      id: 'user-laura',
-      name: 'Laura Pérez',
-      avatar: '/images/user_laura.png',
-      verified: true,
-      bio: 'Valenciana apasionada por las Fallas. Mi familia lleva 4 generaciones siendo falleros.',
-      city: 'Valencia'
-    },
-    festival: { id: 'fest-fallas', name: 'Las Fallas', city: 'Valencia' },
-    avgRating: 5.0,
-    _count: { reviews: 64, matches: 1500 },
-    reviews: [],
-    availability: generateMockAvailability(3, 10),
-  },
-  'exp-4': {
-    id: 'exp-4',
-    title: 'La batalla del tomate',
-    description: 'Te acompaño a vivir La Tomatina y después comida casera para recuperar fuerzas.',
-    highlights: [
-      'Camiseta blanca y gafas incluidas',
-      'Acompañamiento durante la batalla',
-      'Zona para ducharte',
-      'Comida casera post-batalla'
-    ],
-    city: 'Buñol',
-    price: 25,
-    type: 'ambos',
-    photos: ['/images/la_tomatina.png'],
-    published: true,
-    hostId: 'user-pedro',
-    festivalId: 'fest-tomatina',
-    host: {
-      id: 'user-pedro',
-      name: 'Pedro Sánchez',
-      avatar: '/images/user_pedro.png',
-      verified: false,
-      bio: 'De Buñol, vivo La Tomatina desde pequeño. ¡La mejor fiesta del mundo!',
-      city: 'Valencia'
-    },
-    festival: { id: 'fest-tomatina', name: 'La Tomatina', city: 'Buñol' },
-    avgRating: 4.7,
-    _count: { reviews: 203, matches: 4200 },
-    reviews: [],
-    availability: generateMockAvailability(8, 6),
-  },
-  'exp-5': {
-    id: 'exp-5',
-    title: 'Procesiones y saetas',
-    description: 'Te guío por las mejores procesiones de Semana Santa, explicándote cada paso y cofradía.',
-    highlights: [
-      'Ruta por procesiones emblemáticas',
-      'Explicación histórica y religiosa',
-      'Mejores puntos para fotografiar',
-      'Saetas en directo'
-    ],
-    city: 'Sevilla',
-    price: 30,
-    type: 'pago',
-    photos: ['/images/semana_santa.png'],
-    published: true,
-    hostId: 'user-juan',
-    festivalId: 'fest-semanasanta',
-    host: {
-      id: 'user-juan',
-      name: 'Juan y Carmen',
-      avatar: '/images/user_juan.png',
-      verified: true,
-      bio: 'Cofrade desde hace 30 años. La Semana Santa es mi pasión.',
-      city: 'Sevilla'
-    },
-    festival: { id: 'fest-semanasanta', name: 'Semana Santa', city: 'Sevilla' },
-    avgRating: 4.9,
-    _count: { reviews: 156, matches: 3800 },
-    reviews: [],
-    availability: generateMockAvailability(4, 14),
-  },
-  'exp-6': {
-    id: 'exp-6',
-    title: 'Carnaval gaditano auténtico',
-    description: 'Vive el Carnaval de Cádiz como un local: chirigotas, comparsas y pescaíto frito.',
-    highlights: [
-      'Tour por las calles del Carnaval',
-      'Visita al Teatro Falla',
-      'Ruta gastronómica gaditana',
-      'Fiesta en el barrio de La Viña'
-    ],
-    city: 'Cádiz',
-    price: null,
-    type: 'intercambio',
-    photos: ['/images/carnaval.png'],
-    published: true,
-    hostId: 'user-ana',
-    festivalId: 'fest-carnaval',
-    host: {
-      id: 'user-ana',
-      name: 'Ana López',
-      avatar: '/images/user_ana.png',
-      verified: true,
-      bio: 'Gaditana de corazón. El Carnaval corre por mis venas.',
-      city: 'Cádiz'
-    },
-    festival: { id: 'fest-carnaval', name: 'Carnaval de Cádiz', city: 'Cádiz' },
-    avgRating: 4.8,
-    _count: { reviews: 92, matches: 2800 },
-    reviews: [
-      { id: '5', rating: 5, comment: 'El Carnaval con Ana fue espectacular. ¡Volveré!', createdAt: '2024-02-18', author: { id: 'user-demo', name: 'Usuario D.', avatar: null, verified: false } },
-    ],
-    availability: generateMockAvailability(2, 15),
-  },
-};
 
 export default function ExperienceDetailPage() {
   const params = useParams();
@@ -239,7 +25,6 @@ export default function ExperienceDetailPage() {
   const [experience, setExperience] = useState<ExperienceDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [useMockData, setUseMockData] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [message, setMessage] = useState('');
   const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
@@ -263,7 +48,6 @@ export default function ExperienceDetailPage() {
         if (data.status === 'rejected') throw data.reason;
 
         setExperience(data.value);
-        setUseMockData(false);
 
         if (occupancyResult.status === 'fulfilled') {
           setOccupancy(occupancyResult.value.dates);
@@ -271,12 +55,7 @@ export default function ExperienceDetailPage() {
           logger.debug('No se pudo cargar la ocupación');
         }
       } catch {
-        if (mockExperiencesMap[id]) {
-          setExperience(mockExperiencesMap[id] as ExperienceDetail);
-          setUseMockData(true);
-        } else {
-          setError('No se pudo cargar la experiencia');
-        }
+        setError('No se pudo cargar la experiencia');
       } finally {
         setLoading(false);
       }
@@ -322,18 +101,6 @@ export default function ExperienceDetailPage() {
 
   const handleSubmitRequest = async () => {
     if (!experience) return;
-    if (useMockData) {
-      const dateStr = dateRange.start
-        ? dateRange.end
-          ? `${dateRange.start.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} - ${dateRange.end.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`
-          : dateRange.start.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
-        : 'Sin fecha específica';
-      setShowModal(false);
-      alert(`¡Solicitud enviada! (Modo demo)\n\nFechas: ${dateStr}`);
-      setDateRange({ start: null, end: null });
-      setMessage('');
-      return;
-    }
     setSubmitting(true);
     setSubmitError('');
     try {
@@ -603,13 +370,6 @@ export default function ExperienceDetailPage() {
               ))}
             </div>
           </div>
-
-          {/* Mock indicator */}
-          {useMockData && (
-            <div className="bg-amber-50 text-amber-700 text-xs px-4 py-2 text-center rounded-lg mb-4 lg:mb-6">
-              Datos de demostración
-            </div>
-          )}
 
           {/* Content sections */}
           <div className="p-4 lg:p-0 space-y-4 -mt-4 lg:mt-0 relative z-10">
@@ -950,7 +710,6 @@ export default function ExperienceDetailPage() {
             </div>
 
             {submitError && <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm mb-4">{submitError}</div>}
-            {useMockData && <div className="bg-amber-50 text-amber-700 p-3 rounded-xl text-sm mb-4">Modo demostración</div>}
 
             <button
               onClick={handleSubmitRequest}
