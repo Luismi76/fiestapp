@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -19,6 +19,15 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Show auth error from Google OAuth cancellation/failure
+  useEffect(() => {
+    const authError = sessionStorage.getItem('auth_error');
+    if (authError) {
+      setError(authError);
+      sessionStorage.removeItem('auth_error');
+    }
+  }, []);
   const [showPassword, setShowPassword] = useState(false);
 
   const {
