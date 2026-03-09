@@ -115,8 +115,8 @@ export class EvaluationService {
     priority: string;
     comment: string;
   }) {
-    const devEmail =
-      this.configService.get<string>('DEV_EMAIL') || 'dev@fiestapp.com';
+    const evalEmail =
+      this.configService.get<string>('EVAL_NOTIFY_EMAIL') || this.configService.get<string>('DEV_EMAIL') || 'dev@fiestapp.com';
 
     const priorityColors: Record<string, string> = {
       BAJA: '#0D7355',
@@ -172,7 +172,7 @@ export class EvaluationService {
     `;
 
     await this.emailService.sendGenericEmail(
-      devEmail,
+      evalEmail,
       `[Evaluacion] ${categoryLabel} (${evaluation.priority}) - ${evaluation.evaluatorName}`,
       html,
     );
