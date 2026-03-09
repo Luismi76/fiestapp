@@ -18,7 +18,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
 const CATEGORY_LABELS: Record<string, string> = {
   PROBLEMA: 'Problema',
   MEJORA: 'Mejora',
-  OPINION: 'Opinion',
+  OPINION: 'Opinión',
 };
 
 const PRIORITY_LABELS: Record<string, { label: string; color: string }> = {
@@ -86,7 +86,7 @@ export default function AdminEvaluacionesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Eliminar esta evaluacion?')) return;
+    if (!confirm('¿Eliminar esta evaluación?')) return;
     try {
       await evaluationsApi.delete(id);
       setEvaluations(prev => prev.filter(e => e.id !== id));
@@ -131,7 +131,7 @@ export default function AdminEvaluacionesPage() {
               onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }}
               className="input py-2 px-3 text-sm"
             >
-              <option value="">Todas las categorias</option>
+              <option value="">Todas las categorías</option>
               <option value="PROBLEMA">Problemas</option>
               <option value="MEJORA">Mejoras</option>
               <option value="OPINION">Opiniones</option>

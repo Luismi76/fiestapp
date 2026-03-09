@@ -605,7 +605,7 @@ export default function CreateExperiencePage() {
               </label>
               <input
                 type="text"
-                className={`w-full px-4 py-3.5 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:border-blue-500 ${
+                className={`w-full px-4 py-3.5 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:border-primary ${
                   errors.title ? 'border-red-300' : 'border-gray-200'
                 }`}
                 placeholder="Ej: Vive la Feria como un sevillano"
@@ -679,7 +679,7 @@ export default function CreateExperiencePage() {
               </label>
               <input
                 type="text"
-                className={`w-full px-4 py-3.5 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:border-blue-500 ${
+                className={`w-full px-4 py-3.5 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:border-primary ${
                   errors.city ? 'border-red-300' : 'border-gray-200'
                 }`}
                 placeholder="¿Dónde se realiza?"
@@ -752,7 +752,7 @@ export default function CreateExperiencePage() {
                 <div className="relative">
                   <input
                     type="number"
-                    className={`w-full px-4 py-3.5 pr-12 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 text-2xl font-bold transition-colors focus:outline-none focus:border-blue-500 ${
+                    className={`w-full px-4 py-3.5 pr-12 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 text-2xl font-bold transition-colors focus:outline-none focus:border-primary ${
                       errors.price ? 'border-red-300' : 'border-gray-200'
                     }`}
                     placeholder="0"
@@ -789,7 +789,7 @@ export default function CreateExperiencePage() {
                 Descripción <span className="text-red-400">*</span>
               </label>
               <textarea
-                className={`w-full px-4 py-3.5 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 resize-none transition-colors focus:outline-none focus:border-blue-500 min-h-[160px] ${
+                className={`w-full px-4 py-3.5 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 resize-none transition-colors focus:outline-none focus:border-primary min-h-[160px] ${
                   errors.description ? 'border-red-300' : 'border-gray-200'
                 }`}
                 placeholder="Describe tu experiencia de forma atractiva. ¿Qué la hace especial? ¿Qué vivirán los participantes?"
@@ -831,7 +831,7 @@ export default function CreateExperiencePage() {
                       type="text"
                       value={highlight}
                       onChange={(e) => updateHighlight(index, e.target.value)}
-                      className="flex-1 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
+                      className="flex-1 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-primary transition-colors"
                       placeholder="Ej: Traje de flamenca incluido"
                     />
                     {highlights.length > 1 && (
@@ -853,7 +853,7 @@ export default function CreateExperiencePage() {
                 <button
                   type="button"
                   onClick={addHighlight}
-                  className="mt-3 w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
+                  className="mt-3 w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

@@ -219,7 +219,7 @@ export default function LocationPicker({ onSelect, onCancel }: LocationPickerPro
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Buscar direccion o ciudad..."
+              placeholder="Buscar dirección o ciudad..."
               className="w-full pl-9 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
             />
             {searching && (

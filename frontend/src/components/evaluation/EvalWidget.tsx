@@ -214,13 +214,13 @@ export default function EvalWidget() {
                 {/* Comentario */}
                 <div>
                   <label htmlFor="eval-comment" className="block text-sm font-medium text-gray-700 mb-1">
-                    Descripcion
+                    Descripción
                   </label>
                   <textarea
                     id="eval-comment"
                     value={comment}
                     onChange={(e) => { setComment(e.target.value); setError(''); }}
-                    placeholder="Describe lo que has observado, que cambiarias o que te parece..."
+                    placeholder="Describe lo que has observado, qué cambiarías o qué te parece..."
                     className="input w-full min-h-[120px] resize-none"
                     maxLength={2000}
                     autoFocus
@@ -248,7 +248,7 @@ export default function EvalWidget() {
                   onClick={handleDeactivate}
                   className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors py-1"
                 >
-                  Desactivar modo evaluacion
+                  Desactivar modo evaluación
                 </button>
               </form>
             )}

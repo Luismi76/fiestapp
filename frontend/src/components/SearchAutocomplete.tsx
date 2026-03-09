@@ -208,7 +208,7 @@ export default function SearchAutocomplete({
             </div>
           )}
 
-          {/* Resultados de busqueda */}
+          {/* Resultados de búsqueda */}
           {hasResults && (
             <>
               {/* Experiencias */}

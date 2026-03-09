@@ -119,7 +119,7 @@ export default function EvaluarPage() {
               disabled={!name.trim()}
               className="btn btn-primary w-full py-3"
             >
-              Activar modo evaluacion
+              Activar modo evaluación
             </button>
 
             <button

@@ -440,7 +440,7 @@ export default function DisputeDetailPage() {
         ) : (
           <div className="bg-gray-50 border-t border-gray-200 p-4 text-center">
             <p className="text-sm text-gray-500">
-              Esta disputa ha sido resuelta. No se pueden enviar mas mensajes.
+              Esta disputa ha sido resuelta. No se pueden enviar más mensajes.
             </p>
           </div>
         )}

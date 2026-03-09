@@ -283,14 +283,16 @@ function ExperiencesContent() {
                 className="w-full h-10 pl-10 pr-4 bg-gray-100 rounded-full text-sm placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/20"
               />
             </div>
-            <Link href="/map" className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-primary">
+            <Link href="/map" className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-primary" aria-label="Ver mapa" title="Mapa">
               <MapIcon />
             </Link>
-            <Link href="/calendar" className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-primary">
+            <Link href="/calendar" className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-primary" aria-label="Ver calendario" title="Calendario">
               <CalendarIcon />
             </Link>
             <button
               onClick={() => setShowFiltersModal(true)}
+              aria-label={`Filtros${activeFiltersCount > 0 ? ` (${activeFiltersCount} activos)` : ''}`}
+              title="Filtros"
               className={`relative w-10 h-10 flex items-center justify-center rounded-full lg:hidden ${
                 activeFiltersCount > 0 ? 'bg-primary text-white' : 'text-gray-600 hover:text-primary'
               }`}

@@ -107,7 +107,7 @@ export function ReputationBadgesFromAPI({
         <span
           className={`inline-flex items-center rounded-full font-medium bg-gray-100 text-gray-600 ${sizeClasses[size]}`}
         >
-          +{remainingCount} mas
+          +{remainingCount} más
         </span>
       )}
     </div>
@@ -270,7 +270,7 @@ export default function ReputationBadges({
         <span
           className={`inline-flex items-center rounded-full font-medium bg-gray-100 text-gray-600 ${sizeClasses[size]}`}
         >
-          +{remainingCount} mas
+          +{remainingCount} más
         </span>
       )}
     </div>

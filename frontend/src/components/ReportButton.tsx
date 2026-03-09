@@ -165,7 +165,7 @@ export default function ReportButton({ type, id, className = '' }: ReportButtonP
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Proporciona mas detalles sobre el problema..."
+                placeholder="Proporciona más detalles sobre el problema..."
                 rows={3}
                 maxLength={1000}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
