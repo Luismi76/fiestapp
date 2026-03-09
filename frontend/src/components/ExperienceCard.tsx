@@ -24,7 +24,7 @@ function TypeBadge({ type, price }: { type: ExperienceType; price?: number }) {
     return <span className="badge badge-pago text-[11px]">{price}€</span>;
   }
   if (type === 'ambos') {
-    return <span className="badge badge-flexible text-[11px]">Flexible</span>;
+    return <span className="badge badge-flexible text-[11px]">{price ? `${price}€ / Intercambio` : 'Flexible'}</span>;
   }
   return null;
 }

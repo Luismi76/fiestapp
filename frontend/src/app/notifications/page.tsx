@@ -18,7 +18,7 @@ const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> 
   match_completed: { label: 'Completada', color: '#059669', bg: '#ECFDF5' },
   match_cancelled: { label: 'Cancelada', color: '#6B7280', bg: '#F3F4F6' },
   new_message: { label: 'Mensaje', color: '#2563EB', bg: '#EFF6FF' },
-  new_review: { label: 'Resena', color: '#D97706', bg: '#FFFBEB' },
+  new_review: { label: 'Reseña', color: '#D97706', bg: '#FFFBEB' },
 };
 
 const FILTER_OPTIONS: { value: string; label: string }[] = [
@@ -29,7 +29,7 @@ const FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'match_accepted', label: 'Aceptadas' },
   { value: 'match_completed', label: 'Completadas' },
   { value: 'new_message', label: 'Mensajes' },
-  { value: 'new_review', label: 'Resenas' },
+  { value: 'new_review', label: 'Reseñas' },
 ];
 
 export default function NotificationsPage() {
@@ -271,7 +271,7 @@ export default function NotificationsPage() {
                   </svg>
                   <p className="text-gray-500 font-medium">No hay notificaciones</p>
                   <p className="text-gray-400 text-sm mt-1">
-                    {filter || unreadOnly ? 'Prueba cambiando los filtros' : 'Las notificaciones apareceran aqui'}
+                    {filter || unreadOnly ? 'Prueba cambiando los filtros' : 'Las notificaciones aparecerán aquí'}
                   </p>
                 </div>
               ) : (
@@ -396,7 +396,7 @@ export default function NotificationsPage() {
               disabled={loadingMore}
               className="w-full py-3 bg-white border border-gray-200 rounded-xl text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              {loadingMore ? 'Cargando...' : 'Cargar mas'}
+              {loadingMore ? 'Cargando...' : 'Cargar más'}
             </button>
           )}
         </div>

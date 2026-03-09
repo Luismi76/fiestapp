@@ -55,7 +55,7 @@ export default function ChatInput({
   onClearWalletError,
   onClearError,
 }: ChatInputProps) {
-  const canSendMessages = status !== 'rejected' && status !== 'cancelled';
+  const canSendMessages = status !== 'rejected' && status !== 'cancelled' && status !== 'completed';
   const isRecording = voiceRecorder.state === 'recording';
 
   // Auto-resize textarea
@@ -72,6 +72,7 @@ export default function ChatInput({
         <p className="text-sm text-gray-500">
           {status === 'rejected' && 'Esta solicitud fue rechazada'}
           {status === 'cancelled' && 'Esta solicitud fue cancelada'}
+          {status === 'completed' && 'Experiencia completada — conversación cerrada'}
         </p>
       </div>
     );

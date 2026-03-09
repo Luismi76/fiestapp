@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api';
 
@@ -9,9 +9,11 @@ type VerificationStatus = 'loading' | 'success' | 'error';
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams.get('token');
   const [status, setStatus] = useState<VerificationStatus>('loading');
   const [message, setMessage] = useState('');
+  const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -37,6 +39,22 @@ function VerifyEmailContent() {
 
     verifyEmail();
   }, [token]);
+
+  // Auto-redirect to login after successful verification (#20)
+  useEffect(() => {
+    if (status !== 'success') return;
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          router.push('/login');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [status, router]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -78,7 +96,8 @@ function VerifyEmailContent() {
                 </svg>
               </div>
               <h2 className="text-xl font-semibold text-gray-800 mb-2">Email verificado</h2>
-              <p className="text-gray-500 mb-6">{message}</p>
+              <p className="text-gray-500 mb-2">{message}</p>
+              <p className="text-sm text-gray-400 mb-4">Redirigiendo al login en {countdown}s...</p>
               <Link
                 href="/login"
                 className="inline-block w-full py-4 bg-gradient-to-r from-primary to-orange-500 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transition-all"
