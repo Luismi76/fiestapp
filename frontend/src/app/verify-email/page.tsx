@@ -108,7 +108,7 @@ function VerifyEmailContent() {
                   href="/login"
                   className="inline-block w-full py-3 text-blue-600 font-medium hover:text-blue-700 transition-colors"
                 >
-                  Volver al inicio de sesion
+                  Volver al inicio de sesión
                 </Link>
               </div>
             </>

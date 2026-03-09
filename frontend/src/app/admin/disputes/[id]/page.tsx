@@ -211,7 +211,7 @@ export default function AdminDisputeDetailPage() {
 
             {/* Description */}
             <div className="mt-4 pt-4 border-t border-gray-100">
-              <p className="text-xs text-gray-500 mb-2">Descripcion</p>
+              <p className="text-xs text-gray-500 mb-2">Descripción</p>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{dispute.description}</p>
             </div>
 

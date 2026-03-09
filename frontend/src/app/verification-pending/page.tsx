@@ -177,7 +177,7 @@ function VerificationPendingContent() {
             <p className="text-gray-600">
               ¿Ya verificaste tu cuenta?{' '}
               <Link href="/login" className="text-blue-600 font-semibold hover:text-blue-700">
-                Iniciar sesion
+                Iniciar sesión
               </Link>
             </p>
           </div>

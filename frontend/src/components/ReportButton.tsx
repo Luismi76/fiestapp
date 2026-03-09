@@ -160,7 +160,7 @@ export default function ReportButton({ type, id, className = '' }: ReportButtonP
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Descripcion (opcional)
+                Descripción (opcional)
               </label>
               <textarea
                 value={description}

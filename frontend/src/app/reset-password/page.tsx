@@ -106,7 +106,7 @@ function ResetPasswordContent() {
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">Contraseña actualizada</h2>
               <p className="text-gray-600 mb-6">
-                Tu contraseña ha sido restablecida correctamente. Ya puedes iniciar sesion con tu nueva contraseña.
+                Tu contraseña ha sido restablecida correctamente. Ya puedes iniciar sesión con tu nueva contraseña.
               </p>
               <Link
                 href="/login"

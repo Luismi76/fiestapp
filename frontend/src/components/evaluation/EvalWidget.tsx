@@ -10,7 +10,7 @@ type Priority = CreateEvaluationData['priority'];
 const CATEGORIES: { value: Category; label: string }[] = [
   { value: 'PROBLEMA', label: 'Problema' },
   { value: 'MEJORA', label: 'Propuesta de mejora' },
-  { value: 'OPINION', label: 'Opinion general' },
+  { value: 'OPINION', label: 'Opinión general' },
 ];
 
 const PRIORITIES: { value: Priority; label: string; color: string }[] = [

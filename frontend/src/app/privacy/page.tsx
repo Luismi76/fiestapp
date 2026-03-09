@@ -29,18 +29,18 @@ export default function PrivacyPage() {
             </p>
 
             <section>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">1. Informacion que recopilamos</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">1. Información que recopilamos</h3>
               <p className="text-gray-600">
-                En FiestApp recopilamos la informacion que nos proporcionas directamente al crear una cuenta,
-                como tu nombre, correo electronico y foto de perfil. Tambien recopilamos informacion sobre
+                En FiestApp recopilamos la información que nos proporcionas directamente al crear una cuenta,
+                como tu nombre, correo electrónico y foto de perfil. También recopilamos información sobre
                 tu uso de la plataforma para mejorar nuestros servicios.
               </p>
             </section>
 
             <section>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">2. Como usamos tu informacion</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">2. Cómo usamos tu información</h3>
               <p className="text-gray-600">
-                Utilizamos tu informacion para:
+                Utilizamos tu información para:
               </p>
               <ul className="list-disc list-inside text-gray-600 mt-2 space-y-1">
                 <li>Proporcionar y mantener nuestros servicios</li>
@@ -52,26 +52,26 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">3. Compartir informacion</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">3. Compartir información</h3>
               <p className="text-gray-600">
-                Compartimos tu informacion basica de perfil con otros usuarios cuando interactuas con ellos
-                (por ejemplo, cuando solicitas una experiencia). No vendemos tu informacion personal a terceros.
+                Compartimos tu información básica de perfil con otros usuarios cuando interactúas con ellos
+                (por ejemplo, cuando solicitas una experiencia). No vendemos tu información personal a terceros.
               </p>
             </section>
 
             <section>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">4. Seguridad</h3>
               <p className="text-gray-600">
-                Implementamos medidas de seguridad tecnicas y organizativas para proteger tu informacion
-                personal contra acceso no autorizado, alteracion o destruccion.
+                Implementamos medidas de seguridad técnicas y organizativas para proteger tu información
+                personal contra acceso no autorizado, alteración o destrucción.
               </p>
             </section>
 
             <section>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">5. Tus derechos</h3>
               <p className="text-gray-600">
-                Tienes derecho a acceder, corregir o eliminar tu informacion personal. Puedes ejercer estos
-                derechos desde la configuracion de tu cuenta o contactandonos directamente.
+                Tienes derecho a acceder, corregir o eliminar tu información personal. Puedes ejercer estos
+                derechos desde la configuración de tu cuenta o contactándonos directamente.
               </p>
             </section>
 

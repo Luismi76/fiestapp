@@ -227,7 +227,7 @@ export default function MatchActions({
           </svg>
           <span className="text-sm font-medium text-emerald-700 truncate">
             {reviewDone
-              ? (reviewSubmitted ? 'Completada — resena enviada' : 'Experiencia completada')
+              ? (reviewSubmitted ? 'Completada — reseña enviada' : 'Experiencia completada')
               : 'Solicitud aceptada'}
           </span>
         </div>
