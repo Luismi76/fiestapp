@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { memo, useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,11 +16,10 @@ function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Close menu on navigation
-  const prevPathname = useRef(pathname);
-  if (prevPathname.current !== pathname) {
-    prevPathname.current = pathname;
-    if (isMenuOpen) setIsMenuOpen(false);
-  }
+  useEffect(() => {
+    setIsMenuOpen(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+  }, [pathname]);
 
   // Close menu on escape key
   useEffect(() => {

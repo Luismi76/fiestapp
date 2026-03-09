@@ -68,10 +68,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   // Initial fetch when user logs in
   useEffect(() => {
     if (isAuthenticated) {
-      void refreshCount();
+      queueMicrotask(() => void refreshCount());
     } else {
-      setUnreadCount(0);
-      setRecentNotifications([]);
+      queueMicrotask(() => {
+        setUnreadCount(0);
+        setRecentNotifications([]);
+      });
     }
   }, [isAuthenticated, refreshCount]);
 
