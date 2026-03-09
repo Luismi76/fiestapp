@@ -326,6 +326,11 @@ export default function CreateExperiencePage() {
           fieldsToValidate.push('price');
         }
         const fieldsValid = await trigger(fieldsToValidate);
+        // Precio > 0 si modalidad es de pago (#34)
+        if (selectedType !== 'intercambio' && (!watchedValues.price || parseFloat(watchedValues.price) <= 0)) {
+          setError('El precio debe ser mayor que 0 para experiencias de pago');
+          return false;
+        }
         // Si no es sin festividad, debe tener una festividad seleccionada
         if (!noFestival && !selectedFestival) {
           setFestivalError('Selecciona una festividad o marca "Sin festividad asociada"');
@@ -519,7 +524,7 @@ export default function CreateExperiencePage() {
                     disabled={step.id > currentStep}
                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                       step.id === currentStep
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-110'
+                        ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-110'
                         : step.id < currentStep
                         ? 'bg-green-500 text-white'
                         : 'bg-gray-100 text-gray-400'
@@ -586,7 +591,7 @@ export default function CreateExperiencePage() {
         {currentStep === 1 && (
           <div className="p-4 space-y-6 animate-fadeIn">
             <div className="text-center py-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/30">
+              <div className="w-16 h-16 bg-gradient-to-br from-primary to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-primary/30">
                 <StepIcon name="sparkles" className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-xl font-bold text-gray-900">¿Qué ofreces?</h2>
@@ -1163,7 +1168,7 @@ export default function CreateExperiencePage() {
             <button
               type="button"
               onClick={handleNext}
-              className="flex-1 py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all"
+              className="flex-1 py-3.5 bg-primary text-white rounded-xl font-semibold shadow-lg shadow-primary/30 hover:shadow-xl transition-all"
             >
               Continuar
             </button>

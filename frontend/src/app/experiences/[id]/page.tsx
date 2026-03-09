@@ -568,7 +568,7 @@ export default function ExperienceDetailPage() {
           {!isOwner && (
             <Link
               href={`/experiences/${experience.id}/book`}
-              className="block w-full py-4 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-colors text-center text-lg"
+              className="block w-full py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-center text-lg"
             >
               {experience.type === 'intercambio' ? 'Proponer intercambio' : 'Reservar ahora'}
             </Link>
@@ -602,7 +602,7 @@ export default function ExperienceDetailPage() {
           {!isOwner && (
             <Link
               href={`/experiences/${experience.id}/book`}
-              className="flex-1 py-4 bg-blue-500 text-white font-semibold rounded-full hover:bg-blue-600 transition-colors text-center ripple"
+              className="flex-1 py-4 bg-primary text-white font-semibold rounded-full hover:bg-primary/90 transition-colors text-center ripple"
             >
               {experience.type === 'intercambio' ? 'Proponer intercambio' : 'Reservar ahora'}
             </Link>
@@ -713,7 +713,7 @@ export default function ExperienceDetailPage() {
 
             <button
               onClick={handleSubmitRequest}
-              className="w-full py-4 bg-blue-500 text-white font-semibold rounded-full hover:bg-blue-600 transition-colors disabled:opacity-50"
+              className="w-full py-4 bg-primary text-white font-semibold rounded-full hover:bg-primary/90 transition-colors disabled:opacity-50"
               disabled={submitting}
             >
               {submitting ? 'Enviando...' : 'Enviar solicitud'}

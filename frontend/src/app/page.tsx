@@ -111,7 +111,7 @@ export default function Home() {
             >
               Crear cuenta
             </Link>
-            {!isEvalActive && (
+            {!isEvalActive && process.env.NEXT_PUBLIC_ENABLE_EVAL === 'true' && (
               <Link
                 href="/evaluar"
                 className="block w-full bg-yellow-400 text-gray-900 font-semibold py-3 rounded-xl text-center hover:bg-yellow-300 transition-colors shadow-lg animate-pulse"
