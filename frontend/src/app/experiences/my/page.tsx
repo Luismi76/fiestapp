@@ -177,7 +177,7 @@ export default function MyExperiencesPage() {
                   <div className="w-28 md:w-full h-28 md:h-40 flex-shrink-0 relative">
                   {experience.photos && experience.photos.length > 0 ? (
                     <Image
-                      src={getUploadUrl(experience.photos[0])}
+                      src={getUploadUrl(experience.photos[0]) || ''}
                       alt={experience.title}
                       className="w-full h-full object-cover"
                       fill unoptimized

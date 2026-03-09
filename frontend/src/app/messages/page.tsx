@@ -329,7 +329,7 @@ export default function MessagesPage() {
                         ) : (
                           <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white shadow-sm">
                             <Image
-                              src={getAvatarSrc(person?.avatar)}
+                              src={getAvatarSrc(person?.avatar) || ''}
                               alt={person?.name || ''}
                               className="w-full h-full object-cover"
                               fill unoptimized

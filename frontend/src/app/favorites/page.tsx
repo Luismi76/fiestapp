@@ -178,7 +178,7 @@ export default function FavoritesPage() {
                         {/* Imagen */}
                         <div className="w-32 md:w-full h-32 md:h-40 flex-shrink-0 relative">
                         <Image
-                          src={getUploadUrl(exp.photos?.[0] || '/images/feria_abril.png')}
+                          src={getUploadUrl(exp.photos?.[0] || '/images/feria_abril.png') || ''}
                           alt={exp.title}
                           className="w-full h-full object-cover"
                           fill unoptimized
@@ -223,7 +223,7 @@ export default function FavoritesPage() {
                           <div className="flex items-center justify-between mt-2 md:mt-3">
                             <div className="flex items-center gap-2">
                               <Image
-                                src={getAvatarUrl(exp.host?.avatar)}
+                                src={getAvatarUrl(exp.host?.avatar) || ''}
                                 alt={exp.host?.name || ''}
                                 className="w-6 h-6 rounded-full object-cover"
                                 width={24} height={24} unoptimized

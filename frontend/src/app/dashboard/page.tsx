@@ -110,7 +110,7 @@ export default function DashboardPage() {
                 className="relative w-14 h-14 rounded-full overflow-hidden ring-4 ring-white shadow-lg"
               >
                 {user?.avatar ? (
-                  <Image src={getAvatarSrc(user.avatar)} alt="" className="w-full h-full object-cover" fill unoptimized />
+                  <Image src={getAvatarSrc(user.avatar) || ''} alt="" className="w-full h-full object-cover" fill unoptimized />
                 ) : (
                   <div className="w-full h-full gradient-sunset flex items-center justify-center text-white font-bold text-xl">
                     {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -165,7 +165,7 @@ export default function DashboardPage() {
                       >
                         <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-accent/30">
                           <Image
-                            src={getAvatarSrc(match.requester.avatar)}
+                            src={getAvatarSrc(match.requester.avatar) || ''}
                             alt={match.requester.name}
                             className="w-full h-full object-cover"
                             fill unoptimized
@@ -207,7 +207,7 @@ export default function DashboardPage() {
                       >
                         <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
                           <Image
-                            src={getAvatarSrc(otherPerson.avatar)}
+                            src={getAvatarSrc(otherPerson.avatar) || ''}
                             alt={otherPerson.name}
                             className="w-full h-full object-cover"
                             fill unoptimized
@@ -340,7 +340,7 @@ export default function DashboardPage() {
                     >
                       <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
                         <Image
-                          src={getImageUrl(exp.photos)}
+                          src={getImageUrl(exp.photos) || ''}
                           alt={exp.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           fill unoptimized

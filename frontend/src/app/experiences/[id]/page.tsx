@@ -641,7 +641,7 @@ export default function ExperienceDetailPage() {
             <div className="bg-gray-50 rounded-xl p-3 mb-4 flex items-center gap-3">
               <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
                 {experience.photos?.[0] ? (
-                  <Image src={getImageUrl(experience.photos[0])} alt={experience.title} className="w-full h-full object-cover" fill unoptimized />
+                  <Image src={getImageUrl(experience.photos[0]) || ''} alt={experience.title} className="w-full h-full object-cover" fill unoptimized />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-blue-100 to-pink-100">🎉</div>
                 )}

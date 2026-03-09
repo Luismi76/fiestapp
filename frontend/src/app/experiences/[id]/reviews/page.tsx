@@ -224,7 +224,7 @@ export default function ExperienceReviewsPage() {
                 <div className="w-10 h-10 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {review.author.avatar ? (
                     <Image
-                      src={getAvatarUrl(review.author.avatar)}
+                      src={getAvatarUrl(review.author.avatar) || ''}
                       alt={review.author.name}
                       className="w-full h-full object-cover"
                       fill unoptimized

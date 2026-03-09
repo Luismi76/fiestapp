@@ -249,7 +249,7 @@ export default function StatsPage() {
                   className="flex items-center gap-3 p-4 bg-white hover:bg-gray-50 transition-colors"
                 >
                   <Image
-                    src={getAvatarUrl(activity.requester.avatar)}
+                    src={getAvatarUrl(activity.requester.avatar) || ''}
                     alt={activity.requester.name}
                     className="w-10 h-10 rounded-full object-cover"
                     width={40} height={40} unoptimized

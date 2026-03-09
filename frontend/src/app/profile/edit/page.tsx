@@ -219,7 +219,7 @@ export default function EditProfilePage() {
                 />
               ) : user?.avatar ? (
                 <Image
-                  src={getAvatarUrl(user.avatar)}
+                  src={getAvatarUrl(user.avatar) || ''}
                   alt={user.name}
                   className="w-full h-full object-cover"
                   fill unoptimized

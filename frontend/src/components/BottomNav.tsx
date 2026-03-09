@@ -95,7 +95,7 @@ function BottomNav() {
               className="bottom-nav-fab ripple"
               aria-label="Crear experiencia"
             >
-              {item.icon(false)}
+              {item.icon()}
             </Link>
           );
         }

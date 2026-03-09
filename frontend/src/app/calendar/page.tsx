@@ -480,7 +480,7 @@ export default function CalendarPage() {
               <div className="h-36 bg-gradient-to-br from-primary to-orange-500 relative">
                 {selectedFestival.imageUrl && (
                   <Image
-                    src={getUploadUrl(selectedFestival.imageUrl)}
+                    src={getUploadUrl(selectedFestival.imageUrl) || ''}
                     alt={selectedFestival.name}
                     className="w-full h-full object-cover"
                     fill unoptimized

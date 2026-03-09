@@ -370,7 +370,7 @@ export default function BookingPage() {
             <div className="w-20 h-20 rounded-xl overflow-hidden bg-[var(--surface-tile)] flex-shrink-0">
               {experience.photos?.[0] ? (
                 <Image
-                  src={getImageUrl(experience.photos[0])}
+                  src={getImageUrl(experience.photos[0]) || ''}
                   alt={experience.title}
                   className="w-full h-full object-cover"
                   fill unoptimized
@@ -596,7 +596,7 @@ export default function BookingPage() {
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                         {exp.photos?.[0] ? (
                           <Image
-                            src={getImageUrl(exp.photos[0])}
+                            src={getImageUrl(exp.photos[0]) || ''}
                             alt={exp.title}
                             className="w-full h-full object-cover"
                             fill unoptimized
