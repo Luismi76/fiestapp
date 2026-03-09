@@ -12,8 +12,8 @@ import { useToast } from '@/components/ui/Toast';
 import { MatchListSkeleton } from '@/components/ui/Skeleton';
 import logger from '@/lib/logger';
 import { getErrorMessage } from '@/lib/error';
-import {
 import Image from 'next/image';
+import {
   InboxIcon,
   SendIcon,
   CheckIcon,

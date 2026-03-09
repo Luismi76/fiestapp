@@ -10,8 +10,8 @@ import { Match } from '@/types/match';
 import { getUploadUrl, getAvatarUrl, formatTimeAgo } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import logger from '@/lib/logger';
-import {
 import Image from 'next/image';
+import {
   SparklesIcon,
   PlusIcon,
   ChevronRightIcon,
