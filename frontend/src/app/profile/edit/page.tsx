@@ -215,14 +215,14 @@ export default function EditProfilePage() {
                   src={avatarPreview}
                   alt="Preview"
                   className="w-full h-full object-cover"
-                  fill unoptimized
+                  width={112} height={112} unoptimized
                 />
               ) : user?.avatar ? (
                 <Image
                   src={getAvatarUrl(user.avatar) || ''}
                   alt={user.name}
                   className="w-full h-full object-cover"
-                  fill unoptimized
+                  width={112} height={112} unoptimized
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">

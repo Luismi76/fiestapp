@@ -373,7 +373,7 @@ export default function BookingPage() {
                   src={getImageUrl(experience.photos[0]) || ''}
                   alt={experience.title}
                   className="w-full h-full object-cover"
-                  fill unoptimized
+                  width={80} height={80} unoptimized
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-3xl">🎉</div>
@@ -599,7 +599,7 @@ export default function BookingPage() {
                             src={getImageUrl(exp.photos[0]) || ''}
                             alt={exp.title}
                             className="w-full h-full object-cover"
-                            fill unoptimized
+                            width={48} height={48} unoptimized
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xl">🎭</div>

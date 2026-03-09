@@ -324,7 +324,7 @@ export default function MessagesPage() {
                       <div className="relative flex-shrink-0">
                         {activeTab === 'sent' && imageSrc ? (
                           <div className="w-14 h-14 rounded-xl overflow-hidden">
-                            <Image src={imageSrc} alt="" className="w-full h-full object-cover" fill unoptimized />
+                            <Image src={imageSrc} alt="" className="w-full h-full object-cover" width={56} height={56} unoptimized />
                           </div>
                         ) : (
                           <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white shadow-sm">
@@ -332,7 +332,7 @@ export default function MessagesPage() {
                               src={getAvatarSrc(person?.avatar) || ''}
                               alt={person?.name || ''}
                               className="w-full h-full object-cover"
-                              fill unoptimized
+                              width={56} height={56} unoptimized
                             />
                           </div>
                         )}

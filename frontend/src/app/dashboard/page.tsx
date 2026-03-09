@@ -110,7 +110,7 @@ export default function DashboardPage() {
                 className="relative w-14 h-14 rounded-full overflow-hidden ring-4 ring-white shadow-lg"
               >
                 {user?.avatar ? (
-                  <Image src={getAvatarSrc(user.avatar) || ''} alt="" className="w-full h-full object-cover" fill unoptimized />
+                  <Image src={getAvatarSrc(user.avatar) || ''} alt="" className="w-full h-full object-cover" width={56} height={56} unoptimized />
                 ) : (
                   <div className="w-full h-full gradient-sunset flex items-center justify-center text-white font-bold text-xl">
                     {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                             src={getAvatarSrc(match.requester.avatar) || ''}
                             alt={match.requester.name}
                             className="w-full h-full object-cover"
-                            fill unoptimized
+                            width={48} height={48} unoptimized
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -210,7 +210,7 @@ export default function DashboardPage() {
                             src={getAvatarSrc(otherPerson.avatar) || ''}
                             alt={otherPerson.name}
                             className="w-full h-full object-cover"
-                            fill unoptimized
+                            width={48} height={48} unoptimized
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -343,7 +343,7 @@ export default function DashboardPage() {
                           src={getImageUrl(exp.photos) || ''}
                           alt={exp.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          fill unoptimized
+                          width={64} height={64} unoptimized
                         />
                       </div>
                       <div className="flex-1 min-w-0">

@@ -393,7 +393,7 @@ export default function ExperienceDetailPage() {
                     src={getHostAvatar(experience.host.avatar) || ''}
                     alt={experience.host.name}
                     className="w-full h-full object-cover"
-                    fill unoptimized
+                    width={64} height={64} unoptimized
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-600">
@@ -523,7 +523,7 @@ export default function ExperienceDetailPage() {
                 <div key={review.id} className="flex gap-3">
                   <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                     {review.author.avatar ? (
-                      <Image src={getHostAvatar(review.author.avatar) || ''} alt="" className="w-full h-full object-cover" fill unoptimized />
+                      <Image src={getHostAvatar(review.author.avatar) || ''} alt="" className="w-full h-full object-cover" width={40} height={40} unoptimized />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-500 font-medium">
                         {review.author.name.charAt(0)}
@@ -641,7 +641,7 @@ export default function ExperienceDetailPage() {
             <div className="bg-gray-50 rounded-xl p-3 mb-4 flex items-center gap-3">
               <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
                 {experience.photos?.[0] ? (
-                  <Image src={getImageUrl(experience.photos[0]) || ''} alt={experience.title} className="w-full h-full object-cover" fill unoptimized />
+                  <Image src={getImageUrl(experience.photos[0]) || ''} alt={experience.title} className="w-full h-full object-cover" width={56} height={56} unoptimized />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-blue-100 to-pink-100">🎉</div>
                 )}
