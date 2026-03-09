@@ -41,9 +41,9 @@ function VerifyEmailContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header with gradient */}
-      <div className="relative bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 pt-10 pb-28">
+      <div className="relative bg-gradient-to-br from-primary via-orange-500 to-amber-600 pt-10 pb-28">
         <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-        <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-10 w-40 h-40 bg-amber-400/20 rounded-full blur-3xl" />
 
         <div className="text-center text-white relative z-10">
           <div className="w-16 h-16 mx-auto mb-3 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
@@ -62,8 +62,8 @@ function VerifyEmailContent() {
         <div className="bg-white rounded-3xl p-8 shadow-xl text-center max-w-md mx-auto">
           {status === 'loading' && (
             <>
-              <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
-                <div className="spinner border-blue-500/30 border-t-blue-500" />
+              <div className="w-16 h-16 mx-auto mb-4 bg-orange-100 rounded-full flex items-center justify-center">
+                <div className="spinner border-orange-500/30 border-t-blue-500" />
               </div>
               <h2 className="text-xl font-semibold text-gray-800 mb-2">Verificando tu email...</h2>
               <p className="text-gray-500">Por favor, espera un momento.</p>
@@ -81,7 +81,7 @@ function VerifyEmailContent() {
               <p className="text-gray-500 mb-6">{message}</p>
               <Link
                 href="/login"
-                className="inline-block w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all"
+                className="inline-block w-full py-4 bg-gradient-to-r from-primary to-orange-500 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transition-all"
               >
                 Iniciar sesión
               </Link>
@@ -100,13 +100,13 @@ function VerifyEmailContent() {
               <div className="space-y-3">
                 <Link
                   href="/verification-pending"
-                  className="inline-block w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all"
+                  className="inline-block w-full py-4 bg-gradient-to-r from-primary to-orange-500 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transition-all"
                 >
                   Solicitar nuevo email
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-block w-full py-3 text-blue-600 font-medium hover:text-blue-700 transition-colors"
+                  className="inline-block w-full py-3 text-primary font-medium hover:text-orange-700 transition-colors"
                 >
                   Volver al inicio de sesión
                 </Link>
@@ -123,7 +123,7 @@ export default function VerifyEmailPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="spinner border-blue-500/30 border-t-blue-500" />
+        <div className="spinner border-orange-500/30 border-t-blue-500" />
       </div>
     }>
       <VerifyEmailContent />

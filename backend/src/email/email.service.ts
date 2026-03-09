@@ -178,7 +178,7 @@ export class EmailService {
       <td style="padding: 40px 0;">
         <table role="presentation" style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <tr>
-            <td style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); padding: 40px 30px; text-align: center;">
+            <td style="background: linear-gradient(135deg, #FF6B35 0%, #FFA500 100%); padding: 40px 30px; text-align: center;">
               <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">FiestApp</h1>
               <p style="color: rgba(255, 255, 255, 0.8); margin: 10px 0 0; font-size: 14px;">Vive las fiestas como un local</p>
             </td>
@@ -192,7 +192,7 @@ export class EmailService {
               <table role="presentation" style="width: 100%; margin: 30px 0;">
                 <tr>
                   <td style="text-align: center;">
-                    <a href="${resetUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 12px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+                    <a href="${resetUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #FF6B35 0%, #FF8A50 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 12px; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.4);">
                       Restablecer contraseña
                     </a>
                   </td>
@@ -201,7 +201,7 @@ export class EmailService {
               <p style="color: #6b7280; margin: 25px 0 0; font-size: 14px; line-height: 1.6;">
                 Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:
               </p>
-              <p style="color: #2563eb; margin: 10px 0 0; font-size: 14px; word-break: break-all;">
+              <p style="color: #FF6B35; margin: 10px 0 0; font-size: 14px; word-break: break-all;">
                 ${resetUrl}
               </p>
               <div style="margin-top: 30px; padding-top: 25px; border-top: 1px solid #e5e7eb;">
@@ -372,7 +372,7 @@ export class EmailService {
         <table role="presentation" style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <!-- Header -->
           <tr>
-            <td style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); padding: 40px 30px; text-align: center;">
+            <td style="background: linear-gradient(135deg, #FF6B35 0%, #FFA500 100%); padding: 40px 30px; text-align: center;">
               <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">FiestApp</h1>
               <p style="color: rgba(255, 255, 255, 0.8); margin: 10px 0 0; font-size: 14px;">Vive las fiestas como un local</p>
             </td>
@@ -390,7 +390,7 @@ export class EmailService {
               <table role="presentation" style="width: 100%; margin: 30px 0;">
                 <tr>
                   <td style="text-align: center;">
-                    <a href="${verificationUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 12px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+                    <a href="${verificationUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #FF6B35 0%, #FF8A50 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 12px; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.4);">
                       Verificar mi cuenta
                     </a>
                   </td>
@@ -400,7 +400,7 @@ export class EmailService {
               <p style="color: #6b7280; margin: 25px 0 0; font-size: 14px; line-height: 1.6;">
                 Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:
               </p>
-              <p style="color: #2563eb; margin: 10px 0 0; font-size: 14px; word-break: break-all;">
+              <p style="color: #FF6B35; margin: 10px 0 0; font-size: 14px; word-break: break-all;">
                 ${verificationUrl}
               </p>
 

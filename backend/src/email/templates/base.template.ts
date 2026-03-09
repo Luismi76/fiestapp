@@ -116,6 +116,11 @@ export function getBaseTemplate(
                     <p style="color: #9ca3af; margin: 8px 0 0; font-size: 11px;">
                       Este email fue enviado desde una dirección que no acepta respuestas.
                     </p>
+                    <p style="color: #9ca3af; margin: 8px 0 0; font-size: 11px;">
+                      Recibes este email porque tienes una cuenta en FiestApp.
+                      <a href="https://fiestapp.lmsc.es/settings" style="color: #9ca3af; text-decoration: underline;">Gestionar preferencias</a> ·
+                      <a href="https://fiestapp.lmsc.es/privacy" style="color: #9ca3af; text-decoration: underline;">Política de privacidad</a>
+                    </p>
                   </td>
                 </tr>
               </table>

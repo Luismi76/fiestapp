@@ -55,9 +55,9 @@ function VerificationPendingContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header with gradient */}
-      <div className="relative bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 pt-10 pb-28">
+      <div className="relative bg-gradient-to-br from-primary via-orange-500 to-amber-600 pt-10 pb-28">
         <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-        <div className="absolute bottom-10 right-10 w-40 h-40 bg-purple-400/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 right-10 w-40 h-40 bg-amber-400/20 rounded-full blur-3xl" />
 
         {/* Back button */}
         <Link
@@ -85,8 +85,8 @@ function VerificationPendingContent() {
       <div className="px-4 -mt-20 pb-8 relative z-10 flex-1">
         <div className="bg-white rounded-3xl p-6 shadow-xl max-w-md mx-auto">
           <div className="text-center mb-6">
-            <div className="w-20 h-20 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-blue-600">
+            <div className="w-20 h-20 mx-auto mb-4 bg-orange-100 rounded-full flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-primary">
                 <path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z" />
                 <path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z" />
               </svg>
@@ -143,7 +143,7 @@ function VerificationPendingContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
-                  className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
                 />
               </div>
             </div>
@@ -151,7 +151,7 @@ function VerificationPendingContent() {
             <button
               onClick={handleResend}
               disabled={loading || cooldown > 0}
-              className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 bg-gradient-to-r from-primary to-orange-500 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -176,7 +176,7 @@ function VerificationPendingContent() {
           <div className="text-center mt-6 pt-6 border-t border-gray-100">
             <p className="text-gray-600">
               ¿Ya verificaste tu cuenta?{' '}
-              <Link href="/login" className="text-blue-600 font-semibold hover:text-blue-700">
+              <Link href="/login" className="text-primary font-semibold hover:text-orange-700">
                 Iniciar sesión
               </Link>
             </p>
@@ -191,7 +191,7 @@ export default function VerificationPendingPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="spinner border-blue-500/30 border-t-blue-500" />
+        <div className="spinner border-orange-500/30 border-t-blue-500" />
       </div>
     }>
       <VerificationPendingContent />

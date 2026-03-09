@@ -547,13 +547,13 @@ export default function ExperienceDetailPage() {
 
         {/* Owner actions */}
         {isOwner && (
-          <Link href={`/experiences/${experience.id}/edit`} className="block bg-white rounded-2xl shadow-sm p-4 text-center font-semibold text-blue-600">
+          <Link href={`/experiences/${experience.id}/edit`} className="block bg-white rounded-2xl shadow-sm p-4 text-center font-semibold text-primary">
             ✏️ Editar experiencia
           </Link>
         )}
 
-        {/* Desktop booking card - inline in content */}
-        <div className="hidden lg:block bg-white rounded-2xl shadow-lg p-6 mt-4 border border-gray-100">
+        {/* Desktop booking card - sticky sidebar style (#54) */}
+        <div className="hidden lg:block bg-white rounded-2xl shadow-lg p-6 mt-4 border border-gray-100 lg:sticky lg:top-24">
           <div className="flex items-center justify-between mb-4">
             {experience.price ? (
               <div>

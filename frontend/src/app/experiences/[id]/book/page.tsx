@@ -646,6 +646,11 @@ export default function BookingPage() {
             )}
           </div>
 
+          {/* Commission notice (#82/74) */}
+          <p className="text-xs text-gray-500 text-center mb-2">
+            Se aplicará una comisión de servicio de 1,50€ a cada parte al aceptar la solicitud
+          </p>
+
           {/* Submit button */}
           <button
             onClick={handleSubmit}

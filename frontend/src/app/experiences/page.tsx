@@ -291,7 +291,7 @@ function ExperiencesContent() {
             </Link>
             <button
               onClick={() => setShowFiltersModal(true)}
-              className={`relative w-10 h-10 flex items-center justify-center rounded-full ${
+              className={`relative w-10 h-10 flex items-center justify-center rounded-full lg:hidden ${
                 activeFiltersCount > 0 ? 'bg-primary text-white' : 'text-gray-600 hover:text-primary'
               }`}
             >
