@@ -68,7 +68,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         ?.split('=')[1];
 
       const token: string | undefined =
-        client.handshake.auth?.token ||
+        (client.handshake.auth?.token as string | undefined) ||
         client.handshake.headers?.authorization?.replace('Bearer ', '') ||
         cookieToken;
 

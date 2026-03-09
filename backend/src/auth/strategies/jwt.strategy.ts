@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-request.interface';
@@ -15,8 +15,9 @@ export type { AuthenticatedUser };
 
 function extractJwtFromCookieOrHeader(req: Request): string | null {
   // Try cookie first, then Bearer header
-  if (req.cookies?.access_token) {
-    return req.cookies.access_token;
+  const cookieToken = req.cookies?.access_token as string | undefined;
+  if (cookieToken) {
+    return cookieToken;
   }
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) {

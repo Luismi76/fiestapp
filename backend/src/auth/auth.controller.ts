@@ -291,7 +291,7 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Cerrar sesión' })
   @ApiResponse({ status: 200, description: 'Sesión cerrada correctamente' })
-  async logout(@Res({ passthrough: true }) res: Response) {
+  logout(@Res({ passthrough: true }) res: Response) {
     this.clearAuthCookie(res);
     return { message: 'Sesión cerrada correctamente' };
   }
