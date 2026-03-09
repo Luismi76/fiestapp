@@ -21,12 +21,12 @@ export default function MainLayout({ children, hideNav = false, hideHeader = fal
       {/* Header: visible en desktop */}
       {!hideNav && !hideHeader && <Header />}
 
-      {/* Main content: responsive width */}
+      {/* Main content: responsive width, pt-16 on desktop for fixed header */}
       <main
         id="main-content"
         role="main"
         tabIndex={-1}
-        className="w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6"
+        className={`w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6 ${!hideNav && !hideHeader ? 'md:pt-16' : ''}`}
       >
         {children}
       </main>

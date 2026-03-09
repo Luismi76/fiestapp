@@ -87,7 +87,13 @@ function FavoriteButton({
 }
 
 function Rating({ avgRating }: { avgRating?: number }) {
-  if (!avgRating || avgRating <= 0) return null;
+  if (!avgRating || avgRating <= 0) {
+    return (
+      <div className="rating">
+        <span className="text-xs text-gray-400">Nuevo</span>
+      </div>
+    );
+  }
   return (
     <div className="rating">
       <span className="rating-star">★</span>

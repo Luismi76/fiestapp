@@ -13,6 +13,7 @@ import ReportButton from '@/components/ReportButton';
 import ParticipantSelector from '@/components/ParticipantSelector';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
+import { useToast } from '@/components/ui/Toast';
 
 const ImageGallery = dynamic(() => import('@/components/ImageGallery'));
 const AvailabilityCalendar = dynamic(() => import('@/components/AvailabilityCalendar'));
@@ -22,6 +23,7 @@ export default function ExperienceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const toast = useToast();
   const [experience, setExperience] = useState<ExperienceDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -88,6 +90,7 @@ export default function ExperienceDetailPage() {
     try {
       await favoritesApi.toggleFavorite(params.id as string, isFavorite);
       setIsFavorite(!isFavorite);
+      toast.success(!isFavorite ? 'Añadido a favoritos' : 'Eliminado de favoritos');
     } catch (error) {
       logger.error('Error toggling favorite:', error);
     } finally {
@@ -359,9 +362,15 @@ export default function ExperienceDetailPage() {
                 <span>{formatParticipants(experience._count?.matches || 0)} Participantes</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="text-yellow-500 text-lg">★</span>
-                <span className="font-semibold">{experience.avgRating?.toFixed(1) || '-'}</span>
-                <span className="text-gray-400">({experience._count?.reviews || 0} reseñas)</span>
+                {experience._count?.reviews ? (
+                  <>
+                    <span className="text-yellow-500 text-lg">★</span>
+                    <span className="font-semibold">{experience.avgRating?.toFixed(1)}</span>
+                    <span className="text-gray-400">({experience._count.reviews} {experience._count.reviews === 1 ? 'reseña' : 'reseñas'})</span>
+                  </>
+                ) : (
+                  <span className="text-gray-400 text-sm">Sin reseñas aún</span>
+                )}
               </div>
             </div>
             <div className="flex gap-2">
@@ -477,7 +486,7 @@ export default function ExperienceDetailPage() {
               <h2 className="font-bold text-gray-900 flex items-center gap-2">
                 <span className="text-lg">📅</span> Disponibilidad
               </h2>
-              <p className="text-sm text-gray-500">{availabilityDates.length} fechas disponibles - Toca para reservar</p>
+              <p className="text-sm text-gray-500">{availabilityDates.length} fechas disponibles — Selecciona una fecha para reservar</p>
             </div>
             <div className="p-4">
               <AvailabilityCalendar
