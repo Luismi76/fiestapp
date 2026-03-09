@@ -549,7 +549,7 @@ export default function CreateExperiencePage() {
       </header>
 
       {/* Content */}
-      <form onSubmit={isAuthenticated ? handleSubmit(onSubmit) : handleDemoSubmit} className="pb-32 max-w-2xl mx-auto">
+      <form onSubmit={isAuthenticated ? handleSubmit(onSubmit) : handleDemoSubmit} className="pb-4 max-w-2xl mx-auto">
         {!isAuthenticated && (
           <div className="mx-4 mt-4 bg-amber-50 border border-amber-200 text-amber-700 p-3 rounded-xl text-sm flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 flex-shrink-0">
@@ -1146,7 +1146,7 @@ export default function CreateExperiencePage() {
       </form>
 
       {/* Footer Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4 pb-safe md:static md:border-t-0 md:py-6">
+      <div className="bg-white border-t border-gray-100 px-4 py-4 mb-20 sm:mb-0 md:border-t-0 md:py-6">
         <div className="flex gap-3 max-w-2xl mx-auto">
           {currentStep > 1 && (
             <button

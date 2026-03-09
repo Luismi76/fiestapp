@@ -118,6 +118,8 @@ export class MatchesService {
           requesterConfirmed: false,
           startDate: parseDate(createDto.startDate),
           endDate: parseDate(createDto.endDate),
+          offerDescription: createDto.offerDescription || null,
+          offerExperienceId: createDto.offerExperienceId || null,
           updatedAt: new Date(),
         },
         include: {
@@ -251,6 +253,27 @@ export class MatchesService {
       }
     }
 
+    // Validar experiencia ofrecida a cambio (intercambio)
+    if (createDto.offerExperienceId) {
+      const offerExp = await this.prisma.experience.findUnique({
+        where: { id: createDto.offerExperienceId },
+        select: { id: true, hostId: true, published: true },
+      });
+      if (!offerExp) {
+        throw new BadRequestException('La experiencia ofrecida no existe');
+      }
+      if (offerExp.hostId !== requesterId) {
+        throw new BadRequestException(
+          'Solo puedes ofrecer tus propias experiencias a cambio',
+        );
+      }
+      if (!offerExp.published) {
+        throw new BadRequestException(
+          'La experiencia ofrecida debe estar publicada',
+        );
+      }
+    }
+
     // Crear el match
     const match = await this.prisma.match.create({
       data: {
@@ -264,6 +287,7 @@ export class MatchesService {
         participantNames: createDto.participantNames || [],
         totalPrice,
         offerDescription: createDto.offerDescription,
+        offerExperienceId: createDto.offerExperienceId,
       },
       include: {
         experience: {
@@ -337,6 +361,17 @@ export class MatchesService {
       participants: true,
       participantNames: true,
       totalPrice: true,
+      offerDescription: true,
+      offerExperienceId: true,
+      offerExperience: {
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          city: true,
+          photos: true,
+        },
+      },
       createdAt: true,
       updatedAt: true,
       experience: {
@@ -520,6 +555,16 @@ export class MatchesService {
         experience: {
           include: {
             festival: true,
+          },
+        },
+        offerExperience: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            city: true,
+            photos: true,
+            festival: { select: { id: true, name: true } },
           },
         },
         requester: {
@@ -971,13 +1016,18 @@ export class MatchesService {
       );
     }
 
-    // Verificar que la fecha de la experiencia ya ha pasado (#87)
+    // Verificar que la fecha de la experiencia ya ha pasado o es hoy (#87)
     const matchDate = match.startDate ? new Date(match.startDate) : null;
     const now = new Date();
-    if (matchDate && matchDate > now) {
-      throw new BadRequestException(
-        'No puedes confirmar la experiencia antes de que haya tenido lugar',
-      );
+    if (matchDate) {
+      // Comparar solo por fecha (sin hora) para permitir confirmar el mismo día
+      const matchDay = new Date(matchDate.getFullYear(), matchDate.getMonth(), matchDate.getDate());
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (matchDay > today) {
+        throw new BadRequestException(
+          'No puedes confirmar la experiencia antes de que haya tenido lugar',
+        );
+      }
     }
 
     // Verificar si ya confirmó
@@ -1093,13 +1143,17 @@ export class MatchesService {
       );
     }
 
-    // Verificar que la fecha de la experiencia ya ha pasado (#87)
+    // Verificar que la fecha de la experiencia ya ha pasado o es hoy (#87)
     const matchDate = match.startDate ? new Date(match.startDate) : null;
     const now = new Date();
-    if (matchDate && matchDate > now) {
-      throw new BadRequestException(
-        'No puedes completar la experiencia antes de que haya tenido lugar',
-      );
+    if (matchDate) {
+      const matchDay = new Date(matchDate.getFullYear(), matchDate.getMonth(), matchDate.getDate());
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (matchDay > today) {
+        throw new BadRequestException(
+          'No puedes completar la experiencia antes de que haya tenido lugar',
+        );
+      }
     }
 
     // El cobro ya se realizó al aceptar el acuerdo

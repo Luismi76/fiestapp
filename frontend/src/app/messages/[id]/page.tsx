@@ -471,6 +471,7 @@ export default function ChatPage() {
             participants={match.participants}
             totalPrice={match.totalPrice}
             offerDescription={match.offerDescription}
+            offerExperience={match.offerExperience}
             status={match.status}
           />
         </div>

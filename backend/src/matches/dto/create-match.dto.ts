@@ -36,4 +36,8 @@ export class CreateMatchDto {
   @IsOptional()
   @IsString()
   offerDescription?: string;
+
+  @IsOptional()
+  @IsString()
+  offerExperienceId?: string;
 }

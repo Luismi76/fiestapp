@@ -49,6 +49,15 @@ export interface Message {
   translations?: Record<string, string>;
 }
 
+export interface OfferExperience {
+  id: string;
+  title: string;
+  type: string;
+  city: string;
+  photos?: string[];
+  festival?: { id: string; name: string } | null;
+}
+
 export interface Match {
   id: string;
   experienceId: string;
@@ -61,6 +70,8 @@ export interface Match {
   participantNames?: string[];
   totalPrice?: number;
   offerDescription?: string;
+  offerExperienceId?: string;
+  offerExperience?: OfferExperience | null;
   hostConfirmed?: boolean;
   requesterConfirmed?: boolean;
   createdAt: string;
@@ -92,6 +103,7 @@ export interface CreateMatchData {
   participants?: number;
   participantNames?: string[];
   offerDescription?: string;
+  offerExperienceId?: string;
 }
 
 export interface MatchStats {

@@ -149,6 +149,7 @@ model Experience {
   festival        Festival?                @relation(fields: [festivalId], references: [id])
   host            User                     @relation(fields: [hostId], references: [id], onDelete: Cascade)
   matches         Match[]
+  offeredInMatches Match[]          @relation("OfferExperience")
   reviews         Review[]
   favorites       Favorite[]
   groupPricing    GroupPricing[]
@@ -188,7 +189,9 @@ model Match {
   endDate               DateTime?
   reminderOneDaySent    Boolean       @default(false)
   reminderThreeDaysSent Boolean       @default(false)
-  offerDescription      String?       // Propuesta de intercambio del viajero
+  offerDescription      String?       // Descripción adicional del intercambio (legacy/opcional)
+  offerExperienceId     String?       // Experiencia que ofrece el viajero a cambio
+  offerExperience       Experience?   @relation("OfferExperience", fields: [offerExperienceId], references: [id], onDelete: SetNull)
   // Campos para grupos (FASE 4)
   participants          Int           @default(1)
   participantNames      String[]      // Nombres opcionales de los participantes

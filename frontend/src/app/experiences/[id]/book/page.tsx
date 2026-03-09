@@ -64,6 +64,9 @@ export default function BookingPage() {
   const [participants, setParticipants] = useState(1);
   const [message, setMessage] = useState('');
   const [offerDescription, setOfferDescription] = useState('');
+  const [offerExperienceId, setOfferExperienceId] = useState<string | null>(null);
+  const [myExperiences, setMyExperiences] = useState<Array<{ id: string; title: string; city: string; photos?: string[]; type: string }>>([]);
+  const [loadingMyExperiences, setLoadingMyExperiences] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [occupancy, setOccupancy] = useState<DateOccupancy[]>([]);
@@ -117,6 +120,24 @@ export default function BookingPage() {
 
     if (params.id) fetchExperience();
   }, [params.id, searchParams]);
+
+  // Load user's experiences for exchange
+  useEffect(() => {
+    const loadMyExperiences = async () => {
+      if (!experience || (experience.type !== 'intercambio' && experience.type !== 'ambos')) return;
+      setLoadingMyExperiences(true);
+      try {
+        const data = await experiencesApi.getMy();
+        // Excluir la experiencia que se está intentando reservar
+        setMyExperiences(data.filter((e: { id: string }) => e.id !== experience.id));
+      } catch {
+        logger.error('Error loading my experiences');
+      } finally {
+        setLoadingMyExperiences(false);
+      }
+    };
+    loadMyExperiences();
+  }, [experience]);
 
   // Calculate price when participants change
   useEffect(() => {
@@ -213,6 +234,12 @@ export default function BookingPage() {
       return;
     }
 
+    // Validar que se ha seleccionado una experiencia a cambio en intercambios
+    if (isExchange && !offerExperienceId) {
+      setSubmitError('Selecciona una de tus experiencias para ofrecer a cambio');
+      return;
+    }
+
     vibrate('medium');
     setSubmitting(true);
     setSubmitError('');
@@ -233,6 +260,7 @@ export default function BookingPage() {
         startDate: formattedDate,
         participants: participants > 1 ? participants : undefined,
         offerDescription: offerDescription.trim() || undefined,
+        offerExperienceId: offerExperienceId || undefined,
       });
 
       vibrate('success');
@@ -519,22 +547,86 @@ export default function BookingPage() {
           )}
         </div>
 
-        {/* Exchange offer - only for intercambio */}
+        {/* Exchange offer - select one of your experiences */}
         {isExchange && (
           <div className="card p-4 border-l-4 border-l-secondary">
             <h2 className="font-semibold text-[#1A1410] mb-2 flex items-center gap-2">
-              <span className="text-lg">🔄</span> Tu propuesta de intercambio
+              <span className="text-lg">🔄</span> Tu experiencia a cambio
             </h2>
             <p className="text-xs text-[#8B7355] mb-3">
-              Describe que ofreces a cambio: un tour por tu ciudad, clases de cocina, alojamiento...
+              Selecciona una de tus experiencias publicadas para ofrecer a cambio
             </p>
-            <textarea
-              value={offerDescription}
-              onChange={(e) => setOfferDescription(e.target.value)}
-              placeholder="Puedo ofrecer a cambio..."
-              rows={4}
-              className="input resize-none"
-            />
+
+            {loadingMyExperiences ? (
+              <div className="flex items-center justify-center py-6">
+                <div className="spinner spinner-sm" />
+              </div>
+            ) : myExperiences.length === 0 ? (
+              <div className="text-center py-6">
+                <div className="text-3xl mb-2">📝</div>
+                <p className="text-sm text-[#8B7355] mb-3">
+                  No tienes experiencias publicadas para ofrecer a cambio
+                </p>
+                <button
+                  onClick={() => router.push('/experiences/create')}
+                  className="btn btn-secondary text-sm"
+                >
+                  Crear experiencia
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {myExperiences.map((exp) => {
+                  const isSelected = offerExperienceId === exp.id;
+                  return (
+                    <button
+                      key={exp.id}
+                      onClick={() => {
+                        vibrate('light');
+                        setOfferExperienceId(isSelected ? null : exp.id);
+                      }}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                        isSelected
+                          ? 'border-secondary bg-secondary/5'
+                          : 'border-gray-100 hover:border-secondary/30'
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                        {exp.photos?.[0] ? (
+                          <img
+                            src={getImageUrl(exp.photos[0])}
+                            alt={exp.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xl">🎭</div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-[#1A1410] truncate">{exp.title}</p>
+                        <p className="text-xs text-[#8B7355]">{exp.city}</p>
+                      </div>
+                      {isSelected && (
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-secondary flex-shrink-0">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.06l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Optional additional description */}
+            {offerExperienceId && (
+              <textarea
+                value={offerDescription}
+                onChange={(e) => setOfferDescription(e.target.value)}
+                placeholder="Mensaje adicional sobre el intercambio (opcional)..."
+                rows={2}
+                className="input resize-none mt-3"
+              />
+            )}
           </div>
         )}
 

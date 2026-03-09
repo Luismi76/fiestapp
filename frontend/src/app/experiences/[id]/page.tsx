@@ -591,7 +591,7 @@ export default function ExperienceDetailPage() {
       {/* End of 2-column grid */}
 
       {/* Mobile fixed bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-40 lg:hidden">
+      <div className="fixed bottom-[80px] left-0 right-0 bg-white border-t border-gray-200 p-4 z-[10000] md:bottom-0 lg:hidden">
         <div className="flex items-center gap-4">
           <div className="flex-shrink-0">
             {experience.price ? (

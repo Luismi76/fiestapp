@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
@@ -8,11 +8,6 @@ import Link from 'next/link';
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, loading } = useAuth();
-  const [isEvalActive, setIsEvalActive] = useState(false);
-
-  useEffect(() => {
-    setIsEvalActive(!!localStorage.getItem('eval_code'));
-  }, []);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -111,19 +106,6 @@ export default function Home() {
             >
               Crear cuenta
             </Link>
-            {!isEvalActive && process.env.NEXT_PUBLIC_ENABLE_EVAL === 'true' && (
-              <Link
-                href="/evaluar"
-                className="block w-full bg-yellow-400 text-gray-900 font-semibold py-3 rounded-xl text-center hover:bg-yellow-300 transition-colors shadow-lg animate-pulse"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
-                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" />
-                  </svg>
-                  Modo Evaluador
-                </span>
-              </Link>
-            )}
           </div>
         </div>
       </div>
@@ -150,19 +132,6 @@ export default function Home() {
             >
               Crear cuenta
             </Link>
-            {!isEvalActive && (
-              <Link
-                href="/evaluar"
-                className="block w-full bg-yellow-400 text-gray-900 font-semibold py-3 rounded-xl text-center hover:bg-yellow-300 transition-colors shadow-md animate-pulse"
-              >
-                <span className="flex items-center justify-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5" aria-hidden="true">
-                    <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437.463 2.126 1.706l-.709 2.836.042-.02a.75.75 0 0 1 .67 1.34l-.04.022c-1.147.573-2.438-.463-2.127-1.706l.71-2.836-.042.02a.75.75 0 1 1-.671-1.34l.041-.022ZM12 9a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clipRule="evenodd" />
-                  </svg>
-                  Modo Evaluador
-                </span>
-              </Link>
-            )}
           </div>
 
           {/* Mini features */}
