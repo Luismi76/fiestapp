@@ -18,8 +18,8 @@ function Header() {
 
   // Close menu on navigation
   useEffect(() => {
-    setIsMenuOpen(false);
     // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMenuOpen(false);
   }, [pathname]);
 
   // Close menu on escape key

@@ -40,8 +40,7 @@ export function useSocket(): UseSocketReturn {
         globalSocket = null;
         globalSocketUserId = null;
       }
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSocket(null);
+      setSocket(null); // intentional: cleanup on auth change
       setIsConnected(false);
       return;
     }
