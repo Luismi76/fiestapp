@@ -383,7 +383,7 @@ export class EmailService {
             <td style="padding: 40px 30px;">
               <h2 style="color: #1f2937; margin: 0 0 20px; font-size: 24px;">Hola, ${name}</h2>
               <p style="color: #4b5563; margin: 0 0 25px; font-size: 16px; line-height: 1.6;">
-                Gracias por registrarte en FiestApp. Para completar tu registro y empezar a descubrir experiencias autenticas en fiestas populares, por favor verifica tu direccion de email haciendo clic en el boton de abajo.
+                Gracias por registrarte en FiestApp. Para completar tu registro y empezar a descubrir experiencias auténticas en fiestas populares, por favor verifica tu dirección de email haciendo clic en el botón de abajo.
               </p>
 
               <!-- Button -->
@@ -398,7 +398,7 @@ export class EmailService {
               </table>
 
               <p style="color: #6b7280; margin: 25px 0 0; font-size: 14px; line-height: 1.6;">
-                Si no puedes hacer clic en el boton, copia y pega este enlace en tu navegador:
+                Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:
               </p>
               <p style="color: #2563eb; margin: 10px 0 0; font-size: 14px; word-break: break-all;">
                 ${verificationUrl}

@@ -438,8 +438,8 @@ export class NotificationsService {
     return this.create({
       userId,
       type: NotificationType.WALLET_CHARGED,
-      title: 'Acuerdo cerrado',
-      message: `Se han descontado ${amount.toFixed(2)}€ de tu monedero por "${experienceTitle}". Saldo actual: ${newBalance.toFixed(2)}€`,
+      title: 'Solicitud aceptada',
+      message: `Se han descontado ${amount.toFixed(2)}€ de comisión de tu monedero por "${experienceTitle}". Saldo actual: ${newBalance.toFixed(2)}€`,
       data: { matchId, amount, newBalance },
     });
   }

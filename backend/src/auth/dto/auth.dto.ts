@@ -19,11 +19,11 @@ export class RegisterDto {
 
   @ApiProperty({
     example: 'MiContraseña123',
-    description: 'Contraseña (mínimo 6 caracteres)',
-    minLength: 6,
+    description: 'Contraseña (mínimo 8 caracteres)',
+    minLength: 8,
   })
   @IsString()
-  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   password: string;
 
   @ApiProperty({
@@ -96,7 +96,7 @@ export class LoginDto {
     description: 'Contraseña del usuario',
   })
   @IsString()
-  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   password: string;
 }
 
@@ -167,10 +167,10 @@ export class ResetPasswordDto {
 
   @ApiProperty({
     example: 'NuevaContraseña123',
-    description: 'Nueva contraseña (mínimo 6 caracteres)',
+    description: 'Nueva contraseña (mínimo 8 caracteres)',
   })
   @IsString()
-  @MinLength(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
   newPassword: string;
 }
 

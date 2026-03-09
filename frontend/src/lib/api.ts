@@ -335,6 +335,15 @@ export const festivalsApi = {
   },
 };
 
+// Mapear messages[0] del backend a lastMessage para la lista (#69)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapMatchesLastMessage(matches: any[]): Match[] {
+  return (matches || []).map((m) => ({
+    ...m,
+    lastMessage: m.messages?.[0] || m.lastMessage || null,
+  }));
+}
+
 export const matchesApi = {
   // Crear solicitud de match
   create: async (data: CreateMatchData): Promise<Match> => {
@@ -346,14 +355,14 @@ export const matchesApi = {
   getReceived: async (status?: MatchStatus): Promise<Match[]> => {
     const params = status ? `?status=${status}` : '';
     const response = await api.get<Match[]>(`/matches/received${params}`);
-    return response.data;
+    return mapMatchesLastMessage(response.data);
   },
 
   // Obtener mis solicitudes (soy requester)
   getSent: async (status?: MatchStatus): Promise<Match[]> => {
     const params = status ? `?status=${status}` : '';
     const response = await api.get<Match[]>(`/matches/sent${params}`);
-    return response.data;
+    return mapMatchesLastMessage(response.data);
   },
 
   // Obtener detalle de un match

@@ -17,7 +17,7 @@ function VerifyEmailContent() {
     const verifyEmail = async () => {
       if (!token) {
         setStatus('error');
-        setMessage('Token de verificacion no proporcionado.');
+        setMessage('Token de verificación no proporcionado.');
         return;
       }
 
@@ -52,7 +52,7 @@ function VerifyEmailContent() {
               <path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold mb-1">Verificacion de Email</h1>
+          <h1 className="text-2xl font-bold mb-1">Verificación de Email</h1>
           <p className="text-white/70 text-sm">Confirmando tu cuenta en FiestApp</p>
         </div>
       </div>
@@ -83,7 +83,7 @@ function VerifyEmailContent() {
                 href="/login"
                 className="inline-block w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all"
               >
-                Iniciar sesion
+                Iniciar sesión
               </Link>
             </>
           )}
@@ -95,7 +95,7 @@ function VerifyEmailContent() {
                   <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">Error de verificacion</h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">Error de verificación</h2>
               <p className="text-gray-500 mb-6">{message}</p>
               <div className="space-y-3">
                 <Link

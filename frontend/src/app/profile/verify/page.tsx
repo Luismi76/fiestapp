@@ -127,7 +127,7 @@ export default function VerifyIdentityPage() {
         selfie: selfieUrl,
       });
 
-      toast.success('Solicitud enviada', 'Tu verificacion esta siendo revisada');
+      toast.success('Solicitud enviada', 'Tu verificación está siendo revisada');
       fetchVerification();
 
       // Reset form
@@ -364,7 +364,7 @@ export default function VerifyIdentityPage() {
                   Selfie con el documento (opcional)
                 </label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Una foto tuya sosteniendo el documento ayuda a acelerar la verificacion
+                  Una foto tuya sosteniendo el documento ayuda a acelerar la verificación
                 </p>
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
                   {selfiePreview ? (
@@ -426,7 +426,7 @@ export default function VerifyIdentityPage() {
                     Enviando...
                   </span>
                 ) : (
-                  'Enviar verificacion'
+                  'Enviar verificación'
                 )}
               </button>
             </form>

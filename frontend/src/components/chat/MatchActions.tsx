@@ -136,7 +136,7 @@ export default function MatchActions({
       <div className="mx-4 mt-3 space-y-3">
         {/* Confirmation status */}
         <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Confirmacion de experiencia</div>
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Confirmación de experiencia</div>
           <div className="space-y-2.5">
             <div className="flex items-center gap-3">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -178,7 +178,7 @@ export default function MatchActions({
           {!myConfirmed ? (
             <button
               onClick={onConfirm}
-              className="flex-1 py-3 bg-blue-500 text-white font-semibold rounded-xl hover:bg-blue-600 transition-colors shadow-md flex items-center justify-center gap-2"
+              className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors shadow-md flex items-center justify-center gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
                 <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
@@ -187,7 +187,7 @@ export default function MatchActions({
             </button>
           ) : (
             <div className="flex-1 py-3 bg-emerald-50 text-emerald-600 font-semibold rounded-xl text-center text-sm">
-              Esperando confirmacion de {otherUserName || 'el otro usuario'}
+              Esperando confirmación de {otherUserName || 'el otro usuario'}
             </div>
           )}
           <button
@@ -228,7 +228,7 @@ export default function MatchActions({
           <span className="text-sm font-medium text-emerald-700 truncate">
             {reviewDone
               ? (reviewSubmitted ? 'Completada — resena enviada' : 'Experiencia completada')
-              : 'Acuerdo cerrado'}
+              : 'Solicitud aceptada'}
           </span>
         </div>
         {canReview && (

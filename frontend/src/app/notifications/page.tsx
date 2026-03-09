@@ -368,7 +368,7 @@ export default function NotificationsPage() {
                               disabled={actionLoading === notification.id}
                               className="flex-1 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
                             >
-                              Marcar leida
+                              Marcar leída
                             </button>
                           )}
                           <button

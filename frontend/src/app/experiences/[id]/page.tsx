@@ -463,7 +463,7 @@ export default function ExperienceDetailPage() {
             </div>
             <div className="text-xs text-gray-500">Modalidad</div>
             <div className="font-semibold text-gray-900 text-sm">
-              {experience.type === 'pago' && `${experience.price}€`}
+              {experience.type === 'pago' && 'De pago'}
               {experience.type === 'intercambio' && 'Intercambio'}
               {experience.type === 'ambos' && 'Flexible'}
             </div>

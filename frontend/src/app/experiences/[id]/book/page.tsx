@@ -207,6 +207,12 @@ export default function BookingPage() {
       return;
     }
 
+    // Validar que se ha seleccionado una fecha (#62)
+    if (!selectedDate && experience.availability && experience.availability.length > 0) {
+      setSubmitError('Selecciona una fecha para continuar');
+      return;
+    }
+
     vibrate('medium');
     setSubmitting(true);
     setSubmitError('');
@@ -468,6 +474,8 @@ export default function BookingPage() {
               }
             </div>
 
+            {/* Ocultar controles si min === max (#63) */}
+            {experience.minParticipants !== experience.maxParticipants && (
             <div className="flex items-center gap-4">
               <button
                 onClick={() => handleParticipantChange(-1)}
@@ -495,6 +503,7 @@ export default function BookingPage() {
                 </svg>
               </button>
             </div>
+            )}
           </div>
 
           {/* Group discount indicator */}
@@ -532,13 +541,13 @@ export default function BookingPage() {
         {/* Message (optional) */}
         <div className="card p-4">
           <h2 className="font-semibold text-[#1A1410] mb-3 flex items-center gap-2">
-            <span className="text-lg">💬</span> {isExchange ? 'Presentate' : 'Mensaje'} <span className="text-[#A89880] font-normal text-sm">(opcional)</span>
+            <span className="text-lg">💬</span> {isExchange ? 'Preséntate' : 'Mensaje'} <span className="text-[#A89880] font-normal text-sm">(opcional)</span>
           </h2>
 
           <textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder={isExchange ? 'Cuentale al anfitrion sobre ti...' : 'Presentate brevemente al anfitrion...'}
+            placeholder={isExchange ? 'Cuéntale al anfitrión sobre ti...' : 'Preséntate brevemente al anfitrión...'}
             rows={3}
             className="input resize-none"
           />
@@ -548,7 +557,7 @@ export default function BookingPage() {
         {isPaid && experience.cancellationPolicy && (
           <div className="card p-4">
             <h2 className="font-semibold text-[#1A1410] mb-2 flex items-center gap-2">
-              <span className="text-lg">🛡️</span> Politica de cancelacion
+              <span className="text-lg">🛡️</span> Política de cancelación
             </h2>
             {experience.cancellationPolicy === 'FLEXIBLE' && (
               <div className="text-sm text-[#8B7355] space-y-1">

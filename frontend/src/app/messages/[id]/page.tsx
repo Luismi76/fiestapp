@@ -461,8 +461,8 @@ export default function ChatPage() {
           getAvatarSrc={getAvatarSrc}
         />
 
-        {/* Match info — scrollable if too tall, never takes more than 40vh */}
-        <div className="flex-shrink-0 overflow-y-auto max-h-[40vh]">
+        {/* Match info — scrollable if too tall, never takes more than 30vh */}
+        <div className="flex-shrink-0 overflow-y-auto max-h-[30vh]">
           <MatchProgressBar status={match.status} />
 
           <MatchSummaryCard
@@ -473,7 +473,10 @@ export default function ChatPage() {
             offerDescription={match.offerDescription}
             status={match.status}
           />
+        </div>
 
+        {/* Action buttons — always visible, never hidden by scroll (#86) */}
+        <div className="flex-shrink-0">
           <MatchActions
             status={match.status}
             isHost={isHost}

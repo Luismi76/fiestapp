@@ -379,6 +379,16 @@ export class MatchesService {
               },
             },
           }),
+      messages: {
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          senderId: true,
+        },
+        orderBy: { createdAt: 'desc' as const },
+        take: 1,
+      },
       _count: {
         select: {
           messages: true,
@@ -961,6 +971,15 @@ export class MatchesService {
       );
     }
 
+    // Verificar que la fecha de la experiencia ya ha pasado (#87)
+    const matchDate = match.startDate ? new Date(match.startDate) : null;
+    const now = new Date();
+    if (matchDate && matchDate > now) {
+      throw new BadRequestException(
+        'No puedes confirmar la experiencia antes de que haya tenido lugar',
+      );
+    }
+
     // Verificar si ya confirmó
     if (isHost && match.hostConfirmed) {
       throw new BadRequestException('Ya has confirmado esta experiencia');
@@ -1018,8 +1037,8 @@ export class MatchesService {
     await this.notificationsService.create({
       userId: otherUserId,
       type: 'match_confirmed',
-      title: 'Confirmacion recibida',
-      message: `${confirmerName} ha confirmado la experiencia "${match.experience.title}". Confirma tu tambien para completarla.`,
+      title: 'Confirmación recibida',
+      message: `${confirmerName} ha confirmado la experiencia "${match.experience.title}". Confirma tú también para completarla.`,
       data: { matchId: id },
     });
 
@@ -1071,6 +1090,15 @@ export class MatchesService {
     if (match.status !== 'accepted') {
       throw new BadRequestException(
         'Solo se pueden completar solicitudes aceptadas',
+      );
+    }
+
+    // Verificar que la fecha de la experiencia ya ha pasado (#87)
+    const matchDate = match.startDate ? new Date(match.startDate) : null;
+    const now = new Date();
+    if (matchDate && matchDate > now) {
+      throw new BadRequestException(
+        'No puedes completar la experiencia antes de que haya tenido lugar',
       );
     }
 

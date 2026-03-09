@@ -114,7 +114,7 @@ export function getBaseTemplate(
                       &copy; ${year} FiestApp. Todos los derechos reservados.
                     </p>
                     <p style="color: #9ca3af; margin: 8px 0 0; font-size: 11px;">
-                      Este email fue enviado desde una direccion que no acepta respuestas.
+                      Este email fue enviado desde una dirección que no acepta respuestas.
                     </p>
                   </td>
                 </tr>

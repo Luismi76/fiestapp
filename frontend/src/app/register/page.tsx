@@ -14,7 +14,7 @@ const registerSchema = z.object({
   email: z.string().email('Email inválido'),
   age: z.coerce.number().min(18, 'Debes ser mayor de 18 años'),
   city: z.string().min(2, 'La ciudad es requerida'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
   confirmPassword: z.string(),
   termsAccepted: z.literal(true, {
     errorMap: () => ({ message: 'Debes aceptar los términos de servicio y política de privacidad' }),
@@ -294,7 +294,7 @@ export default function RegisterPage() {
                     {...register('password')}
                     type={showPassword ? 'text' : 'password'}
                     className={`w-full pl-12 pr-12 py-3.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all ${errors.password ? inputErrorClass : inputNormalClass}`}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Mínimo 8 caracteres"
                     aria-invalid={errors.password ? true : undefined}
                     aria-describedby={errors.password ? 'register-password-error' : undefined}
                   />

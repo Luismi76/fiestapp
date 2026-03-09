@@ -9,8 +9,8 @@ import { useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
 
 const resetPasswordSchema = z.object({
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  confirmPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+  confirmPassword: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Las contraseñas no coinciden',
   path: ['confirmPassword'],
@@ -169,7 +169,7 @@ function ResetPasswordContent() {
                       className={`w-full pl-12 pr-12 py-3.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all ${
                         errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-200'
                       }`}
-                      placeholder="Minimo 6 caracteres"
+                      placeholder="Mínimo 8 caracteres"
                     />
                     <button
                       type="button"

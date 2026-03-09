@@ -175,7 +175,7 @@ export default function WalletPage() {
 
   const getTransactionTitle = (tx: WalletTransaction) => {
     if (tx.type === 'topup') return 'Recarga de saldo';
-    if (tx.type === 'platform_fee') return 'Acuerdo cerrado';
+    if (tx.type === 'platform_fee') return 'Comisión de servicio';
     return 'Transacción';
   };
 

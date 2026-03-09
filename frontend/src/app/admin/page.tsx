@@ -656,7 +656,7 @@ export default function AdminDashboardPage() {
                   value={matchesStats.cancellationRate}
                   max={100}
                   color="#EF4444"
-                  label="Tasa de cancelacion"
+                  label="Tasa de cancelación"
                 />
                 {conversionStats && (
                   <>

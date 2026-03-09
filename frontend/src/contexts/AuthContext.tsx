@@ -90,6 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Ignore errors on logout
         }
         setUser(null);
+        // Limpiar datos de sesión del localStorage (#65+66)
+        try {
+            localStorage.removeItem('token');
+            localStorage.removeItem('eval_code');
+            localStorage.removeItem('eval_name');
+            localStorage.removeItem('experience_draft');
+        } catch {
+            // localStorage puede no estar disponible
+        }
         router.push('/');
     }, [router]);
 

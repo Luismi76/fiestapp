@@ -438,7 +438,7 @@ export default function EditExperiencePage() {
             >
               {uploadingPhotos
                 ? 'Subiendo...'
-                : `Subir ${pendingPhotos.length} foto(s) pendiente(s)`}
+                : `Subir ${pendingPhotos.length} ${pendingPhotos.length === 1 ? 'foto pendiente' : 'fotos pendientes'}`}
             </button>
           )}
         </div>

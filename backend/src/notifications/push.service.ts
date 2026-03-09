@@ -312,8 +312,8 @@ export class PushService {
     newBalance: number,
   ): Promise<void> {
     await this.sendToUser(userId, {
-      title: 'Acuerdo cerrado',
-      body: `-${amount.toFixed(2)}€ por "${experienceTitle}". Saldo: ${newBalance.toFixed(2)}€`,
+      title: 'Solicitud aceptada',
+      body: `-${amount.toFixed(2)}€ de comisión por "${experienceTitle}". Saldo: ${newBalance.toFixed(2)}€`,
       data: {
         type: 'wallet_charged',
         matchId,

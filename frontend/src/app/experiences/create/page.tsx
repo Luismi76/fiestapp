@@ -358,11 +358,21 @@ export default function CreateExperiencePage() {
     const isValid = await validateStep(currentStep);
     if (isValid) {
       setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // Scroll al primer error visible (#39)
+      const errorEl = document.querySelector('[class*="text-red"], [class*="border-red"]');
+      if (errorEl) {
+        errorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     }
   };
 
   const handleBack = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const addHighlight = () => {
@@ -413,7 +423,7 @@ export default function CreateExperiencePage() {
       const experience = await experiencesApi.create(experienceData);
 
       if (pendingPhotos.length > 0) {
-        setUploadProgress(`Subiendo ${pendingPhotos.length} foto(s)...`);
+        setUploadProgress(`Subiendo ${pendingPhotos.length} ${pendingPhotos.length === 1 ? 'foto' : 'fotos'}...`);
         try {
           await uploadsApi.uploadExperiencePhotos(experience.id, pendingPhotos);
         } catch (uploadErr) {
@@ -553,7 +563,7 @@ export default function CreateExperiencePage() {
           </div>
         )}
 
-        {hasDraft && (
+        {hasDraft && currentStep === 1 && (
           <div className="mx-4 mt-4 bg-blue-50 border border-blue-200 text-blue-700 p-3 rounded-xl text-sm flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 flex-shrink-0 text-blue-500">
@@ -1061,7 +1071,7 @@ export default function CreateExperiencePage() {
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
                       <path fillRule="evenodd" d="m7.539 14.841.003.003.002.002a.755.755 0 0 0 .912 0l.002-.002.003-.003.012-.009a5.57 5.57 0 0 0 .19-.153 15.588 15.588 0 0 0 2.046-2.082c1.101-1.362 2.291-3.342 2.291-5.597A5 5 0 0 0 3 7c0 2.255 1.19 4.235 2.292 5.597a15.591 15.591 0 0 0 2.046 2.082 8.916 8.916 0 0 0 .189.153l.012.01ZM8 8.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" clipRule="evenodd" />
                     </svg>
-                    {selectedFestival?.name || 'Festividad'}
+                    {selectedFestival?.name || 'Sin festividad'}
                   </span>
                   <span className="text-xs text-gray-400">·</span>
                   <span className="text-xs text-gray-500">{watchedValues.city || 'Ciudad'}</span>
@@ -1095,13 +1105,13 @@ export default function CreateExperiencePage() {
                 {selectedDates.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-gray-100">
                     <p className="text-xs text-gray-500 mb-2">Disponible:</p>
-                    <p className="text-sm text-gray-700">{selectedDates.length} fecha(s) seleccionada(s)</p>
+                    <p className="text-sm text-gray-700">{selectedDates.length} {selectedDates.length === 1 ? 'fecha seleccionada' : 'fechas seleccionadas'}</p>
                   </div>
                 )}
 
                 {pendingPhotos.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-gray-100">
-                    <p className="text-xs text-gray-500">{pendingPhotos.length} foto(s) lista(s) para subir</p>
+                    <p className="text-xs text-gray-500">{pendingPhotos.length} {pendingPhotos.length === 1 ? 'foto lista' : 'fotos listas'} para subir</p>
                   </div>
                 )}
               </div>
@@ -1113,7 +1123,7 @@ export default function CreateExperiencePage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-gray-500">Festividad</p>
-                  <p className="font-medium text-gray-900">{selectedFestival?.name || '-'}</p>
+                  <p className="font-medium text-gray-900">{selectedFestival?.name || 'Disponible todo el año'}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Ciudad</p>
