@@ -112,6 +112,7 @@ export function useSocket(): UseSocketReturn {
       // DON'T disconnect here - let the socket persist for Strict Mode
       // Socket will be disconnected when user logs out or changes
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const sendMessage = useCallback(async (matchId: string, content: string): Promise<Message | null> => {

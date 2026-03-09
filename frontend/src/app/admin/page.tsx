@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import MainLayout from '@/components/MainLayout';
 import AdminNav from '@/components/admin/AdminNav';
+import Image from 'next/image';
 
 // Simple Bar Chart Component
 function BarChart({ data, dataKey, color, label }: {
@@ -813,7 +814,7 @@ export default function AdminDashboardPage() {
                         {index + 1}
                       </div>
                       {host.avatar ? (
-                        <img src={host.avatar} alt={host.name} className="w-10 h-10 rounded-full object-cover" />
+                        <Image src={host.avatar} alt={host.name} className="w-10 h-10 rounded-full object-cover" width={40} height={40} unoptimized />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                           <span className="text-gray-500 font-medium">{host.name.charAt(0)}</span>

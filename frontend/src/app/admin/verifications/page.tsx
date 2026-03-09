@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/lib/api';
 import OptimizedAvatar from '@/components/OptimizedAvatar';
+import Image from 'next/image';
 
 type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 type DocumentType = 'DNI' | 'PASSPORT' | 'DRIVER_LICENSE';
@@ -377,20 +378,22 @@ export default function AdminVerificationsPage() {
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm font-medium text-gray-700 mb-2">Parte frontal</p>
-                      <img
+                      <Image
                         src={detail.documentFront}
                         alt="Documento frontal"
                         className="w-full rounded-xl border border-gray-200"
+                        width={600} height={400} unoptimized
                       />
                     </div>
 
                     {detail.documentBack && (
                       <div>
                         <p className="text-sm font-medium text-gray-700 mb-2">Parte trasera</p>
-                        <img
+                        <Image
                           src={detail.documentBack}
                           alt="Documento trasera"
                           className="w-full rounded-xl border border-gray-200"
+                          width={600} height={400} unoptimized
                         />
                       </div>
                     )}
@@ -398,10 +401,11 @@ export default function AdminVerificationsPage() {
                     {detail.selfie && (
                       <div>
                         <p className="text-sm font-medium text-gray-700 mb-2">Selfie con documento</p>
-                        <img
+                        <Image
                           src={detail.selfie}
                           alt="Selfie"
                           className="w-full rounded-xl border border-gray-200"
+                          width={600} height={400} unoptimized
                         />
                       </div>
                     )}

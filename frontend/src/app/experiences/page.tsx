@@ -215,7 +215,7 @@ function ExperiencesContent() {
   useEffect(() => {
     setPage(1);
     loadExperiences(1, false);
-  }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice]);
+  }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, loadExperiences]);
 
   // Search with debounce
   useEffect(() => {
@@ -224,14 +224,14 @@ function ExperiencesContent() {
       loadExperiences(1, false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, loadExperiences]);
 
   // Load more on page change
   useEffect(() => {
     if (page > 1) {
       loadExperiences(page, true);
     }
-  }, [page]);
+  }, [page, loadExperiences]);
 
   // Infinite scroll
   useEffect(() => {

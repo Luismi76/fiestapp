@@ -210,6 +210,7 @@ export default function ChatPage() {
         leaveMatch(match.id);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match?.id, isConnected, joinMatch, leaveMatch, markAsRead, markMatchAsRead]);
 
   // Handle incoming messages via WebSocket
@@ -228,6 +229,7 @@ export default function ChatPage() {
       });
       markAsRead(match.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match?.id, markAsRead]);
 
   useSocketEvent(socket, 'newMessage', handleNewMessage);
@@ -245,6 +247,7 @@ export default function ChatPage() {
         }, 3000);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [match?.id, user?.id]);
 
   useSocketEvent(socket, 'userTyping', handleUserTyping);

@@ -4,13 +4,11 @@ import { memo, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNotifications } from '@/contexts/NotificationContext';
 import { useMessages } from '@/contexts/MessageContext';
 
 function BottomNav() {
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
-  const { unreadCount: notificationCount } = useNotifications();
   const { unreadCount: messageCount } = useMessages();
 
   const isActive = useCallback((href: string, id?: string) => {

@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { UpdateProfileData } from '@/types/user';
 import { getAvatarUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
+import Image from 'next/image';
 
 interface FormData {
   name: string;
@@ -210,16 +211,18 @@ export default function EditProfilePage() {
           >
             <div className="w-28 h-28 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden ring-4 ring-white shadow-lg mx-auto">
               {avatarPreview ? (
-                <img
+                <Image
                   src={avatarPreview}
                   alt="Preview"
                   className="w-full h-full object-cover"
+                  fill unoptimized
                 />
               ) : user?.avatar ? (
-                <img
+                <Image
                   src={getAvatarUrl(user.avatar)}
                   alt={user.name}
                   className="w-full h-full object-cover"
+                  fill unoptimized
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">

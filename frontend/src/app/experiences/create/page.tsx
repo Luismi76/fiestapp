@@ -14,6 +14,7 @@ import FestivalSelector from '@/components/FestivalSelector';
 import CategorySelector from '@/components/CategorySelector';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
+import Image from 'next/image';
 
 interface FormData {
   title: string;
@@ -914,10 +915,11 @@ export default function CreateExperiencePage() {
               <div className="grid grid-cols-3 gap-2">
                 {photoPreviewUrls.map((url, index) => (
                   <div key={index} className={`relative rounded-xl overflow-hidden ${index === 0 ? 'col-span-2 row-span-2' : ''}`}>
-                    <img
+                    <Image
                       src={url}
                       alt={`Foto ${index + 1}`}
                       className={`w-full object-cover ${index === 0 ? 'h-48' : 'h-24'}`}
+                      width={400} height={192} unoptimized
                     />
                     <button
                       type="button"
@@ -1041,7 +1043,7 @@ export default function CreateExperiencePage() {
               {/* Preview Image */}
               <div className="relative h-48 bg-gradient-to-br from-gray-200 to-gray-300">
                 {photoPreviewUrls[0] ? (
-                  <img src={photoPreviewUrls[0]} alt="Preview" className="w-full h-full object-cover" />
+                  <Image src={photoPreviewUrls[0]} alt="Preview" className="w-full h-full object-cover" fill unoptimized />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-16 h-16 text-gray-400">

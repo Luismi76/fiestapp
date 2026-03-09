@@ -61,7 +61,6 @@ export default function MatchActions({
   onAccept,
   onReject,
   onCancel,
-  onComplete,
   onConfirm,
   onShowReviewForm,
   onOpenDispute,

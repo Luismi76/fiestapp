@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_URL } from '@/lib/api';
+import Image from 'next/image';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -78,7 +79,7 @@ export default function RegisterPage() {
         <div className="absolute top-20 left-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-60 h-60 bg-accent/20 rounded-full blur-3xl" />
         <div className="relative text-center text-white max-w-sm">
-          <img src="/images/icons/icono.png" alt="FiestApp" className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-xl" />
+          <Image src="/images/icons/icono.png" alt="FiestApp" className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-xl" width={80} height={80} />
           <h1 className="font-display text-4xl mb-4">Únete a la fiesta</h1>
           <p className="text-white/70 text-lg">
             Crea tu cuenta y empieza a vivir experiencias auténticas en las mejores fiestas de España

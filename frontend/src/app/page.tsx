@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function Home() {
         <header className="relative flex items-center justify-center px-4 py-6 z-10">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <img src="/images/icons/icono.png" alt="FiestApp" className="w-7 h-7 rounded-lg" />
+              <Image src="/images/icons/icono.png" alt="FiestApp" className="w-7 h-7 rounded-lg" width={28} height={28} />
             </div>
             <span className="text-2xl font-bold text-white">FiestApp</span>
           </div>
@@ -114,7 +115,7 @@ export default function Home() {
       <div className="hidden lg:flex lg:w-[420px] flex-col items-center justify-center px-10 py-12 bg-[var(--surface-paper)]">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <img src="/images/icons/icono.png" alt="FiestApp" className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-lg" />
+            <Image src="/images/icons/icono.png" alt="FiestApp" className="w-16 h-16 rounded-2xl mx-auto mb-4 shadow-lg" width={64} height={64} />
             <h2 className="font-display text-2xl text-[#1A1410] mb-2">Empieza tu aventura</h2>
             <p className="text-[#8B7355]">Únete a miles de viajeros que viven las fiestas de España como un local</p>
           </div>

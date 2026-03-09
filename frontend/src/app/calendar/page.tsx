@@ -6,6 +6,7 @@ import MainLayout from '@/components/MainLayout';
 import { festivalsApi, FestivalByMonth, CalendarFestival } from '@/lib/api';
 import { getUploadUrl } from '@/lib/utils';
 import logger from '@/lib/logger';
+import Image from 'next/image';
 
 // Iconos
 const ChevronLeftIcon = () => (
@@ -478,10 +479,11 @@ export default function CalendarPage() {
               {/* Image/Header */}
               <div className="h-36 bg-gradient-to-br from-primary to-orange-500 relative">
                 {selectedFestival.imageUrl && (
-                  <img
+                  <Image
                     src={getUploadUrl(selectedFestival.imageUrl)}
                     alt={selectedFestival.name}
                     className="w-full h-full object-cover"
+                    fill unoptimized
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

@@ -4,6 +4,7 @@ import { memo, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Experience } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
+import Image from 'next/image';
 
 // Spanish city coordinates - Extended dictionary
 const CITY_COORDINATES: Record<string, [number, number]> = {
@@ -364,10 +365,11 @@ function ExperienceMap({
                           }}
                           className="flex items-center gap-2 p-2 mb-1 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
                         >
-                          <img
+                          <Image
                             src={getUploadUrl(exp.photos?.[0] || '/images/placeholder.jpg')}
                             alt={exp.title}
                             className="w-10 h-10 rounded-md object-cover flex-shrink-0"
+                            width={40} height={40} unoptimized
                           />
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-semibold truncate">

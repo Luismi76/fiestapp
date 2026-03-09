@@ -14,6 +14,7 @@ import ParticipantSelector from '@/components/ParticipantSelector';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
 import { useToast } from '@/components/ui/Toast';
+import Image from 'next/image';
 
 const ImageGallery = dynamic(() => import('@/components/ImageGallery'));
 const AvailabilityCalendar = dynamic(() => import('@/components/AvailabilityCalendar'));
@@ -388,10 +389,11 @@ export default function ExperienceDetailPage() {
             <div className="relative flex-shrink-0">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-pink-100 overflow-hidden shadow-md">
                 {experience.host.avatar ? (
-                  <img
+                  <Image
                     src={getHostAvatar(experience.host.avatar) || ''}
                     alt={experience.host.name}
                     className="w-full h-full object-cover"
+                    fill unoptimized
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-600">
@@ -521,7 +523,7 @@ export default function ExperienceDetailPage() {
                 <div key={review.id} className="flex gap-3">
                   <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
                     {review.author.avatar ? (
-                      <img src={getHostAvatar(review.author.avatar) || ''} alt="" className="w-full h-full object-cover" />
+                      <Image src={getHostAvatar(review.author.avatar) || ''} alt="" className="w-full h-full object-cover" fill unoptimized />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-500 font-medium">
                         {review.author.name.charAt(0)}
@@ -639,7 +641,7 @@ export default function ExperienceDetailPage() {
             <div className="bg-gray-50 rounded-xl p-3 mb-4 flex items-center gap-3">
               <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
                 {experience.photos?.[0] ? (
-                  <img src={getImageUrl(experience.photos[0])} alt={experience.title} className="w-full h-full object-cover" />
+                  <Image src={getImageUrl(experience.photos[0])} alt={experience.title} className="w-full h-full object-cover" fill unoptimized />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl bg-gradient-to-br from-blue-100 to-pink-100">🎉</div>
                 )}

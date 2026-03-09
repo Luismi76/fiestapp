@@ -13,6 +13,7 @@ import { MatchListSkeleton } from '@/components/ui/Skeleton';
 import logger from '@/lib/logger';
 import { getErrorMessage } from '@/lib/error';
 import {
+import Image from 'next/image';
   InboxIcon,
   SendIcon,
   CheckIcon,
@@ -323,14 +324,15 @@ export default function MessagesPage() {
                       <div className="relative flex-shrink-0">
                         {activeTab === 'sent' && imageSrc ? (
                           <div className="w-14 h-14 rounded-xl overflow-hidden">
-                            <img src={imageSrc} alt="" className="w-full h-full object-cover" />
+                            <Image src={imageSrc} alt="" className="w-full h-full object-cover" fill unoptimized />
                           </div>
                         ) : (
                           <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white shadow-sm">
-                            <img
+                            <Image
                               src={getAvatarSrc(person?.avatar)}
                               alt={person?.name || ''}
                               className="w-full h-full object-cover"
+                              fill unoptimized
                             />
                           </div>
                         )}

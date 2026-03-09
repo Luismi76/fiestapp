@@ -14,7 +14,6 @@ interface PayPalButtonProps {
 export default function PayPalButton({
   matchId,
   amount,
-  onSuccess,
   onError,
 }: PayPalButtonProps) {
   const [loading, setLoading] = useState(false);

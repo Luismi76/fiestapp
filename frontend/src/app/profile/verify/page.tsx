@@ -6,6 +6,7 @@ import MainLayout from '@/components/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/lib/api';
+import Image from 'next/image';
 
 type DocumentType = 'DNI' | 'PASSPORT' | 'DRIVER_LICENSE';
 type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
@@ -288,7 +289,7 @@ export default function VerifyIdentityPage() {
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
                   {frontPreview ? (
                     <div className="relative">
-                      <img src={frontPreview} alt="Frontal" className="max-h-40 mx-auto rounded-lg" />
+                      <Image src={frontPreview} alt="Frontal" className="max-h-40 mx-auto rounded-lg" width={300} height={160} unoptimized />
                       <button
                         type="button"
                         onClick={() => handleFileChange(null, setDocumentFront, setFrontPreview)}
@@ -327,7 +328,7 @@ export default function VerifyIdentityPage() {
                   <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
                     {backPreview ? (
                       <div className="relative">
-                        <img src={backPreview} alt="Trasera" className="max-h-40 mx-auto rounded-lg" />
+                        <Image src={backPreview} alt="Trasera" className="max-h-40 mx-auto rounded-lg" width={300} height={160} unoptimized />
                         <button
                           type="button"
                           onClick={() => handleFileChange(null, setDocumentBack, setBackPreview)}
@@ -369,7 +370,7 @@ export default function VerifyIdentityPage() {
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
                   {selfiePreview ? (
                     <div className="relative">
-                      <img src={selfiePreview} alt="Selfie" className="max-h-40 mx-auto rounded-lg" />
+                      <Image src={selfiePreview} alt="Selfie" className="max-h-40 mx-auto rounded-lg" width={300} height={160} unoptimized />
                       <button
                         type="button"
                         onClick={() => handleFileChange(null, setSelfie, setSelfiePreview)}

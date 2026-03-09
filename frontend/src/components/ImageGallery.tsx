@@ -2,6 +2,7 @@
 
 import { memo, useState, useRef, useEffect, useCallback } from 'react';
 import { OptimizedImage } from '@/components/OptimizedImage';
+import Image from 'next/image';
 
 interface ImageGalleryProps {
   images: string[];
@@ -273,7 +274,7 @@ function ImageGallery({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            <img
+            <Image
               src={images[currentIndex]}
               alt={`${alt} ${currentIndex + 1}`}
               className="max-w-full max-h-full object-contain select-none transition-transform duration-200"
@@ -284,6 +285,7 @@ function ImageGallery({
               onDoubleClick={handleDoubleClick}
               onMouseDown={handleDrag}
               draggable={false}
+              width={800} height={600} unoptimized
             />
           </div>
 

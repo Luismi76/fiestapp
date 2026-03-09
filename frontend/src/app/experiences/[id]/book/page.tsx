@@ -10,6 +10,7 @@ import { getUploadUrl } from '@/lib/utils';
 import { useHaptic } from '@/hooks/useHaptic';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
+import Image from 'next/image';
 
 // Helper to get dates
 const getToday = () => {
@@ -368,10 +369,11 @@ export default function BookingPage() {
           <div className="flex gap-3">
             <div className="w-20 h-20 rounded-xl overflow-hidden bg-[var(--surface-tile)] flex-shrink-0">
               {experience.photos?.[0] ? (
-                <img
+                <Image
                   src={getImageUrl(experience.photos[0])}
                   alt={experience.title}
                   className="w-full h-full object-cover"
+                  fill unoptimized
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-3xl">🎉</div>
@@ -593,10 +595,11 @@ export default function BookingPage() {
                     >
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                         {exp.photos?.[0] ? (
-                          <img
+                          <Image
                             src={getImageUrl(exp.photos[0])}
                             alt={exp.title}
                             className="w-full h-full object-cover"
+                            fill unoptimized
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xl">🎭</div>

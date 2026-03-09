@@ -38,7 +38,6 @@ export default function MatchSummaryCard({
   totalPrice,
   offerDescription,
   offerExperience,
-  status,
 }: MatchSummaryCardProps) {
   const [expanded, setExpanded] = useState(!!offerExperience || !!offerDescription);
 

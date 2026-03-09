@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 interface SplashScreenProps {
   onFinish?: () => void;
@@ -40,10 +41,11 @@ export default function SplashScreen({ onFinish, duration = 2000 }: SplashScreen
 
       {/* Logo container with animation */}
       <div className="relative animate-pulse">
-        <img
+        <Image
           src="/images/icons/fiestapp-logo.svg"
           alt="FiestApp"
           className="w-32 h-32 md:w-40 md:h-40"
+          width={128} height={128}
         />
       </div>
 

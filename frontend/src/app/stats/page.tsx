@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl, formatTimeAgo } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
+import Image from 'next/image';
 
 const statusLabels: Record<string, string> = {
   pending: 'Pendiente',
@@ -247,10 +248,11 @@ export default function StatsPage() {
                   href={`/matches/${activity.id}`}
                   className="flex items-center gap-3 p-4 bg-white hover:bg-gray-50 transition-colors"
                 >
-                  <img
+                  <Image
                     src={getAvatarUrl(activity.requester.avatar)}
                     alt={activity.requester.name}
                     className="w-10 h-10 rounded-full object-cover"
+                    width={40} height={40} unoptimized
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">{activity.requester.name}</p>

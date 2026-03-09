@@ -9,6 +9,7 @@ import { Experience, CATEGORY_LABELS } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import { ExperienceGridSkeleton } from '@/components/ui/Skeleton';
+import Image from 'next/image';
 
 export default function MyExperiencesPage() {
   const router = useRouter();
@@ -175,10 +176,11 @@ export default function MyExperiencesPage() {
                   {/* Thumbnail */}
                   <div className="w-28 md:w-full h-28 md:h-40 flex-shrink-0 relative">
                   {experience.photos && experience.photos.length > 0 ? (
-                    <img
+                    <Image
                       src={getUploadUrl(experience.photos[0])}
                       alt={experience.title}
                       className="w-full h-full object-cover"
+                      fill unoptimized
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-4xl text-white/50">

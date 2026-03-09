@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -85,10 +86,11 @@ export default function InstallPrompt() {
         <div className="p-4">
           <div className="flex items-start gap-3">
             <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-[#0f4c4a] flex items-center justify-center">
-              <img
+              <Image
                 src="/images/icons/fiestapp-logo.svg"
                 alt="FiestApp"
                 className="w-8 h-8"
+                width={32} height={32}
               />
             </div>
             <div className="flex-1 min-w-0">

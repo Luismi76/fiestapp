@@ -28,10 +28,8 @@ export default function AppWrapper({ children }: AppWrapperProps) {
     if (!hasVisited) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsFirstVisit(true);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowSplash(true);
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsHydrated(true);
   }, []);
 

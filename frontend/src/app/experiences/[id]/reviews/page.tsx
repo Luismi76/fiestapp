@@ -9,6 +9,7 @@ import { ExperienceDetail } from '@/types/experience';
 import { getAvatarUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
+import Image from 'next/image';
 
 const TypeIcon = ({ type, className = "w-6 h-6" }: { type: string; className?: string }) => {
   const icons: Record<string, React.ReactNode> = {
@@ -222,10 +223,11 @@ export default function ExperienceReviewsPage() {
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {review.author.avatar ? (
-                    <img
+                    <Image
                       src={getAvatarUrl(review.author.avatar)}
                       alt={review.author.name}
                       className="w-full h-full object-cover"
+                      fill unoptimized
                     />
                   ) : (
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500">

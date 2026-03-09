@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { walletApi, WalletInfo, WalletTransaction } from '@/lib/api';
 import TopUpModal from '@/components/TopUpModal';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
+import Image from 'next/image';
 
 // Tipos de filtro disponibles
 type TransactionFilter = 'all' | 'topup' | 'platform_fee';
@@ -48,43 +49,10 @@ export default function WalletPage() {
     }
   }, [user, authLoading, router]);
 
-  useEffect(() => {
-    if (user) {
-      loadWalletData();
-    }
-  }, [user]);
-
   // Recargar transacciones cuando cambia el filtro (sin recargar el wallet)
   const [isFirstRender, setIsFirstRender] = useState(true);
-  useEffect(() => {
-    if (isFirstRender) {
-      setIsFirstRender(false);
-      return;
-    }
-    if (user && !loading) {
-      loadTransactions(1, true);
-    }
-  }, [filter]);
 
-  const loadWalletData = async () => {
-    try {
-      setLoading(true);
-      const [walletData, transactionsData] = await Promise.all([
-        walletApi.getWallet(),
-        walletApi.getTransactions(1, ITEMS_PER_PAGE, filter === 'all' ? undefined : filter),
-      ]);
-      setWallet(walletData);
-      setTransactions(transactionsData.transactions);
-      setTotalPages(transactionsData.pagination.totalPages);
-      setCurrentPage(1);
-    } catch (error) {
-      logger.error('Error loading wallet:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadTransactions = async (page: number, reset = false) => {
+  const loadTransactions = useCallback(async (page: number, reset = false) => {
     try {
       if (reset) {
         setLoading(true);
@@ -109,7 +77,42 @@ export default function WalletPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [filter]);
+
+  const loadWalletData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [walletData, transactionsData] = await Promise.all([
+        walletApi.getWallet(),
+        walletApi.getTransactions(1, ITEMS_PER_PAGE, filter === 'all' ? undefined : filter),
+      ]);
+      setWallet(walletData);
+      setTransactions(transactionsData.transactions);
+      setTotalPages(transactionsData.pagination.totalPages);
+      setCurrentPage(1);
+    } catch (error) {
+      logger.error('Error loading wallet:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    if (user) {
+      loadWalletData();
+    }
+  }, [user, loadWalletData]);
+
+  useEffect(() => {
+    if (isFirstRender) {
+      setIsFirstRender(false);
+      return;
+    }
+    if (user && !loading) {
+      loadTransactions(1, true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   const handleLoadMore = () => {
     if (currentPage < totalPages && !loadingMore) {
@@ -517,10 +520,11 @@ export default function WalletPage() {
                     className="w-full bg-gray-50 rounded-xl p-4 flex items-center gap-3 hover:bg-gray-100 transition-colors text-left"
                   >
                     {selectedTransaction.otherUser.avatar ? (
-                      <img
+                      <Image
                         src={selectedTransaction.otherUser.avatar}
                         alt={selectedTransaction.otherUser.name}
                         className="w-12 h-12 rounded-full object-cover"
+                        width={48} height={48} unoptimized
                       />
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">

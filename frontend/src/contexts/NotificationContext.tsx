@@ -41,7 +41,7 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { socket, isConnected } = useSocket();
   const toast = useToast();
   const toastRef = useRef(toast);

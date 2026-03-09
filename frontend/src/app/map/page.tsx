@@ -9,6 +9,7 @@ import { getUploadUrl } from '@/lib/utils';
 import type { MapFilter } from '@/components/ExperienceMap';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
+import Image from 'next/image';
 
 const ExperienceMap = dynamic(() => import('@/components/ExperienceMap'), {
   ssr: false,
@@ -147,10 +148,11 @@ export default function MapPage() {
               <Link href={`/experiences/${selectedExperience.id}`} className="flex">
                 {/* Image */}
                 <div className="w-28 h-28 flex-shrink-0 relative">
-                  <img
+                  <Image
                     src={getUploadUrl(selectedExperience.photos?.[0]) || '/images/placeholder.jpg'}
                     alt={selectedExperience.title}
                     className="w-full h-full object-cover"
+                    fill unoptimized
                   />
                   {/* Type badge */}
                   <div className="absolute bottom-2 left-2">

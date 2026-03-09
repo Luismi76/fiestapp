@@ -11,6 +11,7 @@ import { getUploadUrl, getAvatarUrl, formatTimeAgo } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import logger from '@/lib/logger';
 import {
+import Image from 'next/image';
   SparklesIcon,
   PlusIcon,
   ChevronRightIcon,
@@ -109,7 +110,7 @@ export default function DashboardPage() {
                 className="relative w-14 h-14 rounded-full overflow-hidden ring-4 ring-white shadow-lg"
               >
                 {user?.avatar ? (
-                  <img src={getAvatarSrc(user.avatar)} alt="" className="w-full h-full object-cover" />
+                  <Image src={getAvatarSrc(user.avatar)} alt="" className="w-full h-full object-cover" fill unoptimized />
                 ) : (
                   <div className="w-full h-full gradient-sunset flex items-center justify-center text-white font-bold text-xl">
                     {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -163,10 +164,11 @@ export default function DashboardPage() {
                         className="card card-highlight flex items-center gap-3 p-4 group"
                       >
                         <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-accent/30">
-                          <img
+                          <Image
                             src={getAvatarSrc(match.requester.avatar)}
                             alt={match.requester.name}
                             className="w-full h-full object-cover"
+                            fill unoptimized
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -204,10 +206,11 @@ export default function DashboardPage() {
                         className="card flex items-center gap-3 p-4 group"
                       >
                         <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
-                          <img
+                          <Image
                             src={getAvatarSrc(otherPerson.avatar)}
                             alt={otherPerson.name}
                             className="w-full h-full object-cover"
+                            fill unoptimized
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -336,10 +339,11 @@ export default function DashboardPage() {
                       className="card flex items-center gap-3 p-3 group"
                     >
                       <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
-                        <img
+                        <Image
                           src={getImageUrl(exp.photos)}
                           alt={exp.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          fill unoptimized
                         />
                       </div>
                       <div className="flex-1 min-w-0">

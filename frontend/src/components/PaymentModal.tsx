@@ -51,7 +51,7 @@ export default function PaymentModal({
         if (methods.length === 1) {
           setSelectedMethod(methods[0]);
         }
-      } catch (err) {
+      } catch {
         // Default to both methods if API fails
         setAvailableMethods(['stripe', 'paypal']);
       } finally {

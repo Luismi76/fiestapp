@@ -6,6 +6,7 @@ import { searchApi, AutocompleteResult, SearchHistoryItem } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUploadUrl } from '@/lib/utils';
 import logger from '@/lib/logger';
+import Image from 'next/image';
 
 interface SearchAutocompleteProps {
   initialValue?: string;
@@ -221,10 +222,11 @@ export default function SearchAutocomplete({
                       onClick={() => handleSelectExperience(exp.id)}
                       className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg text-left"
                     >
-                      <img
+                      <Image
                         src={getUploadUrl(exp.photo || '/images/feria_abril.png')}
                         alt={exp.title}
                         className="w-10 h-10 rounded-lg object-cover"
+                        width={40} height={40} unoptimized
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">{exp.title}</p>

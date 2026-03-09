@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { getUploadUrl } from '@/lib/utils';
 import { OptimizedImage } from '@/components/OptimizedImage';
+import Image from 'next/image';
 
 interface PhotoUploaderProps {
   photos: string[];
@@ -205,10 +206,11 @@ export default function PhotoUploader({
               key={`pending-${index}`}
               className="relative aspect-square rounded-lg overflow-hidden bg-gray-100"
             >
-              <img
+              <Image
                 src={URL.createObjectURL(file)}
                 alt={`Nueva foto ${index + 1}`}
                 className="w-full h-full object-cover"
+                fill unoptimized
               />
               <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
                 Pendiente

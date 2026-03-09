@@ -8,6 +8,7 @@ import { favoritesApi, FavoriteExperience } from '@/lib/api';
 import { getUploadUrl, getAvatarUrl } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import logger from '@/lib/logger';
+import Image from 'next/image';
 
 export default function FavoritesPage() {
   const router = useRouter();
@@ -176,10 +177,11 @@ export default function FavoritesPage() {
                       <div className="flex md:flex-col">
                         {/* Imagen */}
                         <div className="w-32 md:w-full h-32 md:h-40 flex-shrink-0 relative">
-                        <img
+                        <Image
                           src={getUploadUrl(exp.photos?.[0] || '/images/feria_abril.png')}
                           alt={exp.title}
                           className="w-full h-full object-cover"
+                          fill unoptimized
                         />
                         {/* Rating badge */}
                         {exp.avgRating && exp.avgRating > 0 && (
@@ -220,10 +222,11 @@ export default function FavoritesPage() {
 
                           <div className="flex items-center justify-between mt-2 md:mt-3">
                             <div className="flex items-center gap-2">
-                              <img
+                              <Image
                                 src={getAvatarUrl(exp.host?.avatar)}
-                                alt={exp.host?.name}
+                                alt={exp.host?.name || ''}
                                 className="w-6 h-6 rounded-full object-cover"
+                                width={24} height={24} unoptimized
                               />
                               <span className="text-xs text-gray-500">{exp.host?.name}</span>
                             </div>

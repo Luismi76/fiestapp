@@ -7,6 +7,7 @@ import { z } from 'zod';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { API_URL } from '@/lib/api';
+import Image from 'next/image';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -76,7 +77,7 @@ export default function LoginPage() {
         <div className="absolute top-20 left-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-10 w-60 h-60 bg-accent/20 rounded-full blur-3xl" />
         <div className="relative text-center text-white max-w-md">
-          <img src="/images/icons/icono.png" alt="FiestApp" className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-xl" />
+          <Image src="/images/icons/icono.png" alt="FiestApp" className="w-20 h-20 rounded-2xl mx-auto mb-6 shadow-xl" width={80} height={80} />
           <h1 className="font-display text-4xl mb-4">Vive las fiestas como un local</h1>
           <p className="text-white/70 text-lg">
             Conecta con anfitriones locales y descubre experiencias auténticas en las mejores festividades de España
@@ -106,7 +107,7 @@ export default function LoginPage() {
           {/* Logo and title */}
           <div className="text-center text-white lg:text-[#1A1410] mb-8">
             <div className="w-16 h-16 mx-auto mb-4 bg-white/20 lg:bg-primary/10 backdrop-blur-sm rounded-2xl flex items-center justify-center lg:hidden">
-              <img src="/images/icons/icono.png" alt="" className="w-9 h-9 rounded-lg" />
+              <Image src="/images/icons/icono.png" alt="" className="w-9 h-9 rounded-lg" width={36} height={36} />
             </div>
             <h1 className="text-2xl font-bold mb-1 lg:font-display lg:text-3xl">Bienvenido a FiestApp</h1>
             <p className="text-white/70 lg:text-[#8B7355] text-sm">Inicia sesión para continuar</p>

@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useMessages } from '@/contexts/MessageContext';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 function Header() {
   const pathname = usePathname();
@@ -69,7 +70,7 @@ function Header() {
         <div className="max-w-7xl mx-auto w-full px-4 flex items-center justify-between">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2">
-            <img src="/images/icons/icono.png" alt="FiestApp" className="w-8 h-8 rounded-lg" />
+            <Image src="/images/icons/icono.png" alt="FiestApp" className="w-8 h-8 rounded-lg" width={32} height={32} />
             <span className="font-bold text-xl text-gray-900">FiestApp</span>
           </Link>
 
