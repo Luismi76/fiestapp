@@ -38,9 +38,10 @@ export function MessageProvider({ children }: { children: ReactNode }) {
   // Initial fetch when user logs in
   useEffect(() => {
     if (isAuthenticated) {
-      void refreshUnreadCount();
+      // Use microtask to avoid synchronous setState in effect
+      queueMicrotask(() => void refreshUnreadCount());
     } else {
-      setUnreadCount(0);
+      queueMicrotask(() => setUnreadCount(0));
     }
   }, [isAuthenticated, refreshUnreadCount]);
 

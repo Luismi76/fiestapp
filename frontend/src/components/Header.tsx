@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState, useEffect, useMemo, useCallback } from 'react';
+import { memo, useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,9 +16,11 @@ function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Close menu on navigation
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [pathname]);
+  const prevPathname = useRef(pathname);
+  if (prevPathname.current !== pathname) {
+    prevPathname.current = pathname;
+    if (isMenuOpen) setIsMenuOpen(false);
+  }
 
   // Close menu on escape key
   useEffect(() => {

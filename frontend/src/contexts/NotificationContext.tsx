@@ -45,7 +45,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const { socket, isConnected } = useSocket();
   const toast = useToast();
   const toastRef = useRef(toast);
-  toastRef.current = toast;
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentNotifications, setRecentNotifications] = useState<Notification[]>([]);
 
