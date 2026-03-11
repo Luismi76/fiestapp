@@ -486,9 +486,16 @@ export default function PublicProfilePage() {
                     )}
                   </div>
                   <div className="flex-1 p-4 min-w-0">
-                    <p className="text-xs text-blue-600 font-medium mb-1">
-                      {exp.festival?.name || 'Experiencia general'}
-                    </p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-xs text-blue-600 font-medium">
+                        {exp.festival?.name || 'Experiencia general'}
+                      </p>
+                      {exp.published === false && (
+                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">
+                          Borrador
+                        </span>
+                      )}
+                    </div>
                     <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm leading-tight">
                       {exp.title}
                     </h3>

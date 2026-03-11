@@ -16,10 +16,15 @@ export class UsersService {
   ) {}
 
   // Obtener perfil público de un usuario (cacheado)
-  async getPublicProfile(userId: string) {
-    const cached = await this.cacheService.get(CACHE_KEYS.USER_PUBLIC(userId));
-    if (cached) {
-      return cached;
+  async getPublicProfile(userId: string, requesterId?: string | null) {
+    const isOwnProfile = requesterId && requesterId === userId;
+
+    // Solo usar cache para perfiles ajenos (el propio puede tener experiencias no publicadas)
+    if (!isOwnProfile) {
+      const cached = await this.cacheService.get(CACHE_KEYS.USER_PUBLIC(userId));
+      if (cached) {
+        return cached;
+      }
     }
 
     const user = await this.prisma.user.findUnique({
@@ -55,11 +60,11 @@ export class UsersService {
       _avg: { rating: true },
     });
 
-    // Obtener experiencias publicadas del usuario
+    // Obtener experiencias del usuario (todas si es perfil propio, solo publicadas si es ajeno)
     const experiences = await this.prisma.experience.findMany({
       where: {
         hostId: userId,
-        published: true,
+        ...(isOwnProfile ? {} : { published: true }),
       },
       include: {
         festival: {

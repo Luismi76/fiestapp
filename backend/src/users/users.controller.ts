@@ -12,6 +12,7 @@ import {
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('users')
@@ -88,9 +89,11 @@ export class UsersController {
     return this.usersService.unblockUser(req.user.userId, id);
   }
 
-  // Obtener perfil público de un usuario (público)
+  // Obtener perfil público de un usuario (público, con auth opcional)
   @Get(':id')
-  getPublicProfile(@Param('id') id: string) {
-    return this.usersService.getPublicProfile(id);
+  @UseGuards(OptionalJwtAuthGuard)
+  getPublicProfile(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
+    const requesterId = req.user?.userId || null;
+    return this.usersService.getPublicProfile(id, requesterId);
   }
 }
