@@ -206,6 +206,20 @@ export class MatchesService {
       totalPrice = priceResult.totalPrice;
     }
 
+    // Derivar startDate/endDate desde selectedDates si se envían
+    const selectedDates = (createDto.selectedDates || [])
+      .map((d) => parseDate(d) as Date)
+      .filter((d) => d instanceof Date && !isNaN(d.getTime()))
+      .sort((a, b) => a.getTime() - b.getTime());
+
+    if (selectedDates.length > 0 && !createDto.startDate) {
+      createDto.startDate = selectedDates[0].toISOString();
+      if (selectedDates.length > 1) {
+        createDto.endDate =
+          selectedDates[selectedDates.length - 1].toISOString();
+      }
+    }
+
     // Verificar capacidad si hay fechas seleccionadas
     if (createDto.startDate) {
       const startDate = parseDate(createDto.startDate) as Date;
@@ -283,6 +297,7 @@ export class MatchesService {
         status: 'pending',
         startDate: parseDate(createDto.startDate),
         endDate: parseDate(createDto.endDate),
+        selectedDates,
         participants,
         participantNames: createDto.participantNames || [],
         totalPrice,

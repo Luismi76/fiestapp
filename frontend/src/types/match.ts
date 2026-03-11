@@ -100,6 +100,7 @@ export interface CreateMatchData {
   message?: string;
   startDate?: string;
   endDate?: string;
+  selectedDates?: string[];
   participants?: number;
   participantNames?: string[];
   offerDescription?: string;

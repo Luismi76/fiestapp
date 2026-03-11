@@ -24,6 +24,11 @@ export class CreateMatchDto {
   endDate?: string;
 
   @IsOptional()
+  @IsArray()
+  @IsDateString({}, { each: true, message: 'Fecha seleccionada inválida' })
+  selectedDates?: string[];
+
+  @IsOptional()
   @IsInt()
   @Min(1)
   participants?: number;

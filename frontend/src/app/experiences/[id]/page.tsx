@@ -38,6 +38,7 @@ export default function ExperienceDetailPage() {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [participants, setParticipants] = useState(1);
   const [participantNames, setParticipantNames] = useState<string[]>([]);
+  const [selectedViewDates, setSelectedViewDates] = useState<Date[]>([]);
 
   useEffect(() => {
     const fetchExperience = async () => {
@@ -493,14 +494,47 @@ export default function ExperienceDetailPage() {
             <div className="p-4">
               <AvailabilityCalendar
                 availableDates={availabilityDates}
+                selectedDates={selectedViewDates}
                 mode="view"
                 occupancy={occupancy}
                 initialDate={availabilityDates[0]}
                 onDateClick={(date) => {
-                  // Redirect to booking page with pre-selected date
-                  router.push(`/experiences/${experience.id}/book?date=${date.toISOString()}`);
+                  setSelectedViewDates(prev => {
+                    const exists = prev.some(d =>
+                      d.getFullYear() === date.getFullYear() &&
+                      d.getMonth() === date.getMonth() &&
+                      d.getDate() === date.getDate()
+                    );
+                    if (exists) {
+                      return prev.filter(d =>
+                        !(d.getFullYear() === date.getFullYear() &&
+                          d.getMonth() === date.getMonth() &&
+                          d.getDate() === date.getDate())
+                      );
+                    }
+                    return [...prev, date].sort((a, b) => a.getTime() - b.getTime());
+                  });
                 }}
               />
+              {/* Booking button after selecting dates */}
+              {selectedViewDates.length > 0 && !isOwner && (
+                <div className="mt-3 animate-fade-in">
+                  <div className="text-sm text-gray-600 mb-2">
+                    {selectedViewDates.length === 1 ? '1 día seleccionado' : `${selectedViewDates.length} días seleccionados`}:
+                    {' '}
+                    {selectedViewDates.map(d => d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })).join(', ')}
+                  </div>
+                  <Link
+                    href={`/experiences/${experience.id}/book?dates=${selectedViewDates.map(d => d.toISOString()).join(',')}`}
+                    className="block w-full py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-center ripple"
+                  >
+                    {selectedViewDates.length === 1
+                      ? `Reservar para el ${selectedViewDates[0].toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}`
+                      : `Reservar ${selectedViewDates.length} días`
+                    }
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -612,7 +646,7 @@ export default function ExperienceDetailPage() {
           </div>
           {!isOwner && (
             <Link
-              href={`/experiences/${experience.id}/book`}
+              href={`/experiences/${experience.id}/book${selectedViewDates.length > 0 ? `?dates=${selectedViewDates.map(d => d.toISOString()).join(',')}` : ''}`}
               className="flex-1 py-4 bg-primary text-white font-semibold rounded-full hover:bg-primary/90 transition-colors text-center ripple"
             >
               {experience.type === 'intercambio' ? 'Proponer intercambio' : 'Reservar ahora'}

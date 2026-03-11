@@ -355,7 +355,7 @@ export default function AvailabilityCalendar({
           }
 
           const disabled = isDateDisabled(date);
-          const selected = mode === 'select' && isDateSelected(date);
+          const selected = (mode === 'select' || mode === 'view') && isDateSelected(date);
           const available = (mode === 'view' || mode === 'range') && isDateAvailable(date);
           const today = isToday(date);
           const inRange = isInRange(date);
@@ -450,7 +450,7 @@ export default function AvailabilityCalendar({
               }
 
               const disabled = isDateDisabled(date);
-              const selected = mode === 'select' && isDateSelected(date);
+              const selected = (mode === 'select' || mode === 'view') && isDateSelected(date);
               const available = (mode === 'view' || mode === 'range') && isDateAvailable(date);
               const today = isToday(date);
               const inRange = isInRange(date);

@@ -187,6 +187,7 @@ model Match {
   requesterConfirmed    Boolean       @default(false)    // viajero ha confirmado
   startDate             DateTime?
   endDate               DateTime?
+  selectedDates         DateTime[]
   reminderOneDaySent    Boolean       @default(false)
   reminderThreeDaysSent Boolean       @default(false)
   offerDescription      String?       // Descripción adicional del intercambio (legacy/opcional)

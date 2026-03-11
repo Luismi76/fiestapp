@@ -60,7 +60,7 @@ export default function BookingPage() {
   const [experience, setExperience] = useState<ExperienceDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [participants, setParticipants] = useState(1);
   const [message, setMessage] = useState('');
@@ -104,12 +104,19 @@ export default function BookingPage() {
           logger.debug('Could not load occupancy');
         }
 
-        // Check for pre-selected date from URL
+        // Check for pre-selected dates from URL
+        const datesParam = searchParams.get('dates');
         const dateParam = searchParams.get('date');
-        if (dateParam) {
+        if (datesParam) {
+          const dates = datesParam.split(',')
+            .map(d => new Date(d))
+            .filter(d => !isNaN(d.getTime()))
+            .sort((a, b) => a.getTime() - b.getTime());
+          if (dates.length > 0) setSelectedDates(dates);
+        } else if (dateParam) {
           const preSelectedDate = new Date(dateParam);
           if (!isNaN(preSelectedDate.getTime())) {
-            setSelectedDate(preSelectedDate);
+            setSelectedDates([preSelectedDate]);
           }
         }
       } catch {
@@ -203,12 +210,21 @@ export default function BookingPage() {
   }, [availabilityDates, occupancy]);
 
   // Handlers
+  const toggleDate = useCallback((date: Date) => {
+    vibrate('light');
+    setSelectedDates(prev => {
+      const exists = prev.some(d => isSameDay(d, date));
+      if (exists) {
+        return prev.filter(d => !isSameDay(d, date));
+      }
+      return [...prev, date].sort((a, b) => a.getTime() - b.getTime());
+    });
+  }, [vibrate]);
+
   const handleQuickDateSelect = useCallback((date: Date, available: boolean) => {
     if (!available) return;
-    vibrate('light');
-    setSelectedDate(date);
-    setShowCalendar(false);
-  }, [vibrate]);
+    toggleDate(date);
+  }, [toggleDate]);
 
   const handleParticipantChange = useCallback((delta: number) => {
     const minP = experience?.minParticipants || 1;
@@ -229,9 +245,9 @@ export default function BookingPage() {
       return;
     }
 
-    // Validar que se ha seleccionado una fecha (#62)
-    if (!selectedDate && experience.availability && experience.availability.length > 0) {
-      setSubmitError('Selecciona una fecha para continuar');
+    // Validar que se ha seleccionado al menos una fecha (#62)
+    if (selectedDates.length === 0 && experience.availability && experience.availability.length > 0) {
+      setSubmitError('Selecciona al menos una fecha para continuar');
       return;
     }
 
@@ -246,19 +262,21 @@ export default function BookingPage() {
     setSubmitError('');
 
     try {
-      // Formatear fecha como YYYY-MM-DD para evitar problemas de zona horaria
-      let formattedDate: string | undefined;
-      if (selectedDate) {
-        const year = selectedDate.getFullYear();
-        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const day = String(selectedDate.getDate()).padStart(2, '0');
-        formattedDate = `${year}-${month}-${day}`;
-      }
+      // Formatear fechas como YYYY-MM-DD para evitar problemas de zona horaria
+      const formatDateISO = (d: Date) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      const formattedDates = selectedDates.map(formatDateISO);
 
       const match = await matchesApi.create({
         experienceId: experience.id,
         message: message.trim() || undefined,
-        startDate: formattedDate,
+        selectedDates: formattedDates.length > 0 ? formattedDates : undefined,
+        startDate: formattedDates[0] || undefined,
         participants: participants > 1 ? participants : undefined,
         offerDescription: offerDescription.trim() || undefined,
         offerExperienceId: offerExperienceId || undefined,
@@ -409,7 +427,7 @@ export default function BookingPage() {
                 onClick={() => handleQuickDateSelect(qd.date, qd.available)}
                 disabled={!qd.available}
                 className={`flex-1 py-3 px-3 rounded-xl text-sm font-semibold transition-all ripple ${
-                  selectedDate && isSameDay(selectedDate, qd.date)
+                  selectedDates.some(d => isSameDay(d, qd.date))
                     ? 'gradient-sunset text-white shadow-md'
                     : qd.available
                       ? 'bg-white text-[#1A1410] border border-[rgba(139,115,85,0.15)] hover:border-primary/30'
@@ -430,7 +448,11 @@ export default function BookingPage() {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-[#8B7355]">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
               </svg>
-              {selectedDate ? formatDate(selectedDate) : 'Elegir otra fecha'}
+              {selectedDates.length > 0
+                ? (selectedDates.length === 1
+                  ? formatDate(selectedDates[0])
+                  : `${selectedDates.length} días seleccionados`)
+                : 'Elegir fechas'}
             </span>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -460,17 +482,13 @@ export default function BookingPage() {
                     const dateStr = date.toISOString().split('T')[0];
                     const occ = occupancy.find(o => o.date === dateStr);
                     const isFull = occ?.status === 'full';
-                    const isSelected = selectedDate && isSameDay(selectedDate, date);
+                    const isSelected = selectedDates.some(d => isSameDay(d, date));
 
                     return (
                       <button
                         key={date.toISOString()}
                         onClick={() => {
-                          if (!isFull) {
-                            vibrate('light');
-                            setSelectedDate(date);
-                            setShowCalendar(false);
-                          }
+                          if (!isFull) toggleDate(date);
                         }}
                         disabled={isFull}
                         className={`
@@ -485,6 +503,12 @@ export default function BookingPage() {
                     );
                   })}
                 </div>
+                {/* Selected dates summary */}
+                {selectedDates.length > 0 && (
+                  <div className="mt-2 text-sm text-[#8B7355]">
+                    {selectedDates.length === 1 ? '1 día' : `${selectedDates.length} días`}: {selectedDates.map(d => formatDate(d)).join(', ')}
+                  </div>
+                )}
               </div>
             </div>
           )}
