@@ -367,7 +367,7 @@ export default function BookingPage() {
 
   return (
     <MainLayout>
-    <div className="min-h-screen bg-[var(--surface-warm)] pb-20">
+    <div className="min-h-screen bg-[var(--surface-warm)] pb-24">
       {/* Header */}
       <header className="mobile-header">
         <div className="max-w-2xl mx-auto flex items-center justify-between w-full">
@@ -729,6 +729,13 @@ export default function BookingPage() {
           </div>
         )}
 
+        {/* Commission notice */}
+        {isPaid && (
+          <p className="text-xs text-gray-500 text-center">
+            Se aplicará una comisión de servicio de 1,50€ a cada parte al aceptar la solicitud
+          </p>
+        )}
+
         {/* Error message */}
         {submitError && (
           <div className="bg-[var(--color-error-bg)] text-primary p-4 rounded-xl text-sm animate-fade-in">
@@ -739,52 +746,43 @@ export default function BookingPage() {
 
       {/* Fixed bottom bar with price and CTA */}
       <div className="fixed-bottom-bar bg-white border-t border-[rgba(139,115,85,0.15)] p-4 md:border-t-0 md:py-6">
-        <div className="flex items-center gap-4 max-w-2xl mx-auto">
+        <div className="flex items-center gap-3 max-w-2xl mx-auto">
           {/* Price summary */}
           <div className="flex-shrink-0">
             {isPaid && experience.price ? (
               <div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-[#1A1410]">
-                    {priceLoading ? (
-                      <span className="inline-block w-16 h-7 skeleton rounded" />
-                    ) : (
-                      `${totalPrice.toFixed(0)}€`
-                    )}
-                  </span>
-                </div>
+                <span className="text-2xl font-bold text-[#1A1410]">
+                  {priceLoading ? (
+                    <span className="inline-block w-16 h-7 skeleton rounded" />
+                  ) : (
+                    `${totalPrice.toFixed(0)}€`
+                  )}
+                </span>
                 <p className="text-xs text-[#8B7355]">
-                  {participants} persona{participants !== 1 ? 's' : ''} × {priceResult?.pricePerPerson?.toFixed(2) || experience.price}€
+                  {participants} pers. × {priceResult?.pricePerPerson?.toFixed(0) || experience.price}€
                 </p>
               </div>
             ) : (
               <div>
-                <span className="text-xl font-bold text-emerald">Intercambio</span>
+                <span className="text-lg font-bold text-emerald">Intercambio</span>
                 <p className="text-xs text-[#8B7355]">Sin coste</p>
               </div>
             )}
           </div>
 
-          {/* Commission notice (#82/74) */}
-          <p className="text-xs text-gray-500 text-center mb-2">
-            Se aplicará una comisión de servicio de 1,50€ a cada parte al aceptar la solicitud
-          </p>
-
           {/* Submit button */}
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="flex-1 btn btn-primary py-4 text-base ripple"
+            className="flex-1 btn btn-primary py-3.5 text-sm font-semibold ripple"
           >
             {submitting ? (
-              <span className="flex items-center gap-2">
+              <span className="flex items-center justify-center gap-2">
                 <div className="spinner spinner-sm" />
                 Enviando...
               </span>
             ) : (
-              <>
-                {isPaid ? `Enviar solicitud (${totalPrice.toFixed(0)}€)` : 'Proponer intercambio'}
-              </>
+              isPaid ? 'Enviar solicitud' : 'Proponer intercambio'
             )}
           </button>
         </div>
