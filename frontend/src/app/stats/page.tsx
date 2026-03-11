@@ -72,7 +72,7 @@ export default function StatsPage() {
   if (error || !stats) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-white md:bg-transparent pb-24 md:pb-8">
+        <div className="min-h-screen bg-white md:bg-transparent">
         <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
           <div className="flex items-center px-4 h-14">
             <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
@@ -98,7 +98,7 @@ export default function StatsPage() {
 
   return (
     <MainLayout>
-    <div className="min-h-screen bg-white md:bg-gray-50 pb-24 md:pb-8">
+    <div className="min-h-screen bg-white md:bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="flex items-center justify-between px-4 md:px-6 lg:px-8 h-14 lg:h-16 max-w-5xl mx-auto">

@@ -103,7 +103,7 @@ export default function AnalyticsPage() {
   if (error || !analytics) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-gray-50 pb-24">
+        <div className="min-h-screen bg-gray-50">
           <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
             <div className="flex items-center px-4 h-14">
               <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center">
@@ -130,7 +130,7 @@ export default function AnalyticsPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-50 pb-24">
+      <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 h-14">

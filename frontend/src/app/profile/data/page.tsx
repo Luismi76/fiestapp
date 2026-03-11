@@ -110,7 +110,7 @@ export default function DataManagementPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-gradient-to-br from-blue-600 via-blue-500 to-purple-600 pt-6 pb-20">
         <div className="px-4">

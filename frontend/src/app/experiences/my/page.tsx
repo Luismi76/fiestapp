@@ -63,7 +63,7 @@ export default function MyExperiencesPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-white md:bg-gray-50 pb-24 md:pb-8">
+      <div className="min-h-screen bg-white md:bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-5xl mx-auto">

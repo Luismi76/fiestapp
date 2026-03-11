@@ -178,7 +178,7 @@ export default function MessagesPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen pb-24 md:pb-8">
+      <div className="min-h-screen">
         {/* Hero */}
         <header className="pattern-festive relative overflow-hidden">
           <div className="absolute inset-0 opacity-20">

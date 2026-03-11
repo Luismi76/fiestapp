@@ -151,7 +151,7 @@ export default function CalendarPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-50 pb-24 md:pb-8">
+      <div className="min-h-screen bg-gray-50">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-orange-500/10 via-primary/5 to-transparent py-6 px-4">
           <div className="max-w-4xl mx-auto">

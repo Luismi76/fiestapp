@@ -88,7 +88,7 @@ export default function FavoritesPage() {
 
   return (
     <MainLayout>
-    <div className="min-h-screen bg-white md:bg-gray-50 pb-24 md:pb-8">
+    <div className="min-h-screen bg-white md:bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="px-4 md:px-6 lg:px-8 py-4 lg:py-6 max-w-6xl mx-auto">

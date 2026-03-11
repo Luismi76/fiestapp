@@ -194,7 +194,7 @@ export default function WalletPage() {
 
   return (
     <MainLayout>
-    <div className="min-h-screen bg-white md:bg-transparent pb-20 md:pb-8">
+    <div className="min-h-screen bg-white md:bg-transparent">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-40">
         <div className="flex items-center justify-between px-4 h-14">

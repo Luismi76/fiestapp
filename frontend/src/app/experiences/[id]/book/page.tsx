@@ -367,7 +367,7 @@ export default function BookingPage() {
 
   return (
     <MainLayout>
-    <div className="min-h-screen bg-[var(--surface-warm)] pb-32">
+    <div className="min-h-screen bg-[var(--surface-warm)] pb-20">
       {/* Header */}
       <header className="mobile-header">
         <div className="max-w-2xl mx-auto flex items-center justify-between w-full">
@@ -738,7 +738,7 @@ export default function BookingPage() {
       </div>
 
       {/* Fixed bottom bar with price and CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[rgba(139,115,85,0.15)] p-4 z-40 md:static md:border-t-0 md:py-6">
+      <div className="fixed-bottom-bar bg-white border-t border-[rgba(139,115,85,0.15)] p-4 md:border-t-0 md:py-6">
         <div className="flex items-center gap-4 max-w-2xl mx-auto">
           {/* Price summary */}
           <div className="flex-shrink-0">

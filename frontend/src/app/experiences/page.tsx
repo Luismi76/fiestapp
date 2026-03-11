@@ -267,7 +267,7 @@ function ExperiencesContent() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen pb-24 md:pb-8">
+      <div className="min-h-screen">
         {/* Header - compact */}
         <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200">
           <div className="px-4 py-3 flex items-center gap-3">

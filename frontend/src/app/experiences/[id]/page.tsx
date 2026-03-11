@@ -185,7 +185,7 @@ export default function ExperienceDetailPage() {
 
   return (
     <MainLayout>
-    <div className="min-h-screen bg-gray-50 pb-28 md:pb-8">
+    <div className="min-h-screen bg-gray-50 pb-20">
       {/* Desktop: 2-column layout */}
       <div className="lg:grid lg:grid-cols-2 lg:gap-8 lg:max-w-7xl lg:mx-auto lg:px-8 lg:py-8">
         {/* Left column: Image gallery - sticky on desktop */}
@@ -589,7 +589,7 @@ export default function ExperienceDetailPage() {
       {/* End of 2-column grid */}
 
       {/* Mobile fixed bottom bar */}
-      <div className="fixed bottom-[80px] left-0 right-0 bg-white border-t border-gray-200 p-4 z-[10000] md:bottom-0 lg:hidden">
+      <div className="fixed-bottom-bar bg-white border-t border-gray-200 p-4 lg:hidden">
         <div className="flex items-center gap-4">
           <div className="flex-shrink-0">
             {experience.price ? (

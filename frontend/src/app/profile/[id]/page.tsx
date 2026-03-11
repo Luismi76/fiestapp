@@ -219,7 +219,7 @@ export default function PublicProfilePage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-50 pb-24 md:pb-8">
+      <div className="min-h-screen bg-gray-50">
         {/* Desktop container */}
         <div className="lg:max-w-5xl xl:max-w-6xl lg:mx-auto">
 

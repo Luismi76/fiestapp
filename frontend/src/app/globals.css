@@ -98,7 +98,6 @@ body {
   color: #2D2318;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  padding-bottom: var(--bottom-nav-height);
   overflow-x: hidden;
   font-size: 16px;
 }
@@ -235,9 +234,21 @@ input, textarea, select, button {
   .bottom-nav {
     display: none;
   }
+}
 
-  body {
-    padding-bottom: 0;
+/* Barra fija inferior que respeta el BottomNav en móvil */
+.fixed-bottom-bar {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
+  left: 0;
+  right: 0;
+  z-index: 40;
+}
+
+@media (min-width: 768px) {
+  .fixed-bottom-bar {
+    position: static;
+    bottom: auto;
   }
 }
 
