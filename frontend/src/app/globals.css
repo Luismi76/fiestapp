@@ -236,6 +236,17 @@ input, textarea, select, button {
   }
 }
 
+/* Padding inferior del contenido principal para que el BottomNav no tape nada */
+.main-content-pad {
+  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
+}
+
+@media (min-width: 768px) {
+  .main-content-pad {
+    padding-bottom: 0;
+  }
+}
+
 /* Barra fija inferior que respeta el BottomNav en móvil */
 .fixed-bottom-bar {
   position: fixed;

@@ -35,7 +35,7 @@ export default function MainLayout({ children, hideNav = false, hideHeader = fal
         className={[
           'w-full max-w-7xl mx-auto px-0 md:px-4 lg:px-6',
           !hideNav && !hideHeader ? 'md:pt-16' : '',
-          !hideNav ? 'pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom,0px))] md:pb-0' : '',
+          !hideNav ? 'main-content-pad' : '',
         ].filter(Boolean).join(' ')}
       >
         {children}
