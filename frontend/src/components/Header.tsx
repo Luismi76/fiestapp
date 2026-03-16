@@ -54,22 +54,6 @@ function Header() {
 
   return (
     <>
-      {/* Floating notification badge - mobile only, appears when there are notifications */}
-      {isAuthenticated && notificationCount > 0 && (
-        <Link
-          href="/notifications"
-          className={cn(
-            "md:hidden fixed z-50 min-w-[22px] h-[22px] bg-primary text-white text-xs font-bold rounded-full flex items-center justify-center px-1.5 shadow-md animate-in fade-in zoom-in duration-300",
-            pathname === '/experiences'
-              ? 'top-[4.25rem] right-4'
-              : 'top-3 right-3'
-          )}
-          aria-label="Notificaciones"
-        >
-          {notificationCount > 99 ? '99+' : notificationCount}
-        </Link>
-      )}
-
       {/* Header - visible en desktop */}
       <header className="hidden md:flex fixed top-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-b border-gray-100 z-40">
         <div className="max-w-7xl mx-auto w-full px-4 flex items-center justify-between">
