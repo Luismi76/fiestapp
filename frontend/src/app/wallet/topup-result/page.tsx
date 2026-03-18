@@ -27,20 +27,42 @@ function TopUpResultContent() {
       return;
     }
 
-    // Esperar un momento para que la notificación de Redsys se procese
-    const timer = setTimeout(async () => {
-      try {
-        const data = await walletApi.checkTopUpResult(orderId);
-        setResult(data);
-      } catch {
-        setResult({ success: false });
-      } finally {
-        setChecking(false);
-      }
-    }, 1500);
+    // Si Redsys devolvió error, no hace falta reintentar
+    if (status === 'error') {
+      setResult({ success: false });
+      setChecking(false);
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, [user, authLoading, orderId, router]);
+    // Polling: la notificación de Redsys puede tardar unos segundos
+    let cancelled = false;
+    const delays = [1000, 2000, 3000, 4000, 5000]; // 5 intentos en 15s
+
+    const poll = async () => {
+      for (let i = 0; i < delays.length; i++) {
+        if (cancelled) return;
+        await new Promise((r) => setTimeout(r, delays[i]));
+        if (cancelled) return;
+
+        try {
+          const data = await walletApi.checkTopUpResult(orderId);
+          if (data.success) {
+            setResult(data);
+            setChecking(false);
+            return;
+          }
+        } catch {
+          // Seguir intentando
+        }
+      }
+      // Agotados los reintentos
+      setResult({ success: false });
+      setChecking(false);
+    };
+
+    poll();
+    return () => { cancelled = true; };
+  }, [user, authLoading, orderId, status, router]);
 
   const isSuccess = status === 'success' && result?.success;
 
