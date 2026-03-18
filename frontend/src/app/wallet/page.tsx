@@ -26,6 +26,9 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState<number>(4.5);
+  const [showCustomAmount, setShowCustomAmount] = useState(false);
+  const [customAmount, setCustomAmount] = useState('');
+  const [customAmountError, setCustomAmountError] = useState<string | null>(null);
   const [selectedTransaction, setSelectedTransaction] = useState<WalletTransaction | null>(null);
 
   // Estados para paginacion y filtros
@@ -35,13 +38,22 @@ export default function WalletPage() {
   const [filter, setFilter] = useState<TransactionFilter>('all');
   const ITEMS_PER_PAGE = 10;
 
-  // Opciones de recarga predefinidas
-  const topUpOptions = [
-    { amount: 4.5, operations: 3, label: '3 ops' },
-    { amount: 9, operations: 6, label: '6 ops' },
-    { amount: 15, operations: 10, label: '10 ops' },
-    { amount: 30, operations: 20, label: '20 ops', popular: true },
-  ];
+  const MIN_TOPUP = 4.5;
+
+  const handleCustomAmountSubmit = () => {
+    const value = parseFloat(customAmount.replace(',', '.'));
+    if (isNaN(value) || value < MIN_TOPUP) {
+      setCustomAmountError(`El mínimo es ${MIN_TOPUP.toFixed(2).replace('.', ',')}€`);
+      return;
+    }
+    // Redondear a 2 decimales
+    const rounded = Math.round(value * 100) / 100;
+    setCustomAmountError(null);
+    setSelectedAmount(rounded);
+    setShowCustomAmount(false);
+    setCustomAmount('');
+    setShowTopUpModal(true);
+  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -238,29 +250,87 @@ export default function WalletPage() {
           {/* Opciones de recarga */}
           <div className="space-y-3">
             <p className="text-sm text-gray-600 font-medium">Selecciona cantidad a recargar:</p>
-            <div className="grid grid-cols-2 gap-3">
-              {topUpOptions.map((option) => (
+            <div className="flex flex-col gap-3">
+              {/* Opción 1: Mínimo */}
+              <button
+                onClick={() => {
+                  setSelectedAmount(MIN_TOPUP);
+                  setShowCustomAmount(false);
+                  setShowTopUpModal(true);
+                }}
+                className="w-full p-4 rounded-xl border-2 border-primary bg-orange-50 hover:bg-orange-100 transition-all text-left flex items-center justify-between"
+              >
+                <div>
+                  <div className="text-lg font-bold text-gray-900">Ingresar mínimo</div>
+                  <div className="text-sm text-gray-500">{Math.floor(MIN_TOPUP / 1.5)} operaciones</div>
+                </div>
+                <div className="text-2xl font-bold text-primary">{MIN_TOPUP.toFixed(2).replace('.', ',')}€</div>
+              </button>
+
+              {/* Opción 2: Otra cantidad */}
+              {!showCustomAmount ? (
                 <button
-                  key={option.amount}
-                  onClick={() => {
-                    setSelectedAmount(option.amount);
-                    setShowTopUpModal(true);
-                  }}
-                  className={`relative p-4 rounded-xl border-2 transition-all ${
-                    option.popular
-                      ? 'border-primary bg-orange-50 hover:bg-orange-100'
-                      : 'border-gray-200 hover:border-primary hover:bg-gray-50'
-                  }`}
+                  onClick={() => setShowCustomAmount(true)}
+                  className="w-full p-4 rounded-xl border-2 border-gray-200 hover:border-primary hover:bg-gray-50 transition-all text-left flex items-center justify-between"
                 >
-                  {option.popular && (
-                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-white text-xs px-2 py-0.5 rounded-full">
-                      Popular
-                    </span>
-                  )}
-                  <div className="text-2xl font-bold text-gray-900">{option.amount}€</div>
-                  <div className="text-sm text-gray-500">{option.operations} operaciones</div>
+                  <div>
+                    <div className="text-lg font-bold text-gray-900">Otra cantidad</div>
+                    <div className="text-sm text-gray-500">Mínimo {MIN_TOPUP.toFixed(2).replace('.', ',')}€</div>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </button>
-              ))}
+              ) : (
+                <div className="p-4 rounded-xl border-2 border-primary bg-orange-50/50">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.01"
+                        min={MIN_TOPUP}
+                        value={customAmount}
+                        onChange={(e) => {
+                          setCustomAmount(e.target.value);
+                          setCustomAmountError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleCustomAmountSubmit();
+                        }}
+                        placeholder={`Mín. ${MIN_TOPUP.toFixed(2).replace('.', ',')}€`}
+                        className="w-full px-4 py-3 pr-8 border border-gray-300 rounded-xl text-lg font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        autoFocus
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-semibold text-gray-400">€</span>
+                    </div>
+                    <button
+                      onClick={handleCustomAmountSubmit}
+                      className="btn-primary px-5 py-3 rounded-xl font-semibold whitespace-nowrap"
+                    >
+                      Ingresar
+                    </button>
+                  </div>
+                  {customAmountError && (
+                    <p className="text-red-500 text-sm mt-2">{customAmountError}</p>
+                  )}
+                  {customAmount && !customAmountError && parseFloat(customAmount.replace(',', '.')) >= MIN_TOPUP && (
+                    <p className="text-gray-500 text-sm mt-2">
+                      {Math.floor(parseFloat(customAmount.replace(',', '.')) / 1.5)} operaciones
+                    </p>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowCustomAmount(false);
+                      setCustomAmount('');
+                      setCustomAmountError(null);
+                    }}
+                    className="text-sm text-gray-500 hover:text-gray-700 mt-2"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
