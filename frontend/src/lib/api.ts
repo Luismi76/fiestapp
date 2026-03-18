@@ -795,15 +795,24 @@ export const walletApi = {
     return response.data;
   },
 
-  // Crear intención de recarga
-  createTopUp: async (amount?: number): Promise<{ clientSecret: string; paymentIntentId: string }> => {
+  // Crear formulario de pago Redsys para recarga
+  createTopUp: async (amount?: number): Promise<{
+    redsysUrl: string;
+    redsysBody: {
+      Ds_SignatureVersion: string;
+      Ds_MerchantParameters: string;
+      Ds_Signature: string;
+    };
+    orderId: string;
+  }> => {
     const response = await api.post('/wallet/topup', { amount });
     return response.data;
   },
 
-  // Confirmar recarga
-  confirmTopUp: async (paymentIntentId: string): Promise<void> => {
-    await api.post('/wallet/topup/confirm', { paymentIntentId });
+  // Verificar resultado de recarga
+  checkTopUpResult: async (orderId: string): Promise<{ success: boolean; amount?: number }> => {
+    const response = await api.get(`/wallet/topup-result?orderId=${orderId}`);
+    return response.data;
   },
 
   // Obtener historial de transacciones

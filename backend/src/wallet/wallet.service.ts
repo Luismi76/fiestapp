@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import Stripe from 'stripe';
+import { RedsysService } from '../redsys/redsys.service';
 
 // Constantes del modelo de negocio
 export const PLATFORM_FEE = 1.5; // 1,50€ por operación
@@ -17,29 +17,22 @@ export type TransactionType = 'topup' | 'platform_fee' | 'refund';
 @Injectable()
 export class WalletService {
   private readonly logger = new Logger(WalletService.name);
-  private stripe: Stripe | null = null;
+  private frontendUrl: string;
+  private backendUrl: string;
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private redsysService: RedsysService,
   ) {
-    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    if (stripeKey) {
-      this.stripe = new Stripe(stripeKey);
-    } else {
-      this.logger.warn(
-        'STRIPE_SECRET_KEY not configured - wallet topup disabled',
-      );
-    }
-  }
-
-  private ensureStripe(): Stripe {
-    if (!this.stripe) {
-      throw new BadRequestException(
-        'Pagos no configurados. Contacta al administrador.',
-      );
-    }
-    return this.stripe;
+    this.frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ||
+      'http://localhost:3000';
+    // Derivar la URL del backend desde FRONTEND_URL
+    const apiUrl =
+      this.configService.get<string>('BACKEND_URL') ||
+      this.frontendUrl.replace('fiestapp.lmsc.es', 'fiestapp-api.lmsc.es');
+    this.backendUrl = apiUrl.replace(/\/api$/, '');
   }
 
   // Obtener monedero del usuario
@@ -73,13 +66,18 @@ export class WalletService {
     return balance >= amount;
   }
 
-  // Crear Payment Intent para recarga
-  async createTopUpIntent(
+  // Crear formulario de pago Redsys para recarga
+  async createTopUpForm(
     userId: string,
     amount: number = MIN_TOPUP,
   ): Promise<{
-    clientSecret: string;
-    paymentIntentId: string;
+    redsysUrl: string;
+    redsysBody: {
+      Ds_SignatureVersion: string;
+      Ds_MerchantParameters: string;
+      Ds_Signature: string;
+    };
+    orderId: string;
   }> {
     if (amount < MIN_TOPUP) {
       throw new BadRequestException(`La recarga mínima es de ${MIN_TOPUP}€`);
@@ -93,45 +91,8 @@ export class WalletService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    // Buscar transacción pendiente reciente (menos de 30 minutos) para reutilizar
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
-    const existingPending = await this.prisma.transaction.findFirst({
-      where: {
-        userId,
-        type: 'topup',
-        status: 'pending',
-        amount,
-        createdAt: { gte: thirtyMinutesAgo },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (existingPending && existingPending.stripeId) {
-      // Verificar que el PaymentIntent aún es válido en Stripe
-      try {
-        const existingIntent =
-          await this.ensureStripe().paymentIntents.retrieve(
-            existingPending.stripeId,
-          );
-        if (
-          existingIntent.status === 'requires_payment_method' ||
-          existingIntent.status === 'requires_confirmation'
-        ) {
-          this.logger.debug(
-            'Reutilizando PaymentIntent existente:',
-            existingPending.stripeId,
-          );
-          return {
-            clientSecret: existingIntent.client_secret!,
-            paymentIntentId: existingIntent.id,
-          };
-        }
-      } catch {
-        this.logger.debug('PaymentIntent existente no válido, creando nuevo');
-      }
-    }
-
     // Cancelar transacciones pendientes antiguas (más de 30 minutos)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
     await this.prisma.transaction.updateMany({
       where: {
         userId,
@@ -142,19 +103,7 @@ export class WalletService {
       data: { status: 'cancelled' },
     });
 
-    const amountInCents = Math.round(amount * 100);
-
-    const paymentIntent = await this.ensureStripe().paymentIntents.create({
-      amount: amountInCents,
-      currency: 'eur',
-      payment_method_types: ['card'], // Solo tarjeta para simplificar
-      metadata: {
-        userId,
-        type: 'wallet_topup',
-        amount: amount.toString(),
-      },
-      description: `FiestApp: Recarga de monedero ${amount}€`,
-    });
+    const orderId = this.redsysService.generateOrderId();
 
     // Registrar transacción pendiente
     await this.prisma.transaction.create({
@@ -163,79 +112,114 @@ export class WalletService {
         type: 'topup',
         amount,
         status: 'pending',
-        stripeId: paymentIntent.id,
+        stripeId: orderId, // Reutilizamos el campo para almacenar el orderId de Redsys
         description: `Recarga de monedero: ${amount}€`,
       },
     });
 
+    const form = this.redsysService.createPaymentForm({
+      orderId,
+      amount,
+      description: `FiestApp Recarga ${amount}€`,
+      merchantData: JSON.stringify({ userId, type: 'wallet_topup' }),
+      successUrl: `${this.frontendUrl}/wallet/topup-result?status=success&order=${orderId}`,
+      errorUrl: `${this.frontendUrl}/wallet/topup-result?status=error&order=${orderId}`,
+      notificationUrl: `${this.backendUrl}/api/wallet/redsys-notification`,
+    });
+
+    this.logger.debug(
+      `TopUp form created: orderId=${orderId}, amount=${amount}€, user=${userId}`,
+    );
+
     return {
-      clientSecret: paymentIntent.client_secret!,
-      paymentIntentId: paymentIntent.id,
+      redsysUrl: form.url,
+      redsysBody: form.body,
+      orderId,
     };
   }
 
-  // Confirmar recarga después del pago exitoso
-  async confirmTopUp(paymentIntentId: string): Promise<void> {
-    this.logger.debug(
-      'confirmTopUp called with paymentIntentId:',
-      paymentIntentId,
+  // Procesar notificación de Redsys (webhook)
+  async handleRedsysNotification(body: {
+    Ds_SignatureVersion: string;
+    Ds_MerchantParameters: string;
+    Ds_Signature: string;
+  }): Promise<void> {
+    const notification = this.redsysService.processNotification(body);
+
+    const orderId = notification.Ds_Order;
+    const responseCode = notification.Ds_Response;
+
+    this.logger.log(
+      `Redsys notification: order=${orderId}, response=${responseCode}`,
     );
 
-    const transaction = await this.prisma.transaction.findFirst({
-      where: { stripeId: paymentIntentId, type: 'topup' },
-    });
-
-    this.logger.debug(
-      'Found transaction:',
-      transaction
-        ? {
-            id: transaction.id,
-            status: transaction.status,
-            stripeId: transaction.stripeId,
-          }
-        : null,
-    );
-
-    if (!transaction) {
-      throw new NotFoundException('Transacción no encontrada');
-    }
-
-    if (transaction.status === 'completed') {
-      this.logger.debug('Transaction already completed, skipping');
-      // Ya procesada
+    if (!orderId) {
+      this.logger.warn('Notification without order ID');
       return;
     }
 
-    // Verificar estado en Stripe
-    this.logger.debug('Retrieving PaymentIntent from Stripe...');
-    const paymentIntent =
-      await this.ensureStripe().paymentIntents.retrieve(paymentIntentId);
-    this.logger.debug('Stripe PaymentIntent status:', paymentIntent.status);
+    const transaction = await this.prisma.transaction.findFirst({
+      where: { stripeId: orderId, type: 'topup' },
+    });
 
-    // Aceptar 'succeeded' o 'processing' (algunos pagos tardan un momento)
-    const validStatuses = ['succeeded', 'processing', 'requires_capture'];
-    if (!validStatuses.includes(paymentIntent.status)) {
-      this.logger.debug(`Payment intent status: ${paymentIntent.status}`);
-      throw new BadRequestException(
-        `El pago no se ha completado. Estado: ${paymentIntent.status}`,
-      );
+    if (!transaction) {
+      this.logger.warn(`Transaction not found for order: ${orderId}`);
+      return;
     }
 
-    // Actualizar saldo y transacción en una transacción atómica
-    await this.prisma.$transaction(async (tx) => {
-      // Actualizar transacción
-      await tx.transaction.update({
-        where: { id: transaction.id },
-        data: { status: 'completed' },
+    if (transaction.status === 'completed') {
+      this.logger.debug(`Transaction already completed: ${orderId}`);
+      return;
+    }
+
+    if (this.redsysService.isSuccessResponse(responseCode || '')) {
+      // Pago exitoso - actualizar saldo
+      await this.prisma.$transaction(async (tx) => {
+        await tx.transaction.update({
+          where: { id: transaction.id },
+          data: { status: 'completed' },
+        });
+
+        await tx.wallet.upsert({
+          where: { userId: transaction.userId },
+          update: { balance: { increment: transaction.amount } },
+          create: { userId: transaction.userId, balance: transaction.amount },
+        });
       });
 
-      // Añadir saldo al monedero
-      await tx.wallet.upsert({
-        where: { userId: transaction.userId },
-        update: { balance: { increment: transaction.amount } },
-        create: { userId: transaction.userId, balance: transaction.amount },
+      this.logger.log(
+        `TopUp completed: order=${orderId}, amount=${transaction.amount}€, user=${transaction.userId}`,
+      );
+    } else {
+      // Pago fallido
+      await this.prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { status: 'cancelled' },
       });
+
+      this.logger.warn(
+        `TopUp failed: order=${orderId}, response=${responseCode}`,
+      );
+    }
+  }
+
+  // Verificar resultado de un pedido (llamado desde el frontend al volver de Redsys)
+  async checkTopUpResult(
+    orderId: string,
+    userId: string,
+  ): Promise<{ success: boolean; amount?: number }> {
+    const transaction = await this.prisma.transaction.findFirst({
+      where: { stripeId: orderId, type: 'topup', userId },
     });
+
+    if (!transaction) {
+      return { success: false };
+    }
+
+    return {
+      success: transaction.status === 'completed',
+      amount: transaction.amount,
+    };
   }
 
   // Añadir saldo al monedero (para reembolsos)
@@ -399,17 +383,5 @@ export class WalletService {
         totalPages: Math.ceil(total / limit),
       },
     };
-  }
-
-  // Webhook handler para eventos de Stripe relacionados con el monedero
-  async handleWebhook(event: Stripe.Event): Promise<void> {
-    if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object;
-
-      // Solo procesar recargas de monedero
-      if (paymentIntent.metadata?.type === 'wallet_topup') {
-        await this.confirmTopUp(paymentIntent.id);
-      }
-    }
   }
 }

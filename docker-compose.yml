@@ -70,9 +70,11 @@ services:
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
-      # Stripe Configuration
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # Redsys (TPV CaixaBank)
+      REDSYS_MERCHANT_CODE: ${REDSYS_MERCHANT_CODE:-999008881}
+      REDSYS_TERMINAL: ${REDSYS_TERMINAL:-1}
+      REDSYS_SECRET_KEY: ${REDSYS_SECRET_KEY:-sq7HjrUOBfKmC576ILgskD5srU870gJ7}
+      REDSYS_SANDBOX: ${REDSYS_SANDBOX:-true}
       # Email Configuration (Resend)
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-noreply@fiestapp.es}
@@ -103,7 +105,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://fiestapp-api.lmsc.es/api}
-        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+        # NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ya no es necesario (migrado a Redsys)
     container_name: fiestapp-frontend
     restart: unless-stopped
     depends_on:
