@@ -83,6 +83,43 @@ export class RedsysService {
   }
 
   /**
+   * Devolución server-to-server (Redsys Tipo 3)
+   * Usa REST API directamente, no requiere interacción del usuario
+   */
+  async createRefund(params: {
+    originalOrderId: string;
+    amount: number;
+  }): Promise<{ success: boolean; responseCode?: string }> {
+    const amountInCents = Math.round(params.amount * 100).toString();
+
+    try {
+      const result = await this.redsysAPI.restTrataPeticion({
+        DS_MERCHANT_MERCHANTCODE: this.merchantCode,
+        DS_MERCHANT_TERMINAL: this.terminal,
+        DS_MERCHANT_ORDER: params.originalOrderId,
+        DS_MERCHANT_TRANSACTIONTYPE: TRANSACTION_TYPES.AUTO_REFUND,
+        DS_MERCHANT_AMOUNT: amountInCents,
+        DS_MERCHANT_CURRENCY: '978',
+      });
+
+      const responseCode = result?.Ds_Response || '';
+      const success = this.isSuccessResponse(responseCode);
+
+      this.logger.log(
+        `Refund ${success ? 'OK' : 'FAILED'}: order=${params.originalOrderId}, amount=${params.amount}€, response=${responseCode}`,
+      );
+
+      return { success, responseCode };
+    } catch (error) {
+      this.logger.error(
+        `Refund error: order=${params.originalOrderId}`,
+        error,
+      );
+      return { success: false };
+    }
+  }
+
+  /**
    * Comprueba si el código de respuesta indica éxito (0000-0099)
    */
   isSuccessResponse(responseCode: string): boolean {

@@ -17,6 +17,8 @@ import { PushService } from '../notifications/push.service';
 import { PricingService } from '../experiences/pricing.service';
 import { CancellationsService } from '../cancellations/cancellations.service';
 import { EmailService } from '../email/email.service';
+import { RedsysService } from '../redsys/redsys.service';
+import { ConfigService } from '@nestjs/config';
 
 // Helper para parsear fechas correctamente evitando problemas de zona horaria
 function parseDate(dateStr: string | undefined | null): Date | null {
@@ -44,6 +46,8 @@ export class MatchesService {
     private pricingService: PricingService,
     private cancellationsService: CancellationsService,
     private emailService: EmailService,
+    private redsysService: RedsysService,
+    private configService: ConfigService,
   ) {}
 
   // Crear solicitud de match
@@ -806,10 +810,15 @@ export class MatchesService {
       ]);
     }
 
+    // Si la experiencia tiene precio, marcar como pendiente de pago
+    const hasTotalPrice = match.totalPrice && match.totalPrice > 0;
+    const paymentStatus = hasTotalPrice ? 'pending_payment' : null;
+
     return this.prisma.match.update({
       where: { id },
       data: {
         status: MatchStatus.ACCEPTED,
+        paymentStatus,
         startDate: startDate ? parseDate(startDate) : match.startDate,
         endDate: endDate ? parseDate(endDate) : match.endDate,
       },
@@ -831,6 +840,115 @@ export class MatchesService {
         },
       },
     });
+  }
+
+  // Crear pago de experiencia (solo requester, tras aceptación del host)
+  async createExperiencePayment(matchId: string, requesterId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      include: { experience: { select: { title: true } } },
+    });
+
+    if (!match) throw new NotFoundException('Solicitud no encontrada');
+    if (match.requesterId !== requesterId) {
+      throw new ForbiddenException('Solo el viajero puede realizar el pago');
+    }
+    if (match.status !== 'accepted' || match.paymentStatus !== 'pending_payment') {
+      throw new BadRequestException('Esta solicitud no requiere pago');
+    }
+    if (!match.totalPrice || match.totalPrice <= 0) {
+      throw new BadRequestException('Esta experiencia no tiene precio');
+    }
+
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const backendUrl = (this.configService.get<string>('BACKEND_URL') ||
+      frontendUrl.replace('fiestapp.lmsc.es', 'fiestapp-api.lmsc.es')).replace(/\/api$/, '');
+
+    const orderId = this.redsysService.generateOrderId();
+
+    // Crear transacción pendiente
+    await this.prisma.transaction.create({
+      data: {
+        userId: requesterId,
+        matchId,
+        type: 'experience_payment',
+        amount: -match.totalPrice,
+        status: 'pending',
+        stripeId: orderId,
+        description: `Pago experiencia: ${match.experience.title}`,
+      },
+    });
+
+    const form = this.redsysService.createPaymentForm({
+      orderId,
+      amount: match.totalPrice,
+      description: `FiestApp: ${match.experience.title}`,
+      merchantData: JSON.stringify({ matchId, requesterId, type: 'experience_payment' }),
+      successUrl: `${frontendUrl}/matches/payment-result?status=success&order=${orderId}&matchId=${matchId}`,
+      errorUrl: `${frontendUrl}/matches/payment-result?status=error&order=${orderId}&matchId=${matchId}`,
+      notificationUrl: `${backendUrl}/api/matches/redsys-notification`,
+    });
+
+    return {
+      redsysUrl: form.url,
+      redsysBody: form.body,
+      orderId,
+    };
+  }
+
+  // Procesar notificación Redsys para pago de experiencia
+  async handleExperiencePaymentNotification(body: {
+    Ds_SignatureVersion: string;
+    Ds_MerchantParameters: string;
+    Ds_Signature: string;
+  }): Promise<void> {
+    const notification = this.redsysService.processNotification(body);
+    const orderId = notification.Ds_Order;
+    const responseCode = notification.Ds_Response;
+
+    const transaction = await this.prisma.transaction.findFirst({
+      where: { stripeId: orderId, type: 'experience_payment' },
+    });
+
+    if (!transaction || !transaction.matchId) return;
+    if (transaction.status === 'completed') return;
+
+    if (this.redsysService.isSuccessResponse(responseCode || '')) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.transaction.update({
+          where: { id: transaction.id },
+          data: { status: 'completed' },
+        });
+
+        await tx.match.update({
+          where: { id: transaction.matchId! },
+          data: { paymentStatus: 'paid' },
+        });
+      });
+    } else {
+      await this.prisma.transaction.update({
+        where: { id: transaction.id },
+        data: { status: 'cancelled' },
+      });
+    }
+  }
+
+  // Verificar estado del pago de experiencia
+  async getPaymentStatus(matchId: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      select: { paymentStatus: true, totalPrice: true, requesterId: true, hostId: true },
+    });
+
+    if (!match) throw new NotFoundException('Solicitud no encontrada');
+    if (match.requesterId !== userId && match.hostId !== userId) {
+      throw new ForbiddenException('No tienes acceso a esta solicitud');
+    }
+
+    return {
+      paymentStatus: match.paymentStatus,
+      amount: match.totalPrice,
+    };
   }
 
   // Rechazar match (solo host)
@@ -943,8 +1061,40 @@ export class MatchesService {
         );
       }
 
-      // Procesar reembolso al wallet del viajero si hay monto
-      if (refundAmount > 0) {
+      // Procesar reembolso según estado del pago
+      if (match.paymentStatus === 'paid' && refundAmount > 0) {
+        // Devolución vía Redsys a la tarjeta del viajero
+        const paymentTx = await this.prisma.transaction.findFirst({
+          where: { matchId: id, type: 'experience_payment', status: 'completed' },
+        });
+
+        if (paymentTx?.stripeId) {
+          const refundResult = await this.redsysService.createRefund({
+            originalOrderId: paymentTx.stripeId,
+            amount: refundAmount,
+          });
+
+          if (refundResult.success) {
+            await this.prisma.transaction.create({
+              data: {
+                userId: match.requesterId,
+                matchId: id,
+                type: 'refund',
+                amount: refundAmount,
+                status: 'completed',
+                description: `Devolución por cancelación: ${match.experience.title}`,
+              },
+            });
+          }
+        }
+      } else if (match.paymentStatus === 'pending_payment') {
+        // No pagó aún, devolver comisiones al wallet de ambos
+        await Promise.all([
+          this.walletService.refundPlatformFee(match.hostId, id),
+          this.walletService.refundPlatformFee(match.requesterId, id),
+        ]);
+      } else if (refundAmount > 0) {
+        // Fallback: reembolso al wallet
         await this.walletService.addBalance(
           match.requesterId,
           refundAmount,

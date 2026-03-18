@@ -302,6 +302,27 @@ export class WalletService {
     });
   }
 
+  // Devolver comisión al wallet (cuando se cancela antes de pagar experiencia)
+  async refundPlatformFee(userId: string, matchId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.wallet.update({
+        where: { userId },
+        data: { balance: { increment: PLATFORM_FEE } },
+      });
+
+      await tx.transaction.create({
+        data: {
+          userId,
+          matchId,
+          type: 'refund',
+          amount: PLATFORM_FEE,
+          status: 'completed',
+          description: 'Devolución comisión por cancelación',
+        },
+      });
+    });
+  }
+
   // Obtener historial de transacciones del monedero
   async getTransactionHistory(
     userId: string,

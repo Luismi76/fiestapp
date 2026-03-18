@@ -69,6 +69,7 @@ export interface Match {
   participants?: number;
   participantNames?: string[];
   totalPrice?: number;
+  paymentStatus?: string;
   offerDescription?: string;
   offerExperienceId?: string;
   offerExperience?: OfferExperience | null;

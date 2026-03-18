@@ -418,6 +418,22 @@ export const matchesApi = {
     const response = await api.get<number>('/matches/unread-count');
     return response.data;
   },
+
+  // Crear pago de experiencia (Redsys)
+  createPayment: async (matchId: string): Promise<{
+    redsysUrl: string;
+    redsysBody: { Ds_SignatureVersion: string; Ds_MerchantParameters: string; Ds_Signature: string };
+    orderId: string;
+  }> => {
+    const response = await api.post(`/matches/${matchId}/create-payment`);
+    return response.data;
+  },
+
+  // Verificar estado del pago
+  getPaymentStatus: async (matchId: string): Promise<{ paymentStatus: string; amount: number }> => {
+    const response = await api.get(`/matches/${matchId}/payment-status`);
+    return response.data;
+  },
 };
 
 // Disputas API
