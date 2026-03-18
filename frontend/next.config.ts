@@ -56,7 +56,7 @@ const nextConfig: NextConfig = {
               "frame-src https://hcaptcha.com https://*.hcaptcha.com https://www.openstreetmap.org https://sis.redsys.es https://sis-t.redsys.es",
               "object-src 'none'",
               "base-uri 'self'",
-              "form-action 'self'",
+              "form-action 'self' https://sis.redsys.es https://sis-t.redsys.es:25443",
             ].join('; '),
           },
         ],
