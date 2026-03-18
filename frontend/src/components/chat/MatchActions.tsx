@@ -1,9 +1,10 @@
 'use client';
 
-import Link from 'next/link';
+import { useState } from 'react';
 import { MatchStatus } from '@/types/match';
 import { WalletInfo } from '@/lib/api';
 import { CanReviewResponse } from '@/types/review';
+import TopUpModal from '@/components/TopUpModal';
 
 interface MatchActionsProps {
   status: MatchStatus;
@@ -21,31 +22,48 @@ interface MatchActionsProps {
   onConfirm: () => void;
   onShowReviewForm: () => void;
   onOpenDispute?: () => void;
+  onWalletReloaded?: () => void;
 }
 
-function WalletWarning({ walletInfo }: { walletInfo: WalletInfo }) {
+const MIN_TOPUP = 4.5;
+
+function WalletWarning({ walletInfo, onTopUpSuccess }: { walletInfo: WalletInfo; onTopUpSuccess?: () => void }) {
+  const [showTopUp, setShowTopUp] = useState(false);
+
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600">
-            <path d="M2.273 5.625A4.483 4.483 0 0 1 5.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 3H5.25a3 3 0 0 0-2.977 2.625ZM2.273 8.625A4.483 4.483 0 0 1 5.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 6H5.25a3 3 0 0 0-2.977 2.625ZM5.25 9a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H15a.75.75 0 0 0-.75.75 2.25 2.25 0 0 1-4.5 0A.75.75 0 0 0 9 9H5.25Z" />
-          </svg>
+    <>
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-amber-600">
+              <path d="M2.273 5.625A4.483 4.483 0 0 1 5.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 3H5.25a3 3 0 0 0-2.977 2.625ZM2.273 8.625A4.483 4.483 0 0 1 5.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0 0 18.75 6H5.25a3 3 0 0 0-2.977 2.625ZM5.25 9a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h13.5a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H15a.75.75 0 0 0-.75.75 2.25 2.25 0 0 1-4.5 0A.75.75 0 0 0 9 9H5.25Z" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-medium text-amber-800">Saldo insuficiente</p>
+            <p className="text-sm text-amber-600">
+              Necesitas {walletInfo.platformFee}€ en tu monedero. Saldo actual: {walletInfo.balance.toFixed(2)}€
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="font-medium text-amber-800">Saldo insuficiente</p>
-          <p className="text-sm text-amber-600">
-            Necesitas {walletInfo.platformFee}€ en tu monedero. Saldo actual: {walletInfo.balance.toFixed(2)}€
-          </p>
-        </div>
+        <button
+          onClick={() => setShowTopUp(true)}
+          className="block w-full py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors text-center"
+        >
+          Recargar {MIN_TOPUP.toFixed(2).replace('.', ',')}€
+        </button>
       </div>
-      <Link
-        href="/wallet"
-        className="block w-full py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors text-center"
-      >
-        Recargar monedero
-      </Link>
-    </div>
+      {showTopUp && (
+        <TopUpModal
+          amount={MIN_TOPUP}
+          onClose={() => setShowTopUp(false)}
+          onSuccess={() => {
+            setShowTopUp(false);
+            onTopUpSuccess?.();
+          }}
+        />
+      )}
+    </>
   );
 }
 
@@ -64,12 +82,13 @@ export default function MatchActions({
   onConfirm,
   onShowReviewForm,
   onOpenDispute,
+  onWalletReloaded,
 }: MatchActionsProps) {
   // Pending - Host actions
   if (status === 'pending' && isHost) {
     return (
       <div className="mx-4 mt-3 space-y-3">
-        {walletInfo && !walletInfo.canOperate && <WalletWarning walletInfo={walletInfo} />}
+        {walletInfo && !walletInfo.canOperate && <WalletWarning walletInfo={walletInfo} onTopUpSuccess={onWalletReloaded} />}
         <div className="flex gap-2">
           <button
             onClick={onAccept}
@@ -98,7 +117,7 @@ export default function MatchActions({
   if (status === 'pending' && !isHost) {
     return (
       <div className="mx-4 mt-3 space-y-3">
-        {walletInfo && !walletInfo.canOperate && <WalletWarning walletInfo={walletInfo} />}
+        {walletInfo && !walletInfo.canOperate && <WalletWarning walletInfo={walletInfo} onTopUpSuccess={onWalletReloaded} />}
         {walletInfo && walletInfo.canOperate && (
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
             <div className="flex items-center gap-3">

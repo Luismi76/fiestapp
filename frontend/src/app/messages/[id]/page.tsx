@@ -501,6 +501,13 @@ export default function ChatPage() {
                 ? () => setShowDisputeModal(true)
                 : undefined
             }
+            onWalletReloaded={async () => {
+              try {
+                const wallet = await walletApi.getWallet();
+                setWalletInfo(wallet);
+                setWalletError('');
+              } catch {}
+            }}
           />
         </div>
 
