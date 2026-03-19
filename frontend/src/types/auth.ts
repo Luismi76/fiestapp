@@ -24,8 +24,13 @@ export interface RegisterData {
     email: string;
     password: string;
     name: string;
-    age: number;
-    city: string;
+    age?: number;
+    city?: string;
+    hasPartner?: boolean;
+    hasChildren?: boolean;
+    childrenAges?: string;
+    termsAccepted: boolean;
+    captchaToken?: string;
 }
 
 export interface RegisterResponse {

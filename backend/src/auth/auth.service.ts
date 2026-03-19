@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -59,7 +60,7 @@ export class AuthService {
 
     if (existingUser) {
       this.logger.debug(`Registration failed: Email ${email} already exists`);
-      throw new UnauthorizedException('Email already registered');
+      throw new ConflictException('Este email ya está registrado');
     }
 
     this.logger.debug('Hashing password...');
@@ -131,7 +132,7 @@ export class AuthService {
       );
 
       if (error instanceof Error && 'code' in error && error.code === 'P2002') {
-        throw new Error('Email already exists');
+        throw new ConflictException('Este email ya está registrado');
       }
       throw error;
     }

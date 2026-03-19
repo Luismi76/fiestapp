@@ -46,9 +46,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = useCallback(async (data: LoginData) => {
         try {
             const response = await authApi.login(data);
+            // Comprobar si requiere 2FA
+            if ('requiresTwoFactor' in response && (response as { requiresTwoFactor: boolean }).requiresTwoFactor) {
+                throw new Error('Se requiere verificación en dos pasos. Contacta al administrador.');
+            }
             setUser(response.user);
             router.push('/experiences');
         } catch (error) {
+            if (error instanceof Error && error.message.includes('verificación en dos pasos')) {
+                throw error;
+            }
             const axiosError = error as AxiosError<ApiErrorResponse>;
             const status = axiosError.response?.status;
             const message = axiosError.response?.data?.message || '';
