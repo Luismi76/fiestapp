@@ -137,7 +137,7 @@ export default function AdminVerificationsPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      if (user.role !== 'ADMIN') {
+      if (user.role !== 'admin') {
         router.push('/');
         return;
       }
@@ -149,7 +149,7 @@ export default function AdminVerificationsPage() {
   }, [authLoading, user, router, fetchStats, fetchVerifications]);
 
   useEffect(() => {
-    if (!authLoading && user?.role === 'ADMIN') {
+    if (!authLoading && user?.role === 'admin') {
       setLoading(true);
       fetchVerifications(true);
     }
