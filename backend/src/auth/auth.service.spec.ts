@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 // Mock dependencies before importing AuthService
@@ -102,14 +102,14 @@ describe('AuthService', () => {
       termsAccepted: true,
     };
 
-    it('should throw UnauthorizedException if email already exists', async () => {
+    it('should throw ConflictException if email already exists', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: '1',
         email: registerDto.email,
       });
 
       await expect(service.register(registerDto)).rejects.toThrow(
-        UnauthorizedException,
+        ConflictException,
       );
       expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith({
         where: { email: registerDto.email },
