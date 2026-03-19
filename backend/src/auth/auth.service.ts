@@ -480,6 +480,10 @@ export class AuthService {
         password: hashedPassword,
         passwordResetToken: null,
         passwordResetExpires: null,
+        // Si pudo recibir el email de reset, el email es válido
+        verified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
       },
     });
 
