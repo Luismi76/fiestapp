@@ -32,18 +32,12 @@ export class VerificationController {
 
   // ========== User Endpoints ==========
 
-  /**
-   * Get current user's verification status
-   */
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMyVerification(@Request() req: RequestWithUser) {
     return this.verificationService.getMyVerification(req.user.userId);
   }
 
-  /**
-   * Submit a new verification request
-   */
   @Post()
   @UseGuards(JwtAuthGuard)
   async createVerification(
@@ -55,9 +49,6 @@ export class VerificationController {
 
   // ========== Admin Endpoints ==========
 
-  /**
-   * Get all verifications (admin)
-   */
   @Get('admin')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getVerifications(
@@ -72,18 +63,12 @@ export class VerificationController {
     );
   }
 
-  /**
-   * Get verification statistics (admin)
-   */
   @Get('admin/stats')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getVerificationStats() {
     return this.verificationService.getVerificationStats();
   }
 
-  /**
-   * Get verification details (admin)
-   */
   @Get('admin/:id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getVerificationById(@Param('id') id: string) {
@@ -91,7 +76,24 @@ export class VerificationController {
   }
 
   /**
-   * Review (approve/reject) a verification (admin)
+   * Verificar/desverificar un usuario manualmente
+   */
+  @Put('admin/:id/toggle')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async toggleVerification(
+    @Param('id') id: string,
+    @Request() req: RequestWithUser,
+    @Body() body: { verified: boolean },
+  ) {
+    return this.verificationService.toggleVerification(
+      id,
+      req.user.userId,
+      body.verified,
+    );
+  }
+
+  /**
+   * Revisar verificación documental (aprobar/rechazar)
    */
   @Put('admin/:id')
   @UseGuards(JwtAuthGuard, AdminGuard)

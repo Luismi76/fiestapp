@@ -9,35 +9,22 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
 import api from '@/lib/api';
 import OptimizedAvatar from '@/components/OptimizedAvatar';
-import Image from 'next/image';
 
-type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
-type DocumentType = 'DNI' | 'PASSPORT' | 'DRIVER_LICENSE';
+type FilterStatus = 'PENDING' | 'VERIFIED' | 'ALL';
 
 interface VerificationListItem {
   id: string;
-  status: VerificationStatus;
-  documentType: DocumentType;
+  status: 'PENDING' | 'VERIFIED';
+  documentType: string | null;
   attempts: number;
   createdAt: string;
+  hasDocuments: boolean;
   user: {
     id: string;
     name: string;
     email: string;
     avatarUrl: string | null;
   };
-}
-
-interface VerificationDetail {
-  id: string;
-  status: VerificationStatus;
-  documentType: DocumentType;
-  documentFront: string;
-  documentBack: string | null;
-  selfie: string | null;
-  rejectionReason: string | null;
-  attempts: number;
-  createdAt: string;
 }
 
 interface VerificationStats {
@@ -48,16 +35,9 @@ interface VerificationStats {
   approvalRate: number;
 }
 
-const statusConfig: Record<VerificationStatus, { label: string; color: string; bgColor: string }> = {
+const statusConfig = {
   PENDING: { label: 'Pendiente', color: 'text-accent-dark', bgColor: 'bg-accent/10' },
   VERIFIED: { label: 'Verificado', color: 'text-emerald', bgColor: 'bg-emerald/10' },
-  REJECTED: { label: 'Rechazado', color: 'text-primary', bgColor: 'bg-primary/10' },
-};
-
-const documentTypeLabels: Record<DocumentType, string> = {
-  DNI: 'DNI',
-  PASSPORT: 'Pasaporte',
-  DRIVER_LICENSE: 'Carnet',
 };
 
 export default function AdminVerificationsPage() {
@@ -68,18 +48,11 @@ export default function AdminVerificationsPage() {
   const [verifications, setVerifications] = useState<VerificationListItem[]>([]);
   const [stats, setStats] = useState<VerificationStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<VerificationStatus | 'ALL'>('PENDING');
+  const [filter, setFilter] = useState<FilterStatus>('PENDING');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [total, setTotal] = useState(0);
-
-  // Detail modal state
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<VerificationDetail | null>(null);
-  const [detailUser, setDetailUser] = useState<VerificationListItem['user'] | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [processing, setProcessing] = useState(false);
+  const [processing, setProcessing] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -122,19 +95,6 @@ export default function AdminVerificationsPage() {
     }
   }, [filter, page, toast]);
 
-  const fetchDetail = async (id: string) => {
-    setLoadingDetail(true);
-    try {
-      const response = await api.get<VerificationDetail>(`/verification/admin/${id}`);
-      setDetail(response.data);
-    } catch {
-      toast.error('Error', 'No se pudo cargar el detalle');
-      setSelectedId(null);
-    } finally {
-      setLoadingDetail(false);
-    }
-  };
-
   useEffect(() => {
     if (!authLoading && user) {
       if (user.role !== 'admin') {
@@ -155,58 +115,25 @@ export default function AdminVerificationsPage() {
     }
   }, [filter, authLoading, user, fetchVerifications]);
 
-  const openDetail = (verification: VerificationListItem) => {
-    setSelectedId(verification.id);
-    setDetailUser(verification.user);
-    setRejectionReason('');
-    fetchDetail(verification.id);
-  };
+  const handleToggleVerification = async (userId: string, currentlyVerified: boolean) => {
+    const newStatus = !currentlyVerified;
+    const action = newStatus ? 'verificar' : 'desverificar';
 
-  const closeDetail = () => {
-    setSelectedId(null);
-    setDetail(null);
-    setDetailUser(null);
-    setRejectionReason('');
-  };
+    if (!confirm(`¿${newStatus ? 'Verificar' : 'Desverificar'} a este usuario?`)) return;
 
-  const handleApprove = async () => {
-    if (!selectedId) return;
-    setProcessing(true);
+    setProcessing(userId);
     try {
-      await api.put(`/verification/admin/${selectedId}`, {
-        status: 'VERIFIED',
-      });
-      toast.success('Aprobado', 'La verificación ha sido aprobada');
-      closeDetail();
+      await api.put(`/verification/admin/${userId}/toggle`, { verified: newStatus });
+      toast.success(
+        newStatus ? 'Verificado' : 'Desverificado',
+        `Usuario ${action === 'verificar' ? 'verificado' : 'desverificado'} correctamente`,
+      );
       fetchStats();
       fetchVerifications(true);
     } catch {
-      toast.error('Error', 'No se pudo aprobar la verificación');
+      toast.error('Error', `No se pudo ${action} al usuario`);
     } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!selectedId) return;
-    if (!rejectionReason.trim()) {
-      toast.error('Falta motivo', 'Debes indicar el motivo del rechazo');
-      return;
-    }
-    setProcessing(true);
-    try {
-      await api.put(`/verification/admin/${selectedId}`, {
-        status: 'REJECTED',
-        rejectionReason: rejectionReason.trim(),
-      });
-      toast.success('Rechazado', 'La verificación ha sido rechazada');
-      closeDetail();
-      fetchStats();
-      fetchVerifications(true);
-    } catch {
-      toast.error('Error', 'No se pudo rechazar la verificación');
-    } finally {
-      setProcessing(false);
+      setProcessing(null);
     }
   };
 
@@ -223,35 +150,31 @@ export default function AdminVerificationsPage() {
   return (
     <MainLayout hideNav>
       <div className="min-h-screen bg-gray-50">
-<AdminHeader title="Verificaciones de Identidad" />
+        <AdminHeader title="Verificaciones de Identidad" />
         <AdminNav />
 
         <div className="p-4 space-y-4">
           {/* Stats */}
           {stats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <div className="bg-white rounded-xl p-3 text-center border border-gray-100">
                 <p className="text-2xl font-bold text-accent">{stats.pending}</p>
-                <p className="text-xs text-gray-500">Pendientes</p>
+                <p className="text-xs text-gray-500">Sin verificar</p>
               </div>
               <div className="bg-white rounded-xl p-3 text-center border border-gray-100">
                 <p className="text-2xl font-bold text-emerald">{stats.verified}</p>
                 <p className="text-xs text-gray-500">Verificados</p>
               </div>
               <div className="bg-white rounded-xl p-3 text-center border border-gray-100">
-                <p className="text-2xl font-bold text-primary">{stats.rejected}</p>
-                <p className="text-xs text-gray-500">Rechazados</p>
-              </div>
-              <div className="bg-white rounded-xl p-3 text-center border border-gray-100">
                 <p className="text-2xl font-bold text-primary">{stats.approvalRate}%</p>
-                <p className="text-xs text-gray-500">Tasa de aprobación</p>
+                <p className="text-xs text-gray-500">Tasa verificación</p>
               </div>
             </div>
           )}
 
           {/* Filter Tabs */}
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {(['PENDING', 'VERIFIED', 'REJECTED', 'ALL'] as const).map((status) => (
+            {(['PENDING', 'VERIFIED', 'ALL'] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
@@ -261,7 +184,7 @@ export default function AdminVerificationsPage() {
                     : 'bg-white text-gray-600 border border-gray-200'
                 }`}
               >
-                {status === 'ALL' ? 'Todas' : statusConfig[status].label}
+                {status === 'ALL' ? 'Todos' : status === 'PENDING' ? 'Sin verificar' : 'Verificados'}
               </button>
             ))}
           </div>
@@ -273,14 +196,13 @@ export default function AdminVerificationsPage() {
                 <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                <p className="text-gray-500">No hay verificaciones {filter !== 'ALL' ? statusConfig[filter].label.toLowerCase() + 's' : ''}</p>
+                <p className="text-gray-500">No hay usuarios {filter === 'PENDING' ? 'sin verificar' : filter === 'VERIFIED' ? 'verificados' : ''}</p>
               </div>
             ) : (
               verifications.map((v) => (
-                <button
+                <div
                   key={v.id}
-                  onClick={() => openDetail(v)}
-                  className="w-full bg-white rounded-xl p-4 border border-gray-100 flex items-center gap-4 text-left hover:border-primary/30 transition-colors"
+                  className="w-full bg-white rounded-xl p-4 border border-gray-100 flex items-center gap-4"
                 >
                   <OptimizedAvatar
                     src={v.user.avatarUrl}
@@ -290,21 +212,34 @@ export default function AdminVerificationsPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">{v.user.name}</p>
                     <p className="text-sm text-gray-500 truncate">{v.user.email}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-gray-400">
-                        {documentTypeLabels[v.documentType]}
-                      </span>
-                      {v.attempts > 1 && (
-                        <span className="text-xs text-terracotta">
-                          Intento {v.attempts}
-                        </span>
-                      )}
-                    </div>
+                    {v.hasDocuments && v.documentType && (
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Doc: {v.documentType === 'DNI' ? 'DNI' : v.documentType === 'PASSPORT' ? 'Pasaporte' : 'Carnet'}
+                        {v.attempts > 1 && <span className="text-terracotta ml-1">({v.attempts} intentos)</span>}
+                      </p>
+                    )}
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[v.status].bgColor} ${statusConfig[v.status].color}`}>
-                    {statusConfig[v.status].label}
-                  </span>
-                </button>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusConfig[v.status].bgColor} ${statusConfig[v.status].color}`}>
+                      {statusConfig[v.status].label}
+                    </span>
+                    <button
+                      onClick={() => handleToggleVerification(v.user.id, v.status === 'VERIFIED')}
+                      disabled={processing === v.user.id}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
+                        v.status === 'VERIFIED'
+                          ? 'bg-red-50 text-red-600 hover:bg-red-100'
+                          : 'bg-emerald/10 text-emerald hover:bg-emerald/20'
+                      }`}
+                    >
+                      {processing === v.user.id
+                        ? '...'
+                        : v.status === 'VERIFIED'
+                          ? 'Desverificar'
+                          : 'Verificar'}
+                    </button>
+                  </div>
+                </div>
               ))
             )}
           </div>
@@ -322,150 +257,6 @@ export default function AdminVerificationsPage() {
             </button>
           )}
         </div>
-
-        {/* Detail Modal */}
-        {selectedId && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center">
-            <div className="bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[90vh] overflow-y-auto">
-              {/* Modal Header */}
-              <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-                <h2 className="font-semibold">Detalle de Verificación</h2>
-                <button onClick={closeDetail} className="w-8 h-8 flex items-center justify-center">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {loadingDetail ? (
-                <div className="p-8 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : detail && detailUser ? (
-                <div className="p-4 space-y-4">
-                  {/* User Info */}
-                  <div className="flex items-center gap-3">
-                    <OptimizedAvatar
-                      src={detailUser.avatarUrl}
-                      name={detailUser.name}
-                      size="lg"
-                    />
-                    <div>
-                      <p className="font-semibold text-gray-900">{detailUser.name}</p>
-                      <p className="text-sm text-gray-500">{detailUser.email}</p>
-                    </div>
-                  </div>
-
-                  {/* Document Info */}
-                  <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Tipo de documento:</span>
-                      <span className="font-medium">{documentTypeLabels[detail.documentType]}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Intentos:</span>
-                      <span className="font-medium">{detail.attempts}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Enviado:</span>
-                      <span className="font-medium">
-                        {new Date(detail.createdAt).toLocaleDateString('es-ES')}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Document Images */}
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Parte frontal</p>
-                      <Image
-                        src={detail.documentFront}
-                        alt="Documento frontal"
-                        className="w-full rounded-xl border border-gray-200"
-                        width={600} height={400} unoptimized
-                      />
-                    </div>
-
-                    {detail.documentBack && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Parte trasera</p>
-                        <Image
-                          src={detail.documentBack}
-                          alt="Documento trasera"
-                          className="w-full rounded-xl border border-gray-200"
-                          width={600} height={400} unoptimized
-                        />
-                      </div>
-                    )}
-
-                    {detail.selfie && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Selfie con documento</p>
-                        <Image
-                          src={detail.selfie}
-                          alt="Selfie"
-                          className="w-full rounded-xl border border-gray-200"
-                          width={600} height={400} unoptimized
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Actions (only for PENDING) */}
-                  {detail.status === 'PENDING' && (
-                    <div className="space-y-3 pt-4 border-t border-gray-100">
-                      {/* Rejection Reason */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Motivo de rechazo (si aplica)
-                        </label>
-                        <textarea
-                          value={rejectionReason}
-                          onChange={(e) => setRejectionReason(e.target.value)}
-                          placeholder="Ej: El documento no es legible..."
-                          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
-                          rows={2}
-                        />
-                      </div>
-
-                      {/* Buttons */}
-                      <div className="flex gap-3">
-                        <button
-                          onClick={handleReject}
-                          disabled={processing}
-                          className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50"
-                        >
-                          Rechazar
-                        </button>
-                        <button
-                          onClick={handleApprove}
-                          disabled={processing}
-                          className="flex-1 py-3 bg-emerald text-white font-semibold rounded-xl hover:bg-emerald/80 transition-colors disabled:opacity-50"
-                        >
-                          Aprobar
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Already reviewed */}
-                  {detail.status !== 'PENDING' && (
-                    <div className={`p-4 rounded-xl ${statusConfig[detail.status].bgColor}`}>
-                      <p className={`font-semibold ${statusConfig[detail.status].color}`}>
-                        {statusConfig[detail.status].label}
-                      </p>
-                      {detail.rejectionReason && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          Motivo: {detail.rejectionReason}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        )}
       </div>
     </MainLayout>
   );
