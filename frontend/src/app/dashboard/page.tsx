@@ -18,6 +18,7 @@ import {
   VerifiedIcon,
   MapPinIcon,
 } from '@/components/icons';
+import InstallButton from '@/components/InstallButton';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -412,6 +413,11 @@ export default function DashboardPage() {
                   <span className="font-medium text-[#1A1410] text-sm">Mi perfil</span>
                 </Link>
               </div>
+            </section>
+
+            {/* Instalar PWA */}
+            <section className="px-4 lg:px-0 mt-6">
+              <InstallButton />
             </section>
           </div>
         </div>

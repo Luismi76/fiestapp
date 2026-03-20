@@ -8,6 +8,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useMessages } from '@/contexts/MessageContext';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import InstallButton from '@/components/InstallButton';
 
 function Header() {
   const pathname = usePathname();
@@ -221,6 +222,9 @@ function Header() {
                         </svg>
                         Estadísticas
                       </Link>
+                      <div className="border-t border-gray-100 mt-2 pt-2 px-2">
+                        <InstallButton />
+                      </div>
                       <div className="border-t border-gray-100 mt-2 pt-2">
                         <button
                           onClick={logout}
@@ -373,8 +377,9 @@ function Header() {
             </nav>
 
             {isAuthenticated && (
-              <div className="p-4 border-t border-gray-100">
-                <div className="flex items-center gap-3 mb-4">
+              <div className="p-4 border-t border-gray-100 space-y-3">
+                <InstallButton />
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
                     {user?.name?.charAt(0).toUpperCase() || 'U'}
                   </div>
