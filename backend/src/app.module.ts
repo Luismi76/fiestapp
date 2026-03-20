@@ -41,6 +41,7 @@ import { GdprModule } from './gdpr/gdpr.module';
 import { HealthModule } from './health/health.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { EvaluationModule } from './evaluation/evaluation.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -103,6 +104,7 @@ import { EvaluationModule } from './evaluation/evaluation.module';
     HealthModule,
     FeedbackModule,
     EvaluationModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [

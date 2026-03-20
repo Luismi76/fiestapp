@@ -82,7 +82,7 @@ export class ExperiencesService {
           title: createDto.title,
           description: createDto.description,
           festivalId: createDto.festivalId,
-          category: createDto.category,
+          categoryId: createDto.categoryId,
           city: createDto.city,
           latitude: coordinates?.latitude,
           longitude: coordinates?.longitude,
@@ -109,6 +109,15 @@ export class ExperiencesService {
               city: true,
               latitude: true,
               longitude: true,
+            },
+          },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              group: true,
+              icon: true,
             },
           },
         },
@@ -263,6 +272,15 @@ export class ExperiencesService {
               longitude: true,
             },
           },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              group: true,
+              icon: true,
+            },
+          },
           _count: {
             select: {
               reviews: true,
@@ -349,6 +367,15 @@ export class ExperiencesService {
           },
         },
         festival: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            group: true,
+            icon: true,
+          },
+        },
         reviews: {
           include: {
             author: {
@@ -437,6 +464,15 @@ export class ExperiencesService {
             verified: true,
           },
         },
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            group: true,
+            icon: true,
+          },
+        },
         _count: {
           select: {
             reviews: true,
@@ -518,6 +554,15 @@ export class ExperiencesService {
               city: true,
               latitude: true,
               longitude: true,
+            },
+          },
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              group: true,
+              icon: true,
             },
           },
         },

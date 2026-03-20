@@ -116,12 +116,29 @@ model Festival {
   @@map("festivals")
 }
 
+model Category {
+  id          String       @id @default(uuid())
+  name        String
+  slug        String       @unique
+  group       String       // "fiesta" | "local"
+  icon        String       // emoji
+  sortOrder   Int          @default(0)
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  experiences Experience[]
+
+  @@index([group])
+  @@index([active])
+  @@map("categories")
+}
+
 model Experience {
   id              String                   @id @default(uuid())
   title           String
   description     String
   festivalId      String?                  // Opcional - puede ser experiencia sin festividad
-  category        ExperienceCategory       @default(cultura) // Categoría obligatoria
+  categoryId      String?                  // Categoría dinámica (referencia a Category)
   city            String
   latitude        Float?                   // Coordenadas de la ciudad
   longitude       Float?
@@ -146,6 +163,7 @@ model Experience {
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
   availability    ExperienceAvailability[]
+  category        Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   festival        Festival?                @relation(fields: [festivalId], references: [id])
   host            User                     @relation(fields: [hostId], references: [id], onDelete: Cascade)
   matches         Match[]
@@ -157,7 +175,7 @@ model Experience {
   @@index([festivalId])
   @@index([hostId])
   @@index([type])
-  @@index([category])
+  @@index([categoryId])
   @@index([published])
   @@index([city])
   @@index([createdAt])
@@ -552,15 +570,6 @@ enum MessageType {
   VOICE
   LOCATION
   QUICK_REPLY
-}
-
-enum ExperienceCategory {
-  gastronomia
-  cultura
-  naturaleza
-  aventura
-  nocturna
-  familiar
 }
 
 enum CancellationPolicy {

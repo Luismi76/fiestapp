@@ -19,6 +19,7 @@ import {
   ExperienceFilters,
   Festival,
   OccupancyResponse,
+  Category,
 } from '@/types/experience';
 import {
   Match,
@@ -332,6 +333,34 @@ export const festivalsApi = {
     if (filters?.type) params.append('type', filters.type);
     if (filters?.city) params.append('city', filters.city);
     return `${API_URL}/festivals/ical?${params}`;
+  },
+};
+
+export const categoriesApi = {
+  getAll: async (group?: string): Promise<Category[]> => {
+    const params = group ? `?group=${group}` : '';
+    const response = await api.get<Category[]>(`/categories${params}`);
+    return response.data;
+  },
+
+  getAllAdmin: async (): Promise<(Category & { _count: { experiences: number } })[]> => {
+    const response = await api.get<(Category & { _count: { experiences: number } })[]>('/categories/admin');
+    return response.data;
+  },
+
+  create: async (data: { name: string; slug: string; group: string; icon: string; sortOrder?: number }): Promise<Category> => {
+    const response = await api.post<Category>('/categories', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: Partial<{ name: string; slug: string; group: string; icon: string; sortOrder: number }>): Promise<Category> => {
+    const response = await api.put<Category>(`/categories/${id}`, data);
+    return response.data;
+  },
+
+  toggleActive: async (id: string): Promise<Category> => {
+    const response = await api.patch<Category>(`/categories/${id}/toggle`);
+    return response.data;
   },
 };
 

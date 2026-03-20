@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { experiencesApi, festivalsApi, uploadsApi } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { Festival, ExperienceType, ExperienceCategory, ExperienceDetail } from '@/types/experience';
+import { Festival, ExperienceType, ExperienceDetail } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import CategorySelector from '@/components/CategorySelector';
@@ -60,7 +60,7 @@ export default function EditExperiencePage() {
   const [highlights, setHighlights] = useState<string[]>(['']);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [capacity, setCapacity] = useState(1);
-  const [category, setCategory] = useState<ExperienceCategory | ''>('');
+  const [categoryId, setCategoryId] = useState('');
   const [noFestival, setNoFestival] = useState(false);
 
   const {
@@ -98,7 +98,7 @@ export default function EditExperiencePage() {
         setPhotos(experienceData.photos || []);
         setHighlights(experienceData.highlights?.length ? experienceData.highlights : ['']);
         setCapacity(experienceData.capacity || 1);
-        setCategory(experienceData.category || '');
+        setCategoryId(experienceData.categoryId || experienceData.category?.id || '');
         setNoFestival(!experienceData.festivalId);
 
         // Convert availability dates to Date objects
@@ -229,7 +229,7 @@ export default function EditExperiencePage() {
         title: data.title,
         description: data.description,
         festivalId: noFestival ? undefined : data.festivalId,
-        category: category as ExperienceCategory,
+        categoryId,
         city: data.city,
         type: data.type,
         price: data.type !== 'intercambio' && data.price ? parseFloat(data.price) : undefined,
@@ -533,8 +533,8 @@ export default function EditExperiencePage() {
 
         {/* Categoría */}
         <CategorySelector
-          value={category}
-          onChange={(cat) => setCategory(cat)}
+          value={categoryId}
+          onChange={(id) => setCategoryId(id)}
         />
 
         {/* Festividad */}

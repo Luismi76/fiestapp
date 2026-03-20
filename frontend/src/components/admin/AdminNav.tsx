@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { href: '/admin/disputes', label: 'Disputas', alertKey: 'disputes' as const },
   { href: '/admin/reports', label: 'Reportes', alertKey: 'reports' as const },
   { href: '/admin/verifications', label: 'Verif.', alertKey: 'verifications' as const },
+  { href: '/admin/categories', label: 'Categ.', alertKey: null },
   { href: '/admin/evaluaciones', label: 'Eval.', alertKey: null },
 ];
 

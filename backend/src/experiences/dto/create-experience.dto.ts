@@ -5,6 +5,7 @@ import {
   IsArray,
   IsEnum,
   IsDateString,
+  IsNotEmpty,
   Min,
   MinLength,
 } from 'class-validator';
@@ -13,15 +14,6 @@ export enum ExperienceType {
   PAGO = 'pago',
   INTERCAMBIO = 'intercambio',
   AMBOS = 'ambos',
-}
-
-export enum ExperienceCategory {
-  GASTRONOMIA = 'gastronomia',
-  CULTURA = 'cultura',
-  NATURALEZA = 'naturaleza',
-  AVENTURA = 'aventura',
-  NOCTURNA = 'nocturna',
-  FAMILIAR = 'familiar',
 }
 
 export class CreateExperienceDto {
@@ -39,11 +31,9 @@ export class CreateExperienceDto {
   @IsString()
   festivalId?: string;
 
-  @IsEnum(ExperienceCategory, {
-    message:
-      'Categoría debe ser: gastronomia, cultura, naturaleza, aventura, nocturna o familiar',
-  })
-  category: ExperienceCategory;
+  @IsString()
+  @IsNotEmpty({ message: 'La categoría es obligatoria' })
+  categoryId: string;
 
   @IsString()
   city: string;

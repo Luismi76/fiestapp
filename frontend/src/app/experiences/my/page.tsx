@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { experiencesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Experience, CATEGORY_LABELS } from '@/types/experience';
+import { Experience } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import { ExperienceGridSkeleton } from '@/components/ui/Skeleton';
@@ -204,7 +204,7 @@ export default function MyExperiencesPage() {
                 {/* Content */}
                 <div className="flex-1 p-3 md:p-4 min-w-0">
                   <p className="text-xs text-blue-600 font-medium mb-1">
-                    {experience.festival?.name || CATEGORY_LABELS[experience.category]}
+                    {experience.festival?.name || experience.category?.name || 'Sin categoría'}
                   </p>
                   <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm md:text-base leading-tight mb-2">
                     {experience.title}

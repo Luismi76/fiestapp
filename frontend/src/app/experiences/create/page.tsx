@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { experiencesApi, uploadsApi } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { Festival, ExperienceType, ExperienceCategory, CreateExperienceData } from '@/types/experience';
+import { Festival, ExperienceType, CreateExperienceData } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import FestivalSelector from '@/components/FestivalSelector';
@@ -42,7 +42,7 @@ interface DraftData {
   selectedDates: string[]; // ISO strings
   capacity: number;
   noFestival: boolean;
-  category: ExperienceCategory | '';
+  categoryId: string;
   currentStep: number;
   savedAt: number;
 }
@@ -166,7 +166,7 @@ export default function CreateExperiencePage() {
   const [festivalError, setFestivalError] = useState('');
   const [capacity, setCapacity] = useState(1);
   const [noFestival, setNoFestival] = useState(false);
-  const [category, setCategory] = useState<ExperienceCategory | ''>('');
+  const [categoryId, setCategoryId] = useState('');
   const [categoryError, setCategoryError] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
   const draftLoaded = useRef(false);
@@ -211,7 +211,7 @@ export default function CreateExperiencePage() {
       }
       if (draft.capacity) setCapacity(draft.capacity);
       if (draft.noFestival !== undefined) setNoFestival(draft.noFestival);
-      if (draft.category) setCategory(draft.category);
+      if (draft.categoryId) setCategoryId(draft.categoryId);
       if (draft.currentStep && draft.currentStep >= 1) {
         // Mapear pasos antiguos (de wizard de 5 pasos) al nuevo de 3
         setCurrentStep(Math.min(draft.currentStep, STEPS.length));
@@ -247,7 +247,7 @@ export default function CreateExperiencePage() {
         selectedDates: selectedDates.map(d => d.toISOString()),
         capacity,
         noFestival,
-        category,
+        categoryId,
         currentStep,
         savedAt: Date.now(),
       };
@@ -260,7 +260,7 @@ export default function CreateExperiencePage() {
     watchedValues.title, watchedValues.description, watchedValues.festivalId,
     watchedValues.city, watchedValues.price, watchedValues.type,
     selectedFestival, highlights, selectedDates, capacity, noFestival,
-    category, currentStep,
+    categoryId, currentStep,
   ]);
 
   // --- Borrador: descartar ---
@@ -282,7 +282,7 @@ export default function CreateExperiencePage() {
     setSelectedDates([]);
     setCapacity(1);
     setNoFestival(false);
-    setCategory('');
+    setCategoryId('');
     setCurrentStep(1);
     setPendingPhotos([]);
   }, [setValue]);
@@ -338,7 +338,7 @@ export default function CreateExperiencePage() {
           return false;
         }
         // Categoría siempre es obligatoria
-        if (!category) {
+        if (!categoryId) {
           setCategoryError('Selecciona una categoría');
           return false;
         }
@@ -416,7 +416,7 @@ export default function CreateExperiencePage() {
         title: data.title,
         description: data.description,
         festivalId: noFestival ? undefined : data.festivalId,
-        category: category as ExperienceCategory,
+        categoryId,
         city: data.city,
         type: data.type,
         price: data.type !== 'intercambio' && data.price ? parseFloat(data.price) : undefined,
@@ -628,9 +628,9 @@ export default function CreateExperiencePage() {
 
             {/* Category */}
             <CategorySelector
-              value={category}
-              onChange={(cat) => {
-                setCategory(cat);
+              value={categoryId}
+              onChange={(id) => {
+                setCategoryId(id);
                 setCategoryError('');
               }}
               error={categoryError}
