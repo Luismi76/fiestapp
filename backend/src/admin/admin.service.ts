@@ -33,7 +33,7 @@ export class AdminService {
       this.prisma.dispute.count({ where: { status: 'OPEN' } }),
       this.prisma.dispute.count({ where: { status: 'UNDER_REVIEW' } }),
       this.prisma.report.count({ where: { status: 'pending' } }),
-      this.prisma.user.count({ where: { identityVerified: false } }),
+      this.prisma.user.count({ where: { verified: false } }),
       this.prisma.user.count({ where: { strikes: { gt: 0 }, bannedAt: null } }),
       this.prisma.user.count({ where: { bannedAt: { not: null } } }),
     ]);

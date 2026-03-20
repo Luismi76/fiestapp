@@ -91,8 +91,8 @@ export class VerificationService {
    */
   async getVerificationStats() {
     const [verified, pending, total] = await Promise.all([
-      this.prisma.user.count({ where: { identityVerified: true } }),
-      this.prisma.user.count({ where: { identityVerified: false } }),
+      this.prisma.user.count({ where: { verified: true } }),
+      this.prisma.user.count({ where: { verified: false } }),
       this.prisma.user.count(),
     ]);
 
@@ -115,14 +115,12 @@ export class VerificationService {
   ) {
     const skip = (page - 1) * limit;
 
-    // Filtro sobre identityVerified del usuario
     const where: Record<string, unknown> = {};
     if (status === VerificationStatus.VERIFIED) {
-      where.identityVerified = true;
+      where.verified = true;
     } else if (status === VerificationStatus.PENDING) {
-      where.identityVerified = false;
+      where.verified = false;
     }
-    // REJECTED y ALL no filtran
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
@@ -132,18 +130,10 @@ export class VerificationService {
           name: true,
           email: true,
           avatar: true,
-          identityVerified: true,
+          verified: true,
           createdAt: true,
-          identityVerification: {
-            select: {
-              id: true,
-              status: true,
-              documentType: true,
-              attempts: true,
-            },
-          },
         },
-        orderBy: [{ identityVerified: 'asc' }, { createdAt: 'desc' }],
+        orderBy: [{ verified: 'asc' }, { createdAt: 'desc' }],
         skip,
         take: limit,
       }),
@@ -151,14 +141,11 @@ export class VerificationService {
     ]);
 
     const verifications = users.map((u) => ({
-      id: u.id, // usamos el userId como id del item
-      status: u.identityVerified
+      id: u.id,
+      status: u.verified
         ? ('VERIFIED' as VerificationStatus)
         : ('PENDING' as VerificationStatus),
-      documentType: u.identityVerification?.documentType as DocumentType || null,
-      attempts: u.identityVerification?.attempts ?? 0,
       createdAt: u.createdAt,
-      hasDocuments: !!u.identityVerification,
       user: {
         id: u.id,
         name: u.name,
@@ -187,9 +174,8 @@ export class VerificationService {
         name: true,
         email: true,
         avatar: true,
-        identityVerified: true,
+        verified: true,
         createdAt: true,
-        identityVerification: true,
       },
     });
 
@@ -202,29 +188,15 @@ export class VerificationService {
       userName: user.name,
       userEmail: user.email,
       userAvatar: user.avatar,
-      identityVerified: user.identityVerified,
+      verified: user.verified,
       createdAt: user.createdAt,
-      // Datos de documento (si existen)
-      document: user.identityVerification
-        ? {
-            id: user.identityVerification.id,
-            status: user.identityVerification.status,
-            documentType: user.identityVerification.documentType,
-            documentFront: user.identityVerification.documentFront,
-            documentBack: user.identityVerification.documentBack,
-            selfie: user.identityVerification.selfie,
-            rejectionReason: user.identityVerification.rejectionReason,
-            attempts: user.identityVerification.attempts,
-            createdAt: user.identityVerification.createdAt,
-          }
-        : null,
     };
   }
 
   /**
    * Admin: Verificar/desverificar un usuario manualmente
    */
-  async toggleVerification(userId: string, adminId: string, verified: boolean) {
+  async toggleVerification(userId: string, adminId: string, newVerified: boolean) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -235,40 +207,14 @@ export class VerificationService {
 
     await this.prisma.user.update({
       where: { id: userId },
-      data: { identityVerified: verified },
+      data: { verified: newVerified },
     });
-
-    // Si tiene un registro de IdentityVerification, actualizarlo también
-    const iv = await this.prisma.identityVerification.findUnique({
-      where: { userId },
-    });
-    if (iv) {
-      await this.prisma.identityVerification.update({
-        where: { userId },
-        data: {
-          status: verified ? 'VERIFIED' : 'REJECTED',
-          verifiedAt: verified ? new Date() : null,
-          verifiedById: verified ? adminId : null,
-          rejectionReason: verified ? null : 'Desverificado por admin',
-        },
-      });
-    }
-
-    // Notificar al usuario
-    if (verified) {
-      await this.notificationsService.create({
-        userId,
-        type: 'system',
-        title: 'Identidad verificada',
-        message: 'Tu identidad ha sido verificada por un administrador.',
-      });
-    }
 
     this.logger.log(
-      `Admin ${adminId} ${verified ? 'verified' : 'unverified'} user ${userId}`,
+      `Admin ${adminId} ${newVerified ? 'verified' : 'unverified'} user ${userId}`,
     );
 
-    return { userId, identityVerified: verified };
+    return { userId, verified: newVerified };
   }
 
   /**
