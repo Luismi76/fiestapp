@@ -16,11 +16,10 @@ export class CategoriesService implements OnModuleInit {
   constructor(private prisma: PrismaService) {}
 
   async onModuleInit() {
-    const count = await this.prisma.category.count();
-    if (count === 0) {
-      this.logger.log('No hay categorías en la BD, ejecutando seed automático...');
-      await this.seed();
-    }
+    // Siempre ejecutar upsert para asegurar que todas las categorías existen
+    // (la migración solo creó las 6 locales, faltan las de fiesta)
+    this.logger.log('Verificando categorías...');
+    await this.seed();
   }
 
   async seed() {
@@ -37,8 +36,9 @@ export class CategoriesService implements OnModuleInit {
       { name: 'Gastronomía / Tapas', slug: 'gastronomia', group: 'local', icon: '🍷', sortOrder: 1 },
       { name: 'Cultura / Historia', slug: 'cultura', group: 'local', icon: '🏛️', sortOrder: 2 },
       { name: 'Naturaleza / Senderismo', slug: 'naturaleza', group: 'local', icon: '🥾', sortOrder: 3 },
-      { name: 'Vida nocturna', slug: 'nocturna', group: 'local', icon: '🌙', sortOrder: 4 },
-      { name: 'Familiar', slug: 'familiar', group: 'local', icon: '👨‍👩‍👧', sortOrder: 5 },
+      { name: 'Aventura', slug: 'aventura', group: 'local', icon: '⛰️', sortOrder: 4 },
+      { name: 'Vida nocturna', slug: 'nocturna', group: 'local', icon: '🌙', sortOrder: 5 },
+      { name: 'Familiar', slug: 'familiar', group: 'local', icon: '👨‍👩‍👧', sortOrder: 6 },
     ];
 
     for (const cat of categories) {

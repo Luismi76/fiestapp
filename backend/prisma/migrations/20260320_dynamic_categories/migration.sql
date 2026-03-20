@@ -17,8 +17,17 @@ CREATE UNIQUE INDEX "categories_slug_key" ON "categories"("slug");
 CREATE INDEX "categories_group_idx" ON "categories"("group");
 CREATE INDEX "categories_active_idx" ON "categories"("active");
 
--- Seed: insertar las 6 categorías originales del enum con UUIDs deterministas
+-- Seed: insertar las 6 categorías originales del enum (para mapeo) + 7 de fiesta
 INSERT INTO "categories" ("id", "name", "slug", "group", "icon", "sortOrder", "updatedAt") VALUES
+  -- Fiestas populares
+  (gen_random_uuid(), 'Feria', 'feria', 'fiesta', '🎪', 1, NOW()),
+  (gen_random_uuid(), 'Romería', 'romeria', 'fiesta', '⛪', 2, NOW()),
+  (gen_random_uuid(), 'Procesión', 'procesion', 'fiesta', '🕯️', 3, NOW()),
+  (gen_random_uuid(), 'Carnaval', 'carnaval', 'fiesta', '🎭', 4, NOW()),
+  (gen_random_uuid(), 'Verbena / Fiesta patronal', 'verbena', 'fiesta', '🎆', 5, NOW()),
+  (gen_random_uuid(), 'Encierro / Fiesta taurina', 'encierro', 'fiesta', '🐂', 6, NOW()),
+  (gen_random_uuid(), 'Festival / Concierto', 'festival', 'fiesta', '🎵', 7, NOW()),
+  -- Experiencias locales
   (gen_random_uuid(), 'Gastronomía / Tapas', 'gastronomia', 'local', '🍷', 1, NOW()),
   (gen_random_uuid(), 'Cultura / Historia', 'cultura', 'local', '🏛️', 2, NOW()),
   (gen_random_uuid(), 'Naturaleza / Senderismo', 'naturaleza', 'local', '🥾', 3, NOW()),
