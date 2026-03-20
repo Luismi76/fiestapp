@@ -139,6 +139,7 @@ async function main() {
 
   // Limpiar datos existentes
   console.log('🧹 Limpiando datos existentes...');
+  await prisma.identityVerification.deleteMany();
   await prisma.message.deleteMany();
   await prisma.review.deleteMany();
   await prisma.match.deleteMany();
@@ -797,6 +798,106 @@ async function main() {
   );
 
   console.log(`✅ ${users.length} wallets creadas`);
+
+  // Crear verificaciones de identidad
+  console.log('🪪 Creando verificaciones de identidad...');
+
+  // URLs placeholder para documentos de verificación
+  const DOC_IMAGES = {
+    dni_front: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829490/fiestapp/seed/doc_dni_front.jpg',
+    dni_back: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829491/fiestapp/seed/doc_dni_back.jpg',
+    passport_front: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829492/fiestapp/seed/doc_passport_front.jpg',
+    selfie: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829493/fiestapp/seed/doc_selfie.jpg',
+    driver_front: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829494/fiestapp/seed/doc_driver_front.jpg',
+    driver_back: 'https://res.cloudinary.com/dzeqlp4rr/image/upload/v1768829495/fiestapp/seed/doc_driver_back.jpg',
+  };
+
+  const verifications = await Promise.all([
+    // María - Verificada con DNI
+    prisma.identityVerification.create({
+      data: {
+        userId: 'user-maria',
+        status: 'VERIFIED',
+        documentType: 'DNI',
+        documentFront: DOC_IMAGES.dni_front,
+        documentBack: DOC_IMAGES.dni_back,
+        selfie: DOC_IMAGES.selfie,
+        verifiedAt: new Date('2026-01-15'),
+        verifiedById: 'user-admin',
+        attempts: 1,
+      },
+    }),
+    // Carlos - Verificado con Pasaporte
+    prisma.identityVerification.create({
+      data: {
+        userId: 'user-carlos',
+        status: 'VERIFIED',
+        documentType: 'PASSPORT',
+        documentFront: DOC_IMAGES.passport_front,
+        selfie: DOC_IMAGES.selfie,
+        verifiedAt: new Date('2026-02-01'),
+        verifiedById: 'user-admin',
+        attempts: 1,
+      },
+    }),
+    // Laura - Pendiente con DNI
+    prisma.identityVerification.create({
+      data: {
+        userId: 'user-laura',
+        status: 'PENDING',
+        documentType: 'DNI',
+        documentFront: DOC_IMAGES.dni_front,
+        documentBack: DOC_IMAGES.dni_back,
+        selfie: DOC_IMAGES.selfie,
+        attempts: 1,
+      },
+    }),
+    // Pedro - Pendiente con Carnet de conducir
+    prisma.identityVerification.create({
+      data: {
+        userId: 'user-pedro',
+        status: 'PENDING',
+        documentType: 'DRIVER_LICENSE',
+        documentFront: DOC_IMAGES.driver_front,
+        documentBack: DOC_IMAGES.driver_back,
+        selfie: DOC_IMAGES.selfie,
+        attempts: 1,
+      },
+    }),
+    // Juan - Rechazado (documento ilegible), reenvió y está pendiente
+    prisma.identityVerification.create({
+      data: {
+        userId: 'user-juan',
+        status: 'PENDING',
+        documentType: 'DNI',
+        documentFront: DOC_IMAGES.dni_front,
+        documentBack: DOC_IMAGES.dni_back,
+        selfie: DOC_IMAGES.selfie,
+        rejectionReason: null,
+        attempts: 2,
+      },
+    }),
+    // Ana - Rechazada (foto borrosa)
+    prisma.identityVerification.create({
+      data: {
+        userId: 'user-ana',
+        status: 'REJECTED',
+        documentType: 'DNI',
+        documentFront: DOC_IMAGES.dni_front,
+        documentBack: DOC_IMAGES.dni_back,
+        rejectionReason: 'La foto del documento está borrosa y no se pueden leer los datos. Por favor, envía una foto más nítida.',
+        attempts: 1,
+      },
+    }),
+  ]);
+
+  // Actualizar identityVerified para usuarios verificados
+  await prisma.user.updateMany({
+    where: { id: { in: ['user-maria', 'user-carlos'] } },
+    data: { identityVerified: true },
+  });
+
+  console.log(`✅ ${verifications.length} verificaciones de identidad creadas (2 verificadas, 3 pendientes, 1 rechazada)`);
 
   // Asignar badges a usuarios basados en sus datos
   console.log('🏅 Asignando badges a usuarios...');
