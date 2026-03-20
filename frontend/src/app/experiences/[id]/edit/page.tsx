@@ -11,13 +11,13 @@ import { ExperienceType, ExperienceDetail } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import CategorySelector from '@/components/CategorySelector';
+import CitySelector, { CityLocation } from '@/components/CitySelector';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
 
 interface FormData {
   title: string;
   description: string;
-  city: string;
   price: string;
   type: ExperienceType;
 }
@@ -59,6 +59,8 @@ export default function EditExperiencePage() {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [capacity, setCapacity] = useState(1);
   const [categoryId, setCategoryId] = useState('');
+  const [city, setCity] = useState('');
+  const [cityCoords, setCityCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const {
     register,
@@ -91,6 +93,10 @@ export default function EditExperiencePage() {
         setHighlights(experienceData.highlights?.length ? experienceData.highlights : ['']);
         setCapacity(experienceData.capacity || 1);
         setCategoryId(experienceData.categoryId || experienceData.category?.id || '');
+        setCity(experienceData.city);
+        if (experienceData.latitude && experienceData.longitude) {
+          setCityCoords({ latitude: experienceData.latitude, longitude: experienceData.longitude });
+        }
 
         // Convert availability dates to Date objects
         if (experienceData.availability && experienceData.availability.length > 0) {
@@ -105,7 +111,6 @@ export default function EditExperiencePage() {
         reset({
           title: experienceData.title,
           description: experienceData.description,
-          city: experienceData.city,
           price: experienceData.price?.toString() || '',
           type: experienceData.type,
         });
@@ -196,6 +201,11 @@ export default function EditExperiencePage() {
     }
   };
 
+  const handleCityChange = (location: CityLocation) => {
+    setCity(location.city);
+    setCityCoords({ latitude: location.latitude, longitude: location.longitude });
+  };
+
   const onSubmit = async (data: FormData) => {
     setSaving(true);
     setError('');
@@ -219,7 +229,9 @@ export default function EditExperiencePage() {
         title: data.title,
         description: data.description,
         categoryId,
-        city: data.city,
+        city,
+        latitude: cityCoords?.latitude,
+        longitude: cityCoords?.longitude,
         type: data.type,
         price: data.type !== 'intercambio' && data.price ? parseFloat(data.price) : undefined,
         highlights: validHighlightsList.length > 0 ? validHighlightsList : [],
@@ -527,22 +539,10 @@ export default function EditExperiencePage() {
         />
 
         {/* Ciudad */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Ciudad
-          </label>
-          <input
-            type="text"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-            placeholder="¿Dónde se realiza la experiencia?"
-            {...register('city', {
-              required: 'La ciudad es obligatoria',
-            })}
-          />
-          {errors.city && (
-            <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>
-          )}
-        </div>
+        <CitySelector
+          value={city}
+          onChange={handleCityChange}
+        />
 
         {/* Tipo */}
         <div>

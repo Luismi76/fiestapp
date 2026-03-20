@@ -105,6 +105,8 @@ export interface CreateExperienceData {
   festivalId?: string;
   categoryId: string;
   city: string;
+  latitude?: number;
+  longitude?: number;
   price?: number;
   type: ExperienceType;
   photos?: string[];

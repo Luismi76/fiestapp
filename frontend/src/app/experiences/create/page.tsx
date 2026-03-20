@@ -11,6 +11,7 @@ import { ExperienceType, CreateExperienceData } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import CategorySelector from '@/components/CategorySelector';
+import CitySelector, { CityLocation } from '@/components/CitySelector';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
 import Image from 'next/image';
@@ -18,7 +19,6 @@ import Image from 'next/image';
 interface FormData {
   title: string;
   description: string;
-  city: string;
   price: string;
   type: ExperienceType;
 }
@@ -27,6 +27,7 @@ const DRAFT_KEY = 'fiestapp_experience_draft';
 
 interface DraftData {
   formValues: Partial<FormData>;
+  city: string;
   highlights: string[];
   selectedDates: string[]; // ISO strings
   capacity: number;
@@ -153,6 +154,9 @@ export default function CreateExperiencePage() {
   const [capacity, setCapacity] = useState(1);
   const [categoryId, setCategoryId] = useState('');
   const [categoryError, setCategoryError] = useState('');
+  const [city, setCity] = useState('');
+  const [cityCoords, setCityCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [cityError, setCityError] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
   const draftLoaded = useRef(false);
 
@@ -189,6 +193,7 @@ export default function CreateExperiencePage() {
       }
 
       // Restaurar estados adicionales
+      if (draft.city) setCity(draft.city);
       if (draft.highlights && draft.highlights.length > 0) setHighlights(draft.highlights);
       if (draft.selectedDates && draft.selectedDates.length > 0) {
         setSelectedDates(draft.selectedDates.map(d => new Date(d)));
@@ -220,10 +225,10 @@ export default function CreateExperiencePage() {
         formValues: {
           title: watchedValues.title,
           description: watchedValues.description,
-          city: watchedValues.city,
           price: watchedValues.price,
           type: watchedValues.type,
         },
+        city,
         highlights,
         selectedDates: selectedDates.map(d => d.toISOString()),
         capacity,
@@ -238,8 +243,8 @@ export default function CreateExperiencePage() {
     return () => clearTimeout(timeout);
   }, [
     watchedValues.title, watchedValues.description,
-    watchedValues.city, watchedValues.price, watchedValues.type,
-    highlights, selectedDates, capacity,
+    watchedValues.price, watchedValues.type,
+    city, highlights, selectedDates, capacity,
     categoryId, currentStep,
   ]);
 
@@ -251,11 +256,12 @@ export default function CreateExperiencePage() {
     // Resetear formulario
     setValue('title', '');
     setValue('description', '');
-    setValue('city', '');
     setValue('price', '');
     setValue('type', 'pago');
 
     // Resetear estados
+    setCity('');
+    setCityCoords(null);
     setHighlights(['']);
     setSelectedDates([]);
     setCapacity(1);
@@ -281,11 +287,17 @@ export default function CreateExperiencePage() {
     switch (step) {
       case 1: {
         // Paso 1: "Qué ofreces" - combina básicos + detalles
-        const fieldsToValidate: (keyof FormData)[] = ['title', 'city', 'type', 'description'];
+        const fieldsToValidate: (keyof FormData)[] = ['title', 'type', 'description'];
         if (selectedType !== 'intercambio') {
           fieldsToValidate.push('price');
         }
         const fieldsValid = await trigger(fieldsToValidate);
+        // Ciudad obligatoria (gestionada fuera del formulario)
+        if (!city) {
+          setCityError('La ubicación es obligatoria');
+          return false;
+        }
+        setCityError('');
         // Precio > 0 si modalidad es de pago (#34)
         if (selectedType !== 'intercambio' && (!watchedValues.price || parseFloat(watchedValues.price) <= 0)) {
           setError('El precio debe ser mayor que 0 para experiencias de pago');
@@ -353,6 +365,12 @@ export default function CreateExperiencePage() {
     }
   };
 
+  const handleCityChange = (location: CityLocation) => {
+    setCity(location.city);
+    setCityCoords({ latitude: location.latitude, longitude: location.longitude });
+    setCityError('');
+  };
+
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     setError('');
@@ -370,7 +388,9 @@ export default function CreateExperiencePage() {
         title: data.title,
         description: data.description,
         categoryId,
-        city: data.city,
+        city,
+        latitude: cityCoords?.latitude,
+        longitude: cityCoords?.longitude,
         type: data.type,
         price: data.type !== 'intercambio' && data.price ? parseFloat(data.price) : undefined,
         highlights: validHighlightsList.length > 0 ? validHighlightsList : undefined,
@@ -590,29 +610,11 @@ export default function CreateExperiencePage() {
             />
 
             {/* City */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Ciudad <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                className={`w-full px-4 py-3.5 bg-white border-2 rounded-xl text-gray-900 placeholder-gray-400 transition-colors focus:outline-none focus:border-primary ${
-                  errors.city ? 'border-red-300' : 'border-gray-200'
-                }`}
-                placeholder="¿Dónde se realiza?"
-                {...register('city', {
-                  required: 'La ciudad es obligatoria',
-                })}
-              />
-              {errors.city && (
-                <p className="text-red-500 text-sm mt-1.5 flex items-center gap-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4">
-                    <path fillRule="evenodd" d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14Zm2.78-4.22a.75.75 0 0 1-1.06 0L8 9.06l-1.72 1.72a.75.75 0 1 1-1.06-1.06L6.94 8 5.22 6.28a.75.75 0 0 1 1.06-1.06L8 6.94l1.72-1.72a.75.75 0 1 1 1.06 1.06L9.06 8l1.72 1.72a.75.75 0 0 1 0 1.06Z" clipRule="evenodd" />
-                  </svg>
-                  {errors.city.message}
-                </p>
-              )}
-            </div>
+            <CitySelector
+              value={city}
+              onChange={handleCityChange}
+              error={cityError}
+            />
 
             {/* Type */}
             <div>
@@ -987,7 +989,7 @@ export default function CreateExperiencePage() {
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
                       <path fillRule="evenodd" d="m7.539 14.841.003.003.002.002a.755.755 0 0 0 .912 0l.002-.002.003-.003.012-.009a5.57 5.57 0 0 0 .19-.153 15.588 15.588 0 0 0 2.046-2.082c1.101-1.362 2.291-3.342 2.291-5.597A5 5 0 0 0 3 7c0 2.255 1.19 4.235 2.292 5.597a15.591 15.591 0 0 0 2.046 2.082 8.916 8.916 0 0 0 .189.153l.012.01ZM8 8.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" clipRule="evenodd" />
                     </svg>
-                    {watchedValues.city || 'Ciudad'}
+                    {city || 'Ciudad'}
                   </span>
                 </div>
                 <h3 className="font-bold text-lg text-gray-900 mb-2">
@@ -1037,7 +1039,7 @@ export default function CreateExperiencePage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-gray-500">Ciudad</p>
-                  <p className="font-medium text-gray-900">{watchedValues.city || '-'}</p>
+                  <p className="font-medium text-gray-900">{city || '-'}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Modalidad</p>

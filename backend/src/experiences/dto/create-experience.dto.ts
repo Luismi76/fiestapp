@@ -40,6 +40,14 @@ export class CreateExperienceDto {
 
   @IsOptional()
   @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @IsNumber()
   @Min(0, { message: 'El precio no puede ser negativo' })
   price?: number;
 

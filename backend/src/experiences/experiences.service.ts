@@ -72,8 +72,11 @@ export class ExperiencesService {
       }
     }
 
-    // Geocodificar la ciudad para obtener coordenadas
-    const coordinates = await this.geocodeCity(createDto.city);
+    // Usar coordenadas del frontend si se proporcionan, sino geocodificar
+    const coordinates =
+      createDto.latitude && createDto.longitude
+        ? { latitude: createDto.latitude, longitude: createDto.longitude }
+        : await this.geocodeCity(createDto.city);
 
     // Crear experiencia con disponibilidad en una transacción
     const experience = await this.prisma.$transaction(async (tx) => {
@@ -517,12 +520,14 @@ export class ExperiencesService {
       );
     }
 
-    // Extraer availability del DTO para manejarlo por separado
-    const { availability, ...updateData } = updateDto;
+    // Extraer availability y coords del DTO para manejarlo por separado
+    const { availability, latitude, longitude, ...updateData } = updateDto;
 
-    // Si se cambia la ciudad, geocodificar las nuevas coordenadas
+    // Usar coordenadas del frontend si las envía, sino geocodificar si cambia la ciudad
     let coordinates: { latitude: number; longitude: number } | null = null;
-    if (updateData.city && updateData.city !== experience.city) {
+    if (latitude && longitude) {
+      coordinates = { latitude, longitude };
+    } else if (updateData.city && updateData.city !== experience.city) {
       coordinates = await this.geocodeCity(updateData.city);
     }
 
