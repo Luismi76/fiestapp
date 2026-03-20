@@ -7,10 +7,9 @@ import { useForm } from 'react-hook-form';
 import { experiencesApi, uploadsApi } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { Festival, ExperienceType, CreateExperienceData } from '@/types/experience';
+import { ExperienceType, CreateExperienceData } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
-import FestivalSelector from '@/components/FestivalSelector';
 import CategorySelector from '@/components/CategorySelector';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
@@ -19,29 +18,18 @@ import Image from 'next/image';
 interface FormData {
   title: string;
   description: string;
-  festivalId: string;
   city: string;
   price: string;
   type: ExperienceType;
-}
-
-// Interfaz para festividad nueva creada por el usuario
-interface NewFestival {
-  id: string;
-  name: string;
-  city: string;
-  isNew: true;
 }
 
 const DRAFT_KEY = 'fiestapp_experience_draft';
 
 interface DraftData {
   formValues: Partial<FormData>;
-  selectedFestival: (Festival | NewFestival) | null;
   highlights: string[];
   selectedDates: string[]; // ISO strings
   capacity: number;
-  noFestival: boolean;
   categoryId: string;
   currentStep: number;
   savedAt: number;
@@ -155,7 +143,6 @@ export default function CreateExperiencePage() {
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedFestival, setSelectedFestival] = useState<Festival | NewFestival | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
@@ -163,9 +150,7 @@ export default function CreateExperiencePage() {
   const [uploadProgress, setUploadProgress] = useState('');
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [highlights, setHighlights] = useState<string[]>(['']);
-  const [festivalError, setFestivalError] = useState('');
   const [capacity, setCapacity] = useState(1);
-  const [noFestival, setNoFestival] = useState(false);
   const [categoryId, setCategoryId] = useState('');
   const [categoryError, setCategoryError] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
@@ -204,13 +189,11 @@ export default function CreateExperiencePage() {
       }
 
       // Restaurar estados adicionales
-      if (draft.selectedFestival) setSelectedFestival(draft.selectedFestival);
       if (draft.highlights && draft.highlights.length > 0) setHighlights(draft.highlights);
       if (draft.selectedDates && draft.selectedDates.length > 0) {
         setSelectedDates(draft.selectedDates.map(d => new Date(d)));
       }
       if (draft.capacity) setCapacity(draft.capacity);
-      if (draft.noFestival !== undefined) setNoFestival(draft.noFestival);
       if (draft.categoryId) setCategoryId(draft.categoryId);
       if (draft.currentStep && draft.currentStep >= 1) {
         // Mapear pasos antiguos (de wizard de 5 pasos) al nuevo de 3
@@ -237,16 +220,13 @@ export default function CreateExperiencePage() {
         formValues: {
           title: watchedValues.title,
           description: watchedValues.description,
-          festivalId: watchedValues.festivalId,
           city: watchedValues.city,
           price: watchedValues.price,
           type: watchedValues.type,
         },
-        selectedFestival,
         highlights,
         selectedDates: selectedDates.map(d => d.toISOString()),
         capacity,
-        noFestival,
         categoryId,
         currentStep,
         savedAt: Date.now(),
@@ -257,9 +237,9 @@ export default function CreateExperiencePage() {
 
     return () => clearTimeout(timeout);
   }, [
-    watchedValues.title, watchedValues.description, watchedValues.festivalId,
+    watchedValues.title, watchedValues.description,
     watchedValues.city, watchedValues.price, watchedValues.type,
-    selectedFestival, highlights, selectedDates, capacity, noFestival,
+    highlights, selectedDates, capacity,
     categoryId, currentStep,
   ]);
 
@@ -271,17 +251,14 @@ export default function CreateExperiencePage() {
     // Resetear formulario
     setValue('title', '');
     setValue('description', '');
-    setValue('festivalId', '');
     setValue('city', '');
     setValue('price', '');
     setValue('type', 'pago');
 
     // Resetear estados
-    setSelectedFestival(null);
     setHighlights(['']);
     setSelectedDates([]);
     setCapacity(1);
-    setNoFestival(false);
     setCategoryId('');
     setCurrentStep(1);
     setPendingPhotos([]);
@@ -292,24 +269,6 @@ export default function CreateExperiencePage() {
     localStorage.removeItem(DRAFT_KEY);
     setHasDraft(false);
   }, []);
-
-  // Auto-fill city when festival is selected
-  useEffect(() => {
-    if (selectedFestival && !watchedValues.city) {
-      setValue('city', selectedFestival.city);
-    }
-  }, [selectedFestival, setValue, watchedValues.city]);
-
-  // Handle festival selection from the custom selector
-  const handleFestivalChange = (festivalId: string, festival?: Festival | NewFestival) => {
-    setValue('festivalId', festivalId);
-    setSelectedFestival(festival || null);
-    setFestivalError('');
-    // Auto-fill city
-    if (festival) {
-      setValue('city', festival.city);
-    }
-  };
 
   // Generate preview URLs for photos
   useEffect(() => {
@@ -330,11 +289,6 @@ export default function CreateExperiencePage() {
         // Precio > 0 si modalidad es de pago (#34)
         if (selectedType !== 'intercambio' && (!watchedValues.price || parseFloat(watchedValues.price) <= 0)) {
           setError('El precio debe ser mayor que 0 para experiencias de pago');
-          return false;
-        }
-        // Si no es sin festividad, debe tener una festividad seleccionada
-        if (!noFestival && !selectedFestival) {
-          setFestivalError('Selecciona una festividad o marca "Sin festividad asociada"');
           return false;
         }
         // Categoría siempre es obligatoria
@@ -415,7 +369,6 @@ export default function CreateExperiencePage() {
       const experienceData: CreateExperienceData = {
         title: data.title,
         description: data.description,
-        festivalId: noFestival ? undefined : data.festivalId,
         categoryId,
         city: data.city,
         type: data.type,
@@ -635,43 +588,6 @@ export default function CreateExperiencePage() {
               }}
               error={categoryError}
             />
-
-            {/* Festival toggle */}
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={noFestival}
-                  onChange={(e) => {
-                    setNoFestival(e.target.checked);
-                    if (e.target.checked) {
-                      setValue('festivalId', '');
-                      setSelectedFestival(null);
-                      setFestivalError('');
-                    }
-                  }}
-                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <div>
-                  <span className="text-sm font-medium text-gray-900">Sin festividad asociada</span>
-                  <p className="text-xs text-gray-500">Experiencia disponible todo el año (ej: ruta de tapas)</p>
-                </div>
-              </label>
-
-              {/* Festival Selector - only show if noFestival is false */}
-              {!noFestival && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-900 mb-2">
-                    ¿En qué festividad?
-                  </label>
-                  <FestivalSelector
-                    value={watchedValues.festivalId || ''}
-                    onChange={handleFestivalChange}
-                    error={festivalError}
-                  />
-                </div>
-              )}
-            </div>
 
             {/* City */}
             <div>
@@ -1071,10 +987,8 @@ export default function CreateExperiencePage() {
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5">
                       <path fillRule="evenodd" d="m7.539 14.841.003.003.002.002a.755.755 0 0 0 .912 0l.002-.002.003-.003.012-.009a5.57 5.57 0 0 0 .19-.153 15.588 15.588 0 0 0 2.046-2.082c1.101-1.362 2.291-3.342 2.291-5.597A5 5 0 0 0 3 7c0 2.255 1.19 4.235 2.292 5.597a15.591 15.591 0 0 0 2.046 2.082 8.916 8.916 0 0 0 .189.153l.012.01ZM8 8.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" clipRule="evenodd" />
                     </svg>
-                    {selectedFestival?.name || 'Sin festividad'}
+                    {watchedValues.city || 'Ciudad'}
                   </span>
-                  <span className="text-xs text-gray-400">·</span>
-                  <span className="text-xs text-gray-500">{watchedValues.city || 'Ciudad'}</span>
                 </div>
                 <h3 className="font-bold text-lg text-gray-900 mb-2">
                   {watchedValues.title || 'Título de tu experiencia'}
@@ -1121,10 +1035,6 @@ export default function CreateExperiencePage() {
             <div className="bg-gray-50 rounded-xl p-4 space-y-3">
               <h4 className="font-semibold text-gray-900">Resumen</h4>
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-gray-500">Festividad</p>
-                  <p className="font-medium text-gray-900">{selectedFestival?.name || 'Disponible todo el año'}</p>
-                </div>
                 <div>
                   <p className="text-gray-500">Ciudad</p>
                   <p className="font-medium text-gray-900">{watchedValues.city || '-'}</p>
