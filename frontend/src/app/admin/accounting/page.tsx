@@ -136,6 +136,14 @@ const statusBadge: Record<string, { label: string; bg: string; text: string }> =
   refunded: { label: 'Reembolsado', bg: 'bg-amber-100', text: 'text-amber-700' },
 };
 
+const typeBorderColor: Record<string, string> = {
+  platform_fee: 'border-l-purple-500',
+  topup: 'border-l-blue-500',
+  refund: 'border-l-amber-500',
+  payment: 'border-l-green-500',
+  experience_payment: 'border-l-emerald-500',
+};
+
 // ============================================
 // API
 // ============================================
@@ -250,6 +258,49 @@ const accountingApi = {
 };
 
 // ============================================
+// SHARED UI COMPONENTS
+// ============================================
+
+function LoadingSpinner({ text = 'Cargando...' }: { text?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="spinner spinner-lg" />
+      <p className="text-sm text-gray-400 mt-3">{text}</p>
+    </div>
+  );
+}
+
+function ErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-red-500 flex-shrink-0">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+        </svg>
+        <span className="text-red-700 text-sm">{message}</span>
+      </div>
+      <button
+        onClick={onRetry}
+        className="w-full sm:w-auto min-h-[44px] px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+      >
+        Reintentar
+      </button>
+    </div>
+  );
+}
+
+function EmptyState({ icon, message }: { icon: React.ReactNode; message: string }) {
+  return (
+    <div className="text-center py-12">
+      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        {icon}
+      </div>
+      <p className="text-gray-500 text-sm">{message}</p>
+    </div>
+  );
+}
+
+// ============================================
 // SUB-COMPONENTS
 // ============================================
 
@@ -265,34 +316,36 @@ function KpiCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <div className="flex items-start justify-between">
-        <div className="w-10 h-10 bg-secondary/10 rounded-xl flex items-center justify-center flex-shrink-0">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 md:w-10 md:h-10 bg-secondary/10 rounded-xl flex items-center justify-center flex-shrink-0">
           {icon}
         </div>
-        {change !== undefined && (
-          <span
-            className={`flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full ${
-              change >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-            }`}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2.5}
-              stroke="currentColor"
-              className={`w-3 h-3 ${change < 0 ? 'rotate-180' : ''}`}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
-            </svg>
-            {Math.abs(change).toFixed(1)}%
-          </span>
-        )}
-      </div>
-      <div className="mt-3">
-        <div className="text-2xl font-bold text-gray-900">{value}</div>
-        <div className="text-xs text-gray-500 mt-0.5">{label}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <div className="text-lg md:text-2xl font-bold text-gray-900 truncate">{value}</div>
+            {change !== undefined && (
+              <span
+                className={`flex items-center gap-0.5 text-[10px] md:text-xs font-semibold px-1.5 md:px-2 py-0.5 rounded-full flex-shrink-0 ${
+                  change >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2.5}
+                  stroke="currentColor"
+                  className={`w-2.5 h-2.5 md:w-3 md:h-3 ${change < 0 ? 'rotate-180' : ''}`}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                </svg>
+                {Math.abs(change).toFixed(1)}%
+              </span>
+            )}
+          </div>
+          <div className="text-[11px] md:text-xs text-gray-500 mt-0.5 truncate">{label}</div>
+        </div>
       </div>
     </div>
   );
@@ -307,8 +360,8 @@ function RevenueBarChart({
 }) {
   if (!data || !data.length) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Ingresos por periodo</h3>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <h3 className="font-semibold text-gray-900 mb-4 text-sm md:text-base">Ingresos por periodo</h3>
         <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
           Sin datos para el periodo seleccionado
         </div>
@@ -332,9 +385,9 @@ function RevenueBarChart({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <h3 className="font-semibold text-gray-900 mb-4">Ingresos por periodo</h3>
-      <div className="flex items-end gap-1 h-40">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+      <h3 className="font-semibold text-gray-900 mb-4 text-sm md:text-base">Ingresos por periodo</h3>
+      <div className="flex items-end gap-0.5 md:gap-1 h-40">
         {data.map((item, index) => {
           const height = (item.revenue / maxValue) * 100;
           return (
@@ -345,10 +398,11 @@ function RevenueBarChart({
                   height: `${height}%`,
                   backgroundColor: '#8B5CF6',
                   minHeight: item.revenue > 0 ? '4px' : '0',
+                  minWidth: '6px',
                 }}
                 title={`${item.period}: ${formatEur(item.revenue)}`}
               />
-              <span className="text-[9px] text-gray-400 mt-1 truncate w-full text-center">
+              <span className="text-[8px] md:text-[9px] text-gray-400 mt-1 truncate w-full text-center">
                 {formatLabel(item.period)}
               </span>
             </div>
@@ -389,22 +443,11 @@ function ResumenTab() {
   }, [fetchDashboard]);
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="spinner spinner-lg" />
-      </div>
-    );
+    return <LoadingSpinner text="Cargando resumen..." />;
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
-        {error}
-        <button onClick={fetchDashboard} className="ml-3 underline font-medium">
-          Reintentar
-        </button>
-      </div>
-    );
+    return <ErrorCard message={error} onRetry={fetchDashboard} />;
   }
 
   if (!dashboardData) return null;
@@ -421,24 +464,24 @@ function ResumenTab() {
   return (
     <div className="space-y-4">
       {/* Date range picker */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="flex-1">
             <label className="block text-xs text-gray-500 mb-1">Desde</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50 min-h-[44px]"
             />
           </div>
-          <div>
+          <div className="flex-1">
             <label className="block text-xs text-gray-500 mb-1">Hasta</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50 min-h-[44px]"
             />
           </div>
           <button
@@ -446,7 +489,7 @@ function ResumenTab() {
               setStartDate('');
               setEndDate('');
             }}
-            className="text-xs text-secondary font-medium px-3 py-2"
+            className="text-xs text-secondary font-medium px-3 py-2.5 min-h-[44px] hover:bg-secondary/5 rounded-lg transition-colors"
           >
             Limpiar
           </button>
@@ -454,13 +497,13 @@ function ResumenTab() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         <KpiCard
           label="Comisiones plataforma"
           value={formatEur(kpis.platformFees)}
           change={kpis.platformFeesChange}
           icon={
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5 text-secondary">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
             </svg>
           }
@@ -470,7 +513,7 @@ function ResumenTab() {
           value={formatEur(kpis.walletTopups)}
           change={kpis.walletTopupsChange}
           icon={
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5 text-secondary">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
             </svg>
           }
@@ -480,7 +523,7 @@ function ResumenTab() {
           value={formatEur(kpis.experiencePayments)}
           change={kpis.experiencePaymentsChange}
           icon={
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5 text-secondary">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
             </svg>
           }
@@ -490,7 +533,7 @@ function ResumenTab() {
           value={formatEur(kpis.refunds)}
           change={kpis.refundsChange}
           icon={
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5 text-secondary">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
             </svg>
           }
@@ -499,7 +542,7 @@ function ResumenTab() {
           label="Saldo total wallets"
           value={formatEur(kpis.totalWalletBalance)}
           icon={
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5 text-secondary">
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" />
             </svg>
           }
@@ -509,7 +552,7 @@ function ResumenTab() {
           value={kpis.operationsCount.toLocaleString('es-ES')}
           change={kpis.operationsCountChange}
           icon={
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5 text-secondary">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
             </svg>
           }
@@ -518,12 +561,12 @@ function ResumenTab() {
 
       {/* Chart + period selector */}
       <div className="space-y-2">
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           {(['daily', 'weekly', 'monthly'] as const).map((g) => (
             <button
               key={g}
               onClick={() => setGranularity(g)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              className={`px-4 py-2 rounded-full text-xs font-medium transition-colors whitespace-nowrap min-h-[36px] ${
                 granularity === g
                   ? 'bg-secondary text-white'
                   : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
@@ -555,6 +598,7 @@ function TransaccionesTab() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterSearch, setFilterSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [showFilters, setShowFilters] = useState(false);
 
   const filters = {
     startDate: filterStartDate || undefined,
@@ -598,74 +642,91 @@ function TransaccionesTab() {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Desde</label>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4 space-y-3">
+        {/* Always visible: search + type on one row */}
+        <div className="flex gap-2">
+          <form onSubmit={handleSearch} className="flex-1">
             <input
-              type="date"
-              value={filterStartDate}
-              onChange={(e) => { setFilterStartDate(e.target.value); setPage(1); }}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50"
+              type="text"
+              value={filterSearch}
+              onChange={(e) => setFilterSearch(e.target.value)}
+              placeholder="Buscar usuario o email..."
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50 min-h-[44px]"
             />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Hasta</label>
-            <input
-              type="date"
-              value={filterEndDate}
-              onChange={(e) => { setFilterEndDate(e.target.value); setPage(1); }}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Tipo</label>
-            <select
-              value={filterType}
-              onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-            >
-              <option value="all">Todos</option>
-              <option value="topup">Recarga</option>
-              <option value="platform_fee">Comision</option>
-              <option value="refund">Reembolso</option>
-              <option value="experience_payment">Pago experiencia</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Estado</label>
-            <select
-              value={filterStatus}
-              onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
-            >
-              <option value="all">Todos</option>
-              <option value="completed">Completado</option>
-              <option value="pending">Pendiente</option>
-              <option value="cancelled">Cancelado</option>
-              <option value="refunded">Reembolsado</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500 mb-1">Buscar</label>
-            <form onSubmit={handleSearch} className="flex gap-1">
+          </form>
+          <select
+            value={filterType}
+            onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
+            className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm min-h-[44px] max-w-[140px]"
+          >
+            <option value="all">Todos</option>
+            <option value="topup">Recarga</option>
+            <option value="platform_fee">Comision</option>
+            <option value="refund">Reembolso</option>
+            <option value="experience_payment">Pago exp.</option>
+          </select>
+        </div>
+
+        {/* Mobile toggle for additional filters */}
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center gap-1.5 text-xs text-secondary font-medium md:hidden min-h-[36px]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
+          </svg>
+          {showFilters ? 'Ocultar filtros' : 'Mas filtros'}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-3 h-3 transition-transform ${showFilters ? 'rotate-180' : ''}`}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+
+        {/* Collapsible filters on mobile, always visible on md+ */}
+        <div className={`${showFilters ? 'block' : 'hidden'} md:block space-y-3`}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Desde</label>
               <input
-                type="text"
-                value={filterSearch}
-                onChange={(e) => setFilterSearch(e.target.value)}
-                placeholder="Usuario o email..."
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50"
+                type="date"
+                value={filterStartDate}
+                onChange={(e) => { setFilterStartDate(e.target.value); setPage(1); }}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50 min-h-[44px]"
               />
-            </form>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+              <input
+                type="date"
+                value={filterEndDate}
+                onChange={(e) => { setFilterEndDate(e.target.value); setPage(1); }}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50 min-h-[44px]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Estado</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm min-h-[44px]"
+              >
+                <option value="all">Todos</option>
+                <option value="completed">Completado</option>
+                <option value="pending">Pendiente</option>
+                <option value="cancelled">Cancelado</option>
+                <option value="refunded">Reembolsado</option>
+              </select>
+            </div>
           </div>
         </div>
-        <div className="flex items-center justify-between">
+
+        {/* Footer: count + export */}
+        <div className="flex items-center justify-between pt-1">
           <span className="text-xs text-gray-400">
-            {pagination.total} transacciones encontradas
+            {pagination.total} transacciones
           </span>
           <button
             onClick={handleExport}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-white rounded-lg text-xs font-medium hover:bg-secondary/90 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 bg-secondary text-white rounded-lg text-xs font-medium hover:bg-secondary/90 transition-colors min-h-[36px]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -676,25 +737,50 @@ function TransaccionesTab() {
       </div>
 
       {/* Error */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
-          {error}
-          <button onClick={fetchTransactions} className="ml-3 underline font-medium">
-            Reintentar
-          </button>
-        </div>
-      )}
+      {error && <ErrorCard message={error} onRetry={fetchTransactions} />}
 
       {/* Loading */}
-      {loading && (
-        <div className="flex justify-center py-8">
-          <div className="spinner spinner-lg" />
+      {loading && <LoadingSpinner text="Cargando transacciones..." />}
+
+      {/* MOBILE: Card-based transaction list */}
+      {!loading && transactions.length > 0 && (
+        <div className="md:hidden space-y-3">
+          {transactions.map((tx) => {
+            const tBadge = typeBadge[tx.type] || { label: tx.type, bg: 'bg-gray-100', text: 'text-gray-600' };
+            const sBadge = statusBadge[tx.status] || { label: tx.status, bg: 'bg-gray-100', text: 'text-gray-500' };
+            const isNegative = tx.type === 'refund' || tx.amount < 0;
+            const borderColor = typeBorderColor[tx.type] || 'border-l-gray-300';
+            return (
+              <div
+                key={tx.id}
+                className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderColor} p-3`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${tBadge.bg} ${tBadge.text}`}>
+                    {tBadge.label}
+                  </span>
+                  <span className={`text-base font-bold ${isNegative ? 'text-red-600' : 'text-green-600'}`}>
+                    {isNegative ? '-' : '+'}{formatEur(Math.abs(tx.amount))}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-gray-900 truncate">{tx.userName}</div>
+                    <div className="text-xs text-gray-400">{formatDate(tx.date)}</div>
+                  </div>
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${sBadge.bg} ${sBadge.text} ml-2 flex-shrink-0`}>
+                    {sBadge.label}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Table */}
+      {/* DESKTOP: Table */}
       {!loading && transactions.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -704,7 +790,7 @@ function TransaccionesTab() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Tipo</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-500">Importe</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Estado</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500 hidden md:table-cell">Descripcion</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">Descripcion</th>
                 </tr>
               </thead>
               <tbody>
@@ -734,7 +820,7 @@ function TransaccionesTab() {
                           {sBadge.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs max-w-[200px] truncate hidden md:table-cell">
+                      <td className="px-4 py-3 text-gray-500 text-xs max-w-[200px] truncate">
                         {tx.description}
                       </td>
                     </tr>
@@ -748,14 +834,14 @@ function TransaccionesTab() {
 
       {/* Empty */}
       {!loading && transactions.length === 0 && !error && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <EmptyState
+          icon={
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
             </svg>
-          </div>
-          <p className="text-gray-500">No hay transacciones con estos filtros</p>
-        </div>
+          }
+          message="No hay transacciones con estos filtros"
+        />
       )}
 
       {/* Pagination */}
@@ -764,11 +850,12 @@ function TransaccionesTab() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors min-h-[44px]"
           >
             Anterior
           </button>
-          <div className="flex gap-1">
+          {/* Page numbers: hidden on mobile, visible on md+ */}
+          <div className="hidden md:flex gap-1">
             {Array.from({ length: Math.min(pagination.pages, 7) }, (_, i) => {
               let pageNum: number;
               if (pagination.pages <= 7) {
@@ -784,7 +871,7 @@ function TransaccionesTab() {
                 <button
                   key={pageNum}
                   onClick={() => setPage(pageNum)}
-                  className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                  className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
                     page === pageNum
                       ? 'bg-secondary text-white'
                       : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -795,10 +882,14 @@ function TransaccionesTab() {
               );
             })}
           </div>
+          {/* Mobile page indicator */}
+          <span className="md:hidden text-xs text-gray-500">
+            {page} / {pagination.pages}
+          </span>
           <button
             onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
             disabled={page === pagination.pages}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors"
+            className="px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors min-h-[44px]"
           >
             Siguiente
           </button>
@@ -842,22 +933,11 @@ function Dac7Tab() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="spinner spinner-lg" />
-      </div>
-    );
+    return <LoadingSpinner text="Cargando informe DAC7..." />;
   }
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
-        {error}
-        <button onClick={fetchDac7} className="ml-3 underline font-medium">
-          Reintentar
-        </button>
-      </div>
-    );
+    return <ErrorCard message={error} onRetry={fetchDac7} />;
   }
 
   if (!data) return null;
@@ -869,13 +949,13 @@ function Dac7Tab() {
   return (
     <div className="space-y-4">
       {/* Year selector + export */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+        <div className="flex-1">
           <label className="block text-xs text-gray-500 mb-1">Ejercicio fiscal</label>
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
+            className="w-full sm:w-auto px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium min-h-[44px]"
           >
             {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -884,7 +964,7 @@ function Dac7Tab() {
         </div>
         <button
           onClick={handleExport}
-          className="flex items-center gap-1.5 px-4 py-2 bg-secondary text-white rounded-lg text-sm font-medium hover:bg-secondary/90 transition-colors"
+          className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 bg-secondary text-white rounded-lg text-sm font-medium hover:bg-secondary/90 transition-colors min-h-[44px]"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -895,7 +975,7 @@ function Dac7Tab() {
 
       {/* Warning banner */}
       {incompleteCount > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 md:p-4 flex items-start gap-3">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
           </svg>
@@ -911,87 +991,146 @@ function Dac7Tab() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <div className="text-xs text-gray-500 mb-1">Total anfitriones</div>
-          <div className="text-2xl font-bold text-gray-900">{summary.totalHosts}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Total anfitriones</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900">{summary.totalHosts}</div>
         </div>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <div className="text-xs text-gray-500 mb-1">Datos incompletos</div>
-          <div className={`text-2xl font-bold ${incompleteCount > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Datos incompletos</div>
+          <div className={`text-xl md:text-2xl font-bold ${incompleteCount > 0 ? 'text-amber-600' : 'text-green-600'}`}>
             {incompleteCount}
           </div>
         </div>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <div className="text-xs text-gray-500 mb-1">Ingresos reportables totales</div>
-          <div className="text-2xl font-bold text-gray-900">{formatEur(summary.totalReportableIncome)}</div>
+        <div className="col-span-2 sm:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Ingresos reportables totales</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900">{formatEur(summary.totalReportableIncome)}</div>
         </div>
       </div>
 
-      {/* Hosts table */}
+      {/* MOBILE: Card-based host list */}
       {hosts.length > 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">Anfitrion</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">NIF</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">IBAN</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Ingresos</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Ops.</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Comisiones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hosts.map((host) => (
-                  <tr key={host.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{host.name}</div>
-                      <div className="text-xs text-gray-400">{host.email}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {host.nif ? (
-                        <span className="text-gray-700 font-mono text-xs">{host.nif}</span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-amber-600 text-xs">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                          </svg>
-                          Sin NIF
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {host.iban ? (
-                        <span className="text-gray-700 font-mono text-xs">{host.iban}</span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-amber-600 text-xs">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                          </svg>
-                          Sin IBAN
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatEur(host.totalIncome)}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{host.operationsCount}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{formatEur(host.commissionsPaid)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          <div className="md:hidden space-y-3">
+            {hosts.map((host) => (
+              <div key={host.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+                {/* Name + email */}
+                <div className="mb-2">
+                  <div className="font-medium text-gray-900 text-sm">{host.name}</div>
+                  <div className="text-xs text-gray-400">{host.email}</div>
+                </div>
+                {/* NIF + IBAN */}
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-xs">
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">NIF:</span>
+                    {host.nif ? (
+                      <span className="text-gray-700 font-mono">{host.nif}</span>
+                    ) : (
+                      <span className="flex items-center gap-0.5 text-amber-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                        </svg>
+                        Sin NIF
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">IBAN:</span>
+                    {host.iban ? (
+                      <span className="text-gray-700 font-mono">{host.iban}</span>
+                    ) : (
+                      <span className="flex items-center gap-0.5 text-amber-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                        </svg>
+                        Sin IBAN
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* 3-col mini-grid: Income, Ops, Commissions */}
+                <div className="grid grid-cols-3 gap-2 bg-gray-50 rounded-lg p-2 text-center">
+                  <div>
+                    <div className="text-[10px] text-gray-500">Ingresos</div>
+                    <div className="text-xs font-semibold text-gray-900">{formatEur(host.totalIncome)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-gray-500">Ops.</div>
+                    <div className="text-xs font-semibold text-gray-900">{host.operationsCount}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-gray-500">Comisiones</div>
+                    <div className="text-xs font-semibold text-gray-900">{formatEur(host.commissionsPaid)}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+
+          {/* DESKTOP: Table */}
+          <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">Anfitrion</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">NIF</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">IBAN</th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-500">Ingresos</th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-500">Ops.</th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-500">Comisiones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hosts.map((host) => (
+                    <tr key={host.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-gray-900">{host.name}</div>
+                        <div className="text-xs text-gray-400">{host.email}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {host.nif ? (
+                          <span className="text-gray-700 font-mono text-xs">{host.nif}</span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-amber-600 text-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                            </svg>
+                            Sin NIF
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {host.iban ? (
+                          <span className="text-gray-700 font-mono text-xs">{host.iban}</span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-amber-600 text-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                            </svg>
+                            Sin IBAN
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatEur(host.totalIncome)}</td>
+                      <td className="px-4 py-3 text-right text-gray-600">{host.operationsCount}</td>
+                      <td className="px-4 py-3 text-right text-gray-600">{formatEur(host.commissionsPaid)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       ) : (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <EmptyState
+          icon={
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
-          </div>
-          <p className="text-gray-500">No hay datos DAC7 para el ejercicio {year}</p>
-        </div>
+          }
+          message={`No hay datos DAC7 para el ejercicio ${year}`}
+        />
       )}
     </div>
   );
@@ -1055,25 +1194,25 @@ function ObligacionesFiscalesTab() {
   return (
     <div className="space-y-6">
       {/* Year + Quarter selectors */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-end gap-3">
+        <div className="w-full sm:w-auto">
           <label className="block text-xs text-gray-500 mb-1">Ejercicio</label>
           <select
             value={year}
             onChange={(e) => setYear(Number(e.target.value))}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
+            className="w-full sm:w-auto px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium min-h-[44px]"
           >
             {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           <label className="block text-xs text-gray-500 mb-1">Trimestre (IVA)</label>
           <select
             value={quarter}
             onChange={(e) => setQuarter(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium"
+            className="w-full sm:w-auto px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium min-h-[44px]"
           >
             <option value="Q1">Q1 (Ene - Mar)</option>
             <option value="Q2">Q2 (Abr - Jun)</option>
@@ -1085,16 +1224,16 @@ function ObligacionesFiscalesTab() {
 
       {/* SECTION: Modelo 347 */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h3 className="font-semibold text-gray-900">Modelo 347 - Operaciones &gt;3.005,06 EUR</h3>
+            <h3 className="font-semibold text-gray-900 text-sm md:text-base">Modelo 347 - Operaciones &gt;3.005,06 EUR</h3>
             <p className="text-xs text-gray-500 mt-0.5">
               Declaracion anual de operaciones con terceros que superen 3.005,06 EUR
             </p>
           </div>
           <button
             onClick={handleExport347}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-white rounded-lg text-xs font-medium hover:bg-secondary/90 transition-colors"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary text-white rounded-lg text-xs font-medium hover:bg-secondary/90 transition-colors min-h-[44px]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -1103,61 +1242,64 @@ function ObligacionesFiscalesTab() {
           </button>
         </div>
 
-        {error347 && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
-            {error347}
-            <button onClick={fetch347} className="ml-3 underline font-medium">Reintentar</button>
-          </div>
-        )}
+        {error347 && <ErrorCard message={error347} onRetry={fetch347} />}
 
         {loading347 ? (
-          <div className="flex justify-center py-8">
-            <div className="spinner spinner-lg" />
-          </div>
+          <LoadingSpinner text="Cargando Modelo 347..." />
         ) : modelo347 && modelo347.entries && modelo347.entries.length > 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Usuario</th>
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">NIF</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Total anual</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Q1</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Q2</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Q3</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Q4</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {modelo347.entries.map((entry) => (
-                    <tr key={entry.userId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">{entry.userName}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {entry.nif ? (
-                          <span className="text-gray-700 font-mono text-xs">{entry.nif}</span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-amber-600 text-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                            </svg>
-                            Sin NIF
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatEur(entry.totalAnnual)}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q1)}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q2)}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q3)}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q4)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <>
+            {/* MOBILE: Card layout */}
+            <div className="md:hidden space-y-3">
+              {modelo347.entries.map((entry) => (
+                <Modelo347Card key={entry.userId} entry={entry} />
+              ))}
             </div>
-          </div>
+
+            {/* DESKTOP: Table */}
+            <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="text-left px-4 py-3 font-medium text-gray-500">Usuario</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-500">NIF</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">Total anual</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">Q1</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">Q2</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">Q3</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">Q4</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {modelo347.entries.map((entry) => (
+                      <tr key={entry.userId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-gray-900">{entry.userName}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {entry.nif ? (
+                            <span className="text-gray-700 font-mono text-xs">{entry.nif}</span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-amber-600 text-xs">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                              </svg>
+                              Sin NIF
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatEur(entry.totalAnnual)}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q1)}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q2)}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q3)}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q4)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="text-center py-8 bg-white rounded-2xl shadow-sm border border-gray-100">
             <p className="text-gray-500 text-sm">No hay operaciones que superen el umbral de 3.005,06 EUR en {year}</p>
@@ -1168,65 +1310,173 @@ function ObligacionesFiscalesTab() {
       {/* SECTION: Resumen IVA */}
       <div className="space-y-3">
         <div>
-          <h3 className="font-semibold text-gray-900">Resumen IVA - {quarter} {year}</h3>
+          <h3 className="font-semibold text-gray-900 text-sm md:text-base">Resumen IVA - {quarter} {year}</h3>
           <p className="text-xs text-gray-500 mt-0.5">
             Desglose de operaciones e IVA al 21% para el trimestre seleccionado
           </p>
         </div>
 
-        {errorVat && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm">
-            {errorVat}
-            <button onClick={fetchVat} className="ml-3 underline font-medium">Reintentar</button>
-          </div>
-        )}
+        {errorVat && <ErrorCard message={errorVat} onRetry={fetchVat} />}
 
         {loadingVat ? (
-          <div className="flex justify-center py-8">
-            <div className="spinner spinner-lg" />
-          </div>
+          <LoadingSpinner text="Cargando resumen IVA..." />
         ) : vatSummary ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Concepto</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">N.o Operaciones</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Importe bruto</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Base imponible</th>
-                    <th className="text-right px-4 py-3 font-medium text-gray-500">Cuota IVA (21%)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(vatSummary.rows || []).map((row, index) => (
-                    <tr key={index} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-gray-900">{row.concept}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{row.operationsCount}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{formatEur(row.grossAmount)}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{formatEur(row.taxableBase)}</td>
-                      <td className="px-4 py-3 text-right text-gray-600">{formatEur(row.vatAmount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr className="bg-gray-50 border-t-2 border-gray-200">
-                    <td className="px-4 py-3 font-bold text-gray-900">TOTAL</td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-900">{vatSummary.totals?.operationsCount || 0}</td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.grossAmount || 0)}</td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.taxableBase || 0)}</td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.vatAmount || 0)}</td>
-                  </tr>
-                </tfoot>
-              </table>
+          <>
+            {/* MOBILE: Card per concept */}
+            <div className="md:hidden space-y-3">
+              {(vatSummary.rows || []).map((row, index) => (
+                <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+                  <div className="font-medium text-gray-900 text-sm mb-2">{row.concept}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <div className="text-[10px] text-gray-500">N.o Ops.</div>
+                      <div className="text-sm font-semibold text-gray-900">{row.operationsCount}</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <div className="text-[10px] text-gray-500">Importe bruto</div>
+                      <div className="text-sm font-semibold text-gray-900">{formatEur(row.grossAmount)}</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <div className="text-[10px] text-gray-500">Base imponible</div>
+                      <div className="text-sm font-semibold text-gray-900">{formatEur(row.taxableBase)}</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <div className="text-[10px] text-gray-500">Cuota IVA (21%)</div>
+                      <div className="text-sm font-semibold text-gray-900">{formatEur(row.vatAmount)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {/* Totals card */}
+              <div className="bg-secondary/5 rounded-xl border-2 border-secondary/20 p-3">
+                <div className="font-bold text-gray-900 text-sm mb-2">TOTAL</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-white rounded-lg p-2">
+                    <div className="text-[10px] text-gray-500">N.o Ops.</div>
+                    <div className="text-sm font-bold text-gray-900">{vatSummary.totals?.operationsCount || 0}</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-2">
+                    <div className="text-[10px] text-gray-500">Importe bruto</div>
+                    <div className="text-sm font-bold text-gray-900">{formatEur(vatSummary.totals?.grossAmount || 0)}</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-2">
+                    <div className="text-[10px] text-gray-500">Base imponible</div>
+                    <div className="text-sm font-bold text-gray-900">{formatEur(vatSummary.totals?.taxableBase || 0)}</div>
+                  </div>
+                  <div className="bg-white rounded-lg p-2">
+                    <div className="text-[10px] text-gray-500">Cuota IVA (21%)</div>
+                    <div className="text-sm font-bold text-gray-900">{formatEur(vatSummary.totals?.vatAmount || 0)}</div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+
+            {/* DESKTOP: Table */}
+            <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="text-left px-4 py-3 font-medium text-gray-500">Concepto</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">N.o Operaciones</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">Importe bruto</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">Base imponible</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">Cuota IVA (21%)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(vatSummary.rows || []).map((row, index) => (
+                      <tr key={index} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-3 font-medium text-gray-900">{row.concept}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{row.operationsCount}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(row.grossAmount)}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(row.taxableBase)}</td>
+                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(row.vatAmount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-gray-50 border-t-2 border-gray-200">
+                      <td className="px-4 py-3 font-bold text-gray-900">TOTAL</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900">{vatSummary.totals?.operationsCount || 0}</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.grossAmount || 0)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.taxableBase || 0)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.vatAmount || 0)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="text-center py-8 bg-white rounded-2xl shadow-sm border border-gray-100">
             <p className="text-gray-500 text-sm">No hay datos de IVA para {quarter} {year}</p>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Modelo 347 mobile card with collapsible quarterly detail
+function Modelo347Card({ entry }: { entry: Modelo347Entry }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between min-h-[44px]"
+      >
+        <div className="text-left min-w-0 flex-1">
+          <div className="font-medium text-gray-900 text-sm truncate">{entry.userName}</div>
+          <div className="flex items-center gap-2 mt-0.5">
+            {entry.nif ? (
+              <span className="text-gray-600 font-mono text-xs">{entry.nif}</span>
+            ) : (
+              <span className="flex items-center gap-0.5 text-amber-600 text-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+                Sin NIF
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+          <span className="text-base font-bold text-gray-900">{formatEur(entry.totalAnnual)}</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </svg>
+        </div>
+      </button>
+      {expanded && (
+        <div className="mt-2 pt-2 border-t border-gray-100 grid grid-cols-4 gap-2">
+          <div className="bg-gray-50 rounded-lg p-2 text-center">
+            <div className="text-[10px] text-gray-500">Q1</div>
+            <div className="text-xs font-semibold text-gray-900">{formatEur(entry.q1)}</div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-2 text-center">
+            <div className="text-[10px] text-gray-500">Q2</div>
+            <div className="text-xs font-semibold text-gray-900">{formatEur(entry.q2)}</div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-2 text-center">
+            <div className="text-[10px] text-gray-500">Q3</div>
+            <div className="text-xs font-semibold text-gray-900">{formatEur(entry.q3)}</div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-2 text-center">
+            <div className="text-[10px] text-gray-500">Q4</div>
+            <div className="text-xs font-semibold text-gray-900">{formatEur(entry.q4)}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1276,19 +1526,19 @@ export default function AdminAccountingPage() {
         <AdminHeader title="Contabilidad" />
         <AdminNav />
 
-        {/* Tab Navigation */}
-        <div className="bg-white border-b border-gray-100">
-          <div className="flex overflow-x-auto px-4">
+        {/* Tab Navigation - Horizontal scrollable pills */}
+        <div className="px-3 md:px-4 py-3">
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
             {TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                className={`px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors min-h-[44px] ${
                   activeTab === tab.key
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    ? 'text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
-                style={activeTab === tab.key ? { borderColor: '#FF6B35', color: '#FF6B35' } : {}}
+                style={activeTab === tab.key ? { backgroundColor: '#FF6B35' } : {}}
               >
                 {tab.label}
               </button>
@@ -1297,7 +1547,7 @@ export default function AdminAccountingPage() {
         </div>
 
         {/* Tab Content */}
-        <div className="p-4">
+        <div className="px-3 md:px-4">
           {activeTab === 'resumen' && <ResumenTab />}
           {activeTab === 'transacciones' && <TransaccionesTab />}
           {activeTab === 'dac7' && <Dac7Tab />}
