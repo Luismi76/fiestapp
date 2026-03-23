@@ -43,6 +43,11 @@ model User {
   referredBy                User?            @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
   referrals                 User[]           @relation("UserReferrals")
   referralCreditsEarned     Float            @default(0)
+  // Datos fiscales (DAC7 / AEAT)
+  taxId                     String?          // NIF/NIE del anfitrión
+  taxIdVerified             Boolean          @default(false)
+  bankAccount               String?          // IBAN
+  fiscalAddress             String?          // Dirección fiscal
   // Preferencias de moneda
   preferredCurrency         Currency         @default(EUR)
   createdAt                 DateTime         @default(now())

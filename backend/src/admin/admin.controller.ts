@@ -15,6 +15,7 @@ import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AdminService } from './admin.service';
 import { FinancialReportService } from './financial-report.service';
+import { AccountingService } from './accounting.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 
@@ -24,6 +25,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly financialReportService: FinancialReportService,
+    private readonly accountingService: AccountingService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -334,5 +336,60 @@ export class AdminController {
     @Body('reason') reason: string,
   ) {
     return this.adminService.bulkBanUsers(userIds, reason);
+  }
+
+  // ============================================
+  // Contabilidad
+  // ============================================
+
+  @Get('accounting/dashboard')
+  getAccountingDashboard(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.accountingService.getAccountingDashboard(startDate, endDate);
+  }
+
+  @Get('accounting/dac7')
+  getDac7Report(@Query('year') year: string) {
+    return this.accountingService.getDac7Report(parseInt(year) || new Date().getFullYear());
+  }
+
+  @Get('accounting/modelo347')
+  getModelo347Report(@Query('year') year: string) {
+    return this.accountingService.getModelo347Report(parseInt(year) || new Date().getFullYear());
+  }
+
+  @Get('accounting/vat-summary')
+  getVatSummary(
+    @Query('year') year: string,
+    @Query('quarter') quarter?: string,
+  ) {
+    return this.accountingService.getVatSummary(
+      parseInt(year) || new Date().getFullYear(),
+      quarter ? parseInt(quarter) : undefined,
+    );
+  }
+
+  @Get('accounting/export/dac7')
+  async exportDac7(
+    @Query('year') year: string,
+    @Res() res: Response,
+  ) {
+    const csv = await this.accountingService.exportDac7Csv(parseInt(year) || new Date().getFullYear());
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=dac7_${year}.csv`);
+    res.send('\uFEFF' + csv);
+  }
+
+  @Get('accounting/export/modelo347')
+  async exportModelo347(
+    @Query('year') year: string,
+    @Res() res: Response,
+  ) {
+    const csv = await this.accountingService.exportModelo347Csv(parseInt(year) || new Date().getFullYear());
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=modelo347_${year}.csv`);
+    res.send('\uFEFF' + csv);
   }
 }

@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { FinancialReportService } from './financial-report.service';
+import { AccountingService } from './accounting.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 
@@ -21,7 +22,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     }),
   ],
   controllers: [AdminController],
-  providers: [AdminService, FinancialReportService],
-  exports: [AdminService, FinancialReportService],
+  providers: [AdminService, FinancialReportService, AccountingService],
+  exports: [AdminService, FinancialReportService, AccountingService],
 })
 export class AdminModule {}

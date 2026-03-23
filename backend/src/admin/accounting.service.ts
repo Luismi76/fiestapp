@@ -1,0 +1,587 @@
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+
+// ============================================
+// Interfaces
+// ============================================
+
+export interface PeriodMetrics {
+  totalCommissions: number;
+  totalTopups: number;
+  totalExperiencePayments: number;
+  totalRefunds: number;
+  totalWalletBalance: number;
+  transactionCount: number;
+  activeHosts: number;
+  activeGuests: number;
+}
+
+export interface DashboardKpi extends PeriodMetrics {
+  previousPeriod: PeriodMetrics;
+  changes: {
+    totalCommissions: number;
+    totalTopups: number;
+    totalExperiencePayments: number;
+    totalRefunds: number;
+    totalWalletBalance: number;
+    transactionCount: number;
+    activeHosts: number;
+    activeGuests: number;
+  };
+}
+
+export interface Dac7Host {
+  userId: string;
+  name: string;
+  email: string;
+  taxId: string | null;
+  taxIdVerified: boolean;
+  bankAccount: string | null;
+  fiscalAddress: string | null;
+  city: string | null;
+  totalIncome: number;
+  operationCount: number;
+  totalFeesPaid: number;
+  missingData: boolean;
+}
+
+export interface Dac7Report {
+  hosts: Dac7Host[];
+  summary: {
+    totalHosts: number;
+    hostsWithIncompleteData: number;
+    totalReportableIncome: number;
+  };
+}
+
+export interface Modelo347Entry {
+  userId: string;
+  name: string;
+  email: string;
+  taxId: string | null;
+  totalAmount: number;
+  q1: number;
+  q2: number;
+  q3: number;
+  q4: number;
+}
+
+export interface VatLine {
+  type: string;
+  count: number;
+  grossAmount: number;
+  netAmount: number;
+  vatAmount: number;
+}
+
+export interface VatSummary {
+  lines: VatLine[];
+  totals: VatLine;
+  vatRate: number;
+}
+
+// ============================================
+// Service
+// ============================================
+
+@Injectable()
+export class AccountingService {
+  constructor(private prisma: PrismaService) {}
+
+  // ============================================
+  // Dashboard KPIs
+  // ============================================
+
+  async getAccountingDashboard(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<DashboardKpi> {
+    const end = endDate ? new Date(endDate) : new Date();
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const periodLength = end.getTime() - start.getTime();
+    const prevEnd = new Date(start.getTime());
+    const prevStart = new Date(start.getTime() - periodLength);
+
+    const [current, previous] = await Promise.all([
+      this.computePeriodMetrics(start, end),
+      this.computePeriodMetrics(prevStart, prevEnd),
+    ]);
+
+    const changes = {
+      totalCommissions: this.pctChange(
+        previous.totalCommissions,
+        current.totalCommissions,
+      ),
+      totalTopups: this.pctChange(previous.totalTopups, current.totalTopups),
+      totalExperiencePayments: this.pctChange(
+        previous.totalExperiencePayments,
+        current.totalExperiencePayments,
+      ),
+      totalRefunds: this.pctChange(
+        previous.totalRefunds,
+        current.totalRefunds,
+      ),
+      totalWalletBalance: this.pctChange(
+        previous.totalWalletBalance,
+        current.totalWalletBalance,
+      ),
+      transactionCount: this.pctChange(
+        previous.transactionCount,
+        current.transactionCount,
+      ),
+      activeHosts: this.pctChange(previous.activeHosts, current.activeHosts),
+      activeGuests: this.pctChange(
+        previous.activeGuests,
+        current.activeGuests,
+      ),
+    };
+
+    return {
+      ...current,
+      previousPeriod: previous,
+      changes,
+    };
+  }
+
+  private async computePeriodMetrics(
+    start: Date,
+    end: Date,
+  ): Promise<PeriodMetrics> {
+    const dateFilter: Prisma.DateTimeFilter = { gte: start, lt: end };
+    const matchDateFilter: Prisma.DateTimeFilter = { gte: start, lt: end };
+
+    const [
+      commissions,
+      topups,
+      experiencePayments,
+      refunds,
+      walletBalance,
+      transactionCount,
+      activeHostIds,
+      activeGuestIds,
+    ] = await Promise.all([
+      this.prisma.transaction.aggregate({
+        where: {
+          type: 'platform_fee',
+          status: 'completed',
+          createdAt: dateFilter,
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.transaction.aggregate({
+        where: {
+          type: 'topup',
+          status: 'completed',
+          createdAt: dateFilter,
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.transaction.aggregate({
+        where: {
+          type: 'experience_payment',
+          status: 'completed',
+          createdAt: dateFilter,
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.transaction.aggregate({
+        where: {
+          type: 'refund',
+          status: 'completed',
+          createdAt: dateFilter,
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.wallet.aggregate({
+        _sum: { balance: true },
+      }),
+      this.prisma.transaction.count({
+        where: {
+          status: 'completed',
+          createdAt: dateFilter,
+        },
+      }),
+      this.prisma.match.findMany({
+        where: {
+          status: { in: ['accepted', 'completed'] },
+          createdAt: matchDateFilter,
+        },
+        select: { hostId: true },
+        distinct: ['hostId'],
+      }),
+      this.prisma.match.findMany({
+        where: {
+          status: { in: ['accepted', 'completed'] },
+          createdAt: matchDateFilter,
+        },
+        select: { requesterId: true },
+        distinct: ['requesterId'],
+      }),
+    ]);
+
+    return {
+      totalCommissions: Math.abs(commissions._sum.amount || 0),
+      totalTopups: topups._sum.amount || 0,
+      totalExperiencePayments: Math.abs(experiencePayments._sum.amount || 0),
+      totalRefunds: Math.abs(refunds._sum.amount || 0),
+      totalWalletBalance: walletBalance._sum.balance || 0,
+      transactionCount,
+      activeHosts: activeHostIds.length,
+      activeGuests: activeGuestIds.length,
+    };
+  }
+
+  private pctChange(previous: number, current: number): number {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round(((current - previous) / Math.abs(previous)) * 10000) / 100;
+  }
+
+  // ============================================
+  // DAC7 Report
+  // ============================================
+
+  async getDac7Report(year: number): Promise<Dac7Report> {
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year + 1, 0, 1);
+
+    const matchesInYear = await this.prisma.match.findMany({
+      where: {
+        createdAt: { gte: yearStart, lt: yearEnd },
+      },
+      select: { hostId: true },
+      distinct: ['hostId'],
+    });
+
+    const hostIds = matchesInYear.map((m) => m.hostId);
+
+    if (hostIds.length === 0) {
+      return {
+        hosts: [],
+        summary: {
+          totalHosts: 0,
+          hostsWithIncompleteData: 0,
+          totalReportableIncome: 0,
+        },
+      };
+    }
+
+    const hosts = await this.prisma.user.findMany({
+      where: { id: { in: hostIds } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        taxId: true,
+        taxIdVerified: true,
+        bankAccount: true,
+        fiscalAddress: true,
+        city: true,
+      },
+    });
+
+    const hostMap = new Map(hosts.map((h) => [h.id, h]));
+
+    const incomeByHost = await this.prisma.transaction.groupBy({
+      by: ['userId'],
+      where: {
+        type: 'experience_payment',
+        status: 'completed',
+        createdAt: { gte: yearStart, lt: yearEnd },
+        userId: { in: hostIds },
+      },
+      _sum: { amount: true },
+      _count: { id: true },
+    });
+
+    const incomeMap = new Map(
+      incomeByHost.map((row) => [
+        row.userId,
+        {
+          totalIncome: Math.abs(row._sum.amount || 0),
+          operationCount: row._count.id,
+        },
+      ]),
+    );
+
+    const feesByHost = await this.prisma.transaction.groupBy({
+      by: ['userId'],
+      where: {
+        type: 'platform_fee',
+        status: 'completed',
+        createdAt: { gte: yearStart, lt: yearEnd },
+        userId: { in: hostIds },
+      },
+      _sum: { amount: true },
+    });
+
+    const feeMap = new Map(
+      feesByHost.map((row) => [row.userId, Math.abs(row._sum.amount || 0)]),
+    );
+
+    const dac7Hosts: Dac7Host[] = hostIds
+      .map((hostId) => {
+        const user = hostMap.get(hostId);
+        if (!user) return null;
+
+        const income = incomeMap.get(hostId) || {
+          totalIncome: 0,
+          operationCount: 0,
+        };
+        const totalFeesPaid = feeMap.get(hostId) || 0;
+
+        return {
+          userId: user.id,
+          name: user.name,
+          email: user.email,
+          taxId: user.taxId,
+          taxIdVerified: user.taxIdVerified,
+          bankAccount: user.bankAccount,
+          fiscalAddress: user.fiscalAddress,
+          city: user.city,
+          totalIncome: income.totalIncome,
+          operationCount: income.operationCount,
+          totalFeesPaid,
+          missingData: !user.taxId || !user.bankAccount,
+        };
+      })
+      .filter((h): h is Dac7Host => h !== null)
+      .sort((a, b) => b.totalIncome - a.totalIncome);
+
+    const hostsWithIncompleteData = dac7Hosts.filter(
+      (h) => h.missingData,
+    ).length;
+    const totalReportableIncome = dac7Hosts.reduce(
+      (sum, h) => sum + h.totalIncome,
+      0,
+    );
+
+    return {
+      hosts: dac7Hosts,
+      summary: {
+        totalHosts: dac7Hosts.length,
+        hostsWithIncompleteData,
+        totalReportableIncome,
+      },
+    };
+  }
+
+  // ============================================
+  // Modelo 347 Report
+  // ============================================
+
+  async getModelo347Report(year: number): Promise<Modelo347Entry[]> {
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year + 1, 0, 1);
+
+    const quarterBoundaries = [
+      { start: new Date(year, 0, 1), end: new Date(year, 3, 1) },
+      { start: new Date(year, 3, 1), end: new Date(year, 6, 1) },
+      { start: new Date(year, 6, 1), end: new Date(year, 9, 1) },
+      { start: new Date(year, 9, 1), end: new Date(year + 1, 0, 1) },
+    ];
+
+    const annualTotals = await this.prisma.transaction.groupBy({
+      by: ['userId'],
+      where: {
+        status: 'completed',
+        createdAt: { gte: yearStart, lt: yearEnd },
+      },
+      _sum: { amount: true },
+    });
+
+    const qualifyingUserIds = annualTotals
+      .filter((row) => Math.abs(row._sum.amount || 0) > 3005.06)
+      .map((row) => row.userId);
+
+    if (qualifyingUserIds.length === 0) {
+      return [];
+    }
+
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: qualifyingUserIds } },
+      select: { id: true, name: true, email: true, taxId: true },
+    });
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const annualMap = new Map(
+      annualTotals
+        .filter((row) => qualifyingUserIds.includes(row.userId))
+        .map((row) => [row.userId, Math.abs(row._sum.amount || 0)]),
+    );
+
+    const quarterlyData = await Promise.all(
+      quarterBoundaries.map((q) =>
+        this.prisma.transaction.groupBy({
+          by: ['userId'],
+          where: {
+            status: 'completed',
+            userId: { in: qualifyingUserIds },
+            createdAt: { gte: q.start, lt: q.end },
+          },
+          _sum: { amount: true },
+        }),
+      ),
+    );
+
+    const quarterMaps = quarterlyData.map(
+      (qData) =>
+        new Map(
+          qData.map((row) => [row.userId, Math.abs(row._sum.amount || 0)]),
+        ),
+    );
+
+    return qualifyingUserIds
+      .map((userId) => {
+        const user = userMap.get(userId);
+        if (!user) return null;
+
+        return {
+          userId: user.id,
+          name: user.name,
+          email: user.email,
+          taxId: user.taxId,
+          totalAmount: annualMap.get(userId) || 0,
+          q1: quarterMaps[0].get(userId) || 0,
+          q2: quarterMaps[1].get(userId) || 0,
+          q3: quarterMaps[2].get(userId) || 0,
+          q4: quarterMaps[3].get(userId) || 0,
+        };
+      })
+      .filter((e): e is Modelo347Entry => e !== null)
+      .sort((a, b) => b.totalAmount - a.totalAmount);
+  }
+
+  // ============================================
+  // VAT Summary
+  // ============================================
+
+  async getVatSummary(year: number, quarter?: number): Promise<VatSummary> {
+    const vatRate = 0.21;
+
+    let start: Date;
+    let end: Date;
+
+    if (quarter && quarter >= 1 && quarter <= 4) {
+      const startMonth = (quarter - 1) * 3;
+      start = new Date(year, startMonth, 1);
+      end = new Date(year, startMonth + 3, 1);
+    } else {
+      start = new Date(year, 0, 1);
+      end = new Date(year + 1, 0, 1);
+    }
+
+    const grouped = await this.prisma.transaction.groupBy({
+      by: ['type'],
+      where: {
+        status: 'completed',
+        createdAt: { gte: start, lt: end },
+      },
+      _sum: { amount: true },
+      _count: { id: true },
+    });
+
+    const lines: VatLine[] = grouped.map((row) => {
+      const grossAmount = Math.abs(row._sum.amount || 0);
+      const netAmount = Math.round((grossAmount / 1.21) * 100) / 100;
+      const vatAmount = Math.round((grossAmount - netAmount) * 100) / 100;
+
+      return {
+        type: row.type,
+        count: row._count.id,
+        grossAmount,
+        netAmount,
+        vatAmount,
+      };
+    });
+
+    const totals: VatLine = lines.reduce(
+      (acc, line) => ({
+        type: 'TOTAL',
+        count: acc.count + line.count,
+        grossAmount:
+          Math.round((acc.grossAmount + line.grossAmount) * 100) / 100,
+        netAmount: Math.round((acc.netAmount + line.netAmount) * 100) / 100,
+        vatAmount: Math.round((acc.vatAmount + line.vatAmount) * 100) / 100,
+      }),
+      { type: 'TOTAL', count: 0, grossAmount: 0, netAmount: 0, vatAmount: 0 },
+    );
+
+    return {
+      lines,
+      totals,
+      vatRate: vatRate * 100,
+    };
+  }
+
+  // ============================================
+  // CSV Exports
+  // ============================================
+
+  async exportDac7Csv(year: number): Promise<string> {
+    const report = await this.getDac7Report(year);
+
+    const headers = [
+      'NIF',
+      'Nombre',
+      'Email',
+      'Direccion',
+      'IBAN',
+      'Ingresos Totales',
+      'Num Operaciones',
+      'Comisiones Pagadas',
+    ];
+
+    const rows = report.hosts.map((host) => [
+      host.taxId || '',
+      host.name,
+      host.email,
+      host.fiscalAddress || '',
+      host.bankAccount || '',
+      host.totalIncome.toFixed(2),
+      host.operationCount.toString(),
+      host.totalFeesPaid.toFixed(2),
+    ]);
+
+    return this.buildCsv(headers, rows);
+  }
+
+  async exportModelo347Csv(year: number): Promise<string> {
+    const entries = await this.getModelo347Report(year);
+
+    const headers = [
+      'NIF',
+      'Nombre',
+      'Total Anual',
+      'Q1',
+      'Q2',
+      'Q3',
+      'Q4',
+    ];
+
+    const rows = entries.map((entry) => [
+      entry.taxId || '',
+      entry.name,
+      entry.totalAmount.toFixed(2),
+      entry.q1.toFixed(2),
+      entry.q2.toFixed(2),
+      entry.q3.toFixed(2),
+      entry.q4.toFixed(2),
+    ]);
+
+    return this.buildCsv(headers, rows);
+  }
+
+  private buildCsv(headers: string[], rows: string[][]): string {
+    const escapedRows = rows.map((row) =>
+      row
+        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+        .join(','),
+    );
+
+    return [headers.join(','), ...escapedRows].join('\n');
+  }
+}
