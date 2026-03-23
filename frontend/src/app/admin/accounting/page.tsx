@@ -162,7 +162,18 @@ const accountingApi = {
     if (filters.status && filters.status !== 'all') params.append('status', filters.status);
     if (filters.search) params.append('search', filters.search);
     const { data } = await api.get(`/admin/reports/financial/transactions?${params}`);
-    return data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const transactions = (data.data || []).map((t: any) => ({
+      id: t.id,
+      date: t.createdAt,
+      userName: t.user?.name || 'N/A',
+      userEmail: t.user?.email || '',
+      type: t.type,
+      amount: t.amount,
+      status: t.status,
+      description: t.description || '',
+    }));
+    return { transactions, pagination: data.pagination };
   },
 
   exportTransactions: (filters: { startDate?: string; endDate?: string; type?: string; status?: string }) => {
@@ -176,17 +187,65 @@ const accountingApi = {
 
   getDac7: async (year: number): Promise<Dac7Response> => {
     const { data } = await api.get(`/admin/accounting/dac7?year=${year}`);
-    return data;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hosts = (data.hosts || []).map((h: any) => ({
+      id: h.userId,
+      name: h.name,
+      email: h.email,
+      nif: h.taxId,
+      iban: h.bankAccount,
+      totalIncome: h.totalIncome,
+      operationsCount: h.operationCount,
+      commissionsPaid: h.totalFeesPaid,
+    }));
+    return {
+      hosts,
+      summary: {
+        totalHosts: data.summary?.totalHosts || 0,
+        incompleteData: data.summary?.hostsWithIncompleteData || 0,
+        totalReportableIncome: data.summary?.totalReportableIncome || 0,
+      },
+    };
   },
 
   getModelo347: async (year: number): Promise<Modelo347Response> => {
     const { data } = await api.get(`/admin/accounting/modelo347?year=${year}`);
-    return data;
+    // Backend returns array directly
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const entries = (Array.isArray(data) ? data : data.entries || []).map((e: any) => ({
+      userId: e.userId,
+      userName: e.name,
+      nif: e.taxId,
+      totalAnnual: e.totalAmount,
+      q1: e.q1,
+      q2: e.q2,
+      q3: e.q3,
+      q4: e.q4,
+    }));
+    return { entries };
   },
 
   getVatSummary: async (year: number, quarter: string): Promise<VatSummaryResponse> => {
     const { data } = await api.get(`/admin/accounting/vat-summary?year=${year}&quarter=${quarter}`);
-    return data;
+    const typeLabels: Record<string, string> = {
+      platform_fee: 'Comisiones plataforma',
+      topup: 'Recargas wallet',
+      experience_payment: 'Pagos experiencias',
+      payment: 'Pagos (escrow)',
+      refund: 'Reembolsos',
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mapRow = (r: any): VatRow => ({
+      concept: typeLabels[r.type] || r.type,
+      operationsCount: r.count,
+      grossAmount: r.grossAmount,
+      taxableBase: r.netAmount,
+      vatAmount: r.vatAmount,
+    });
+    return {
+      rows: (data.lines || []).map(mapRow),
+      totals: data.totals ? mapRow(data.totals) : { concept: 'Total', operationsCount: 0, grossAmount: 0, taxableBase: 0, vatAmount: 0 },
+    };
   },
 };
 

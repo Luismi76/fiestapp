@@ -96,7 +96,8 @@ export class AccountingService {
   async getAccountingDashboard(
     startDate?: string,
     endDate?: string,
-  ): Promise<DashboardKpi> {
+    granularity: string = 'monthly',
+  ) {
     const end = endDate ? new Date(endDate) : new Date();
     const start = startDate
       ? new Date(startDate)
@@ -106,45 +107,63 @@ export class AccountingService {
     const prevEnd = new Date(start.getTime());
     const prevStart = new Date(start.getTime() - periodLength);
 
-    const [current, previous] = await Promise.all([
+    const [current, previous, revenueChart] = await Promise.all([
       this.computePeriodMetrics(start, end),
       this.computePeriodMetrics(prevStart, prevEnd),
+      this.computeRevenueChart(start, end, granularity as 'daily' | 'weekly' | 'monthly'),
     ]);
 
-    const changes = {
-      totalCommissions: this.pctChange(
-        previous.totalCommissions,
-        current.totalCommissions,
-      ),
-      totalTopups: this.pctChange(previous.totalTopups, current.totalTopups),
-      totalExperiencePayments: this.pctChange(
-        previous.totalExperiencePayments,
-        current.totalExperiencePayments,
-      ),
-      totalRefunds: this.pctChange(
-        previous.totalRefunds,
-        current.totalRefunds,
-      ),
-      totalWalletBalance: this.pctChange(
-        previous.totalWalletBalance,
-        current.totalWalletBalance,
-      ),
-      transactionCount: this.pctChange(
-        previous.transactionCount,
-        current.transactionCount,
-      ),
-      activeHosts: this.pctChange(previous.activeHosts, current.activeHosts),
-      activeGuests: this.pctChange(
-        previous.activeGuests,
-        current.activeGuests,
-      ),
-    };
-
     return {
-      ...current,
-      previousPeriod: previous,
-      changes,
+      kpis: {
+        platformFees: current.totalCommissions,
+        platformFeesChange: this.pctChange(previous.totalCommissions, current.totalCommissions),
+        walletTopups: current.totalTopups,
+        walletTopupsChange: this.pctChange(previous.totalTopups, current.totalTopups),
+        experiencePayments: current.totalExperiencePayments,
+        experiencePaymentsChange: this.pctChange(previous.totalExperiencePayments, current.totalExperiencePayments),
+        refunds: current.totalRefunds,
+        refundsChange: this.pctChange(previous.totalRefunds, current.totalRefunds),
+        totalWalletBalance: current.totalWalletBalance,
+        operationsCount: current.transactionCount,
+        operationsCountChange: this.pctChange(previous.transactionCount, current.transactionCount),
+      },
+      revenueChart,
     };
+  }
+
+  private async computeRevenueChart(
+    start: Date,
+    end: Date,
+    granularity: 'daily' | 'weekly' | 'monthly',
+  ): Promise<Array<{ period: string; revenue: number }>> {
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        status: 'completed',
+        createdAt: { gte: start, lt: end },
+      },
+      select: { amount: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const grouped = new Map<string, number>();
+    for (const t of transactions) {
+      const date = new Date(t.createdAt);
+      let key: string;
+      if (granularity === 'daily') {
+        key = date.toISOString().split('T')[0];
+      } else if (granularity === 'weekly') {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = weekStart.toISOString().split('T')[0];
+      } else {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+      grouped.set(key, (grouped.get(key) || 0) + Math.abs(t.amount));
+    }
+
+    return Array.from(grouped.entries())
+      .map(([period, revenue]) => ({ period, revenue: Math.round(revenue * 100) / 100 }))
+      .sort((a, b) => a.period.localeCompare(b.period));
   }
 
   private async computePeriodMetrics(

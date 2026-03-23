@@ -346,8 +346,9 @@ export class AdminController {
   getAccountingDashboard(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('granularity') granularity?: string,
   ) {
-    return this.accountingService.getAccountingDashboard(startDate, endDate);
+    return this.accountingService.getAccountingDashboard(startDate, endDate, granularity);
   }
 
   @Get('accounting/dac7')
