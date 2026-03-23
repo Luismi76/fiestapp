@@ -6,6 +6,7 @@ import {
   ConflictException,
   Inject,
   forwardRef,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMatchDto } from './dto/create-match.dto';
@@ -17,8 +18,8 @@ import { PushService } from '../notifications/push.service';
 import { PricingService } from '../experiences/pricing.service';
 import { CancellationsService } from '../cancellations/cancellations.service';
 import { EmailService } from '../email/email.service';
-import { RedsysService } from '../redsys/redsys.service';
 import { ConfigService } from '@nestjs/config';
+import Stripe from 'stripe';
 
 // Helper para parsear fechas correctamente evitando problemas de zona horaria
 function parseDate(dateStr: string | undefined | null): Date | null {
@@ -46,7 +47,6 @@ export class MatchesService {
     private pricingService: PricingService,
     private cancellationsService: CancellationsService,
     private emailService: EmailService,
-    private redsysService: RedsysService,
     private configService: ConfigService,
   ) {}
 
@@ -842,7 +842,7 @@ export class MatchesService {
     });
   }
 
-  // Crear pago de experiencia (solo requester, tras aceptación del host)
+  // Crear pago de experiencia con Stripe Checkout (solo requester, tras aceptación del host)
   async createExperiencePayment(matchId: string, requesterId: string) {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
@@ -860,11 +860,40 @@ export class MatchesService {
       throw new BadRequestException('Esta experiencia no tiene precio');
     }
 
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const backendUrl = (this.configService.get<string>('BACKEND_URL') ||
-      frontendUrl.replace('fiestapp.lmsc.es', 'fiestapp-api.lmsc.es')).replace(/\/api$/, '');
+    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (!stripeKey) {
+      throw new BadRequestException('Pagos no configurados. Contacta al administrador.');
+    }
+    const stripe = new Stripe(stripeKey);
 
-    const orderId = this.redsysService.generateOrderId();
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const amountInCents = Math.round(match.totalPrice * 100);
+
+    // Crear Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: match.experience.title,
+              description: `Pago experiencia FiestApp`,
+            },
+            unit_amount: amountInCents,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        matchId,
+        requesterId,
+        type: 'experience_payment',
+      },
+      success_url: `${frontendUrl}/matches/payment-result?status=success&session_id={CHECKOUT_SESSION_ID}&matchId=${matchId}`,
+      cancel_url: `${frontendUrl}/matches/payment-result?status=error&matchId=${matchId}`,
+    });
 
     // Crear transacción pendiente
     await this.prisma.transaction.create({
@@ -874,46 +903,40 @@ export class MatchesService {
         type: 'experience_payment',
         amount: -match.totalPrice,
         status: 'pending',
-        stripeId: orderId,
+        stripeId: session.id,
         description: `Pago experiencia: ${match.experience.title}`,
       },
     });
 
-    const form = this.redsysService.createPaymentForm({
-      orderId,
-      amount: match.totalPrice,
-      description: `FiestApp: ${match.experience.title}`,
-      merchantData: JSON.stringify({ matchId, requesterId, type: 'experience_payment' }),
-      successUrl: `${frontendUrl}/matches/payment-result?status=success&order=${orderId}&matchId=${matchId}`,
-      errorUrl: `${frontendUrl}/matches/payment-result?status=error&order=${orderId}&matchId=${matchId}`,
-      notificationUrl: `${backendUrl}/api/matches/redsys-notification`,
-    });
-
     return {
-      redsysUrl: form.url,
-      redsysBody: form.body,
-      orderId,
+      sessionUrl: session.url,
+      sessionId: session.id,
     };
   }
 
-  // Procesar notificación Redsys para pago de experiencia
-  async handleExperiencePaymentNotification(body: {
-    Ds_SignatureVersion: string;
-    Ds_MerchantParameters: string;
-    Ds_Signature: string;
-  }): Promise<void> {
-    const notification = this.redsysService.processNotification(body);
-    const orderId = notification.Ds_Order;
-    const responseCode = notification.Ds_Response;
+  // Procesar webhook de Stripe para pago de experiencia
+  async handleExperiencePaymentWebhook(event: Stripe.Event): Promise<void> {
+    if (event.type !== 'checkout.session.completed') {
+      return;
+    }
+
+    const session = event.data.object as Stripe.Checkout.Session;
+
+    // Solo procesar eventos de experience_payment
+    if (session.metadata?.type !== 'experience_payment') {
+      return;
+    }
+
+    const sessionId = session.id;
 
     const transaction = await this.prisma.transaction.findFirst({
-      where: { stripeId: orderId, type: 'experience_payment' },
+      where: { stripeId: sessionId, type: 'experience_payment' },
     });
 
     if (!transaction || !transaction.matchId) return;
     if (transaction.status === 'completed') return;
 
-    if (this.redsysService.isSuccessResponse(responseCode || '')) {
+    if (session.payment_status === 'paid') {
       await this.prisma.$transaction(async (tx) => {
         await tx.transaction.update({
           where: { id: transaction.id },
@@ -1063,18 +1086,30 @@ export class MatchesService {
 
       // Procesar reembolso según estado del pago
       if (match.paymentStatus === 'paid' && refundAmount > 0) {
-        // Devolución vía Redsys a la tarjeta del viajero
+        // Devolución vía Stripe a la tarjeta del viajero
         const paymentTx = await this.prisma.transaction.findFirst({
           where: { matchId: id, type: 'experience_payment', status: 'completed' },
         });
 
         if (paymentTx?.stripeId) {
-          const refundResult = await this.redsysService.createRefund({
-            originalOrderId: paymentTx.stripeId,
-            amount: refundAmount,
-          });
+          try {
+            const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+            if (stripeKey) {
+              const stripe = new Stripe(stripeKey);
+              // Recuperar el payment intent de la sesión de checkout
+              const session = await stripe.checkout.sessions.retrieve(paymentTx.stripeId);
+              if (session.payment_intent) {
+                const paymentIntentId = typeof session.payment_intent === 'string'
+                  ? session.payment_intent
+                  : session.payment_intent.id;
+                await stripe.refunds.create({
+                  payment_intent: paymentIntentId,
+                  amount: Math.round(refundAmount * 100),
+                  reason: 'requested_by_customer',
+                });
+              }
+            }
 
-          if (refundResult.success) {
             await this.prisma.transaction.create({
               data: {
                 userId: match.requesterId,
@@ -1085,6 +1120,9 @@ export class MatchesService {
                 description: `Devolución por cancelación: ${match.experience.title}`,
               },
             });
+          } catch (error) {
+            const logger = new Logger('MatchesService');
+            logger.error(`Refund failed for match ${id}:`, error);
           }
         }
       } else if (match.paymentStatus === 'pending_payment') {

@@ -762,7 +762,7 @@ export class EmailService {
     userName: string,
     transactionId: string,
     amount: number,
-    paymentMethod: 'stripe' | 'paypal' | 'wallet',
+    paymentMethod: 'stripe' | 'wallet',
     experienceTitle: string,
     experienceCity: string,
     startDate: Date,

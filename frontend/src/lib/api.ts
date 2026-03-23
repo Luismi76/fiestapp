@@ -448,11 +448,10 @@ export const matchesApi = {
     return response.data;
   },
 
-  // Crear pago de experiencia (Redsys)
+  // Crear pago de experiencia (Stripe Checkout)
   createPayment: async (matchId: string): Promise<{
-    redsysUrl: string;
-    redsysBody: { Ds_SignatureVersion: string; Ds_MerchantParameters: string; Ds_Signature: string };
-    orderId: string;
+    sessionUrl: string;
+    sessionId: string;
   }> => {
     const response = await api.post(`/matches/${matchId}/create-payment`);
     return response.data;
@@ -840,23 +839,18 @@ export const walletApi = {
     return response.data;
   },
 
-  // Crear formulario de pago Redsys para recarga
+  // Crear sesión de Stripe Checkout para recarga
   createTopUp: async (amount?: number): Promise<{
-    redsysUrl: string;
-    redsysBody: {
-      Ds_SignatureVersion: string;
-      Ds_MerchantParameters: string;
-      Ds_Signature: string;
-    };
-    orderId: string;
+    sessionUrl: string;
+    sessionId: string;
   }> => {
     const response = await api.post('/wallet/topup', { amount });
     return response.data;
   },
 
   // Verificar resultado de recarga
-  checkTopUpResult: async (orderId: string): Promise<{ success: boolean; amount?: number }> => {
-    const response = await api.get(`/wallet/topup-result?orderId=${orderId}`);
+  checkTopUpResult: async (sessionId: string): Promise<{ success: boolean; amount?: number }> => {
+    const response = await api.get(`/wallet/topup-result?sessionId=${sessionId}`);
     return response.data;
   },
 

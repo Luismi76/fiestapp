@@ -34,7 +34,7 @@ function PaymentResultContent() {
       return;
     }
 
-    // Polling: esperar a que la notificación de Redsys se procese
+    // Polling: esperar a que el webhook de Stripe se procese
     let cancelled = false;
     const delays = [1000, 2000, 3000, 4000, 5000];
 

@@ -8,32 +8,58 @@ import {
   Query,
   UseGuards,
   Request,
+  Headers,
+  Req,
   Logger,
 } from '@nestjs/common';
+import type { RawBodyRequest } from '@nestjs/common';
 import { MatchesService } from './matches.service';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { SendMessageDto } from './dto/update-match.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ConfigService } from '@nestjs/config';
 import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('matches')
 export class MatchesController {
   private readonly logger = new Logger(MatchesController.name);
 
-  constructor(private readonly matchesService: MatchesService) {}
+  constructor(
+    private readonly matchesService: MatchesService,
+    private readonly configService: ConfigService,
+  ) {}
 
-  // Notificación Redsys para pago de experiencia (SIN auth)
-  @Post('redsys-notification')
-  async redsysNotification(
-    @Body() body: { Ds_SignatureVersion: string; Ds_MerchantParameters: string; Ds_Signature: string },
+  // Webhook de Stripe para pago de experiencia (SIN auth, usa firma de Stripe)
+  @Post('stripe-webhook')
+  async stripeWebhook(
+    @Headers('stripe-signature') signature: string,
+    @Req() req: RawBodyRequest<Request>,
   ) {
-    this.logger.log('Received Redsys experience payment notification');
-    try {
-      await this.matchesService.handleExperiencePaymentNotification(body);
-    } catch (error) {
-      this.logger.error('Error processing Redsys notification:', error);
+    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    if (!webhookSecret) {
+      this.logger.warn('STRIPE_WEBHOOK_SECRET not configured');
+      return { received: true };
     }
-    return 'OK';
+
+    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (!stripeKey) {
+      this.logger.warn('STRIPE_SECRET_KEY not configured');
+      return { received: true };
+    }
+
+    try {
+      const stripe = new (await import('stripe')).default(stripeKey);
+      const event = stripe.webhooks.constructEvent(
+        req.rawBody!,
+        signature,
+        webhookSecret,
+      );
+
+      await this.matchesService.handleExperiencePaymentWebhook(event);
+    } catch (error) {
+      this.logger.error('Error processing Stripe webhook:', error);
+    }
+    return { received: true };
   }
 
   // Crear solicitud de match

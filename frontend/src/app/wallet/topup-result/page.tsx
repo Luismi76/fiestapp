@@ -14,7 +14,7 @@ function TopUpResultContent() {
   const [result, setResult] = useState<{ success: boolean; amount?: number } | null>(null);
 
   const status = searchParams.get('status');
-  const orderId = searchParams.get('order');
+  const sessionId = searchParams.get('session_id');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -22,19 +22,19 @@ function TopUpResultContent() {
       return;
     }
 
-    if (!user || !orderId) {
+    if (!user || !sessionId) {
       setChecking(false);
       return;
     }
 
-    // Si Redsys devolvió error, no hace falta reintentar
+    // Si Stripe devolvió error, no hace falta reintentar
     if (status === 'error') {
       setResult({ success: false });
       setChecking(false);
       return;
     }
 
-    // Polling: la notificación de Redsys puede tardar unos segundos
+    // Polling: el webhook de Stripe puede tardar unos segundos
     let cancelled = false;
     const delays = [1000, 2000, 3000, 4000, 5000]; // 5 intentos en 15s
 
@@ -45,7 +45,7 @@ function TopUpResultContent() {
         if (cancelled) return;
 
         try {
-          const data = await walletApi.checkTopUpResult(orderId);
+          const data = await walletApi.checkTopUpResult(sessionId);
           if (data.success) {
             setResult(data);
             setChecking(false);
@@ -62,7 +62,7 @@ function TopUpResultContent() {
 
     poll();
     return () => { cancelled = true; };
-  }, [user, authLoading, orderId, status, router]);
+  }, [user, authLoading, sessionId, status, router]);
 
   const isSuccess = status === 'success' && result?.success;
 

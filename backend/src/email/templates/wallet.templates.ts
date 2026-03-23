@@ -128,7 +128,7 @@ interface PaymentReceiptEmailData {
   transactionId: string;
   amount: number;
   currency?: string;
-  paymentMethod: 'stripe' | 'paypal' | 'wallet';
+  paymentMethod: 'stripe' | 'wallet';
   experienceTitle: string;
   experienceCity: string;
   startDate: Date;
@@ -141,7 +141,6 @@ export function getPaymentReceiptTemplate(
 ): string {
   const paymentMethodLabels = {
     stripe: 'Tarjeta de credito/debito',
-    paypal: 'PayPal',
     wallet: 'Saldo de FiestApp',
   };
 

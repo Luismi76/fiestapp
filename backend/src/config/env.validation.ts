@@ -29,21 +29,11 @@ export const envValidationSchema = Joi.object({
   REDIS_URL: Joi.string().uri().optional().allow(''),
   SENTRY_DSN: Joi.string().uri().optional().allow(''),
 
-  // Redsys (TPV CaixaBank)
-  REDSYS_MERCHANT_CODE: Joi.string().optional().allow('').default('999008881'),
-  REDSYS_TERMINAL: Joi.string().optional().allow('').default('1'),
-  REDSYS_SECRET_KEY: Joi.string().optional().allow('').default('sq7HjrUOBfKmC576ILgskD5srU870gJ7'),
-  REDSYS_SANDBOX: Joi.string().valid('true', 'false').default('true'),
-
-  // Stripe (deprecated - mantener por compatibilidad)
-  STRIPE_SECRET_KEY: Joi.string().optional().allow(''),
+  // Stripe
+  STRIPE_SECRET_KEY: Joi.string().required().messages({
+    'any.required': 'STRIPE_SECRET_KEY es obligatorio para procesar pagos',
+  }),
   STRIPE_WEBHOOK_SECRET: Joi.string().optional().allow(''),
-
-  // PayPal (deprecated)
-  PAYPAL_CLIENT_ID: Joi.string().optional().allow(''),
-  PAYPAL_CLIENT_SECRET: Joi.string().optional().allow(''),
-  PAYPAL_WEBHOOK_ID: Joi.string().optional().allow(''),
-  PAYPAL_SANDBOX: Joi.string().valid('true', 'false').default('true'),
 
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: Joi.string().optional().allow(''),

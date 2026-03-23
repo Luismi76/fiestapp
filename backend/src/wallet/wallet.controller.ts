@@ -6,17 +6,32 @@ import {
   Query,
   UseGuards,
   Request,
+  Headers,
+  Req,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
+import type { RawBodyRequest } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { WalletService, MIN_TOPUP, PLATFORM_FEE } from './wallet.service';
+import { ConfigService } from '@nestjs/config';
+import Stripe from 'stripe';
 import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('wallet')
 export class WalletController {
   private readonly logger = new Logger(WalletController.name);
+  private stripe: Stripe | null = null;
 
-  constructor(private readonly walletService: WalletService) {}
+  constructor(
+    private readonly walletService: WalletService,
+    private readonly configService: ConfigService,
+  ) {
+    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (stripeKey) {
+      this.stripe = new Stripe(stripeKey);
+    }
+  }
 
   // Obtener información del monedero
   @Get()
@@ -34,7 +49,7 @@ export class WalletController {
     };
   }
 
-  // Crear formulario de pago Redsys para recarga
+  // Crear sesión de Stripe Checkout para recarga
   @Post('topup')
   @UseGuards(JwtAuthGuard)
   async createTopUp(
@@ -42,37 +57,49 @@ export class WalletController {
     @Body() body: { amount?: number },
   ) {
     const amount = body.amount || MIN_TOPUP;
-    return this.walletService.createTopUpForm(req.user.userId, amount);
+    return this.walletService.createTopUpSession(req.user.userId, amount);
   }
 
-  // Notificación de Redsys (webhook) - SIN autenticación JWT
-  @Post('redsys-notification')
-  async redsysNotification(
-    @Body()
-    body: {
-      Ds_SignatureVersion: string;
-      Ds_MerchantParameters: string;
-      Ds_Signature: string;
-    },
+  // Webhook de Stripe para recargas - SIN autenticación JWT
+  @Post('stripe-webhook')
+  async stripeWebhook(
+    @Headers('stripe-signature') signature: string,
+    @Req() req: RawBodyRequest<Request>,
   ) {
-    this.logger.log('Received Redsys notification');
-    try {
-      await this.walletService.handleRedsysNotification(body);
-    } catch (error) {
-      this.logger.error('Error processing Redsys notification:', error);
+    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+
+    if (!webhookSecret) {
+      throw new ServiceUnavailableException('Stripe webhook not configured');
     }
-    // Siempre responder 200 para que Redsys no reintente
-    return 'OK';
+
+    if (!this.stripe) {
+      throw new ServiceUnavailableException('Stripe not configured');
+    }
+
+    try {
+      const event = this.stripe.webhooks.constructEvent(
+        req.rawBody!,
+        signature,
+        webhookSecret,
+      );
+
+      await this.walletService.handleStripeWebhook(event);
+    } catch (error) {
+      this.logger.error('Wallet webhook error:', error);
+    }
+
+    // Siempre responder 200 para que Stripe no reintente
+    return { received: true };
   }
 
-  // Verificar resultado de un pedido (llamado desde el frontend al volver de Redsys)
+  // Verificar resultado de un pedido (llamado desde el frontend al volver de Stripe)
   @Get('topup-result')
   @UseGuards(JwtAuthGuard)
   async checkTopUpResult(
     @Request() req: AuthenticatedRequest,
-    @Query('orderId') orderId: string,
+    @Query('sessionId') sessionId: string,
   ) {
-    return this.walletService.checkTopUpResult(orderId, req.user.userId);
+    return this.walletService.checkTopUpResult(sessionId, req.user.userId);
   }
 
   // Obtener historial de transacciones

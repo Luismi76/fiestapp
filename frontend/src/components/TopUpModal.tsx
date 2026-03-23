@@ -20,27 +20,9 @@ export default function TopUpModal({ amount, onClose }: TopUpModalProps) {
     setError(null);
 
     try {
-      const { redsysUrl, redsysBody } = await walletApi.createTopUp(amount);
-
-      // Crear formulario oculto y enviarlo a Redsys
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = redsysUrl;
-
-      const addField = (name: string, value: string) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = name;
-        input.value = value;
-        form.appendChild(input);
-      };
-
-      addField('Ds_SignatureVersion', redsysBody.Ds_SignatureVersion);
-      addField('Ds_MerchantParameters', redsysBody.Ds_MerchantParameters);
-      addField('Ds_Signature', redsysBody.Ds_Signature);
-
-      document.body.appendChild(form);
-      form.submit();
+      const { sessionUrl } = await walletApi.createTopUp(amount);
+      // Redirigir a Stripe Checkout
+      window.location.href = sessionUrl;
     } catch (err) {
       logger.error('TopUp error:', err);
       setError(getErrorMessage(err, 'Error al iniciar el pago'));
@@ -130,7 +112,7 @@ export default function TopUpModal({ amount, onClose }: TopUpModalProps) {
         </div>
 
         <p className="text-xs text-gray-400 text-center mt-3">
-          Pago seguro procesado por Redsys (CaixaBank)
+          Pago seguro procesado por Stripe
         </p>
       </div>
     </div>

@@ -9,7 +9,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { ExperiencesModule } from '../experiences/experiences.module';
 import { CancellationsModule } from '../cancellations/cancellations.module';
 import { EmailModule } from '../email/email.module';
-import { RedsysModule } from '../redsys/redsys.module';
 
 @Module({
   imports: [
@@ -20,7 +19,6 @@ import { RedsysModule } from '../redsys/redsys.module';
     ExperiencesModule,
     CancellationsModule,
     EmailModule,
-    RedsysModule,
     ConfigModule,
   ],
   controllers: [MatchesController],

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { RedsysService } from '../redsys/redsys.service';
+import Stripe from 'stripe';
 
 // Constantes del modelo de negocio
 export const PLATFORM_FEE = 1.5; // 1,50€ por operación
@@ -18,21 +18,31 @@ export type TransactionType = 'topup' | 'platform_fee' | 'refund';
 export class WalletService {
   private readonly logger = new Logger(WalletService.name);
   private frontendUrl: string;
-  private backendUrl: string;
+  private stripe: Stripe | null = null;
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
-    private redsysService: RedsysService,
   ) {
     this.frontendUrl =
       this.configService.get<string>('FRONTEND_URL') ||
       'http://localhost:3000';
-    // Derivar la URL del backend desde FRONTEND_URL
-    const apiUrl =
-      this.configService.get<string>('BACKEND_URL') ||
-      this.frontendUrl.replace('fiestapp.lmsc.es', 'fiestapp-api.lmsc.es');
-    this.backendUrl = apiUrl.replace(/\/api$/, '');
+
+    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (stripeKey) {
+      this.stripe = new Stripe(stripeKey);
+    } else {
+      this.logger.warn('STRIPE_SECRET_KEY not configured - wallet top-ups disabled');
+    }
+  }
+
+  private ensureStripe(): Stripe {
+    if (!this.stripe) {
+      throw new BadRequestException(
+        'Pagos no configurados. Contacta al administrador.',
+      );
+    }
+    return this.stripe;
   }
 
   // Obtener monedero del usuario
@@ -66,18 +76,13 @@ export class WalletService {
     return balance >= amount;
   }
 
-  // Crear formulario de pago Redsys para recarga
-  async createTopUpForm(
+  // Crear sesión de Stripe Checkout para recarga de monedero
+  async createTopUpSession(
     userId: string,
     amount: number = MIN_TOPUP,
   ): Promise<{
-    redsysUrl: string;
-    redsysBody: {
-      Ds_SignatureVersion: string;
-      Ds_MerchantParameters: string;
-      Ds_Signature: string;
-    };
-    orderId: string;
+    sessionUrl: string;
+    sessionId: string;
   }> {
     if (amount < MIN_TOPUP) {
       throw new BadRequestException(`La recarga mínima es de ${MIN_TOPUP}€`);
@@ -103,7 +108,32 @@ export class WalletService {
       data: { status: 'cancelled' },
     });
 
-    const orderId = this.redsysService.generateOrderId();
+    const amountInCents = Math.round(amount * 100);
+
+    // Crear Stripe Checkout Session
+    const session = await this.ensureStripe().checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: `Recarga FiestApp`,
+              description: `Recarga de monedero: ${amount}€`,
+            },
+            unit_amount: amountInCents,
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId,
+        type: 'wallet_topup',
+      },
+      success_url: `${this.frontendUrl}/wallet/topup-result?status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${this.frontendUrl}/wallet/topup-result?status=error`,
+    });
 
     // Registrar transacción pendiente
     await this.prisma.transaction.create({
@@ -112,67 +142,53 @@ export class WalletService {
         type: 'topup',
         amount,
         status: 'pending',
-        stripeId: orderId, // Reutilizamos el campo para almacenar el orderId de Redsys
+        stripeId: session.id,
         description: `Recarga de monedero: ${amount}€`,
       },
     });
 
-    const form = this.redsysService.createPaymentForm({
-      orderId,
-      amount,
-      description: `FiestApp Recarga ${amount}€`,
-      merchantData: JSON.stringify({ userId, type: 'wallet_topup' }),
-      successUrl: `${this.frontendUrl}/wallet/topup-result?status=success&order=${orderId}`,
-      errorUrl: `${this.frontendUrl}/wallet/topup-result?status=error&order=${orderId}`,
-      notificationUrl: `${this.backendUrl}/api/wallet/redsys-notification`,
-    });
-
     this.logger.debug(
-      `TopUp form created: orderId=${orderId}, amount=${amount}€, user=${userId}`,
+      `TopUp session created: sessionId=${session.id}, amount=${amount}€, user=${userId}`,
     );
 
     return {
-      redsysUrl: form.url,
-      redsysBody: form.body,
-      orderId,
+      sessionUrl: session.url!,
+      sessionId: session.id,
     };
   }
 
-  // Procesar notificación de Redsys (webhook)
-  async handleRedsysNotification(body: {
-    Ds_SignatureVersion: string;
-    Ds_MerchantParameters: string;
-    Ds_Signature: string;
-  }): Promise<void> {
-    const notification = this.redsysService.processNotification(body);
-
-    const orderId = notification.Ds_Order;
-    const responseCode = notification.Ds_Response;
-
-    this.logger.log(
-      `Redsys notification: order=${orderId}, response=${responseCode}`,
-    );
-
-    if (!orderId) {
-      this.logger.warn('Notification without order ID');
+  // Procesar webhook de Stripe para recargas
+  async handleStripeWebhook(event: Stripe.Event): Promise<void> {
+    if (event.type !== 'checkout.session.completed') {
       return;
     }
 
+    const session = event.data.object as Stripe.Checkout.Session;
+
+    // Solo procesar eventos de wallet_topup
+    if (session.metadata?.type !== 'wallet_topup') {
+      return;
+    }
+
+    const sessionId = session.id;
+
+    this.logger.log(`Stripe wallet webhook: session=${sessionId}`);
+
     const transaction = await this.prisma.transaction.findFirst({
-      where: { stripeId: orderId, type: 'topup' },
+      where: { stripeId: sessionId, type: 'topup' },
     });
 
     if (!transaction) {
-      this.logger.warn(`Transaction not found for order: ${orderId}`);
+      this.logger.warn(`Transaction not found for session: ${sessionId}`);
       return;
     }
 
     if (transaction.status === 'completed') {
-      this.logger.debug(`Transaction already completed: ${orderId}`);
+      this.logger.debug(`Transaction already completed: ${sessionId}`);
       return;
     }
 
-    if (this.redsysService.isSuccessResponse(responseCode || '')) {
+    if (session.payment_status === 'paid') {
       // Pago exitoso - actualizar saldo
       await this.prisma.$transaction(async (tx) => {
         await tx.transaction.update({
@@ -188,7 +204,7 @@ export class WalletService {
       });
 
       this.logger.log(
-        `TopUp completed: order=${orderId}, amount=${transaction.amount}€, user=${transaction.userId}`,
+        `TopUp completed: session=${sessionId}, amount=${transaction.amount}€, user=${transaction.userId}`,
       );
     } else {
       // Pago fallido
@@ -198,22 +214,48 @@ export class WalletService {
       });
 
       this.logger.warn(
-        `TopUp failed: order=${orderId}, response=${responseCode}`,
+        `TopUp failed: session=${sessionId}, status=${session.payment_status}`,
       );
     }
   }
 
-  // Verificar resultado de un pedido (llamado desde el frontend al volver de Redsys)
+  // Verificar resultado de un pedido (llamado desde el frontend al volver de Stripe)
   async checkTopUpResult(
-    orderId: string,
+    sessionId: string,
     userId: string,
   ): Promise<{ success: boolean; amount?: number }> {
     const transaction = await this.prisma.transaction.findFirst({
-      where: { stripeId: orderId, type: 'topup', userId },
+      where: { stripeId: sessionId, type: 'topup', userId },
     });
 
     if (!transaction) {
       return { success: false };
+    }
+
+    // Si aún está pendiente, verificar directamente con Stripe
+    if (transaction.status === 'pending') {
+      try {
+        const session = await this.ensureStripe().checkout.sessions.retrieve(sessionId);
+        if (session.payment_status === 'paid') {
+          // El webhook aún no llegó, pero el pago sí se completó
+          await this.prisma.$transaction(async (tx) => {
+            await tx.transaction.update({
+              where: { id: transaction.id },
+              data: { status: 'completed' },
+            });
+
+            await tx.wallet.upsert({
+              where: { userId: transaction.userId },
+              update: { balance: { increment: transaction.amount } },
+              create: { userId: transaction.userId, balance: transaction.amount },
+            });
+          });
+
+          return { success: true, amount: transaction.amount };
+        }
+      } catch {
+        // Si falla la verificación, devolver el estado actual de BD
+      }
     }
 
     return {

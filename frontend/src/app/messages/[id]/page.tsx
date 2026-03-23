@@ -505,22 +505,8 @@ export default function ChatPage() {
             totalPrice={match.totalPrice}
             onPay={async () => {
               try {
-                const { redsysUrl, redsysBody } = await matchesApi.createPayment(match.id);
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = redsysUrl;
-                const addField = (name: string, value: string) => {
-                  const input = document.createElement('input');
-                  input.type = 'hidden';
-                  input.name = name;
-                  input.value = value;
-                  form.appendChild(input);
-                };
-                addField('Ds_SignatureVersion', redsysBody.Ds_SignatureVersion);
-                addField('Ds_MerchantParameters', redsysBody.Ds_MerchantParameters);
-                addField('Ds_Signature', redsysBody.Ds_Signature);
-                document.body.appendChild(form);
-                form.submit();
+                const { sessionUrl } = await matchesApi.createPayment(match.id);
+                window.location.href = sessionUrl;
               } catch {
                 setError('Error al iniciar el pago');
               }
