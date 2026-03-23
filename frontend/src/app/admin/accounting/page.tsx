@@ -305,7 +305,7 @@ function RevenueBarChart({
   data: RevenueDataPoint[];
   granularity: string;
 }) {
-  if (!data.length) {
+  if (!data || !data.length) {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         <h3 className="font-semibold text-gray-900 mb-4">Ingresos por periodo</h3>
@@ -409,7 +409,14 @@ function ResumenTab() {
 
   if (!dashboardData) return null;
 
-  const { kpis, revenueChart } = dashboardData;
+  const kpis = dashboardData.kpis || {
+    platformFees: 0, platformFeesChange: 0,
+    walletTopups: 0, walletTopupsChange: 0,
+    experiencePayments: 0, experiencePaymentsChange: 0,
+    refunds: 0, refundsChange: 0,
+    totalWalletBalance: 0, operationsCount: 0, operationsCountChange: 0,
+  };
+  const revenueChart = dashboardData.revenueChart || [];
 
   return (
     <div className="space-y-4">
@@ -855,7 +862,8 @@ function Dac7Tab() {
 
   if (!data) return null;
 
-  const { hosts, summary } = data;
+  const hosts = data.hosts || [];
+  const summary = data.summary || { totalHosts: 0, incompleteData: 0, totalReportableIncome: 0 };
   const incompleteCount = summary.incompleteData;
 
   return (
@@ -1106,7 +1114,7 @@ function ObligacionesFiscalesTab() {
           <div className="flex justify-center py-8">
             <div className="spinner spinner-lg" />
           </div>
-        ) : modelo347 && modelo347.entries.length > 0 ? (
+        ) : modelo347 && modelo347.entries && modelo347.entries.length > 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -1191,7 +1199,7 @@ function ObligacionesFiscalesTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {vatSummary.rows.map((row, index) => (
+                  {(vatSummary.rows || []).map((row, index) => (
                     <tr key={index} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3 font-medium text-gray-900">{row.concept}</td>
                       <td className="px-4 py-3 text-right text-gray-600">{row.operationsCount}</td>
@@ -1204,10 +1212,10 @@ function ObligacionesFiscalesTab() {
                 <tfoot>
                   <tr className="bg-gray-50 border-t-2 border-gray-200">
                     <td className="px-4 py-3 font-bold text-gray-900">TOTAL</td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-900">{vatSummary.totals.operationsCount}</td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals.grossAmount)}</td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals.taxableBase)}</td>
-                    <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals.vatAmount)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-gray-900">{vatSummary.totals?.operationsCount || 0}</td>
+                    <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.grossAmount || 0)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.taxableBase || 0)}</td>
+                    <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.vatAmount || 0)}</td>
                   </tr>
                 </tfoot>
               </table>
