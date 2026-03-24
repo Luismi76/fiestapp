@@ -1792,12 +1792,8 @@ function SubTabPills({
   alerts: AlertCounts | null;
 }) {
   return (
-    <div className="sticky top-14 z-20 bg-white border-b border-gray-200">
-      <div
-        className="flex gap-2 overflow-x-auto px-4 py-3"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        <style jsx>{`div::-webkit-scrollbar { display: none; }`}</style>
+    <div className="hidden md:block sticky top-14 z-20 bg-white border-b border-gray-200">
+      <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
         {TAB_CONFIG.map((tab) => {
           const count = alerts ? tab.alertPath(alerts) : undefined;
           const isActive = activeTab === tab.key;

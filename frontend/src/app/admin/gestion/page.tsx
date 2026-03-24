@@ -1534,7 +1534,7 @@ const SUB_TABS = [
 
 function SubTabPills({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: string) => void }) {
   return (
-    <div className="sticky top-14 z-20 bg-white border-b border-gray-200">
+    <div className="hidden md:block sticky top-14 z-20 bg-white border-b border-gray-200">
       <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
         {SUB_TABS.map((tab) => (
           <button

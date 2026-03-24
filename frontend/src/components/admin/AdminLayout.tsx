@@ -270,9 +270,47 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
         </header>
 
         {/* Mobile content */}
-        <main className="flex-1 pb-20">
+        <main className={`flex-1 ${section === 'inicio' ? 'pb-20' : 'pb-32'}`}>
           {children}
         </main>
+
+        {/* Mobile sub-nav (above bottom bar, only for sections with tabs) */}
+        {section !== 'inicio' && (() => {
+          const sectionGroup = SIDEBAR_GROUPS.find(g =>
+            g.items.some(i => i.href === `/admin/${section}`)
+          );
+          if (!sectionGroup) return null;
+          return (
+            <nav
+              className="fixed bottom-16 inset-x-0 z-50 bg-white border-t border-gray-100"
+              style={{ boxShadow: '0 -1px 2px rgba(0,0,0,0.05)' }}
+            >
+              <div className="flex gap-1.5 overflow-x-auto px-3 py-2 scrollbar-hide">
+                {sectionGroup.items.map((sub) => {
+                  const active = pathname.startsWith(sub.href) && currentTab === sub.tab;
+                  const badge = sub.alertKey ? alerts?.[sub.alertKey] ?? 0 : 0;
+                  return (
+                    <Link
+                      key={sub.tab || sub.label}
+                      href={buildHref(sub)}
+                      className={`relative whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                        active ? 'text-white' : 'bg-gray-100 text-gray-600'
+                      }`}
+                      style={active ? { backgroundColor: '#FF6B35' } : undefined}
+                    >
+                      {sub.label}
+                      {badge > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full">
+                          {badge > 99 ? '99+' : badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </nav>
+          );
+        })()}
 
         {/* Mobile bottom bar */}
         <nav
@@ -288,7 +326,7 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
                   key={item.section}
                   href={item.href}
                   className="flex-1 flex flex-col items-center justify-center transition-colors"
-                  style={{ minHeight: '44px' }}
+                  style={{ minHeight: '44px', color: isActive ? '#FF6B35' : '#9CA3AF' }}
                 >
                   <div className="relative">
                     <Icon
@@ -303,9 +341,6 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
                   <span className="text-[10px] mt-0.5">
                     {item.label}
                   </span>
-                  <style jsx>{`
-                    a { color: ${isActive ? '#FF6B35' : '#9CA3AF'}; }
-                  `}</style>
                 </Link>
               );
             })}
