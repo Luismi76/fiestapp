@@ -5,8 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAvatarUrl } from '@/lib/utils';
 import { OptimizedAvatar } from '@/components/OptimizedImage';
-import { AdminHeader } from '@/components/admin';
-import MainLayout from '@/components/MainLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { adminDisputesApi, type Dispute, type DisputeMessage } from '@/lib/api';
 
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
@@ -111,7 +110,7 @@ export default function AdminDisputeDetailPage() {
 
   if (!dispute) {
     return (
-      <MainLayout hideNav>
+      <AdminLayout section="moderacion" title="Detalle Disputa">
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <p className="text-gray-500 mb-4">{error || 'Disputa no encontrada'}</p>
@@ -120,7 +119,7 @@ export default function AdminDisputeDetailPage() {
             </button>
           </div>
         </div>
-      </MainLayout>
+      </AdminLayout>
     );
   }
 
@@ -128,9 +127,9 @@ export default function AdminDisputeDetailPage() {
   const isActive = ['OPEN', 'UNDER_REVIEW'].includes(dispute.status);
 
   return (
-    <MainLayout hideNav>
+    <AdminLayout section="moderacion" title="Detalle Disputa">
       <div className="min-h-screen bg-gray-50">
-        <AdminHeader title="Detalle de Disputa" />
+
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
           {error && (
@@ -311,6 +310,6 @@ export default function AdminDisputeDetailPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </AdminLayout>
   );
 }

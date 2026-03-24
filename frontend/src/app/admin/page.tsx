@@ -15,8 +15,7 @@ import {
   TopHost,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import MainLayout from '@/components/MainLayout';
-import AdminNav from '@/components/admin/AdminNav';
+import AdminLayout from '@/components/admin/AdminLayout';
 import Image from 'next/image';
 
 // Simple Bar Chart Component
@@ -273,29 +272,16 @@ export default function AdminDashboardPage() {
   if (!stats) return null;
 
   return (
-    <MainLayout hideNav>
-      <div className="min-h-screen bg-gray-50 pb-8">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Panel de Administracion</h1>
-              <p className="text-sm text-gray-500">Hola, {user?.name}</p>
-            </div>
-            <Link href="/dashboard" className="text-sm text-secondary font-medium">
-              Volver a la app
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Admin Navigation Tabs */}
-      <AdminNav alerts={alerts ? {
+    <AdminLayout
+      section="inicio"
+      title="Dashboard"
+      alerts={alerts ? {
         disputes: alerts.disputes.total,
         reports: alerts.reports.pending,
         verifications: alerts.verifications.pending,
-      } : undefined} />
+      } : undefined}
+    >
+      <div className="min-h-screen bg-gray-50 pb-8">
 
       <div className="p-4 space-y-4">
         {/* SECTION A: Centro de Alertas */}
@@ -849,6 +835,6 @@ export default function AdminDashboardPage() {
         )}
       </div>
       </div>
-    </MainLayout>
+    </AdminLayout>
   );
 }
