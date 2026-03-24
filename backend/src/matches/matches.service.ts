@@ -975,6 +975,7 @@ export class MatchesService {
   }
 
   // Verificar estado del pago de experiencia
+  // Si el webhook no ha llegado, verifica directamente con Stripe
   async getPaymentStatus(matchId: string, userId: string) {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
@@ -984,6 +985,52 @@ export class MatchesService {
     if (!match) throw new NotFoundException('Solicitud no encontrada');
     if (match.requesterId !== userId && match.hostId !== userId) {
       throw new ForbiddenException('No tienes acceso a esta solicitud');
+    }
+
+    // Si aún está pending_payment, verificar directamente con Stripe (por si el webhook no llegó)
+    if (match.paymentStatus === 'pending_payment') {
+      const transaction = await this.prisma.transaction.findFirst({
+        where: { matchId, type: 'experience_payment', status: 'pending' },
+      });
+
+      if (transaction?.stripeId) {
+        try {
+          const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+          if (stripeKey) {
+            const stripe = new Stripe(stripeKey);
+            // stripeId puede ser session id o payment intent id
+            const isSession = transaction.stripeId.startsWith('cs_');
+            let paymentIntentId = transaction.stripeId;
+
+            if (isSession) {
+              const session = await stripe.checkout.sessions.retrieve(transaction.stripeId);
+              paymentIntentId = session.payment_intent as string;
+            }
+
+            if (paymentIntentId) {
+              const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+              if (pi.status === 'requires_capture') {
+                // Pago autorizado, marcar como held (escrow)
+                await this.prisma.$transaction(async (tx) => {
+                  await tx.transaction.update({
+                    where: { id: transaction.id },
+                    data: { status: 'held', stripeId: paymentIntentId },
+                  });
+                  await tx.match.update({
+                    where: { id: matchId },
+                    data: { paymentStatus: 'held' },
+                  });
+                });
+
+                return { paymentStatus: 'held', amount: match.totalPrice };
+              }
+            }
+          }
+        } catch (error) {
+          this.logger.warn(`Stripe verification failed for match ${matchId}: ${error}`);
+        }
+      }
     }
 
     return {
