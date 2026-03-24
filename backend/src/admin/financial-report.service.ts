@@ -49,14 +49,14 @@ export class FinancialReportService {
     // Obtener totales
     const [totalStats, byType, byStatus] = await Promise.all([
       this.prisma.transaction.aggregate({
-        where: { ...where, status: 'completed' },
+        where: { ...where, status: { in: ['completed', 'held', 'released'] } },
         _sum: { amount: true },
         _count: { amount: true },
         _avg: { amount: true },
       }),
       this.prisma.transaction.groupBy({
         by: ['type'],
-        where: { ...where, status: 'completed' },
+        where: { ...where, status: { in: ['completed', 'held', 'released'] } },
         _sum: { amount: true },
       }),
       this.prisma.transaction.groupBy({
@@ -111,7 +111,7 @@ export class FinancialReportService {
     period: 'daily' | 'weekly' | 'monthly',
     filters?: FinancialReportFilters,
   ) {
-    const where: Prisma.TransactionWhereInput = { status: 'completed' };
+    const where: Prisma.TransactionWhereInput = { status: { in: ['completed', 'held', 'released'] } };
 
     if (filters?.startDate || filters?.endDate) {
       where.createdAt = {};
@@ -305,7 +305,7 @@ export class FinancialReportService {
   async getCommissionMetrics(filters?: FinancialReportFilters) {
     const where: Prisma.TransactionWhereInput = {
       type: 'commission',
-      status: 'completed',
+      status: { in: ['completed', 'held', 'released'] },
     };
 
     if (filters?.startDate || filters?.endDate) {

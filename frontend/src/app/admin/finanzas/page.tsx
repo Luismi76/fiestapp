@@ -42,7 +42,7 @@ interface Transaction {
   userEmail: string;
   type: 'platform_fee' | 'topup' | 'refund' | 'experience_payment' | 'payment';
   amount: number;
-  status: 'completed' | 'pending' | 'cancelled' | 'refunded';
+  status: 'completed' | 'pending' | 'cancelled' | 'refunded' | 'held' | 'released';
   description: string;
 }
 
@@ -133,6 +133,8 @@ const statusBadge: Record<string, { label: string; bg: string; text: string }> =
   pending: { label: 'Pendiente', bg: 'bg-yellow-100', text: 'text-yellow-700' },
   cancelled: { label: 'Cancelado', bg: 'bg-gray-100', text: 'text-gray-500' },
   refunded: { label: 'Reembolsado', bg: 'bg-amber-100', text: 'text-amber-700' },
+  held: { label: 'Retenido', bg: 'bg-blue-100', text: 'text-blue-700' },
+  released: { label: 'Liberado', bg: 'bg-emerald-100', text: 'text-emerald-700' },
 };
 
 const typeBorderColor: Record<string, string> = {
@@ -727,6 +729,8 @@ function TransaccionesTab() {
               >
                 <option value="all">Todos</option>
                 <option value="completed">Completado</option>
+                <option value="held">Retenido</option>
+                <option value="released">Liberado</option>
                 <option value="pending">Pendiente</option>
                 <option value="cancelled">Cancelado</option>
                 <option value="refunded">Reembolsado</option>

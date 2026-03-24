@@ -138,7 +138,7 @@ export class AccountingService {
   ): Promise<Array<{ period: string; revenue: number }>> {
     const transactions = await this.prisma.transaction.findMany({
       where: {
-        status: 'completed',
+        status: { in: ['completed', 'held', 'released'] },
         createdAt: { gte: start, lt: end },
       },
       select: { amount: true, createdAt: true },
@@ -186,7 +186,7 @@ export class AccountingService {
       this.prisma.transaction.aggregate({
         where: {
           type: 'platform_fee',
-          status: 'completed',
+          status: { in: ['completed', 'held', 'released'] },
           createdAt: dateFilter,
         },
         _sum: { amount: true },
@@ -194,7 +194,7 @@ export class AccountingService {
       this.prisma.transaction.aggregate({
         where: {
           type: 'topup',
-          status: 'completed',
+          status: { in: ['completed', 'held', 'released'] },
           createdAt: dateFilter,
         },
         _sum: { amount: true },
@@ -202,7 +202,7 @@ export class AccountingService {
       this.prisma.transaction.aggregate({
         where: {
           type: 'experience_payment',
-          status: 'completed',
+          status: { in: ['completed', 'held', 'released'] },
           createdAt: dateFilter,
         },
         _sum: { amount: true },
@@ -210,7 +210,7 @@ export class AccountingService {
       this.prisma.transaction.aggregate({
         where: {
           type: 'refund',
-          status: 'completed',
+          status: { in: ['completed', 'held', 'released'] },
           createdAt: dateFilter,
         },
         _sum: { amount: true },
@@ -220,7 +220,7 @@ export class AccountingService {
       }),
       this.prisma.transaction.count({
         where: {
-          status: 'completed',
+          status: { in: ['completed', 'held', 'released'] },
           createdAt: dateFilter,
         },
       }),
@@ -308,7 +308,7 @@ export class AccountingService {
       by: ['userId'],
       where: {
         type: 'experience_payment',
-        status: 'completed',
+        status: { in: ['completed', 'held', 'released'] },
         createdAt: { gte: yearStart, lt: yearEnd },
         userId: { in: hostIds },
       },
@@ -330,7 +330,7 @@ export class AccountingService {
       by: ['userId'],
       where: {
         type: 'platform_fee',
-        status: 'completed',
+        status: { in: ['completed', 'held', 'released'] },
         createdAt: { gte: yearStart, lt: yearEnd },
         userId: { in: hostIds },
       },
@@ -406,7 +406,7 @@ export class AccountingService {
     const annualTotals = await this.prisma.transaction.groupBy({
       by: ['userId'],
       where: {
-        status: 'completed',
+        status: { in: ['completed', 'held', 'released'] },
         createdAt: { gte: yearStart, lt: yearEnd },
       },
       _sum: { amount: true },
@@ -437,7 +437,7 @@ export class AccountingService {
         this.prisma.transaction.groupBy({
           by: ['userId'],
           where: {
-            status: 'completed',
+            status: { in: ['completed', 'held', 'released'] },
             userId: { in: qualifyingUserIds },
             createdAt: { gte: q.start, lt: q.end },
           },
@@ -496,7 +496,7 @@ export class AccountingService {
     const grouped = await this.prisma.transaction.groupBy({
       by: ['type'],
       where: {
-        status: 'completed',
+        status: { in: ['completed', 'held', 'released'] },
         createdAt: { gte: start, lt: end },
       },
       _sum: { amount: true },

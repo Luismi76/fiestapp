@@ -97,13 +97,13 @@ export class AdminService {
     const [platformFees, topups, totalWalletBalance] = await Promise.all([
       // Comisiones de plataforma (1.5€ por acuerdo) - valores negativos, tomamos el absoluto
       this.prisma.transaction.aggregate({
-        where: { type: 'platform_fee', status: 'completed' },
+        where: { type: 'platform_fee', status: { in: ['completed', 'held', 'released'] } },
         _sum: { amount: true },
         _count: { amount: true },
       }),
       // Recargas de usuarios
       this.prisma.transaction.aggregate({
-        where: { type: 'topup', status: 'completed' },
+        where: { type: 'topup', status: { in: ['completed', 'held', 'released'] } },
         _sum: { amount: true },
         _count: { amount: true },
       }),
