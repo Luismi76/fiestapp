@@ -871,25 +871,27 @@ export class MatchesService {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     const amountInCents = Math.round(match.totalPrice * 100);
 
-    // Crear Stripe Checkout Session con escrow (capture manual)
-    const session = await stripe.checkout.sessions.create({
+    // Sistema híbrido: si la experiencia es en < 7 días, usar hold de Stripe (gratis al cancelar).
+    // Si es >= 7 días, cobrar inmediatamente y retener internamente (reembolso con coste Stripe).
+    const daysUntilExperience = match.startDate
+      ? Math.ceil((new Date(match.startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      : 0;
+    const useStripeHold = daysUntilExperience > 0 && daysUntilExperience <= 7;
+
+    // Crear Stripe Checkout Session
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sessionParams: any = {
       payment_method_types: ['card'],
       mode: 'payment',
-      payment_intent_data: {
-        capture_method: 'manual', // Retener pago hasta confirmación mutua
-        metadata: {
-          matchId,
-          requesterId,
-          type: 'experience_payment',
-        },
-      },
       line_items: [
         {
           price_data: {
             currency: 'eur',
             product_data: {
               name: match.experience.title,
-              description: `Pago experiencia FiestApp - Fondos retenidos hasta completar`,
+              description: useStripeHold
+                ? 'Pago experiencia FiestApp - Fondos retenidos hasta completar'
+                : 'Pago experiencia FiestApp',
             },
             unit_amount: amountInCents,
           },
@@ -900,10 +902,21 @@ export class MatchesService {
         matchId,
         requesterId,
         type: 'experience_payment',
+        escrowMode: useStripeHold ? 'stripe_hold' : 'platform_hold',
       },
       success_url: `${frontendUrl}/matches/payment-result?status=success&session_id={CHECKOUT_SESSION_ID}&matchId=${matchId}`,
       cancel_url: `${frontendUrl}/matches/payment-result?status=error&matchId=${matchId}`,
-    });
+    };
+
+    // Solo usar capture manual para experiencias cercanas (< 7 días)
+    if (useStripeHold) {
+      sessionParams.payment_intent_data = {
+        capture_method: 'manual',
+        metadata: { matchId, requesterId, type: 'experience_payment' },
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     // Crear transacción pendiente
     await this.prisma.transaction.create({
@@ -914,7 +927,7 @@ export class MatchesService {
         amount: -match.totalPrice,
         status: 'pending',
         stripeId: session.id,
-        description: `Pago experiencia: ${match.experience.title}`,
+        description: `Pago experiencia: ${match.experience.title} [${useStripeHold ? 'stripe_hold' : 'platform_hold'}]`,
       },
     });
 
@@ -947,15 +960,16 @@ export class MatchesService {
     if (transaction.status === 'held' || transaction.status === 'completed') return;
 
     if (session.payment_status === 'paid') {
-      // Obtener el payment_intent_id de la session para futuras operaciones
       const paymentIntentId = session.payment_intent as string;
+      const escrowMode = session.metadata?.escrowMode || 'platform_hold';
 
+      // Ambos modos marcan como 'held' - la diferencia es cómo se gestiona la liberación/reembolso
       await this.prisma.$transaction(async (tx) => {
         await tx.transaction.update({
           where: { id: transaction.id },
           data: {
-            status: 'held', // Escrow: pago retenido hasta confirmación mutua
-            stripeId: paymentIntentId || transaction.stripeId, // Guardar payment_intent id
+            status: 'held',
+            stripeId: paymentIntentId || transaction.stripeId,
           },
         });
 
@@ -965,7 +979,7 @@ export class MatchesService {
         });
       });
 
-      this.logger.log(`Payment held (escrow) for match ${transaction.matchId}`);
+      this.logger.log(`Payment held (${escrowMode}) for match ${transaction.matchId}`);
     } else {
       await this.prisma.transaction.update({
         where: { id: transaction.id },
@@ -998,7 +1012,6 @@ export class MatchesService {
           const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
           if (stripeKey) {
             const stripe = new Stripe(stripeKey);
-            // stripeId puede ser session id o payment intent id
             const isSession = transaction.stripeId.startsWith('cs_');
             let paymentIntentId = transaction.stripeId;
 
@@ -1010,8 +1023,8 @@ export class MatchesService {
             if (paymentIntentId) {
               const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
 
-              if (pi.status === 'requires_capture') {
-                // Pago autorizado, marcar como held (escrow)
+              // Ambos estados significan que el pago fue exitoso
+              if (pi.status === 'requires_capture' || pi.status === 'succeeded') {
                 await this.prisma.$transaction(async (tx) => {
                   await tx.transaction.update({
                     where: { id: transaction.id },
@@ -1151,7 +1164,6 @@ export class MatchesService {
 
       // Procesar reembolso según estado del pago
       if ((match.paymentStatus === 'held' || match.paymentStatus === 'paid') && refundAmount > 0) {
-        // Buscar transacción de pago (held = escrow, completed = ya capturado)
         const paymentTx = await this.prisma.transaction.findFirst({
           where: { matchId: id, type: 'experience_payment', status: { in: ['held', 'completed'] } },
         });
@@ -1162,13 +1174,13 @@ export class MatchesService {
             if (stripeKey) {
               const stripe = new Stripe(stripeKey);
               const paymentIntent = await stripe.paymentIntents.retrieve(paymentTx.stripeId);
+              const isStripeHold = paymentIntent.status === 'requires_capture';
 
-              if (paymentIntent.status === 'requires_capture') {
-                // Escrow: cancelar el payment intent (libera los fondos retenidos)
+              if (isStripeHold) {
+                // Stripe hold (< 7 días): cancelar o capturar parcialmente (sin coste)
                 if (refundPercentage === 100) {
                   await stripe.paymentIntents.cancel(paymentTx.stripeId);
                 } else {
-                  // Reembolso parcial: capturar solo la parte no reembolsable
                   const captureAmount = Math.round((match.totalPrice! - refundAmount) * 100);
                   if (captureAmount > 0) {
                     await stripe.paymentIntents.capture(paymentTx.stripeId, {
@@ -1179,7 +1191,7 @@ export class MatchesService {
                   }
                 }
               } else if (paymentIntent.status === 'succeeded') {
-                // Ya capturado: crear refund normal
+                // Platform hold (>= 7 días): reembolso estándar (con coste Stripe)
                 await stripe.refunds.create({
                   payment_intent: paymentTx.stripeId,
                   amount: Math.round(refundAmount * 100),
@@ -1199,7 +1211,6 @@ export class MatchesService {
               },
             });
 
-            // Marcar transacción original como reembolsada
             await this.prisma.transaction.update({
               where: { id: paymentTx.id },
               data: { status: 'refunded' },
@@ -1404,8 +1415,10 @@ export class MatchesService {
   }
 
   /**
-   * Libera el pago retenido (escrow) en Stripe y lo transfiere al wallet del host.
-   * Se llama automáticamente tras confirmación mutua.
+   * Libera el pago retenido (escrow) y lo transfiere al wallet del host.
+   * Sistema híbrido:
+   * - stripe_hold: captura el payment intent en Stripe + abona al host
+   * - platform_hold: el dinero ya está cobrado, solo abona al host
    */
   private async releaseEscrow(matchId: string, hostId: string) {
     const transaction = await this.prisma.transaction.findFirst({
@@ -1414,13 +1427,21 @@ export class MatchesService {
 
     if (!transaction?.stripeId) return; // No hay pago retenido (intercambio)
 
-    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-    if (!stripeKey) return;
-    const stripe = new Stripe(stripeKey);
+    const isStripeHold = transaction.description?.includes('[stripe_hold]');
 
     try {
-      // Capturar el pago en Stripe
-      await stripe.paymentIntents.capture(transaction.stripeId);
+      // Solo capturar en Stripe si es un hold (experiencias < 7 días)
+      if (isStripeHold) {
+        const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+        if (stripeKey) {
+          const stripe = new Stripe(stripeKey);
+          const pi = await stripe.paymentIntents.retrieve(transaction.stripeId);
+          if (pi.status === 'requires_capture') {
+            await stripe.paymentIntents.capture(transaction.stripeId);
+          }
+        }
+      }
+      // Para platform_hold el dinero ya está cobrado, no hay que hacer nada en Stripe
 
       // Actualizar BD: marcar como liberado y abonar al host
       await this.prisma.$transaction(async (tx) => {
@@ -1434,7 +1455,6 @@ export class MatchesService {
           data: { paymentStatus: 'released' },
         });
 
-        // Abonar al wallet del host
         await tx.wallet.upsert({
           where: { userId: hostId },
           update: { balance: { increment: Math.abs(transaction.amount) } },
@@ -1442,7 +1462,7 @@ export class MatchesService {
         });
       });
 
-      this.logger.log(`Escrow released for match ${matchId}: ${Math.abs(transaction.amount)} EUR to host ${hostId}`);
+      this.logger.log(`Escrow released (${isStripeHold ? 'stripe_hold' : 'platform_hold'}) for match ${matchId}: ${Math.abs(transaction.amount)} EUR to host ${hostId}`);
     } catch (error) {
       this.logger.error(
         `Failed to release escrow for match ${matchId}`,
