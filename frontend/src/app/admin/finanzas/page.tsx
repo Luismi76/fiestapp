@@ -1505,8 +1505,10 @@ function Dac7Tab() {
 
 function ObligacionesFiscalesTab() {
   const currentYear = new Date().getFullYear();
+  const currentQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
   const [year, setYear] = useState(currentYear);
-  const [quarter, setQuarter] = useState('Q1');
+  const [quarter, setQuarter] = useState(currentQ);
+  const [subTab, setSubTab] = useState<'iva' | '347'>('iva');
 
   const [modelo347, setModelo347] = useState<Modelo347Response | null>(null);
   const [vatSummary, setVatSummary] = useState<VatSummaryResponse | null>(null);
@@ -1554,194 +1556,88 @@ function ObligacionesFiscalesTab() {
     window.open(`${baseUrl}/admin/accounting/export/modelo347?year=${year}`, '_blank');
   };
 
+  const quarterLabel = { Q1: 'Ene - Mar', Q2: 'Abr - Jun', Q3: 'Jul - Sep', Q4: 'Oct - Dic' }[quarter] || '';
+
   return (
-    <div className="space-y-6">
-      {/* Year + Quarter selectors */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap items-end gap-3">
-        <div className="w-full sm:w-auto">
-          <label className="block text-xs text-gray-500 mb-1">Ejercicio</label>
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="w-full sm:w-auto px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium min-h-[44px]"
-          >
-            {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-        <div className="w-full sm:w-auto">
-          <label className="block text-xs text-gray-500 mb-1">Trimestre (IVA)</label>
-          <select
-            value={quarter}
-            onChange={(e) => setQuarter(e.target.value)}
-            className="w-full sm:w-auto px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium min-h-[44px]"
-          >
-            <option value="Q1">Q1 (Ene - Mar)</option>
-            <option value="Q2">Q2 (Abr - Jun)</option>
-            <option value="Q3">Q3 (Jul - Sep)</option>
-            <option value="Q4">Q4 (Oct - Dic)</option>
-          </select>
-        </div>
+    <div className="space-y-4">
+      {/* Sub-tab selector: IVA / 347 */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setSubTab('iva')}
+          className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            subTab === 'iva'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          IVA trimestral
+        </button>
+        <button
+          onClick={() => setSubTab('347')}
+          className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            subTab === '347'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          Modelo 347
+        </button>
       </div>
 
-      {/* SECTION: Modelo 347 */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      {/* ── IVA TRIMESTRAL ────────────────────────────────────────── */}
+      {subTab === 'iva' && (
+        <div className="space-y-4">
+          {/* Filtros: año + trimestre */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4">
+            <div className="flex gap-3">
+              <div className="flex-1 sm:flex-none">
+                <label className="block text-xs text-gray-500 mb-1">Ejercicio</label>
+                <select
+                  value={year}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium min-h-[44px]"
+                >
+                  {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1 sm:flex-none">
+                <label className="block text-xs text-gray-500 mb-1">Trimestre</label>
+                <select
+                  value={quarter}
+                  onChange={(e) => setQuarter(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium min-h-[44px]"
+                >
+                  <option value="Q1">Q1 (Ene - Mar)</option>
+                  <option value="Q2">Q2 (Abr - Jun)</option>
+                  <option value="Q3">Q3 (Jul - Sep)</option>
+                  <option value="Q4">Q4 (Oct - Dic)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Header */}
           <div>
-            <h3 className="font-semibold text-gray-900 text-sm md:text-base">Modelo 347 - Operaciones &gt;3.005,06 EUR</h3>
+            <h3 className="font-semibold text-gray-900 text-base">Resumen IVA &middot; {quarter} {year}</h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Declaracion anual de operaciones con terceros que superen 3.005,06 EUR
+              Desglose de operaciones e IVA al 21% &middot; {quarterLabel} {year}
             </p>
           </div>
-          <button
-            onClick={handleExport347}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary text-white rounded-lg text-xs font-medium hover:bg-secondary/90 transition-colors min-h-[44px]"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            Exportar 347 (CSV)
-          </button>
-        </div>
 
-        {error347 && <ErrorCard message={error347} onRetry={fetch347} />}
+          {errorVat && <ErrorCard message={errorVat} onRetry={fetchVat} />}
 
-        {loading347 ? (
-          <LoadingSpinner text="Cargando Modelo 347..." />
-        ) : modelo347 && modelo347.entries && modelo347.entries.length > 0 ? (
-          <>
-            {/* MOBILE: Card layout */}
-            <div className="md:hidden space-y-3">
-              {modelo347.entries.map((entry) => (
-                <Modelo347Card key={entry.userId} entry={entry} />
-              ))}
-            </div>
-
-            {/* DESKTOP: Table */}
-            <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
-                      <th className="text-left px-4 py-3 font-medium text-gray-500">Usuario</th>
-                      <th className="text-left px-4 py-3 font-medium text-gray-500">NIF</th>
-                      <th className="text-right px-4 py-3 font-medium text-gray-500">Total anual</th>
-                      <th className="text-right px-4 py-3 font-medium text-gray-500">Q1</th>
-                      <th className="text-right px-4 py-3 font-medium text-gray-500">Q2</th>
-                      <th className="text-right px-4 py-3 font-medium text-gray-500">Q3</th>
-                      <th className="text-right px-4 py-3 font-medium text-gray-500">Q4</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {modelo347.entries.map((entry) => (
-                      <tr key={entry.userId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900">{entry.userName}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          {entry.nif ? (
-                            <span className="text-gray-700 font-mono text-xs">{entry.nif}</span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-amber-600 text-xs">
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-                              </svg>
-                              Sin NIF
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatEur(entry.totalAnnual)}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q1)}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q2)}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q3)}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q4)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="text-center py-8 bg-white rounded-2xl shadow-sm border border-gray-100">
-            <p className="text-gray-500 text-sm">No hay operaciones que superen el umbral de 3.005,06 EUR en {year}</p>
-          </div>
-        )}
-      </div>
-
-      {/* SECTION: Resumen IVA */}
-      <div className="space-y-3">
-        <div>
-          <h3 className="font-semibold text-gray-900 text-sm md:text-base">Resumen IVA - {quarter} {year}</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Desglose de operaciones e IVA al 21% para el trimestre seleccionado
-          </p>
-        </div>
-
-        {errorVat && <ErrorCard message={errorVat} onRetry={fetchVat} />}
-
-        {loadingVat ? (
-          <LoadingSpinner text="Cargando resumen IVA..." />
-        ) : vatSummary ? (
-          <>
-            {/* MOBILE: Card per concept */}
-            <div className="md:hidden space-y-3">
-              {(vatSummary.rows || []).map((row, index) => (
-                <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
-                  <div className="font-medium text-gray-900 text-sm mb-2">{row.concept}</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-[10px] text-gray-500">N.o Ops.</div>
-                      <div className="text-sm font-semibold text-gray-900">{row.operationsCount}</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-[10px] text-gray-500">Importe bruto</div>
-                      <div className="text-sm font-semibold text-gray-900">{formatEur(row.grossAmount)}</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-[10px] text-gray-500">Base imponible</div>
-                      <div className="text-sm font-semibold text-gray-900">{formatEur(row.taxableBase)}</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-2">
-                      <div className="text-[10px] text-gray-500">Cuota IVA (21%)</div>
-                      <div className="text-sm font-semibold text-gray-900">{formatEur(row.vatAmount)}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {/* Totals card */}
-              <div className="bg-secondary/5 rounded-xl border-2 border-secondary/20 p-3">
-                <div className="font-bold text-gray-900 text-sm mb-2">TOTAL</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-white rounded-lg p-2">
-                    <div className="text-[10px] text-gray-500">N.o Ops.</div>
-                    <div className="text-sm font-bold text-gray-900">{vatSummary.totals?.operationsCount || 0}</div>
-                  </div>
-                  <div className="bg-white rounded-lg p-2">
-                    <div className="text-[10px] text-gray-500">Importe bruto</div>
-                    <div className="text-sm font-bold text-gray-900">{formatEur(vatSummary.totals?.grossAmount || 0)}</div>
-                  </div>
-                  <div className="bg-white rounded-lg p-2">
-                    <div className="text-[10px] text-gray-500">Base imponible</div>
-                    <div className="text-sm font-bold text-gray-900">{formatEur(vatSummary.totals?.taxableBase || 0)}</div>
-                  </div>
-                  <div className="bg-white rounded-lg p-2">
-                    <div className="text-[10px] text-gray-500">Cuota IVA (21%)</div>
-                    <div className="text-sm font-bold text-gray-900">{formatEur(vatSummary.totals?.vatAmount || 0)}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* DESKTOP: Table */}
-            <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {loadingVat ? (
+            <LoadingSpinner text="Cargando resumen IVA..." />
+          ) : vatSummary && (vatSummary.rows || []).length > 0 ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/50">
                       <th className="text-left px-4 py-3 font-medium text-gray-500">Concepto</th>
-                      <th className="text-right px-4 py-3 font-medium text-gray-500">N.o Operaciones</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">N.o Ops.</th>
                       <th className="text-right px-4 py-3 font-medium text-gray-500">Importe bruto</th>
                       <th className="text-right px-4 py-3 font-medium text-gray-500">Base imponible</th>
                       <th className="text-right px-4 py-3 font-medium text-gray-500">Cuota IVA (21%)</th>
@@ -1770,13 +1666,124 @@ function ObligacionesFiscalesTab() {
                 </table>
               </div>
             </div>
-          </>
-        ) : (
-          <div className="text-center py-8 bg-white rounded-2xl shadow-sm border border-gray-100">
-            <p className="text-gray-500 text-sm">No hay datos de IVA para {quarter} {year}</p>
+          ) : (
+            <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-100">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-gray-300 mx-auto mb-3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+              <p className="text-gray-500 text-sm">Sin operaciones en {quarter} {year}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── MODELO 347 ────────────────────────────────────────────── */}
+      {subTab === '347' && (
+        <div className="space-y-4">
+          {/* Filtro: solo año (347 es anual) */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4">
+            <div className="flex items-end gap-3">
+              <div className="flex-1 sm:flex-none">
+                <label className="block text-xs text-gray-500 mb-1">Ejercicio</label>
+                <select
+                  value={year}
+                  onChange={(e) => setYear(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium min-h-[44px]"
+                >
+                  {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleExport347}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary text-white rounded-lg text-xs font-medium hover:bg-secondary/90 transition-colors min-h-[44px]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Exportar CSV
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Header */}
+          <div>
+            <h3 className="font-semibold text-gray-900 text-base">Modelo 347 &middot; {year}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Declaracion anual de operaciones con terceros que superen 3.005,06 EUR
+            </p>
+          </div>
+
+          {error347 && <ErrorCard message={error347} onRetry={fetch347} />}
+
+          {loading347 ? (
+            <LoadingSpinner text="Cargando Modelo 347..." />
+          ) : modelo347 && modelo347.entries && modelo347.entries.length > 0 ? (
+            <>
+              {/* MOBILE: Card layout */}
+              <div className="md:hidden space-y-3">
+                {modelo347.entries.map((entry) => (
+                  <Modelo347Card key={entry.userId} entry={entry} />
+                ))}
+              </div>
+
+              {/* DESKTOP: Table */}
+              <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-100 bg-gray-50/50">
+                        <th className="text-left px-4 py-3 font-medium text-gray-500">Usuario</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-500">NIF</th>
+                        <th className="text-right px-4 py-3 font-medium text-gray-500">Total anual</th>
+                        <th className="text-right px-4 py-3 font-medium text-gray-500">Q1</th>
+                        <th className="text-right px-4 py-3 font-medium text-gray-500">Q2</th>
+                        <th className="text-right px-4 py-3 font-medium text-gray-500">Q3</th>
+                        <th className="text-right px-4 py-3 font-medium text-gray-500">Q4</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {modelo347.entries.map((entry) => (
+                        <tr key={entry.userId} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900">{entry.userName}</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {entry.nif ? (
+                              <span className="text-gray-700 font-mono text-xs">{entry.nif}</span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-amber-600 text-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                                </svg>
+                                Sin NIF
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatEur(entry.totalAnnual)}</td>
+                          <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q1)}</td>
+                          <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q2)}</td>
+                          <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q3)}</td>
+                          <td className="px-4 py-3 text-right text-gray-600">{formatEur(entry.q4)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-100">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-gray-300 mx-auto mb-3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              <p className="text-gray-500 text-sm">No hay operaciones que superen 3.005,06 EUR en {year}</p>
+              <p className="text-xs text-gray-400 mt-1">Umbral minimo para la declaracion anual</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
