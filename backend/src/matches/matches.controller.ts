@@ -137,8 +137,9 @@ export class MatchesController {
   createPayment(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
+    @Body() body: { paymentMode?: 'immediate' | 'escrow' },
   ) {
-    return this.matchesService.createExperiencePayment(id, req.user.userId);
+    return this.matchesService.createExperiencePayment(id, req.user.userId, body?.paymentMode || 'escrow');
   }
 
   // Verificar estado del pago

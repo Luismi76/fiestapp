@@ -449,11 +449,11 @@ export const matchesApi = {
   },
 
   // Crear pago de experiencia (Stripe Checkout)
-  createPayment: async (matchId: string): Promise<{
+  createPayment: async (matchId: string, paymentMode: 'immediate' | 'escrow' = 'escrow'): Promise<{
     sessionUrl: string;
     sessionId: string;
   }> => {
-    const response = await api.post(`/matches/${matchId}/create-payment`);
+    const response = await api.post(`/matches/${matchId}/create-payment`, { paymentMode });
     return response.data;
   },
 

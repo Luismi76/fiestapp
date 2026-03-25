@@ -503,13 +503,12 @@ export class AccountingService {
       _count: { id: true },
     });
 
-    // Tratamiento fiscal por tipo de transacción:
-    // - topup: Recarga de monedero, ingreso de la plataforma → IVA 21%
-    // - payment/experience_payment: Pago por experiencia cobrado y retenido
-    //   por la plataforma (escrow stripe_hold o platform_hold) → IVA 21%
-    // - platform_fee: Descuento del monedero (ya tributó en la recarga) → sin IVA
+    // Tratamiento fiscal (comisionista en nombre ajeno, Art. 11 LIVA):
+    // - topup: Recarga de monedero = ingreso de la plataforma → IVA 21%
+    // - platform_fee: Comisión descontada del monedero (ya tributó en la recarga) → sin IVA
+    // - payment/experience_payment: Depósito en garantía, ingreso del anfitrión → sin IVA
     // - refund: Rectificación/devolución → sin IVA
-    const TYPES_WITH_VAT = new Set(['topup', 'payment', 'experience_payment']);
+    const TYPES_WITH_VAT = new Set(['topup']);
 
     const lines: VatLine[] = grouped.map((row) => {
       const grossAmount = Math.abs(row._sum.amount || 0);

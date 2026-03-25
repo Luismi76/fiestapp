@@ -503,9 +503,9 @@ export default function ChatPage() {
             }
             paymentStatus={match.paymentStatus}
             totalPrice={match.totalPrice}
-            onPay={async () => {
+            onPay={async (paymentMode: 'immediate' | 'escrow') => {
               try {
-                const { sessionUrl } = await matchesApi.createPayment(match.id);
+                const { sessionUrl } = await matchesApi.createPayment(match.id, paymentMode);
                 window.location.href = sessionUrl;
               } catch {
                 setError('Error al iniciar el pago');

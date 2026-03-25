@@ -845,7 +845,8 @@ export class MatchesService {
   }
 
   // Crear pago de experiencia con Stripe Checkout (solo requester, tras aceptación del host)
-  async createExperiencePayment(matchId: string, requesterId: string) {
+  // paymentMode: 'immediate' = pago directo, 'escrow' = pago retenido hasta confirmar
+  async createExperiencePayment(matchId: string, requesterId: string, paymentMode: 'immediate' | 'escrow' = 'escrow') {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
       include: { experience: { select: { title: true } } },
@@ -871,12 +872,30 @@ export class MatchesService {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     const amountInCents = Math.round(match.totalPrice * 100);
 
-    // Sistema híbrido: si la experiencia es en < 7 días, usar hold de Stripe (gratis al cancelar).
-    // Si es >= 7 días, cobrar inmediatamente y retener internamente (reembolso con coste Stripe).
+    // Comisión de Stripe: 1,5% + 0,25€ (tarjeta europea estándar)
+    const stripeFee = Math.round((match.totalPrice * 0.015 + 0.25) * 100) / 100;
+
+    // Determinar modo escrow para pagos retenidos
+    // stripe_hold (< 7 días): capture_method manual, cancelación gratuita
+    // platform_hold (>= 7 días): cobro inmediato, retención interna
     const daysUntilExperience = match.startDate
       ? Math.ceil((new Date(match.startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
       : 0;
-    const useStripeHold = daysUntilExperience > 0 && daysUntilExperience <= 7;
+    const useStripeHold = paymentMode === 'escrow' && daysUntilExperience > 0 && daysUntilExperience <= 7;
+    const isEscrow = paymentMode === 'escrow';
+
+    // Determinar etiqueta del modo
+    let escrowLabel: string;
+    if (paymentMode === 'immediate') {
+      escrowLabel = 'immediate';
+    } else {
+      escrowLabel = useStripeHold ? 'stripe_hold' : 'platform_hold';
+    }
+
+    // Descripción para Stripe Checkout
+    const description = isEscrow
+      ? 'Pago experiencia FiestApp - Fondos retenidos hasta confirmar'
+      : 'Pago experiencia FiestApp - Pago directo';
 
     // Crear Stripe Checkout Session
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -889,9 +908,7 @@ export class MatchesService {
             currency: 'eur',
             product_data: {
               name: match.experience.title,
-              description: useStripeHold
-                ? 'Pago experiencia FiestApp - Fondos retenidos hasta completar'
-                : 'Pago experiencia FiestApp',
+              description,
             },
             unit_amount: amountInCents,
           },
@@ -902,17 +919,19 @@ export class MatchesService {
         matchId,
         requesterId,
         type: 'experience_payment',
-        escrowMode: useStripeHold ? 'stripe_hold' : 'platform_hold',
+        paymentMode,
+        escrowMode: escrowLabel,
+        stripeFee: stripeFee.toString(),
       },
       success_url: `${frontendUrl}/matches/payment-result?status=success&session_id={CHECKOUT_SESSION_ID}&matchId=${matchId}`,
       cancel_url: `${frontendUrl}/matches/payment-result?status=error&matchId=${matchId}`,
     };
 
-    // Solo usar capture manual para experiencias cercanas (< 7 días)
+    // Solo usar capture manual para escrow con experiencias cercanas (< 7 días)
     if (useStripeHold) {
       sessionParams.payment_intent_data = {
         capture_method: 'manual',
-        metadata: { matchId, requesterId, type: 'experience_payment' },
+        metadata: { matchId, requesterId, type: 'experience_payment', paymentMode },
       };
     }
 
@@ -927,7 +946,7 @@ export class MatchesService {
         amount: -match.totalPrice,
         status: 'pending',
         stripeId: session.id,
-        description: `Pago experiencia: ${match.experience.title} [${useStripeHold ? 'stripe_hold' : 'platform_hold'}]`,
+        description: `Pago experiencia: ${match.experience.title} [${escrowLabel}]`,
       },
     });
 
