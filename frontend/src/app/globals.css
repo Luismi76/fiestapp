@@ -316,7 +316,7 @@ input, textarea, select, button {
   transform: scale(1.1);
 }
 
-/* FAB - Festive with fast feedback */
+/* FAB - Bottom navigation floating action button */
 .bottom-nav-fab {
   display: flex;
   align-items: center;

@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  experimental: {
+    optimizePackageImports: ['date-fns', 'zod', 'react-hook-form'],
+  },
   images: {
     remotePatterns: [
       {

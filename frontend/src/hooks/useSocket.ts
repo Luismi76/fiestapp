@@ -99,9 +99,11 @@ export function useSocket(): UseSocketReturn {
     });
 
     // Debug: log all incoming events (only in dev)
-    newSocket.onAny((event, ...args) => {
-      logger.socket(event, ...args);
-    });
+    if (process.env.NODE_ENV === 'development') {
+      newSocket.onAny((event, ...args) => {
+        logger.socket(event, ...args);
+      });
+    }
 
     // Set socket immediately so useSocketEvent can subscribe
     setSocket(newSocket);
