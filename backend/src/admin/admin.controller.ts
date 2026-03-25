@@ -195,6 +195,11 @@ export class AdminController {
     );
   }
 
+  @Get('reports/financial/match/:matchId/timeline')
+  getMatchTimeline(@Param('matchId') matchId: string) {
+    return this.financialReportService.getMatchTimeline(matchId);
+  }
+
   @Get('reports/financial/export')
   async exportFinancialReport(
     @Query('startDate') startDate?: string,

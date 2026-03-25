@@ -198,8 +198,32 @@ export class FinancialReportService {
           match: {
             select: {
               id: true,
+              status: true,
+              paymentStatus: true,
+              startDate: true,
+              totalPrice: true,
+              participants: true,
+              createdAt: true,
               experience: {
-                select: { id: true, title: true },
+                select: { id: true, title: true, city: true, cancellationPolicy: true },
+              },
+              host: { select: { id: true, name: true, email: true } },
+              requester: { select: { id: true, name: true, email: true } },
+              cancellation: {
+                select: {
+                  id: true, reason: true, policy: true, originalAmount: true,
+                  refundPercentage: true, refundAmount: true, penaltyAmount: true,
+                  processedAt: true, createdAt: true, cancelledById: true,
+                },
+              },
+              disputes: {
+                select: {
+                  id: true, reason: true, status: true, resolution: true,
+                  refundAmount: true, refundPercentage: true,
+                  resolvedAt: true, createdAt: true,
+                },
+                orderBy: { createdAt: 'desc' as const },
+                take: 1,
               },
             },
           },
@@ -237,8 +261,16 @@ export class FinancialReportService {
       where,
       orderBy: { createdAt: 'desc' },
       include: {
-        user: {
-          select: { id: true, name: true, email: true },
+        user: { select: { id: true, name: true, email: true } },
+        match: {
+          select: {
+            id: true,
+            paymentStatus: true,
+            experience: { select: { title: true, city: true } },
+            host: { select: { name: true, email: true } },
+            requester: { select: { name: true, email: true } },
+            cancellation: { select: { policy: true, refundPercentage: true } },
+          },
         },
       },
     });
@@ -253,6 +285,13 @@ export class FinancialReportService {
       'Monto',
       'Estado',
       'Descripcion',
+      'Experiencia',
+      'Ciudad',
+      'Anfitrion',
+      'Viajero',
+      'Estado Pago',
+      'Politica Cancelacion',
+      'Reembolso %',
     ];
     const rows = transactions.map((t) => [
       t.id,
@@ -263,6 +302,13 @@ export class FinancialReportService {
       t.amount.toString(),
       t.status,
       t.description || '',
+      t.match?.experience?.title || '',
+      t.match?.experience?.city || '',
+      t.match?.host?.name || '',
+      t.match?.requester?.name || '',
+      t.match?.paymentStatus || '',
+      t.match?.cancellation?.policy || '',
+      t.match?.cancellation?.refundPercentage?.toString() || '',
     ]);
 
     const csv = [
@@ -297,6 +343,77 @@ export class FinancialReportService {
       walletsWithBalance,
       maxBalance: stats._max.balance || 0,
     };
+  }
+
+  /**
+   * Timeline financiero completo de un match: transacciones + cancelación + disputas
+   */
+  async getMatchTimeline(matchId: string) {
+    const [transactions, match] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where: { matchId },
+        orderBy: { createdAt: 'asc' },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+        },
+      }),
+      this.prisma.match.findUnique({
+        where: { id: matchId },
+        select: {
+          id: true,
+          status: true,
+          paymentStatus: true,
+          startDate: true,
+          totalPrice: true,
+          participants: true,
+          createdAt: true,
+          updatedAt: true,
+          experience: {
+            select: { id: true, title: true, city: true, cancellationPolicy: true },
+          },
+          host: { select: { id: true, name: true, email: true } },
+          requester: { select: { id: true, name: true, email: true } },
+          cancellation: {
+            select: {
+              id: true, reason: true, policy: true, originalAmount: true,
+              refundPercentage: true, refundAmount: true, penaltyAmount: true,
+              processedAt: true, createdAt: true, cancelledById: true,
+            },
+          },
+          disputes: {
+            select: {
+              id: true, reason: true, status: true, resolution: true,
+              refundAmount: true, refundPercentage: true,
+              resolvedAt: true, createdAt: true,
+              openedBy: { select: { id: true, name: true } },
+            },
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      }),
+    ]);
+
+    // Construir timeline unificada
+    const events: Array<{ type: string; date: Date; data: unknown }> = [];
+
+    for (const tx of transactions) {
+      events.push({ type: 'transaction', date: tx.createdAt, data: tx });
+    }
+
+    if (match?.cancellation) {
+      events.push({ type: 'cancellation', date: match.cancellation.createdAt, data: match.cancellation });
+    }
+
+    for (const dispute of match?.disputes || []) {
+      events.push({ type: 'dispute_opened', date: dispute.createdAt, data: dispute });
+      if (dispute.resolvedAt) {
+        events.push({ type: 'dispute_resolved', date: dispute.resolvedAt, data: dispute });
+      }
+    }
+
+    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return { match, events };
   }
 
   /**

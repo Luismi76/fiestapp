@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -43,15 +43,59 @@ const DEFAULT_KPIS: DashboardKpi = {
   totalWalletBalance: 0, operationsCount: 0, operationsCountChange: 0,
 };
 
+interface MatchContext {
+  id: string;
+  status: string;
+  paymentStatus: string | null;
+  startDate: string | null;
+  totalPrice: number | null;
+  participants: number;
+  createdAt: string;
+  experience: { id: string; title: string; city: string; cancellationPolicy: string } | null;
+  host: { id: string; name: string; email: string } | null;
+  requester: { id: string; name: string; email: string } | null;
+  cancellation: {
+    id: string;
+    reason: string | null;
+    policy: string;
+    originalAmount: number;
+    refundPercentage: number;
+    refundAmount: number;
+    penaltyAmount: number;
+    processedAt: string | null;
+    createdAt: string;
+    cancelledById: string;
+  } | null;
+  disputes: Array<{
+    id: string;
+    reason: string;
+    status: string;
+    resolution: string | null;
+    refundAmount: number | null;
+    refundPercentage: number | null;
+    resolvedAt: string | null;
+    createdAt: string;
+  }>;
+}
+
+interface TimelineEvent {
+  type: string;
+  date: string;
+  data: Record<string, unknown>;
+}
+
 interface Transaction {
   id: string;
   date: string;
   userName: string;
   userEmail: string;
-  type: 'platform_fee' | 'topup' | 'refund' | 'experience_payment' | 'payment';
+  type: string;
   amount: number;
-  status: 'completed' | 'pending' | 'cancelled' | 'refunded' | 'held' | 'released';
+  status: string;
   description: string;
+  stripeId: string | null;
+  matchId: string | null;
+  match: MatchContext | null;
 }
 
 interface TransactionsResponse {
@@ -189,8 +233,20 @@ const accountingApi = {
       amount: t.amount,
       status: t.status,
       description: t.description || '',
+      stripeId: t.stripeId || null,
+      matchId: t.matchId || null,
+      match: t.match ? {
+        ...t.match,
+        cancellation: t.match.cancellation || null,
+        disputes: t.match.disputes || [],
+      } : null,
     }));
     return { transactions, pagination: data.pagination };
+  },
+
+  getMatchTimeline: async (matchId: string): Promise<{ match: MatchContext | null; events: TimelineEvent[] }> => {
+    const { data } = await api.get(`/admin/reports/financial/match/${matchId}/timeline`);
+    return data;
   },
 
   exportTransactions: (filters: { startDate?: string; endDate?: string; type?: string; status?: string }) => {
@@ -606,6 +662,235 @@ function ResumenTab() {
 // TAB: TRANSACCIONES
 // ============================================
 
+// ── Helpers de descripción enriquecida ─────────────────────────────────
+
+const POLICY_NAMES: Record<string, string> = {
+  FLEXIBLE: 'Flexible', MODERATE: 'Moderada', STRICT: 'Estricta', NON_REFUNDABLE: 'Sin reembolso',
+};
+
+const DISPUTE_STATUS_LABELS: Record<string, string> = {
+  RESOLVED_REFUND: 'reembolso total', RESOLVED_PARTIAL_REFUND: 'reembolso parcial',
+  RESOLVED_NO_REFUND: 'sin reembolso', CLOSED: 'cerrada',
+};
+
+const DISPUTE_REASON_LABELS: Record<string, string> = {
+  NO_SHOW: 'No presentado', EXPERIENCE_MISMATCH: 'No coincide con lo ofrecido',
+  SAFETY_CONCERN: 'Problema de seguridad', PAYMENT_ISSUE: 'Problema de pago',
+  COMMUNICATION: 'Comunicacion', OTHER: 'Otro',
+};
+
+function getEnrichedDescription(tx: Transaction): string {
+  if (!tx.match?.experience) return tx.description;
+  const title = tx.match.experience.title;
+  const cancel = tx.match.cancellation;
+  const dispute = tx.match.disputes?.[0];
+
+  if (tx.type === 'refund' && cancel) {
+    return `Reembolso por cancelacion (${POLICY_NAMES[cancel.policy] || cancel.policy}, ${cancel.refundPercentage}%) · ${title}`;
+  }
+  if (tx.type === 'refund' && dispute) {
+    return `Reembolso por disputa (${DISPUTE_STATUS_LABELS[dispute.status] || 'resolucion'}) · ${title}`;
+  }
+  if ((tx.type === 'payment' || tx.type === 'experience_payment') && tx.match.experience.city) {
+    return `${tx.description || title} · ${tx.match.experience.city}`;
+  }
+  return tx.description || title;
+}
+
+// ── Escrow Timeline Component ──────────────────────────────────────────
+
+function EscrowTimeline({ events }: { events: TimelineEvent[] }) {
+  const getNode = (event: TimelineEvent) => {
+    const txData = event.data as Record<string, unknown>;
+    const status = txData?.status as string | undefined;
+    switch (event.type) {
+      case 'transaction': {
+        switch (status) {
+          case 'pending': return { bg: 'bg-yellow-400', label: 'Pago iniciado' };
+          case 'held': return { bg: 'bg-blue-500', label: 'Fondos retenidos (escrow)' };
+          case 'capturing': return { bg: 'bg-cyan-500', label: 'Captura en curso' };
+          case 'released': return { bg: 'bg-green-500', label: 'Fondos liberados al anfitrion' };
+          case 'refunded': return { bg: 'bg-amber-500', label: 'Fondos reembolsados' };
+          case 'completed': return { bg: 'bg-green-500', label: 'Completado' };
+          case 'failed': return { bg: 'bg-red-500', label: 'Fallido' };
+          default: return { bg: 'bg-gray-400', label: status || 'Transaccion' };
+        }
+      }
+      case 'cancellation': return { bg: 'bg-red-400', label: 'Cancelacion registrada' };
+      case 'dispute_opened': return { bg: 'bg-orange-500', label: 'Disputa abierta' };
+      case 'dispute_resolved': return { bg: 'bg-purple-500', label: 'Disputa resuelta' };
+      default: return { bg: 'bg-gray-400', label: event.type };
+    }
+  };
+
+  const getTxDetail = (event: TimelineEvent) => {
+    const d = event.data as Record<string, unknown>;
+    if (event.type === 'transaction') {
+      const type = typeBadge[d.type as string];
+      const amount = d.amount as number;
+      return (
+        <span className="text-[11px] text-gray-500">
+          {type?.label || String(d.type)} · <span className={amount >= 0 ? 'text-green-600' : 'text-red-600'}>{formatEur(amount)}</span>
+          {d.description ? ` · ${String(d.description)}` : ''}
+        </span>
+      );
+    }
+    if (event.type === 'cancellation') {
+      const policy = POLICY_NAMES[(d.policy as string)] || String(d.policy);
+      return <span className="text-[11px] text-gray-500">{policy} · Reembolso {String(d.refundPercentage)}% ({formatEur(d.refundAmount as number)}) · Penalizacion {formatEur(d.penaltyAmount as number)}</span>;
+    }
+    if (event.type === 'dispute_opened') {
+      return <span className="text-[11px] text-gray-500">{DISPUTE_REASON_LABELS[d.reason as string] || String(d.reason)}</span>;
+    }
+    if (event.type === 'dispute_resolved') {
+      return <span className="text-[11px] text-gray-500">{DISPUTE_STATUS_LABELS[d.status as string] || 'Resuelta'}{d.refundAmount ? ` · ${formatEur(d.refundAmount as number)}` : ''}</span>;
+    }
+    return null;
+  };
+
+  return (
+    <div className="relative pl-6 py-2">
+      <div className="absolute left-[9px] top-4 bottom-4 w-0.5 bg-gray-200" />
+      {events.map((event, i) => {
+        const node = getNode(event);
+        return (
+          <div key={i} className="relative flex items-start gap-3 pb-3 last:pb-0">
+            <div className={`absolute left-[-15px] top-0.5 w-3 h-3 rounded-full ${node.bg} ring-2 ring-white flex-shrink-0`} />
+            <div className="min-w-0">
+              <div className="text-xs font-medium text-gray-900">{node.label}</div>
+              <div className="text-[11px] text-gray-400">{formatDate(event.date)}</div>
+              {getTxDetail(event)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Transaction Detail Panel ───────────────────────────────────────────
+
+function TransactionDetailPanel({ tx, timeline, timelineLoading }: {
+  tx: Transaction;
+  timeline: { match: MatchContext | null; events: TimelineEvent[] } | null;
+  timelineLoading: boolean;
+}) {
+  const m = tx.match;
+  const cancel = m?.cancellation;
+  const dispute = m?.disputes?.[0];
+
+  return (
+    <div className="bg-gray-50 border-t border-gray-100 p-4 space-y-4 animate-in">
+      {/* Metadata */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+        {tx.stripeId && (
+          <div>
+            <span className="text-gray-400 block">Stripe ID</span>
+            <span className="font-mono text-gray-700 break-all">{tx.stripeId}</span>
+          </div>
+        )}
+        {tx.matchId && (
+          <div>
+            <span className="text-gray-400 block">Match ID</span>
+            <span className="font-mono text-gray-700 break-all">{tx.matchId.slice(0, 8)}...</span>
+          </div>
+        )}
+        <div>
+          <span className="text-gray-400 block">Fecha completa</span>
+          <span className="text-gray-700">{formatDate(tx.date)}</span>
+        </div>
+        {m?.paymentStatus && (
+          <div>
+            <span className="text-gray-400 block">Estado pago</span>
+            <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${(statusBadge[m.paymentStatus] || statusBadge.pending).bg} ${(statusBadge[m.paymentStatus] || statusBadge.pending).text}`}>
+              {(statusBadge[m.paymentStatus] || { label: m.paymentStatus }).label}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Match context */}
+      {m?.experience && (
+        <div className="bg-white rounded-xl border border-gray-100 p-3 space-y-2">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contexto</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+            <div>
+              <span className="text-gray-400">Experiencia</span>
+              <p className="font-medium text-gray-900">{m.experience.title}</p>
+              <p className="text-gray-500">{m.experience.city} · Politica: {POLICY_NAMES[m.experience.cancellationPolicy] || m.experience.cancellationPolicy}</p>
+            </div>
+            {m.host && (
+              <div>
+                <span className="text-gray-400">Anfitrion</span>
+                <p className="font-medium text-gray-900">{m.host.name}</p>
+                <p className="text-gray-500">{m.host.email}</p>
+              </div>
+            )}
+            {m.requester && (
+              <div>
+                <span className="text-gray-400">Viajero</span>
+                <p className="font-medium text-gray-900">{m.requester.name}</p>
+                <p className="text-gray-500">{m.requester.email}</p>
+              </div>
+            )}
+          </div>
+          {(m.startDate || m.totalPrice) && (
+            <div className="flex gap-4 text-xs text-gray-500 pt-1 border-t border-gray-50">
+              {m.startDate && <span>Fecha: {new Date(m.startDate).toLocaleDateString('es-ES')}</span>}
+              {m.totalPrice && <span>Precio: {formatEur(m.totalPrice)}</span>}
+              {m.participants > 1 && <span>{m.participants} participantes</span>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cancelación */}
+      {cancel && (
+        <div className="bg-red-50 rounded-xl border border-red-100 p-3 space-y-1">
+          <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">Cancelacion</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+            <div><span className="text-red-400">Politica</span><p className="font-medium text-red-700">{POLICY_NAMES[cancel.policy] || cancel.policy}</p></div>
+            <div><span className="text-red-400">Reembolso</span><p className="font-medium text-red-700">{cancel.refundPercentage}% ({formatEur(cancel.refundAmount)})</p></div>
+            <div><span className="text-red-400">Penalizacion</span><p className="font-medium text-red-700">{formatEur(cancel.penaltyAmount)}</p></div>
+            <div><span className="text-red-400">Fecha</span><p className="font-medium text-red-700">{formatDate(cancel.createdAt)}</p></div>
+          </div>
+          {cancel.reason && <p className="text-xs text-red-600 mt-1">Motivo: {cancel.reason}</p>}
+        </div>
+      )}
+
+      {/* Disputa */}
+      {dispute && (
+        <div className="bg-orange-50 rounded-xl border border-orange-100 p-3 space-y-1">
+          <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide">Disputa</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+            <div><span className="text-orange-400">Motivo</span><p className="font-medium text-orange-700">{DISPUTE_REASON_LABELS[dispute.reason] || dispute.reason}</p></div>
+            <div><span className="text-orange-400">Estado</span><p className="font-medium text-orange-700">{DISPUTE_STATUS_LABELS[dispute.status] || dispute.status}</p></div>
+            {dispute.refundAmount != null && <div><span className="text-orange-400">Reembolso</span><p className="font-medium text-orange-700">{formatEur(dispute.refundAmount)}{dispute.refundPercentage != null ? ` (${dispute.refundPercentage}%)` : ''}</p></div>}
+            {dispute.resolvedAt && <div><span className="text-orange-400">Resuelto</span><p className="font-medium text-orange-700">{formatDate(dispute.resolvedAt)}</p></div>}
+          </div>
+          {dispute.resolution && <p className="text-xs text-orange-600 mt-1">Resolucion: {dispute.resolution}</p>}
+        </div>
+      )}
+
+      {/* Escrow Timeline */}
+      {tx.matchId && (
+        <div className="bg-white rounded-xl border border-gray-100 p-3">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Timeline del flujo</p>
+          {timelineLoading ? (
+            <div className="flex justify-center py-4">
+              <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : timeline?.events?.length ? (
+            <EscrowTimeline events={timeline.events} />
+          ) : (
+            <p className="text-xs text-gray-400 py-2">Sin eventos registrados</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TransaccionesTab() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
@@ -619,6 +904,10 @@ function TransaccionesTab() {
   const [filterSearch, setFilterSearch] = useState('');
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
+
+  const [expandedTxId, setExpandedTxId] = useState<string | null>(null);
+  const [timelineData, setTimelineData] = useState<{ match: MatchContext | null; events: TimelineEvent[] } | null>(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
 
   const filters = {
     startDate: filterStartDate || undefined,
@@ -651,6 +940,28 @@ function TransaccionesTab() {
     const exportUrl = accountingApi.exportTransactions(filters);
     const baseUrl = api.defaults.baseURL || '';
     window.open(`${baseUrl}${exportUrl}`, '_blank');
+  };
+
+  const handleExpandTransaction = async (tx: Transaction) => {
+    if (expandedTxId === tx.id) {
+      setExpandedTxId(null);
+      setTimelineData(null);
+      return;
+    }
+    setExpandedTxId(tx.id);
+    if (tx.matchId) {
+      setTimelineLoading(true);
+      try {
+        const data = await accountingApi.getMatchTimeline(tx.matchId);
+        setTimelineData(data);
+      } catch {
+        setTimelineData(null);
+      } finally {
+        setTimelineLoading(false);
+      }
+    } else {
+      setTimelineData(null);
+    }
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -772,28 +1083,40 @@ function TransaccionesTab() {
             const sBadge = statusBadge[tx.status] || { label: tx.status, bg: 'bg-gray-100', text: 'text-gray-500' };
             const isNegative = tx.type === 'refund' || tx.amount < 0;
             const borderColor = typeBorderColor[tx.type] || 'border-l-gray-300';
+            const isExpanded = expandedTxId === tx.id;
             return (
-              <div
-                key={tx.id}
-                className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderColor} p-3`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${tBadge.bg} ${tBadge.text}`}>
-                    {tBadge.label}
-                  </span>
-                  <span className={`text-base font-bold ${isNegative ? 'text-red-600' : 'text-green-600'}`}>
-                    {isNegative ? '-' : '+'}{formatEur(Math.abs(tx.amount))}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-gray-900 truncate">{tx.userName}</div>
-                    <div className="text-xs text-gray-400">{formatDate(tx.date)}</div>
+              <div key={tx.id} className={`bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 ${borderColor} overflow-hidden`}>
+                <button
+                  onClick={() => handleExpandTransaction(tx)}
+                  className="w-full text-left p-3"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${tBadge.bg} ${tBadge.text}`}>
+                      {tBadge.label}
+                    </span>
+                    <span className={`text-base font-bold ${isNegative ? 'text-red-600' : 'text-green-600'}`}>
+                      {isNegative ? '-' : '+'}{formatEur(Math.abs(tx.amount))}
+                    </span>
                   </div>
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${sBadge.bg} ${sBadge.text} ml-2 flex-shrink-0`}>
-                    {sBadge.label}
-                  </span>
-                </div>
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-gray-900 truncate">{tx.userName}</div>
+                      <div className="text-xs text-gray-500 truncate">{getEnrichedDescription(tx)}</div>
+                      <div className="text-[11px] text-gray-400 mt-0.5">{formatDate(tx.date)}</div>
+                    </div>
+                    <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${sBadge.bg} ${sBadge.text}`}>
+                        {sBadge.label}
+                      </span>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-4 h-4 text-gray-300 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                        <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                </button>
+                {isExpanded && (
+                  <TransactionDetailPanel tx={tx} timeline={timelineData} timelineLoading={timelineLoading} />
+                )}
               </div>
             );
           })}
@@ -820,32 +1143,50 @@ function TransaccionesTab() {
                   const tBadge = typeBadge[tx.type] || { label: tx.type, bg: 'bg-gray-100', text: 'text-gray-600' };
                   const sBadge = statusBadge[tx.status] || { label: tx.status, bg: 'bg-gray-100', text: 'text-gray-500' };
                   const isNegative = tx.type === 'refund' || tx.amount < 0;
+                  const isExpanded = expandedTxId === tx.id;
                   return (
-                    <tr key={tx.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">
-                        {formatDate(tx.date)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900 text-sm">{tx.userName}</div>
-                        <div className="text-xs text-gray-400">{tx.userEmail}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${tBadge.bg} ${tBadge.text}`}>
-                          {tBadge.label}
-                        </span>
-                      </td>
-                      <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${isNegative ? 'text-red-600' : 'text-green-600'}`}>
-                        {isNegative ? '-' : '+'}{formatEur(Math.abs(tx.amount))}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${sBadge.bg} ${sBadge.text}`}>
-                          {sBadge.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs max-w-[200px] truncate">
-                        {tx.description}
-                      </td>
-                    </tr>
+                    <React.Fragment key={tx.id}>
+                      <tr
+                        onClick={() => handleExpandTransaction(tx)}
+                        className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors cursor-pointer ${isExpanded ? 'bg-gray-50' : ''}`}
+                      >
+                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap text-xs">
+                          {formatDate(tx.date)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-gray-900 text-sm">{tx.userName}</div>
+                          <div className="text-xs text-gray-400">{tx.userEmail}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${tBadge.bg} ${tBadge.text}`}>
+                            {tBadge.label}
+                          </span>
+                        </td>
+                        <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${isNegative ? 'text-red-600' : 'text-green-600'}`}>
+                          {isNegative ? '-' : '+'}{formatEur(Math.abs(tx.amount))}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${sBadge.bg} ${sBadge.text}`}>
+                            {sBadge.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 text-xs max-w-[300px]">
+                          <div className="flex items-center gap-1">
+                            <span className="truncate">{getEnrichedDescription(tx)}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-4 h-4 text-gray-300 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                              <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={6} className="p-0">
+                            <TransactionDetailPanel tx={tx} timeline={timelineData} timelineLoading={timelineLoading} />
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
