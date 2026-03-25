@@ -288,18 +288,18 @@ function DisputasContent() {
                     <div className="flex items-center gap-3 py-2 border-t border-b border-gray-100">
                       <div className="flex items-center gap-2 flex-1">
                         <OptimizedAvatar
-                          src={getAvatarUrl(dispute.openedBy.avatar)}
-                          name={dispute.openedBy.name}
+                          src={getAvatarUrl(dispute.openedBy?.avatar)}
+                          name={dispute.openedBy?.name ?? 'Usuario'}
                           size="sm"
                         />
-                        <span className="text-xs text-gray-600 truncate">{dispute.openedBy.name}</span>
+                        <span className="text-xs text-gray-600 truncate">{dispute.openedBy?.name ?? 'Usuario'}</span>
                       </div>
                       <span className="text-xs text-gray-400">vs</span>
                       <div className="flex items-center gap-2 flex-1 justify-end">
-                        <span className="text-xs text-gray-600 truncate">{dispute.respondent.name}</span>
+                        <span className="text-xs text-gray-600 truncate">{dispute.respondent?.name ?? 'Usuario'}</span>
                         <OptimizedAvatar
-                          src={getAvatarUrl(dispute.respondent.avatar)}
-                          name={dispute.respondent.name}
+                          src={getAvatarUrl(dispute.respondent?.avatar)}
+                          name={dispute.respondent?.name ?? 'Usuario'}
                           size="sm"
                         />
                       </div>
@@ -378,14 +378,14 @@ function DisputasContent() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <OptimizedAvatar
-                              src={getAvatarUrl(dispute.openedBy.avatar)}
-                              name={dispute.openedBy.name}
+                              src={getAvatarUrl(dispute.openedBy?.avatar)}
+                              name={dispute.openedBy?.name ?? 'Usuario'}
                               size="sm"
                             />
                             <span className="text-xs text-gray-400">vs</span>
                             <OptimizedAvatar
-                              src={getAvatarUrl(dispute.respondent.avatar)}
-                              name={dispute.respondent.name}
+                              src={getAvatarUrl(dispute.respondent?.avatar)}
+                              name={dispute.respondent?.name ?? 'Usuario'}
                               size="sm"
                             />
                           </div>
@@ -1453,13 +1453,13 @@ function VerificacionesContent() {
               className="w-full bg-white rounded-xl p-4 border border-gray-100 flex items-center gap-4"
             >
               <OptimizedAvatar
-                src={v.user.avatarUrl}
-                name={v.user.name}
+                src={v.user?.avatarUrl}
+                name={v.user?.name ?? 'Usuario'}
                 size="md"
               />
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">{v.user.name}</p>
-                <p className="text-sm text-gray-500 truncate">{v.user.email}</p>
+                <p className="font-medium text-gray-900 truncate">{v.user?.name ?? 'Usuario'}</p>
+                <p className="text-sm text-gray-500 truncate">{v.user?.email ?? ''}</p>
                 {v.hasDocuments && v.documentType && (
                   <p className="text-xs text-gray-400 mt-0.5">
                     Doc: {v.documentType === 'DNI' ? 'DNI' : v.documentType === 'PASSPORT' ? 'Pasaporte' : 'Carnet'}

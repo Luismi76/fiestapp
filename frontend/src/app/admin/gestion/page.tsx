@@ -753,9 +753,9 @@ function ExperiencesContent() {
         result.experiences = result.experiences.filter(exp =>
           exp.title.toLowerCase().includes(searchLower) ||
           exp.city.toLowerCase().includes(searchLower) ||
-          exp.host.name.toLowerCase().includes(searchLower) ||
-          exp.host.email.toLowerCase().includes(searchLower) ||
-          exp.festival.name.toLowerCase().includes(searchLower)
+          (exp.host?.name ?? '').toLowerCase().includes(searchLower) ||
+          (exp.host?.email ?? '').toLowerCase().includes(searchLower) ||
+          (exp.festival?.name ?? '').toLowerCase().includes(searchLower)
         );
       }
       setData(result);
@@ -1015,11 +1015,11 @@ function ExperiencesContent() {
                     </div>
 
                     <div className="text-sm text-gray-500 mt-1">
-                      <span className="font-medium">{exp.city}</span> - {exp.festival.name}
+                      <span className="font-medium">{exp.city}</span> - {exp.festival?.name ?? ''}
                     </div>
 
                     <div className="text-sm text-gray-400">
-                      Host: {exp.host.name} ({exp.host.email})
+                      Host: {exp.host?.name ?? ''} ({exp.host?.email ?? ''})
                     </div>
 
                     {/* Stats Row */}
@@ -1179,7 +1179,7 @@ function ExperiencesContent() {
                   </div>
                   <div>
                     <span className="text-gray-500">Festividad</span>
-                    <p className="font-medium text-gray-900">{showDetails.festival.name}</p>
+                    <p className="font-medium text-gray-900">{showDetails.festival?.name ?? ''}</p>
                   </div>
                   <div>
                     <span className="text-gray-500">Reservas</span>
@@ -1209,8 +1209,8 @@ function ExperiencesContent() {
                 <div className="bg-gray-50 rounded-xl p-4">
                   <h4 className="font-medium text-gray-900 mb-2">Informacion del Host</h4>
                   <div className="space-y-1 text-sm">
-                    <p><span className="text-gray-500">Nombre:</span> {showDetails.host.name}</p>
-                    <p><span className="text-gray-500">Email:</span> {showDetails.host.email}</p>
+                    <p><span className="text-gray-500">Nombre:</span> {showDetails.host?.name ?? ''}</p>
+                    <p><span className="text-gray-500">Email:</span> {showDetails.host?.email ?? ''}</p>
                     <p><span className="text-gray-500">ID:</span> <span className="font-mono text-xs">{showDetails.host.id}</span></p>
                   </div>
                 </div>

@@ -263,7 +263,7 @@ export default function ExperienceDetailPage() {
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-red-400">
                   <path fillRule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clipRule="evenodd" />
                 </svg>
-                <span>Con {experience.host.name} · {experience.city}, España</span>
+                <span>Con {experience.host?.name ?? 'Anfitrion'} · {experience.city}, España</span>
               </div>
 
               {/* Hashtags */}
@@ -388,20 +388,20 @@ export default function ExperienceDetailPage() {
           <div className="p-4 flex items-center gap-4">
             <div className="relative flex-shrink-0">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-pink-100 overflow-hidden shadow-md">
-                {experience.host.avatar ? (
+                {experience.host?.avatar ? (
                   <Image
-                    src={getHostAvatar(experience.host.avatar) || ''}
-                    alt={experience.host.name}
+                    src={getHostAvatar(experience.host?.avatar) || ''}
+                    alt={experience.host?.name ?? 'Anfitrion'}
                     className="w-full h-full object-cover"
                     width={64} height={64} unoptimized
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-600">
-                    {experience.host.name.charAt(0)}
+                    {experience.host?.name ?? 'Anfitrion'.charAt(0)}
                   </div>
                 )}
               </div>
-              {experience.host.verified && (
+              {experience.host?.verified && (
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white border-2 border-white">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
                     <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
@@ -411,16 +411,16 @@ export default function ExperienceDetailPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-gray-500 mb-0.5">Anfitrión</p>
-              <p className="font-bold text-gray-900 text-lg">{experience.host.name}</p>
-              <p className="text-sm text-gray-500">{experience.host.city}</p>
+              <p className="font-bold text-gray-900 text-lg">{experience.host?.name ?? 'Anfitrion'}</p>
+              <p className="text-sm text-gray-500">{experience.host?.city}</p>
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-400">
               <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
             </svg>
           </div>
-          {experience.host.bio && (
+          {experience.host?.bio && (
             <div className="px-4 pb-4">
-              <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-3 italic">&ldquo;{experience.host.bio}&rdquo;</p>
+              <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-3 italic">&ldquo;{experience.host?.bio}&rdquo;</p>
             </div>
           )}
         </Link>
@@ -644,7 +644,7 @@ export default function ExperienceDetailPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-sm truncate">{experience.title}</h3>
-                <p className="text-xs text-gray-500">con {experience.host.name}</p>
+                <p className="text-xs text-gray-500">con {experience.host?.name ?? 'Anfitrion'}</p>
                 {experience.price && (
                   <p className="text-sm font-bold text-blue-600 mt-1">
                     Desde {experience.price}€/persona

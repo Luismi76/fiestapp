@@ -541,16 +541,16 @@ export default function PublicProfilePage() {
               <div key={review.id} className="bg-white rounded-2xl shadow-sm p-4">
                 <div className="flex items-start gap-3">
                   <OptimizedAvatar
-                    src={getAvatarSrc(review.author.avatar)}
-                    name={review.author.name}
+                    src={getAvatarSrc(review.author?.avatar)}
+                    name={review.author?.name ?? 'Usuario'}
                     size="md"
                     className="w-10 h-10 flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-medium text-gray-900">{review.author.name}</span>
-                        {review.author.verified && (
+                        <span className="font-medium text-gray-900">{review.author?.name ?? 'Usuario'}</span>
+                        {review.author?.verified && (
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-blue-500">
                             <path fillRule="evenodd" d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
                           </svg>

@@ -278,13 +278,13 @@ export default function DisputeDetailPage() {
           <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
             <div className="flex items-center gap-2">
               <OptimizedAvatar
-                src={getAvatarUrl(dispute.openedBy.avatar)}
-                name={dispute.openedBy.name}
+                src={getAvatarUrl(dispute.openedBy?.avatar)}
+                name={dispute.openedBy?.name ?? 'Usuario'}
                 size="sm"
               />
               <div>
                 <p className="text-xs text-gray-500">Abierta por</p>
-                <p className="text-sm font-medium text-gray-900">{dispute.openedBy.name}</p>
+                <p className="text-sm font-medium text-gray-900">{dispute.openedBy?.name ?? 'Usuario'}</p>
               </div>
             </div>
             <div className="flex-1 flex items-center justify-center">
@@ -295,11 +295,11 @@ export default function DisputeDetailPage() {
             <div className="flex items-center gap-2">
               <div className="text-right">
                 <p className="text-xs text-gray-500">Contra</p>
-                <p className="text-sm font-medium text-gray-900">{dispute.respondent.name}</p>
+                <p className="text-sm font-medium text-gray-900">{dispute.respondent?.name ?? 'Usuario'}</p>
               </div>
               <OptimizedAvatar
-                src={getAvatarUrl(dispute.respondent.avatar)}
-                name={dispute.respondent.name}
+                src={getAvatarUrl(dispute.respondent?.avatar)}
+                name={dispute.respondent?.name ?? 'Usuario'}
                 size="sm"
               />
             </div>
@@ -361,8 +361,8 @@ export default function DisputeDetailPage() {
                 >
                   {!isMe && (
                     <OptimizedAvatar
-                      src={getAvatarUrl(message.sender.avatar)}
-                      name={message.sender.name}
+                      src={getAvatarUrl(message.sender?.avatar)}
+                      name={message.sender?.name ?? 'Usuario'}
                       size="sm"
                       className="w-7 h-7"
                     />

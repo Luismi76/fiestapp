@@ -185,24 +185,24 @@ export default function AdminDisputeDetailPage() {
             <div className="flex items-center gap-4 py-3 border-t border-gray-100">
               <div className="flex items-center gap-2 flex-1">
                 <OptimizedAvatar
-                  src={getAvatarUrl(dispute.openedBy.avatar)}
-                  name={dispute.openedBy.name}
+                  src={getAvatarUrl(dispute.openedBy?.avatar)}
+                  name={dispute.openedBy?.name ?? 'Usuario'}
                   size="sm"
                 />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{dispute.openedBy.name}</p>
+                  <p className="text-sm font-medium text-gray-900">{dispute.openedBy?.name ?? 'Usuario'}</p>
                   <p className="text-xs text-gray-500">Abrio la disputa</p>
                 </div>
               </div>
               <span className="text-xs text-gray-400 font-medium">VS</span>
               <div className="flex items-center gap-2 flex-1 justify-end text-right">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{dispute.respondent.name}</p>
+                  <p className="text-sm font-medium text-gray-900">{dispute.respondent?.name ?? 'Usuario'}</p>
                   <p className="text-xs text-gray-500">Demandado</p>
                 </div>
                 <OptimizedAvatar
-                  src={getAvatarUrl(dispute.respondent.avatar)}
-                  name={dispute.respondent.name}
+                  src={getAvatarUrl(dispute.respondent?.avatar)}
+                  name={dispute.respondent?.name ?? 'Usuario'}
                   size="sm"
                 />
               </div>
@@ -263,14 +263,14 @@ export default function AdminDisputeDetailPage() {
                 dispute.messages.map((msg: DisputeMessage) => (
                   <div key={msg.id} className={`flex gap-3 ${msg.isAdmin ? 'bg-blue-50 -mx-2 px-2 py-2 rounded-lg' : ''}`}>
                     <OptimizedAvatar
-                      src={getAvatarUrl(msg.sender.avatar)}
-                      name={msg.sender.name}
+                      src={getAvatarUrl(msg.sender?.avatar)}
+                      name={msg.sender?.name ?? 'Usuario'}
                       size="sm"
                       className="w-8 h-8 flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-medium text-gray-900">{msg.sender.name}</span>
+                        <span className="text-sm font-medium text-gray-900">{msg.sender?.name ?? 'Usuario'}</span>
                         {msg.isAdmin && (
                           <span className="text-[10px] bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">
                             Admin
