@@ -12,7 +12,6 @@ import AppWrapper from "@/components/AppWrapper";
 const GoogleAnalytics = dynamic(() => import("@/components/analytics/GoogleAnalytics"));
 const ServiceWorkerRegistration = dynamic(() => import("@/components/ServiceWorkerRegistration"));
 const InstallPrompt = dynamic(() => import("@/components/InstallPrompt"));
-const EvalWidget = dynamic(() => import("@/components/evaluation/EvalWidget"));
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -138,7 +137,6 @@ export default function RootLayout({
                   {children}
                 </AppWrapper>
                 <InstallPrompt />
-                <EvalWidget />
               </MessageProvider>
             </NotificationProvider>
           </ToastProvider>
