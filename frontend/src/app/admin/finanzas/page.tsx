@@ -1081,7 +1081,7 @@ function TransaccionesTab() {
           {transactions.map((tx) => {
             const tBadge = typeBadge[tx.type] || { label: tx.type, bg: 'bg-gray-100', text: 'text-gray-600' };
             const sBadge = statusBadge[tx.status] || { label: tx.status, bg: 'bg-gray-100', text: 'text-gray-500' };
-            const isNegative = tx.type === 'refund' || tx.amount < 0;
+            const isNegative = tx.type !== 'refund' && tx.type !== 'topup' && tx.amount < 0;
             const borderColor = typeBorderColor[tx.type] || 'border-l-gray-300';
             const isExpanded = expandedTxId === tx.id;
             return (
@@ -1142,7 +1142,7 @@ function TransaccionesTab() {
                 {transactions.map((tx) => {
                   const tBadge = typeBadge[tx.type] || { label: tx.type, bg: 'bg-gray-100', text: 'text-gray-600' };
                   const sBadge = statusBadge[tx.status] || { label: tx.status, bg: 'bg-gray-100', text: 'text-gray-500' };
-                  const isNegative = tx.type === 'refund' || tx.amount < 0;
+                  const isNegative = tx.type !== 'refund' && tx.type !== 'topup' && tx.amount < 0;
                   const isExpanded = expandedTxId === tx.id;
                   return (
                     <React.Fragment key={tx.id}>
