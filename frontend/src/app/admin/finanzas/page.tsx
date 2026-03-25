@@ -1634,8 +1634,58 @@ function ObligacionesFiscalesTab() {
           {loadingVat ? (
             <LoadingSpinner text="Cargando resumen IVA..." />
           ) : vatSummary && (vatSummary.rows || []).length > 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="overflow-x-auto">
+            <>
+              {/* MOBILE: Cards */}
+              <div className="md:hidden space-y-3">
+                {(vatSummary.rows || []).map((row, index) => (
+                  <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-gray-900 text-sm">{row.concept}</span>
+                      <span className="text-xs text-gray-400">{row.operationsCount} ops.</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-gray-50 rounded-lg p-2 text-center">
+                        <div className="text-[10px] text-gray-400">Bruto</div>
+                        <div className="text-sm font-semibold text-gray-900">{formatEur(row.grossAmount)}</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-2 text-center">
+                        <div className="text-[10px] text-gray-400">Base</div>
+                        <div className="text-sm font-semibold text-gray-900">{formatEur(row.taxableBase)}</div>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-2 text-center">
+                        <div className="text-[10px] text-gray-400">IVA</div>
+                        <div className={`text-sm font-semibold ${row.vatAmount > 0 ? 'text-blue-600' : 'text-gray-400'}`}>
+                          {formatEur(row.vatAmount)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {/* Totals card */}
+                <div className="bg-blue-50 rounded-xl border-2 border-blue-200 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-gray-900 text-sm">TOTAL</span>
+                    <span className="text-xs text-gray-500">{vatSummary.totals?.operationsCount || 0} ops.</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-white rounded-lg p-2 text-center">
+                      <div className="text-[10px] text-gray-400">Bruto</div>
+                      <div className="text-sm font-bold text-gray-900">{formatEur(vatSummary.totals?.grossAmount || 0)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-2 text-center">
+                      <div className="text-[10px] text-gray-400">Base</div>
+                      <div className="text-sm font-bold text-gray-900">{formatEur(vatSummary.totals?.taxableBase || 0)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-2 text-center">
+                      <div className="text-[10px] text-gray-400">IVA</div>
+                      <div className="text-sm font-bold text-blue-600">{formatEur(vatSummary.totals?.vatAmount || 0)}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* DESKTOP: Table */}
+              <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/50">
@@ -1643,7 +1693,7 @@ function ObligacionesFiscalesTab() {
                       <th className="text-right px-4 py-3 font-medium text-gray-500">N.o Ops.</th>
                       <th className="text-right px-4 py-3 font-medium text-gray-500">Importe bruto</th>
                       <th className="text-right px-4 py-3 font-medium text-gray-500">Base imponible</th>
-                      <th className="text-right px-4 py-3 font-medium text-gray-500">Cuota IVA (21%)</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">IVA (21%)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1653,7 +1703,9 @@ function ObligacionesFiscalesTab() {
                         <td className="px-4 py-3 text-right text-gray-600">{row.operationsCount}</td>
                         <td className="px-4 py-3 text-right text-gray-600">{formatEur(row.grossAmount)}</td>
                         <td className="px-4 py-3 text-right text-gray-600">{formatEur(row.taxableBase)}</td>
-                        <td className="px-4 py-3 text-right text-gray-600">{formatEur(row.vatAmount)}</td>
+                        <td className={`px-4 py-3 text-right ${row.vatAmount > 0 ? 'text-blue-600 font-medium' : 'text-gray-400'}`}>
+                          {formatEur(row.vatAmount)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1663,12 +1715,12 @@ function ObligacionesFiscalesTab() {
                       <td className="px-4 py-3 text-right font-bold text-gray-900">{vatSummary.totals?.operationsCount || 0}</td>
                       <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.grossAmount || 0)}</td>
                       <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.taxableBase || 0)}</td>
-                      <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(vatSummary.totals?.vatAmount || 0)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-blue-600">{formatEur(vatSummary.totals?.vatAmount || 0)}</td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
-            </div>
+            </>
           ) : (
             <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-100">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-gray-300 mx-auto mb-3">
