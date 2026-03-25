@@ -503,10 +503,20 @@ export class AccountingService {
       _count: { id: true },
     });
 
+    // Solo las recargas (topup) llevan IVA 21% — son ingresos por intermediación.
+    // Las comisiones (platform_fee) se descuentan de saldos que ya tributaron al recargar.
+    // Los reembolsos (refund) son rectificaciones, no generan IVA.
+    const TYPES_WITH_VAT = new Set(['topup']);
+
     const lines: VatLine[] = grouped.map((row) => {
       const grossAmount = Math.abs(row._sum.amount || 0);
-      const netAmount = Math.round((grossAmount / 1.21) * 100) / 100;
-      const vatAmount = Math.round((grossAmount - netAmount) * 100) / 100;
+      const hasVat = TYPES_WITH_VAT.has(row.type);
+      const netAmount = hasVat
+        ? Math.round((grossAmount / 1.21) * 100) / 100
+        : grossAmount;
+      const vatAmount = hasVat
+        ? Math.round((grossAmount - netAmount) * 100) / 100
+        : 0;
 
       return {
         type: row.type,

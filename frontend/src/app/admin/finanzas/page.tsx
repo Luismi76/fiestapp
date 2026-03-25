@@ -1622,7 +1622,10 @@ function ObligacionesFiscalesTab() {
           <div>
             <h3 className="font-semibold text-gray-900 text-base">Resumen IVA &middot; {quarter} {year}</h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Desglose de operaciones e IVA al 21% &middot; {quarterLabel} {year}
+              Desglose de operaciones &middot; {quarterLabel} {year}
+            </p>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              IVA 21% aplicado solo a recargas de monedero (ingreso por intermediacion). Comisiones y reembolsos operan sobre saldos ya tributados.
             </p>
           </div>
 
