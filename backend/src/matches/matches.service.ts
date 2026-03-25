@@ -1215,6 +1215,12 @@ export class MatchesService {
               where: { id: paymentTx.id },
               data: { status: 'refunded' },
             });
+
+            // Devolver comisiones al wallet de ambos usuarios
+            await Promise.all([
+              this.walletService.refundPlatformFee(match.hostId, id),
+              this.walletService.refundPlatformFee(match.requesterId, id),
+            ]);
           } catch (error) {
             this.logger.error(`Refund failed for match ${id}:`, error);
           }

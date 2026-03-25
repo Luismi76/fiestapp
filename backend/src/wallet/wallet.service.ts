@@ -344,8 +344,19 @@ export class WalletService {
     });
   }
 
-  // Devolver comisión al wallet (cuando se cancela antes de pagar experiencia)
+  // Devolver comisión al wallet (cuando se cancela un match)
   async refundPlatformFee(userId: string, matchId: string): Promise<void> {
+    // Verificar que existe una comisión cobrada para este match y que no se devolvió ya
+    const feeCharged = await this.prisma.transaction.findFirst({
+      where: { userId, matchId, type: 'platform_fee', status: 'completed' },
+    });
+    if (!feeCharged) return; // No se cobró comisión, nada que devolver
+
+    const alreadyRefunded = await this.prisma.transaction.findFirst({
+      where: { userId, matchId, type: 'refund', description: 'Devolución comisión por cancelación' },
+    });
+    if (alreadyRefunded) return; // Ya se devolvió
+
     await this.prisma.$transaction(async (tx) => {
       await tx.wallet.update({
         where: { userId },
