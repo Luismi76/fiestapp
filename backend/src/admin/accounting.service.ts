@@ -503,10 +503,23 @@ export class AccountingService {
       _count: { id: true },
     });
 
+    // Tratamiento fiscal por tipo de transacción:
+    // - topup: Ingreso real de la plataforma por intermediación → IVA 21%
+    // - platform_fee: Consumo de saldo del monedero (ya tributó en la recarga) → sin IVA
+    // - payment/experience_payment: Intermediación entre viajero y anfitrión,
+    //   el dinero pasa por Stripe (escrow) pero no es ingreso de la plataforma → sin IVA
+    // - refund: Rectificación/devolución → sin IVA
+    const TYPES_WITH_VAT = new Set(['topup']);
+
     const lines: VatLine[] = grouped.map((row) => {
       const grossAmount = Math.abs(row._sum.amount || 0);
-      const netAmount = Math.round((grossAmount / 1.21) * 100) / 100;
-      const vatAmount = Math.round((grossAmount - netAmount) * 100) / 100;
+      const hasVat = TYPES_WITH_VAT.has(row.type);
+      const netAmount = hasVat
+        ? Math.round((grossAmount / (1 + vatRate)) * 100) / 100
+        : grossAmount;
+      const vatAmount = hasVat
+        ? Math.round((grossAmount - netAmount) * 100) / 100
+        : 0;
 
       return {
         type: row.type,
