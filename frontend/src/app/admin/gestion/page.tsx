@@ -1579,11 +1579,12 @@ function GestionPageInner() {
 
   // Fetch alerts for AdminLayout badge
   useEffect(() => {
-    if (isAuthenticated && user?.role === 'admin') {
-      api.get('/admin/dashboard/alerts')
-        .then((res) => setAlerts(res.data))
-        .catch(() => {});
-    }
+    if (!isAuthenticated || user?.role !== 'admin') return;
+    let cancelled = false;
+    api.get('/admin/dashboard/alerts')
+      .then((res) => { if (!cancelled) setAlerts(res.data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [isAuthenticated, user]);
 
   const handleTabChange = (tab: string) => {

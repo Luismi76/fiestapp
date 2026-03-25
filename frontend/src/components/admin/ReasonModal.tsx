@@ -16,6 +16,12 @@ interface ReasonModalProps {
   onClose: () => void;
 }
 
+const BUTTON_COLORS = {
+  danger: 'bg-red-500 hover:bg-red-600',
+  warning: 'bg-amber-500 hover:bg-amber-600',
+  default: 'bg-primary hover:bg-primary/90',
+} as const;
+
 export default function ReasonModal({
   isOpen,
   title,
@@ -41,12 +47,6 @@ export default function ReasonModal({
   const handleClose = () => {
     setReason('');
     onClose();
-  };
-
-  const buttonColors = {
-    danger: 'bg-red-500 hover:bg-red-600',
-    warning: 'bg-amber-500 hover:bg-amber-600',
-    default: 'bg-primary hover:bg-primary/90',
   };
 
   return (
@@ -110,7 +110,7 @@ export default function ReasonModal({
           <button
             onClick={handleSubmit}
             disabled={isLoading}
-            className={`flex-1 py-3 text-white font-medium rounded-xl transition-colors disabled:opacity-50 ${buttonColors[variant]}`}
+            className={`flex-1 py-3 text-white font-medium rounded-xl transition-colors disabled:opacity-50 ${BUTTON_COLORS[variant]}`}
           >
             {isLoading ? submitLoadingLabel : submitLabel}
           </button>

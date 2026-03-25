@@ -8,7 +8,7 @@ import api from '@/lib/api';
 import { Suspense } from 'react';
 
 // ============================================
-// TYPES
+// TYPES & CONSTANTS
 // ============================================
 
 interface DashboardKpi {
@@ -34,6 +34,14 @@ interface DashboardData {
   kpis: DashboardKpi;
   revenueChart: RevenueDataPoint[];
 }
+
+const DEFAULT_KPIS: DashboardKpi = {
+  platformFees: 0, platformFeesChange: 0,
+  walletTopups: 0, walletTopupsChange: 0,
+  experiencePayments: 0, experiencePaymentsChange: 0,
+  refunds: 0, refundsChange: 0,
+  totalWalletBalance: 0, operationsCount: 0, operationsCountChange: 0,
+};
 
 interface Transaction {
   id: string;
@@ -453,13 +461,7 @@ function ResumenTab() {
 
   if (!dashboardData) return null;
 
-  const kpis = dashboardData.kpis || {
-    platformFees: 0, platformFeesChange: 0,
-    walletTopups: 0, walletTopupsChange: 0,
-    experiencePayments: 0, experiencePaymentsChange: 0,
-    refunds: 0, refundsChange: 0,
-    totalWalletBalance: 0, operationsCount: 0, operationsCountChange: 0,
-  };
+  const kpis = dashboardData.kpis || DEFAULT_KPIS;
   const revenueChart = dashboardData.revenueChart || [];
 
   return (
@@ -1533,9 +1535,11 @@ function FinanzasPageInner() {
   }, [user, authLoading, isAuthenticated, router]);
 
   useEffect(() => {
+    let cancelled = false;
     api.get('/admin/dashboard/alerts')
-      .then(({ data }) => setAlerts(data))
+      .then(({ data }) => { if (!cancelled) setAlerts(data); })
       .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   if (authLoading) {

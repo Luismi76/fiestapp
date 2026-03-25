@@ -1603,15 +1603,11 @@ function ModeracionPageInner() {
 
   // Fetch alerts
   useEffect(() => {
-    const fetchAlerts = async () => {
-      try {
-        const response = await api.get('/admin/dashboard/alerts');
-        setAlerts(response.data);
-      } catch {
-        // Ignore
-      }
-    };
-    fetchAlerts();
+    let cancelled = false;
+    api.get('/admin/dashboard/alerts')
+      .then(({ data }) => { if (!cancelled) setAlerts(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, []);
 
   const handleTabChange = (tab: string) => {

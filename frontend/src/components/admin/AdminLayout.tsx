@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { ReactNode, Suspense } from 'react';
+import { ReactNode, Suspense, useMemo } from 'react';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -214,6 +214,14 @@ const BOTTOM_BAR_ITEMS: BottomBarItem[] = [
   { section: 'finanzas', href: '/admin/finanzas', label: 'Finanzas', icon: BanknotesIcon },
 ];
 
+/* ── Hoisted style constants (avoid inline object recreation) ──────────── */
+
+const SHADOW_LIGHT = { boxShadow: '0 -1px 2px rgba(0,0,0,0.05)' } as const;
+const SHADOW_MEDIUM = { boxShadow: '0 -1px 3px rgba(0,0,0,0.1)' } as const;
+const ACTIVE_TAB_STYLE = { backgroundColor: '#FF6B35' } as const;
+const ACTIVE_SIDEBAR_STYLE = { backgroundColor: 'rgba(255,107,53,0.1)', color: '#FF6B35' } as const;
+const SPINNER_STYLE = { borderColor: '#FF6B35', borderTopColor: 'transparent' } as const;
+
 /* ── Inner layout (uses useSearchParams, needs Suspense) ──────────────── */
 
 function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps) {
@@ -239,6 +247,11 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
     if (item.tab) return `${item.href}?tab=${item.tab}`;
     return item.href;
   };
+
+  const sectionGroup = useMemo(
+    () => SIDEBAR_GROUPS.find(g => g.items.some(i => i.href === `/admin/${section}`)),
+    [section],
+  );
 
   return (
     <>
@@ -266,47 +279,41 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
         </main>
 
         {/* Mobile sub-nav (above bottom bar, only for sections with tabs) */}
-        {section !== 'inicio' && (() => {
-          const sectionGroup = SIDEBAR_GROUPS.find(g =>
-            g.items.some(i => i.href === `/admin/${section}`)
-          );
-          if (!sectionGroup) return null;
-          return (
-            <nav
-              className="fixed bottom-16 inset-x-0 z-50 bg-white border-t border-gray-100"
-              style={{ boxShadow: '0 -1px 2px rgba(0,0,0,0.05)' }}
-            >
-              <div className="flex gap-1.5 overflow-x-auto px-3 py-2 scrollbar-hide">
-                {sectionGroup.items.map((sub) => {
-                  const active = pathname.startsWith(sub.href) && currentTab === sub.tab;
-                  const badge = sub.alertKey ? alerts?.[sub.alertKey] ?? 0 : 0;
-                  return (
-                    <Link
-                      key={sub.tab || sub.label}
-                      href={buildHref(sub)}
-                      className={`relative whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                        active ? 'text-white' : 'bg-gray-100 text-gray-600'
-                      }`}
-                      style={active ? { backgroundColor: '#FF6B35' } : undefined}
-                    >
-                      {sub.label}
-                      {badge > 0 && (
-                        <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full">
-                          {badge > 99 ? '99+' : badge}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </nav>
-          );
-        })()}
+        {section !== 'inicio' && sectionGroup && (
+          <nav
+            className="fixed bottom-16 inset-x-0 z-50 bg-white border-t border-gray-100"
+            style={SHADOW_LIGHT}
+          >
+            <div className="flex gap-1.5 overflow-x-auto px-3 py-2 scrollbar-hide">
+              {sectionGroup.items.map((sub) => {
+                const active = pathname.startsWith(sub.href) && currentTab === sub.tab;
+                const badge = sub.alertKey ? alerts?.[sub.alertKey] ?? 0 : 0;
+                return (
+                  <Link
+                    key={sub.tab || sub.label}
+                    href={buildHref(sub)}
+                    className={`relative whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                      active ? 'text-white' : 'bg-gray-100 text-gray-600'
+                    }`}
+                    style={active ? ACTIVE_TAB_STYLE : undefined}
+                  >
+                    {sub.label}
+                    {badge > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full">
+                        {badge > 99 ? '99+' : badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </nav>
+        )}
 
         {/* Mobile bottom bar */}
         <nav
           className="fixed bottom-0 inset-x-0 z-50 h-16 bg-white border-t border-gray-200"
-          style={{ boxShadow: '0 -1px 3px rgba(0,0,0,0.1)' }}
+          style={SHADOW_MEDIUM}
         >
           <div className="flex h-full">
             {BOTTOM_BAR_ITEMS.map((item) => {
@@ -372,11 +379,7 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
                           ? 'font-medium'
                           : 'text-gray-600 hover:bg-gray-50'
                       }`}
-                      style={
-                        active
-                          ? { backgroundColor: 'rgba(255,107,53,0.1)', color: '#FF6B35' }
-                          : undefined
-                      }
+                      style={active ? ACTIVE_SIDEBAR_STYLE : undefined}
                     >
                       <Icon className="w-4 h-4 flex-shrink-0" />
                       <span className="flex-1">{item.label}</span>
@@ -429,7 +432,7 @@ export default function AdminLayout(props: AdminLayoutProps) {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor: '#FF6B35', borderTopColor: 'transparent' }} />
+          <div className="w-8 h-8 border-4 rounded-full animate-spin" style={SPINNER_STYLE} />
         </div>
       }
     >

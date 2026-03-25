@@ -11,6 +11,10 @@ interface AdminNavProps {
   };
 }
 
+const NAV_ACTIVE_STYLE = { backgroundColor: 'rgba(139,92,246,0.1)', color: '#8B5CF6' } as const;
+const NAV_INACTIVE_STYLE = { backgroundColor: 'transparent', color: '#6B7280' } as const;
+const BADGE_STYLE = { backgroundColor: '#EF4444', fontSize: '9px', minWidth: '16px', height: '16px', padding: '0 4px' } as const;
+
 const NAV_ITEMS = [
   { href: '/admin', label: 'Inicio', alertKey: null },
   { href: '/admin/users', label: 'Usuarios', alertKey: null },
@@ -50,22 +54,13 @@ export default function AdminNav({ alerts }: AdminNavProps) {
               key={item.href}
               href={item.href}
               className="relative flex items-center px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors"
-              style={{
-                backgroundColor: active ? 'rgba(139,92,246,0.1)' : 'transparent',
-                color: active ? '#8B5CF6' : '#6B7280',
-              }}
+              style={active ? NAV_ACTIVE_STYLE : NAV_INACTIVE_STYLE}
             >
               {item.label}
               {badge !== undefined && badge > 0 && (
                 <span
                   className="ml-1 inline-flex items-center justify-center text-white font-bold rounded-full"
-                  style={{
-                    backgroundColor: '#EF4444',
-                    fontSize: '9px',
-                    minWidth: '16px',
-                    height: '16px',
-                    padding: '0 4px',
-                  }}
+                  style={BADGE_STYLE}
                 >
                   {badge > 99 ? '99+' : badge}
                 </span>
