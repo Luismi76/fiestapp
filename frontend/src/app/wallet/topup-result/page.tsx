@@ -34,14 +34,15 @@ function TopUpResultContent() {
       return;
     }
 
-    // Polling: el webhook de Stripe puede tardar unos segundos
+    // Verificar estado de la recarga. Primero inmediatamente, luego con polling
+    // porque el webhook de Stripe puede tardar unos segundos.
     let cancelled = false;
-    const delays = [1000, 2000, 3000, 4000, 5000]; // 5 intentos en 15s
+    const delays = [0, 2000, 3000, 4000, 5000, 6000];
 
     const poll = async () => {
       for (let i = 0; i < delays.length; i++) {
         if (cancelled) return;
-        await new Promise((r) => setTimeout(r, delays[i]));
+        if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
         if (cancelled) return;
 
         try {

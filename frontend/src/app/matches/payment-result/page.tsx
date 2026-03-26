@@ -34,19 +34,20 @@ function PaymentResultContent() {
       return;
     }
 
-    // Polling: esperar a que el webhook de Stripe se procese
+    // Verificar estado del pago. Primero inmediatamente, luego con polling
+    // porque el webhook de Stripe puede tardar unos segundos.
     let cancelled = false;
-    const delays = [1000, 2000, 3000, 4000, 5000];
+    const delays = [0, 2000, 3000, 4000, 5000, 6000];
 
     const poll = async () => {
       for (let i = 0; i < delays.length; i++) {
         if (cancelled) return;
-        await new Promise((r) => setTimeout(r, delays[i]));
+        if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
         if (cancelled) return;
 
         try {
           const data = await matchesApi.getPaymentStatus(matchId);
-          if (data.paymentStatus === 'paid' || data.paymentStatus === 'held') {
+          if (data.paymentStatus === 'paid' || data.paymentStatus === 'held' || data.paymentStatus === 'completed') {
             setSuccess(true);
             setAmount(data.amount);
             setChecking(false);
