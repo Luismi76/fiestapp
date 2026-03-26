@@ -1243,21 +1243,26 @@ export class MatchesService {
               data: { status: 'refunded' },
             });
 
-            // Devolver comisiones al wallet de ambos usuarios
-            await Promise.all([
-              this.walletService.refundPlatformFee(match.hostId, id),
-              this.walletService.refundPlatformFee(match.requesterId, id),
-            ]);
+            // Devolver comisión solo al usuario que NO canceló.
+            // Quien cancela pierde su comisión (se usa para cubrir la devolución al otro).
+            if (isHost) {
+              // Anfitrión cancela: pierde su 1,50€, se devuelve al viajero
+              await this.walletService.refundPlatformFee(match.requesterId, id);
+            } else {
+              // Viajero cancela: pierde su 1,50€, se devuelve al anfitrión
+              await this.walletService.refundPlatformFee(match.hostId, id);
+            }
           } catch (error) {
             this.logger.error(`Refund failed for match ${id}:`, error);
           }
         }
       } else if (match.paymentStatus === 'pending_payment') {
-        // No pagó aún, devolver comisiones al wallet de ambos
-        await Promise.all([
-          this.walletService.refundPlatformFee(match.hostId, id),
-          this.walletService.refundPlatformFee(match.requesterId, id),
-        ]);
+        // No pagó aún: quien cancela pierde su comisión, el otro la recupera
+        if (isHost) {
+          await this.walletService.refundPlatformFee(match.requesterId, id);
+        } else {
+          await this.walletService.refundPlatformFee(match.hostId, id);
+        }
       } else if (refundAmount > 0) {
         // Fallback: reembolso al wallet
         await this.walletService.addBalance(
