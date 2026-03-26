@@ -167,7 +167,7 @@ function AlertItem({ label, count, href, bg, border, text, badgeBg, icon }: {
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [alerts, setAlerts] = useState<AdminDashboardAlerts | null>(null);
   const [usersChart, setUsersChart] = useState<ChartDataPoint[]>([]);

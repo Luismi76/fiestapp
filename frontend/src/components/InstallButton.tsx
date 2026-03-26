@@ -14,20 +14,19 @@ interface BeforeInstallPromptEvent extends Event {
  */
 export default function InstallButton() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(true); // true por defecto para no flashear
+  const [isIOS, setIsIOS] = useState(() =>
+    typeof navigator !== 'undefined' ? /iPad|iPhone|iPod/.test(navigator.userAgent) : false
+  );
+  const [isStandalone, setIsStandalone] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as { standalone?: boolean }).standalone === true
+      : true
+  );
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
-    const standalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as { standalone?: boolean }).standalone === true;
-    setIsStandalone(standalone);
-
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    setIsIOS(iOS);
-
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
