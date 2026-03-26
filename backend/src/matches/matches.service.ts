@@ -898,8 +898,7 @@ export class MatchesService {
       : 'Pago experiencia FiestApp - Pago directo';
 
     // Crear Stripe Checkout Session
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sessionParams: any = {
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ['card'],
       mode: 'payment',
       line_items: [
@@ -925,15 +924,13 @@ export class MatchesService {
       },
       success_url: `${frontendUrl}/matches/payment-result?status=success&session_id={CHECKOUT_SESSION_ID}&matchId=${matchId}`,
       cancel_url: `${frontendUrl}/matches/payment-result?status=error&matchId=${matchId}`,
+      ...(useStripeHold && {
+        payment_intent_data: {
+          capture_method: 'manual' as const,
+          metadata: { matchId, requesterId, type: 'experience_payment', paymentMode },
+        },
+      }),
     };
-
-    // Solo usar capture manual para escrow con experiencias cercanas (< 7 días)
-    if (useStripeHold) {
-      sessionParams.payment_intent_data = {
-        capture_method: 'manual',
-        metadata: { matchId, requesterId, type: 'experience_payment', paymentMode },
-      };
-    }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
