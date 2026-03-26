@@ -503,6 +503,7 @@ export default function ChatPage() {
             }
             paymentStatus={match.paymentStatus}
             totalPrice={match.totalPrice}
+            startDate={match.startDate}
             onPay={async (paymentMode: 'immediate' | 'escrow') => {
               try {
                 const { sessionUrl } = await matchesApi.createPayment(match.id, paymentMode);

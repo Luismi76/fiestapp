@@ -26,6 +26,7 @@ interface MatchActionsProps {
   onOpenDispute?: () => void;
   onWalletReloaded?: () => void;
   onPay?: (paymentMode: 'immediate' | 'escrow') => void;
+  startDate?: string;
 }
 
 const MIN_TOPUP = 4.5;
@@ -224,7 +225,10 @@ export default function MatchActions({
   onPay,
   paymentStatus,
   totalPrice,
+  startDate,
 }: MatchActionsProps) {
+  // El botón de confirmar solo aparece a partir de la fecha de la experiencia
+  const canConfirmToday = !startDate || new Date(startDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0);
   // Pending - Host actions
   if (status === 'pending' && isHost) {
     return (
@@ -326,153 +330,87 @@ export default function MatchActions({
     );
   }
 
-  // Accepted - Payment held in escrow (show info banner)
-  if (status === 'accepted' && paymentStatus === 'held') {
+  // Accepted - escrow held or no payment: compact confirmation bar
+  if (status === 'accepted' && (paymentStatus === 'held' || !paymentStatus || paymentStatus === 'released')) {
     const myConfirmed = isHost ? hostConfirmed : requesterConfirmed;
     const otherConfirmed = isHost ? requesterConfirmed : hostConfirmed;
+    const isEscrow = paymentStatus === 'held';
+
+    // Compact inline status icons
+    const CheckIcon = () => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-white">
+        <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+      </svg>
+    );
 
     return (
-      <div className="mx-4 mt-3 space-y-3">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-emerald-600">
-                <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z" clipRule="evenodd" />
-              </svg>
+      <div className="mx-4 mt-2 space-y-2">
+        {/* Compact info bar: escrow badge + confirmation dots */}
+        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl text-xs">
+          {isEscrow && (
+            <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+              {totalPrice?.toFixed(2)}€ retenido
+            </span>
+          )}
+          <div className="flex items-center gap-1.5 flex-1 justify-end">
+            <span className="text-gray-400">Tu:</span>
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center ${myConfirmed ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+              {myConfirmed ? <CheckIcon /> : <div className="w-1.5 h-1.5 rounded-full bg-white" />}
             </div>
-            <div>
-              <p className="font-medium text-emerald-800">Pago retenido ({totalPrice?.toFixed(2)}€)</p>
-              <p className="text-sm text-emerald-600">
-                {isHost
-                  ? 'El pago se liberara a tu monedero cuando ambos confirmeis la experiencia.'
-                  : 'Tu pago esta retenido de forma segura. Se liberara al anfitrion cuando ambos confirmeis.'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Confirmation status */}
-        <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Confirmacion de experiencia</div>
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${myConfirmed ? 'bg-emerald-500' : 'bg-gray-200'}`}>
-                {myConfirmed ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-white"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" /></svg>
-                ) : <div className="w-2 h-2 rounded-full bg-gray-400" />}
-              </div>
-              <span className={`text-sm font-medium ${myConfirmed ? 'text-emerald-700' : 'text-gray-600'}`}>
-                Tu {myConfirmed ? 'has confirmado' : 'pendiente de confirmar'}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${otherConfirmed ? 'bg-emerald-500' : 'bg-gray-200'}`}>
-                {otherConfirmed ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-white"><path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" /></svg>
-                ) : <div className="w-2 h-2 rounded-full bg-gray-400" />}
-              </div>
-              <span className={`text-sm font-medium ${otherConfirmed ? 'text-emerald-700' : 'text-gray-500'}`}>
-                {otherUserName || 'El otro usuario'} {otherConfirmed ? 'ha confirmado' : 'pendiente'}
-              </span>
+            <span className="text-gray-400 ml-1">{otherUserName?.split(' ')[0] || 'Otro'}:</span>
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center ${otherConfirmed ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+              {otherConfirmed ? <CheckIcon /> : <div className="w-1.5 h-1.5 rounded-full bg-white" />}
             </div>
           </div>
         </div>
 
-        {!myConfirmed && (
-          <button onClick={onConfirm} className="w-full py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-colors">
-            Confirmar experiencia
-          </button>
-        )}
-        <button onClick={onCancel} className="w-full py-2.5 text-sm text-gray-500 hover:text-red-500 font-medium transition-colors">
-          Cancelar
-        </button>
+        {/* Action buttons: only show confirm when date has arrived */}
+        {!myConfirmed && canConfirmToday ? (
+          <div className="flex gap-2">
+            <button
+              onClick={onConfirm}
+              className="flex-1 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
+            >
+              Confirmar experiencia
+            </button>
+            <button
+              onClick={onCancel}
+              className="px-4 py-2.5 text-sm text-gray-400 hover:text-red-500 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        ) : !myConfirmed && !canConfirmToday ? (
+          <div className="flex items-center justify-between px-3 py-2 bg-blue-50 rounded-xl">
+            <p className="text-xs text-blue-600">
+              Podras confirmar a partir del {startDate ? new Date(startDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'dia de la experiencia'}
+            </p>
+            <button onClick={onCancel} className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-2">
+              Cancelar
+            </button>
+          </div>
+        ) : myConfirmed ? (
+          <div className="flex items-center justify-between px-3 py-2 bg-emerald-50 rounded-xl">
+            <p className="text-xs text-emerald-600">Esperando confirmacion de {otherUserName?.split(' ')[0] || 'el otro usuario'}</p>
+            <button onClick={onCancel} className="text-xs text-gray-400 hover:text-red-500 transition-colors ml-2">
+              Cancelar
+            </button>
+          </div>
+        ) : null}
       </div>
     );
   }
 
-  // Accepted - Confirmation + cancel (no payment needed or already paid)
+  // Accepted - fallback (other payment states)
   if (status === 'accepted') {
-    const myConfirmed = isHost ? hostConfirmed : requesterConfirmed;
-    const otherConfirmed = isHost ? requesterConfirmed : hostConfirmed;
-
     return (
-      <div className="mx-4 mt-3 space-y-3">
-        {/* Confirmation status */}
-        <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Confirmación de experiencia</div>
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                myConfirmed ? 'bg-emerald-500' : 'bg-gray-200'
-              }`}>
-                {myConfirmed ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-white">
-                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <div className="w-2 h-2 rounded-full bg-gray-400" />
-                )}
-              </div>
-              <span className={`text-sm font-medium ${myConfirmed ? 'text-emerald-700' : 'text-gray-600'}`}>
-                Tu {myConfirmed ? 'has confirmado' : 'pendiente de confirmar'}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                otherConfirmed ? 'bg-emerald-500' : 'bg-gray-200'
-              }`}>
-                {otherConfirmed ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-white">
-                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
-                  </svg>
-                ) : (
-                  <div className="w-2 h-2 rounded-full bg-gray-400" />
-                )}
-              </div>
-              <span className={`text-sm font-medium ${otherConfirmed ? 'text-emerald-700' : 'text-gray-500'}`}>
-                {otherUserName || 'El otro usuario'} {otherConfirmed ? 'ha confirmado' : 'pendiente'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex gap-2">
-          {!myConfirmed ? (
-            <button
-              onClick={onConfirm}
-              className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors shadow-md flex items-center justify-center gap-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-                <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clipRule="evenodd" />
-              </svg>
-              Confirmar experiencia
-            </button>
-          ) : (
-            <div className="flex-1 py-3 bg-emerald-50 text-emerald-600 font-semibold rounded-xl text-center text-sm">
-              Esperando confirmación de {otherUserName || 'el otro usuario'}
-            </div>
-          )}
-          <button
-            onClick={onCancel}
-            className="py-3 px-4 bg-red-50 text-red-500 font-semibold rounded-xl hover:bg-red-100 transition-colors text-sm"
-          >
-            Cancelar
-          </button>
-        </div>
-
-        {/* Dispute button */}
-        {onOpenDispute && (
-          <button
-            onClick={onOpenDispute}
-            className="w-full py-2.5 text-xs text-gray-400 hover:text-red-500 font-medium transition-colors flex items-center justify-center gap-1.5"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
-            </svg>
-            Reportar un problema
-          </button>
-        )}
+      <div className="mx-4 mt-2">
+        <button
+          onClick={onCancel}
+          className="w-full py-2.5 text-sm text-gray-500 hover:text-red-500 font-medium transition-colors"
+        >
+          Cancelar solicitud
+        </button>
       </div>
     );
   }
