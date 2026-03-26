@@ -1188,12 +1188,13 @@ export class MatchesService {
         });
 
         if (paymentTx?.stripeId) {
+          let isStripeHold = paymentTx.description?.includes('[stripe_hold]') || false;
           try {
             const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
             if (stripeKey) {
               const stripe = new Stripe(stripeKey);
               const paymentIntent = await stripe.paymentIntents.retrieve(paymentTx.stripeId);
-              const isStripeHold = paymentIntent.status === 'requires_capture';
+              isStripeHold = paymentIntent.status === 'requires_capture';
 
               if (isStripeHold) {
                 // Stripe hold (< 7 días): cancelar o capturar parcialmente (sin coste)
@@ -1210,7 +1211,9 @@ export class MatchesService {
                   }
                 }
               } else if (paymentIntent.status === 'succeeded') {
-                // Platform hold (>= 7 días): reembolso estándar (con coste Stripe)
+                // Platform hold (>= 7 días): reembolso estándar
+                // Stripe no devuelve su comisión, se reembolsa el monto completo al viajero
+                // pero la diferencia (comisión Stripe) se pierde y se registra en la transacción
                 await stripe.refunds.create({
                   payment_intent: paymentTx.stripeId,
                   amount: Math.round(refundAmount * 100),
@@ -1219,14 +1222,19 @@ export class MatchesService {
               }
             }
 
+            // En stripe_hold cancelado, no hay comisión Stripe (cancelación gratuita).
+            // En platform_hold con refund, Stripe no devuelve su comisión → se descuenta.
+            const stripeFeeOnRefund = isStripeHold ? 0 : Math.round((refundAmount * 0.015 + 0.25) * 100) / 100;
+            const netRefund = Math.round((refundAmount - stripeFeeOnRefund) * 100) / 100;
+
             await this.prisma.transaction.create({
               data: {
                 userId: match.requesterId,
                 matchId: id,
                 type: 'refund',
-                amount: refundAmount,
+                amount: netRefund,
                 status: 'completed',
-                description: `Devolución por cancelación: ${match.experience.title}`,
+                description: `Devolución por cancelación: ${match.experience.title}${stripeFeeOnRefund > 0 ? ` (comisión Stripe: ${stripeFeeOnRefund}€)` : ''}`,
               },
             });
 
@@ -1454,6 +1462,11 @@ export class MatchesService {
 
     const isStripeHold = transaction.description?.includes('[stripe_hold]');
 
+    // Calcular comisión Stripe (1,5% + 0,25€) que se descuenta al anfitrión
+    const grossAmount = Math.abs(transaction.amount);
+    const stripeFee = Math.round((grossAmount * 0.015 + 0.25) * 100) / 100;
+    const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
+
     try {
       // Solo capturar en Stripe si es un hold (experiencias < 7 días)
       if (isStripeHold) {
@@ -1468,7 +1481,7 @@ export class MatchesService {
       }
       // Para platform_hold el dinero ya está cobrado, no hay que hacer nada en Stripe
 
-      // Actualizar BD: marcar como liberado y abonar al host
+      // Actualizar BD: marcar como liberado y abonar al host (neto de comisión Stripe)
       await this.prisma.$transaction(async (tx) => {
         await tx.transaction.update({
           where: { id: transaction.id },
@@ -1480,14 +1493,15 @@ export class MatchesService {
           data: { paymentStatus: 'released' },
         });
 
+        // El anfitrión recibe el importe neto (precio - comisión Stripe)
         await tx.wallet.upsert({
           where: { userId: hostId },
-          update: { balance: { increment: Math.abs(transaction.amount) } },
-          create: { userId: hostId, balance: Math.abs(transaction.amount) },
+          update: { balance: { increment: netAmount } },
+          create: { userId: hostId, balance: netAmount },
         });
       });
 
-      this.logger.log(`Escrow released (${isStripeHold ? 'stripe_hold' : 'platform_hold'}) for match ${matchId}: ${Math.abs(transaction.amount)} EUR to host ${hostId}`);
+      this.logger.log(`Escrow released (${isStripeHold ? 'stripe_hold' : 'platform_hold'}) for match ${matchId}: ${netAmount} EUR to host ${hostId} (Stripe fee: ${stripeFee} EUR)`);
     } catch (error) {
       this.logger.error(
         `Failed to release escrow for match ${matchId}`,
