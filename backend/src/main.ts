@@ -9,7 +9,9 @@ import { SanitizePipe } from './common/pipes/sanitize.pipe';
 import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true, // Necesario para verificar firmas de webhooks Stripe
+  });
 
   // Allowed origins from environment or defaults
   const isProduction = process.env.NODE_ENV === 'production';

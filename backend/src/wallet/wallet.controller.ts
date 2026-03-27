@@ -1,3 +1,4 @@
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   Controller,
   Get,
@@ -66,7 +67,8 @@ export class WalletController {
     return this.walletService.createTopUpSession(req.user.userId, amount);
   }
 
-  // Webhook de Stripe para recargas - SIN autenticación JWT
+  // Webhook de Stripe para recargas - SIN autenticación JWT ni rate limiting
+  @SkipThrottle()
   @Post('stripe-webhook')
   async stripeWebhook(
     @Headers('stripe-signature') signature: string,

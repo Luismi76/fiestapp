@@ -1,3 +1,4 @@
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   Controller,
   Get,
@@ -29,13 +30,16 @@ export class MatchesController {
     private readonly configService: ConfigService,
   ) {}
 
-  // Webhook de Stripe para pago de experiencia (SIN auth, usa firma de Stripe)
+  // Webhook de Stripe para pago de experiencia (SIN auth ni rate limiting, usa firma de Stripe)
+  @SkipThrottle()
   @Post('stripe-webhook')
   async stripeWebhook(
     @Headers('stripe-signature') signature: string,
     @Req() req: RawBodyRequest<Request>,
   ) {
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    );
     if (!webhookSecret) {
       this.logger.warn('STRIPE_WEBHOOK_SECRET not configured');
       return { received: true };
@@ -139,7 +143,11 @@ export class MatchesController {
     @Request() req: AuthenticatedRequest,
     @Body() body: { paymentMode?: 'immediate' | 'escrow' },
   ) {
-    return this.matchesService.createExperiencePayment(id, req.user.userId, body?.paymentMode || 'escrow');
+    return this.matchesService.createExperiencePayment(
+      id,
+      req.user.userId,
+      body?.paymentMode || 'escrow',
+    );
   }
 
   // Verificar estado del pago

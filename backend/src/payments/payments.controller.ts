@@ -1,3 +1,4 @@
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   Controller,
   Post,
@@ -72,7 +73,8 @@ export class PaymentsController {
     return { success: true, message: 'Pago liberado correctamente' };
   }
 
-  // Webhook de Stripe (sin auth, usa firma de Stripe)
+  // Webhook de Stripe (sin auth ni rate limiting, usa firma de Stripe)
+  @SkipThrottle()
   @Post('webhook')
   async handleWebhook(
     @Headers('stripe-signature') signature: string,
@@ -83,9 +85,7 @@ export class PaymentsController {
     );
 
     if (!webhookSecret) {
-      throw new ServiceUnavailableException(
-        'Stripe webhook not configured',
-      );
+      throw new ServiceUnavailableException('Stripe webhook not configured');
     }
 
     try {

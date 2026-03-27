@@ -330,11 +330,12 @@ export default function MatchActions({
     );
   }
 
-  // Accepted - escrow held or no payment: compact confirmation bar
+  // Accepted - escrow held, immediate released, or no payment: compact confirmation bar
   if (status === 'accepted' && (paymentStatus === 'held' || !paymentStatus || paymentStatus === 'released')) {
     const myConfirmed = isHost ? hostConfirmed : requesterConfirmed;
     const otherConfirmed = isHost ? requesterConfirmed : hostConfirmed;
     const isEscrow = paymentStatus === 'held';
+    const isReleased = paymentStatus === 'released';
 
     const checkSvg = (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-white">
@@ -350,6 +351,11 @@ export default function MatchActions({
           {isEscrow && (
             <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
               {totalPrice?.toFixed(2)}€ retenido
+            </span>
+          )}
+          {isReleased && (
+            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+              {totalPrice?.toFixed(2)}€ pagado
             </span>
           )}
           <div className="flex items-center gap-1.5 flex-1 justify-end">

@@ -1008,7 +1008,11 @@ export class MatchesService {
     });
 
     if (!transaction || !transaction.matchId) return;
-    if (transaction.status === 'held' || transaction.status === 'completed')
+    if (
+      transaction.status === 'held' ||
+      transaction.status === 'completed' ||
+      transaction.status === 'released'
+    )
       return;
 
     if (session.payment_status === 'paid') {
@@ -1130,18 +1134,37 @@ export class MatchesService {
                 pi.status === 'requires_capture' ||
                 pi.status === 'succeeded'
               ) {
+                // Determinar si es pago inmediato por la descripción de la transacción
+                const isImmediate =
+                  transaction.description?.includes('[immediate]');
+                const newStatus = isImmediate ? 'released' : 'held';
+
                 await this.prisma.$transaction(async (tx) => {
                   await tx.transaction.update({
                     where: { id: transaction.id },
-                    data: { status: 'held', stripeId: paymentIntentId },
+                    data: { status: newStatus, stripeId: paymentIntentId },
                   });
                   await tx.match.update({
                     where: { id: matchId },
-                    data: { paymentStatus: 'held' },
+                    data: { paymentStatus: newStatus },
                   });
+
+                  // Para pago inmediato, abonar al host directamente
+                  if (isImmediate) {
+                    const grossAmount = Math.abs(transaction.amount);
+                    const stripeFee =
+                      Math.round((grossAmount * 0.015 + 0.25) * 100) / 100;
+                    const netAmount =
+                      Math.round((grossAmount - stripeFee) * 100) / 100;
+                    await tx.wallet.upsert({
+                      where: { userId: match.hostId },
+                      update: { balance: { increment: netAmount } },
+                      create: { userId: match.hostId, balance: netAmount },
+                    });
+                  }
                 });
 
-                return { paymentStatus: 'held', amount: match.totalPrice };
+                return { paymentStatus: newStatus, amount: match.totalPrice };
               }
             }
           }
@@ -1269,16 +1292,18 @@ export class MatchesService {
         );
       }
 
-      // Procesar reembolso según estado del pago
+      // Procesar reembolso según estado del pago (incluye 'released' para pagos inmediatos)
       if (
-        (match.paymentStatus === 'held' || match.paymentStatus === 'paid') &&
+        (match.paymentStatus === 'held' ||
+          match.paymentStatus === 'paid' ||
+          match.paymentStatus === 'released') &&
         refundAmount > 0
       ) {
         const paymentTx = await this.prisma.transaction.findFirst({
           where: {
             matchId: id,
             type: 'experience_payment',
-            status: { in: ['held', 'completed'] },
+            status: { in: ['held', 'completed', 'released'] },
           },
         });
 

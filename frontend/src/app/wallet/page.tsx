@@ -10,12 +10,13 @@ import logger from '@/lib/logger';
 import Image from 'next/image';
 
 // Tipos de filtro disponibles
-type TransactionFilter = 'all' | 'topup' | 'platform_fee';
+type TransactionFilter = 'all' | 'topup' | 'platform_fee' | 'refund';
 
 const FILTER_OPTIONS: { value: TransactionFilter; label: string }[] = [
   { value: 'all', label: 'Todas' },
   { value: 'topup', label: 'Recargas' },
   { value: 'platform_fee', label: 'Acuerdos' },
+  { value: 'refund', label: 'Reembolsos' },
 ];
 
 export default function WalletPage() {
@@ -179,6 +180,15 @@ export default function WalletPage() {
         </div>
       );
     }
+    if (type === 'refund') {
+      return (
+        <div className={`${sizeClass} rounded-full bg-blue-100 flex items-center justify-center`}>
+          <svg className={`${iconSize} text-blue-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+          </svg>
+        </div>
+      );
+    }
     return (
       <div className={`${sizeClass} rounded-full bg-orange-100 flex items-center justify-center`}>
         <svg className={`${iconSize} text-orange-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,6 +201,7 @@ export default function WalletPage() {
   const getTransactionTitle = (tx: WalletTransaction) => {
     if (tx.type === 'topup') return 'Recarga de saldo';
     if (tx.type === 'platform_fee') return 'Comisión de servicio';
+    if (tx.type === 'refund') return 'Reembolso';
     return 'Transacción';
   };
 
@@ -616,6 +627,13 @@ export default function WalletPage() {
                       <span className="font-medium text-gray-900">Total cobrado</span>
                       <span className="font-bold text-gray-900">{(Math.round(selectedTransaction.amount * 1.21 * 100) / 100).toFixed(2)}€</span>
                     </div>
+                  </div>
+                )}
+
+                {selectedTransaction.type === 'refund' && selectedTransaction.description && (
+                  <div className="bg-blue-50 rounded-xl p-4">
+                    <p className="text-sm text-gray-500 mb-1">Concepto</p>
+                    <p className="font-medium text-gray-900">{selectedTransaction.description}</p>
                   </div>
                 )}
 
