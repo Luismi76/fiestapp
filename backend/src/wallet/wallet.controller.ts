@@ -13,7 +13,12 @@ import {
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { WalletService, MIN_TOPUP, PLATFORM_FEE } from './wallet.service';
+import {
+  WalletService,
+  MIN_TOPUP,
+  PLATFORM_FEE,
+  VAT_RATE,
+} from './wallet.service';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
@@ -45,6 +50,7 @@ export class WalletController {
       canOperate,
       platformFee: PLATFORM_FEE,
       minTopUp: MIN_TOPUP,
+      vatRate: VAT_RATE,
       operationsAvailable: Math.floor(wallet.balance / PLATFORM_FEE),
     };
   }
@@ -66,7 +72,9 @@ export class WalletController {
     @Headers('stripe-signature') signature: string,
     @Req() req: RawBodyRequest<Request>,
   ) {
-    const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = this.configService.get<string>(
+      'STRIPE_WEBHOOK_SECRET',
+    );
 
     if (!webhookSecret) {
       throw new ServiceUnavailableException('Stripe webhook not configured');

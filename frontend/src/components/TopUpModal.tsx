@@ -63,6 +63,11 @@ export default function TopUpModal({ amount, onClose }: TopUpModalProps) {
         <div className="text-center mb-6">
           <p className="text-3xl font-bold text-gray-900">{amount.toFixed(2)}€</p>
           <p className="text-gray-500 text-sm">{Math.floor(amount / 1.5)} operaciones</p>
+          <div className="mt-2 text-xs text-gray-400 space-y-0.5">
+            <p>Recarga: {amount.toFixed(2)}€</p>
+            <p>IVA (21%): {(Math.round(amount * 0.21 * 100) / 100).toFixed(2)}€</p>
+            <p className="font-medium text-gray-600">Total a pagar: {(Math.round((amount * 1.21) * 100) / 100).toFixed(2)}€</p>
+          </div>
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">

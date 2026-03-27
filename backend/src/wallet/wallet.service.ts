@@ -11,6 +11,7 @@ import Stripe from 'stripe';
 // Constantes del modelo de negocio
 export const PLATFORM_FEE = 1.5; // 1,50€ por operación
 export const MIN_TOPUP = 4.5; // 4,50€ mínimo de recarga (3 operaciones)
+export const VAT_RATE = 0.21; // IVA 21% aplicado a recargas
 
 export type TransactionType = 'topup' | 'platform_fee' | 'refund';
 
@@ -25,14 +26,15 @@ export class WalletService {
     private configService: ConfigService,
   ) {
     this.frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') ||
-      'http://localhost:3000';
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
 
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (stripeKey) {
       this.stripe = new Stripe(stripeKey);
     } else {
-      this.logger.warn('STRIPE_SECRET_KEY not configured - wallet top-ups disabled');
+      this.logger.warn(
+        'STRIPE_SECRET_KEY not configured - wallet top-ups disabled',
+      );
     }
   }
 
@@ -108,9 +110,11 @@ export class WalletService {
       data: { status: 'cancelled' },
     });
 
-    const amountInCents = Math.round(amount * 100);
+    // Calcular IVA: el usuario paga amount + IVA, el monedero recibe amount
+    const vatAmount = Math.round(amount * VAT_RATE * 100) / 100;
+    const totalCharge = Math.round((amount + vatAmount) * 100) / 100;
 
-    // Crear Stripe Checkout Session
+    // Crear Stripe Checkout Session con dos líneas: recarga + IVA
     const session = await this.ensureStripe().checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -120,9 +124,20 @@ export class WalletService {
             currency: 'eur',
             product_data: {
               name: `Recarga FiestApp`,
-              description: `Recarga de monedero: ${amount}€`,
+              description: `Saldo para tu monedero`,
             },
-            unit_amount: amountInCents,
+            unit_amount: Math.round(amount * 100),
+          },
+          quantity: 1,
+        },
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: `IVA (21%)`,
+              description: `Impuesto sobre la recarga`,
+            },
+            unit_amount: Math.round(vatAmount * 100),
           },
           quantity: 1,
         },
@@ -130,12 +145,15 @@ export class WalletService {
       metadata: {
         userId,
         type: 'wallet_topup',
+        walletAmount: amount.toString(),
+        vatAmount: vatAmount.toString(),
+        totalCharge: totalCharge.toString(),
       },
       success_url: `${this.frontendUrl}/wallet/topup-result?status=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${this.frontendUrl}/wallet/topup-result?status=error`,
     });
 
-    // Registrar transacción pendiente
+    // Registrar transacción pendiente (amount = lo que recibe el monedero, sin IVA)
     await this.prisma.transaction.create({
       data: {
         userId,
@@ -143,12 +161,12 @@ export class WalletService {
         amount,
         status: 'pending',
         stripeId: session.id,
-        description: `Recarga de monedero: ${amount}€`,
+        description: `Recarga de monedero: ${amount}€ (IVA: ${vatAmount}€, total cobrado: ${totalCharge}€)`,
       },
     });
 
     this.logger.debug(
-      `TopUp session created: sessionId=${session.id}, amount=${amount}€, user=${userId}`,
+      `TopUp session created: sessionId=${session.id}, wallet=${amount}€, vat=${vatAmount}€, total=${totalCharge}€, user=${userId}`,
     );
 
     return {
@@ -163,7 +181,7 @@ export class WalletService {
       return;
     }
 
-    const session = event.data.object as Stripe.Checkout.Session;
+    const session = event.data.object;
 
     // Solo procesar eventos de wallet_topup
     if (session.metadata?.type !== 'wallet_topup') {
@@ -235,7 +253,8 @@ export class WalletService {
     // Si aún está pendiente, verificar directamente con Stripe
     if (transaction.status === 'pending') {
       try {
-        const session = await this.ensureStripe().checkout.sessions.retrieve(sessionId);
+        const session =
+          await this.ensureStripe().checkout.sessions.retrieve(sessionId);
         if (session.payment_status === 'paid') {
           // El webhook aún no llegó, pero el pago sí se completó
           await this.prisma.$transaction(async (tx) => {
@@ -247,7 +266,10 @@ export class WalletService {
             await tx.wallet.upsert({
               where: { userId: transaction.userId },
               update: { balance: { increment: transaction.amount } },
-              create: { userId: transaction.userId, balance: transaction.amount },
+              create: {
+                userId: transaction.userId,
+                balance: transaction.amount,
+              },
             });
           });
 
@@ -353,7 +375,12 @@ export class WalletService {
     if (!feeCharged) return; // No se cobró comisión, nada que devolver
 
     const alreadyRefunded = await this.prisma.transaction.findFirst({
-      where: { userId, matchId, type: 'refund', description: 'Devolución comisión por cancelación' },
+      where: {
+        userId,
+        matchId,
+        type: 'refund',
+        description: 'Devolución comisión por cancelación',
+      },
     });
     if (alreadyRefunded) return; // Ya se devolvió
 

@@ -47,7 +47,7 @@ function PaymentResultContent() {
 
         try {
           const data = await matchesApi.getPaymentStatus(matchId);
-          if (data.paymentStatus === 'paid' || data.paymentStatus === 'held' || data.paymentStatus === 'completed') {
+          if (data.paymentStatus === 'paid' || data.paymentStatus === 'held' || data.paymentStatus === 'completed' || data.paymentStatus === 'released') {
             setSuccess(true);
             setAmount(data.amount);
             setChecking(false);
