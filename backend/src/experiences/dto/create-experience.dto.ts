@@ -8,6 +8,7 @@ import {
   IsNotEmpty,
   Min,
   MinLength,
+  IsIn,
 } from 'class-validator';
 
 export enum ExperienceType {
@@ -75,4 +76,11 @@ export class CreateExperienceDto {
   @IsArray()
   @IsDateString({}, { each: true, message: 'Fecha de disponibilidad inválida' })
   availability?: string[];
+
+  @IsOptional()
+  @IsIn(['FLEXIBLE', 'MODERATE', 'STRICT', 'NON_REFUNDABLE'], {
+    message:
+      'Política de cancelación debe ser: FLEXIBLE, MODERATE, STRICT o NON_REFUNDABLE',
+  })
+  cancellationPolicy?: string;
 }

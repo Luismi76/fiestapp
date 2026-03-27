@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { experiencesApi, uploadsApi } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { ExperienceType, CreateExperienceData } from '@/types/experience';
+import { ExperienceType, CreateExperienceData, CancellationPolicy } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import CategorySelector from '@/components/CategorySelector';
@@ -158,6 +158,7 @@ export default function CreateExperiencePage() {
   const [cityCoords, setCityCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [cityError, setCityError] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
+  const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>('FLEXIBLE');
   const draftLoaded = useRef(false);
 
   const {
@@ -396,6 +397,7 @@ export default function CreateExperiencePage() {
         highlights: validHighlightsList.length > 0 ? validHighlightsList : undefined,
         capacity: capacity,
         availability: availabilityDates.length > 0 ? availabilityDates : undefined,
+        cancellationPolicy,
       };
 
       setUploadProgress('Creando experiencia...');
@@ -699,6 +701,26 @@ export default function CreateExperiencePage() {
                   </p>
                 )}
                 <p className="text-xs text-gray-400 mt-1.5">Precio que pagarán los participantes</p>
+              </div>
+            )}
+
+            {/* Cancellation Policy */}
+            {selectedType !== 'intercambio' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Política de cancelación
+                </label>
+                <select
+                  value={cancellationPolicy}
+                  onChange={(e) => setCancellationPolicy(e.target.value as CancellationPolicy)}
+                  className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-xl text-gray-900 transition-colors focus:outline-none focus:border-primary"
+                >
+                  <option value="FLEXIBLE">Flexible — 100% hasta 24h antes</option>
+                  <option value="MODERATE">Moderada — 100% hasta 72h, 50% hasta 24h</option>
+                  <option value="STRICT">Estricta — 100% hasta 7 días, 50% hasta 72h</option>
+                  <option value="NON_REFUNDABLE">Sin reembolso</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1.5">Determina cuánto se devuelve si el viajero cancela</p>
               </div>
             )}
 

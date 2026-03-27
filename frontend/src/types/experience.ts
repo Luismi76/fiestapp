@@ -99,6 +99,8 @@ export interface ExperiencesResponse {
   };
 }
 
+export type CancellationPolicy = 'FLEXIBLE' | 'MODERATE' | 'STRICT' | 'NON_REFUNDABLE';
+
 export interface CreateExperienceData {
   title: string;
   description: string;
@@ -116,6 +118,7 @@ export interface CreateExperienceData {
   maxParticipants?: number | null;
   groupPricing?: GroupPricingTier[];
   availability?: string[];
+  cancellationPolicy?: CancellationPolicy;
 }
 
 export interface DateOccupancy {

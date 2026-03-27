@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { experiencesApi, uploadsApi } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { ExperienceType, ExperienceDetail } from '@/types/experience';
+import { ExperienceType, ExperienceDetail, CancellationPolicy } from '@/types/experience';
 import PhotoUploader from '@/components/PhotoUploader';
 import AvailabilityCalendar from '@/components/AvailabilityCalendar';
 import CategorySelector from '@/components/CategorySelector';
@@ -61,6 +61,7 @@ export default function EditExperiencePage() {
   const [categoryId, setCategoryId] = useState('');
   const [city, setCity] = useState('');
   const [cityCoords, setCityCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>('FLEXIBLE');
 
   const {
     register,
@@ -114,6 +115,7 @@ export default function EditExperiencePage() {
           price: experienceData.price?.toString() || '',
           type: experienceData.type,
         });
+        setCancellationPolicy(experienceData.cancellationPolicy || 'FLEXIBLE');
       } catch {
         setError('No se pudo cargar la experiencia');
       } finally {
@@ -237,6 +239,7 @@ export default function EditExperiencePage() {
         highlights: validHighlightsList.length > 0 ? validHighlightsList : [],
         capacity: capacity,
         availability: availabilityDates.length > 0 ? availabilityDates : [],
+        cancellationPolicy,
       });
 
       router.push(`/experiences/${params.id}`);
@@ -633,6 +636,26 @@ export default function EditExperiencePage() {
               step="0.01"
               {...register('price')}
             />
+          </div>
+        )}
+
+        {/* Política de cancelación */}
+        {selectedType !== 'intercambio' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Política de cancelación
+            </label>
+            <select
+              value={cancellationPolicy}
+              onChange={(e) => setCancellationPolicy(e.target.value as CancellationPolicy)}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+            >
+              <option value="FLEXIBLE">Flexible — 100% hasta 24h antes</option>
+              <option value="MODERATE">Moderada — 100% hasta 72h, 50% hasta 24h</option>
+              <option value="STRICT">Estricta — 100% hasta 7 días, 50% hasta 72h</option>
+              <option value="NON_REFUNDABLE">Sin reembolso</option>
+            </select>
+            <p className="text-xs text-gray-400 mt-1.5">Determina cuánto se devuelve si el viajero cancela</p>
           </div>
         )}
 

@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CacheService, CACHE_KEYS, CACHE_TTL } from '../cache/cache.service';
 import { CreateExperienceDto } from './dto/create-experience.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
+import { CancellationPolicy } from '@prisma/client';
 
 @Injectable()
 export class ExperiencesService {
@@ -94,6 +95,8 @@ export class ExperiencesService {
           photos: createDto.photos || [],
           highlights: createDto.highlights || [],
           capacity: createDto.capacity || 1,
+          cancellationPolicy:
+            (createDto.cancellationPolicy as CancellationPolicy) || 'FLEXIBLE',
           hostId: userId,
         },
         include: {
@@ -520,8 +523,14 @@ export class ExperiencesService {
       );
     }
 
-    // Extraer availability y coords del DTO para manejarlo por separado
-    const { availability, latitude, longitude, ...updateData } = updateDto;
+    // Extraer availability, coords y cancellationPolicy del DTO para manejarlo por separado
+    const {
+      availability,
+      latitude,
+      longitude,
+      cancellationPolicy,
+      ...updateData
+    } = updateDto;
 
     // Usar coordenadas del frontend si las envía, sino geocodificar si cambia la ciudad
     let coordinates: { latitude: number; longitude: number } | null = null;
@@ -538,6 +547,9 @@ export class ExperiencesService {
         where: { id },
         data: {
           ...updateData,
+          ...(cancellationPolicy && {
+            cancellationPolicy: cancellationPolicy as CancellationPolicy,
+          }),
           ...(coordinates && {
             latitude: coordinates.latitude,
             longitude: coordinates.longitude,
