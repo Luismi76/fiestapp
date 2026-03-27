@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
+import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 import Stripe from 'stripe';
 
 export enum PaymentStatus {
@@ -18,6 +19,12 @@ export enum PaymentStatus {
   FAILED = 'failed',
 }
 
+/**
+ * @deprecated Este servicio es legacy. El flujo principal de pagos de experiencias
+ * está en MatchesService.createExperiencePayment() y handleExperiencePaymentWebhook().
+ * Las recargas de monedero están en WalletService.
+ * Solo mantener para compatibilidad con payment intents antiguos y el cron de reconciliación.
+ */
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -26,6 +33,7 @@ export class PaymentsService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private stripeIdempotency: StripeIdempotencyService,
   ) {
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!stripeKey) {
@@ -323,6 +331,11 @@ export class PaymentsService {
 
   // Webhook handler para eventos de Stripe
   async handleWebhook(event: Stripe.Event): Promise<void> {
+    // Idempotencia: evitar procesar el mismo evento dos veces
+    if (await this.stripeIdempotency.isAlreadyProcessed(event.id, event.type)) {
+      return;
+    }
+
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const paymentIntent = event.data.object;

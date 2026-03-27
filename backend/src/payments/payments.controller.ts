@@ -19,6 +19,10 @@ import Stripe from 'stripe';
 import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('payments')
+/**
+ * @deprecated Usar MatchesController para pagos de experiencias y WalletController para recargas.
+ * Este controller se mantiene solo para compatibilidad con payment intents legacy.
+ */
 export class PaymentsController {
   private readonly logger = new Logger(PaymentsController.name);
   private stripe: Stripe | null = null;

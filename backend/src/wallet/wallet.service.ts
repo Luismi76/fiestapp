@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 import Stripe from 'stripe';
 
 // Constantes del modelo de negocio
@@ -24,6 +25,7 @@ export class WalletService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private stripeIdempotency: StripeIdempotencyService,
   ) {
     this.frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
@@ -185,6 +187,11 @@ export class WalletService {
 
     // Solo procesar eventos de wallet_topup
     if (session.metadata?.type !== 'wallet_topup') {
+      return;
+    }
+
+    // Idempotencia: evitar procesar el mismo evento dos veces
+    if (await this.stripeIdempotency.isAlreadyProcessed(event.id, event.type)) {
       return;
     }
 

@@ -7,6 +7,7 @@ import { walletApi, WalletInfo, WalletTransaction } from '@/lib/api';
 import TopUpModal from '@/components/TopUpModal';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
+import { vatAmount, withVat } from '@/lib/constants';
 import Image from 'next/image';
 
 // Tipos de filtro disponibles
@@ -276,7 +277,7 @@ export default function WalletPage() {
                   <div className="text-sm text-gray-500">{Math.floor(MIN_TOPUP / 1.5)} operaciones</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">{(Math.round(MIN_TOPUP * 1.21 * 100) / 100).toFixed(2).replace('.', ',')}€</div>
+                  <div className="text-2xl font-bold text-primary">{withVat(MIN_TOPUP).toFixed(2).replace('.', ',')}€</div>
                   <div className="text-xs text-gray-400">IVA incl.</div>
                 </div>
               </button>
@@ -469,7 +470,7 @@ export default function WalletPage() {
                   <div className="flex flex-col items-end gap-0.5">
                     <span className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
                       {tx.type === 'topup'
-                        ? `+${(Math.round(tx.amount * 1.21 * 100) / 100).toFixed(2)}€`
+                        ? `+${withVat(tx.amount).toFixed(2)}€`
                         : `${tx.amount > 0 ? '+' : ''}${tx.amount.toFixed(2)}€`
                       }
                     </span>
@@ -587,7 +588,7 @@ export default function WalletPage() {
                 {selectedTransaction.type === 'topup' ? (
                   <>
                     <p className="text-3xl font-bold mt-4 text-green-600">
-                      +{(Math.round(selectedTransaction.amount * 1.21 * 100) / 100).toFixed(2)}€
+                      +{withVat(selectedTransaction.amount).toFixed(2)}€
                     </p>
                     <p className="text-gray-500 mt-1">{getTransactionTitle(selectedTransaction)}</p>
                   </>
@@ -621,11 +622,11 @@ export default function WalletPage() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">IVA (21%)</span>
-                      <span className="font-medium text-gray-900">{(Math.round(selectedTransaction.amount * 0.21 * 100) / 100).toFixed(2)}€</span>
+                      <span className="font-medium text-gray-900">{vatAmount(selectedTransaction.amount).toFixed(2)}€</span>
                     </div>
                     <div className="border-t border-gray-200 pt-2 flex justify-between text-sm">
                       <span className="font-medium text-gray-900">Total cobrado</span>
-                      <span className="font-bold text-gray-900">{(Math.round(selectedTransaction.amount * 1.21 * 100) / 100).toFixed(2)}€</span>
+                      <span className="font-bold text-gray-900">{withVat(selectedTransaction.amount).toFixed(2)}€</span>
                     </div>
                   </div>
                 )}

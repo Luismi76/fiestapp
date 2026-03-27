@@ -303,6 +303,18 @@ model Wallet {
   @@map("wallets")
 }
 
+// Idempotencia para webhooks de Stripe - evita procesar el mismo evento dos veces
+model StripeEvent {
+  id        String   @id @default(uuid())
+  eventId   String   @unique // ID del evento de Stripe (evt_xxx)
+  type      String   // Tipo de evento (checkout.session.completed, etc.)
+  processed Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+  @@map("stripe_events")
+}
+
 model Review {
   id              String     @id @default(uuid())
   experienceId    String

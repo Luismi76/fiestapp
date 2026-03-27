@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { walletApi } from '@/lib/api';
+import { vatAmount, withVat } from '@/lib/constants';
 import MainLayout from '@/components/MainLayout';
 
 function TopUpResultContent() {
@@ -89,6 +90,11 @@ function TopUpResultContent() {
             <p className="text-gray-500 mb-1">
               Se han añadido <span className="font-semibold text-green-600">{result?.amount?.toFixed(2)}€</span> a tu monedero.
             </p>
+            {result?.amount && (
+              <div className="text-xs text-gray-400 mb-1 space-y-0.5">
+                <p>Recarga: {result.amount.toFixed(2)}€ · IVA: {vatAmount(result.amount).toFixed(2)}€ · Total cobrado: {withVat(result.amount).toFixed(2)}€</p>
+              </div>
+            )}
             <p className="text-sm text-gray-400 mb-6">
               {result?.amount ? Math.floor(result.amount / 1.5) : 0} operaciones disponibles
             </p>

@@ -19,6 +19,7 @@ import { PricingService } from '../experiences/pricing.service';
 import { CancellationsService } from '../cancellations/cancellations.service';
 import { EmailService } from '../email/email.service';
 import { ConfigService } from '@nestjs/config';
+import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 import Stripe from 'stripe';
 
 // Helper para parsear fechas correctamente evitando problemas de zona horaria
@@ -50,6 +51,7 @@ export class MatchesService {
     private cancellationsService: CancellationsService,
     private emailService: EmailService,
     private configService: ConfigService,
+    private stripeIdempotency: StripeIdempotencyService,
   ) {}
 
   // Crear solicitud de match
@@ -998,6 +1000,11 @@ export class MatchesService {
 
     // Solo procesar eventos de experience_payment
     if (session.metadata?.type !== 'experience_payment') {
+      return;
+    }
+
+    // Idempotencia: evitar procesar el mismo evento dos veces
+    if (await this.stripeIdempotency.isAlreadyProcessed(event.id, event.type)) {
       return;
     }
 

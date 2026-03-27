@@ -9,6 +9,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { ExperiencesModule } from '../experiences/experiences.module';
 import { CancellationsModule } from '../cancellations/cancellations.module';
 import { EmailModule } from '../email/email.module';
+import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { EmailModule } from '../email/email.module';
     ConfigModule,
   ],
   controllers: [MatchesController],
-  providers: [MatchesService],
+  providers: [MatchesService, StripeIdempotencyService],
   exports: [MatchesService],
 })
 export class MatchesModule {}

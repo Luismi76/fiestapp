@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { walletApi } from '@/lib/api';
+import { vatAmount, withVat } from '@/lib/constants';
 import logger from '@/lib/logger';
 import { getErrorMessage } from '@/lib/error';
 
@@ -65,8 +66,8 @@ export default function TopUpModal({ amount, onClose }: TopUpModalProps) {
           <p className="text-gray-500 text-sm">{Math.floor(amount / 1.5)} operaciones</p>
           <div className="mt-2 text-xs text-gray-400 space-y-0.5">
             <p>Recarga: {amount.toFixed(2)}€</p>
-            <p>IVA (21%): {(Math.round(amount * 0.21 * 100) / 100).toFixed(2)}€</p>
-            <p className="font-medium text-gray-600">Total a pagar: {(Math.round((amount * 1.21) * 100) / 100).toFixed(2)}€</p>
+            <p>IVA (21%): {vatAmount(amount).toFixed(2)}€</p>
+            <p className="font-medium text-gray-600">Total a pagar: {withVat(amount).toFixed(2)}€</p>
           </div>
         </div>
 
