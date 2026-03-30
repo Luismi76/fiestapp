@@ -202,6 +202,7 @@ export class AdminController {
 
   @Get('reports/financial/export')
   async exportFinancialReport(
+    @Res() res: Response,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
@@ -209,7 +210,12 @@ export class AdminController {
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
     });
-    return { csv };
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=financial_report.csv',
+    );
+    res.send('\uFEFF' + csv);
   }
 
   @Get('reports/financial/wallets')
@@ -353,17 +359,25 @@ export class AdminController {
     @Query('endDate') endDate?: string,
     @Query('granularity') granularity?: string,
   ) {
-    return this.accountingService.getAccountingDashboard(startDate, endDate, granularity);
+    return this.accountingService.getAccountingDashboard(
+      startDate,
+      endDate,
+      granularity,
+    );
   }
 
   @Get('accounting/dac7')
   getDac7Report(@Query('year') year: string) {
-    return this.accountingService.getDac7Report(parseInt(year) || new Date().getFullYear());
+    return this.accountingService.getDac7Report(
+      parseInt(year) || new Date().getFullYear(),
+    );
   }
 
   @Get('accounting/modelo347')
   getModelo347Report(@Query('year') year: string) {
-    return this.accountingService.getModelo347Report(parseInt(year) || new Date().getFullYear());
+    return this.accountingService.getModelo347Report(
+      parseInt(year) || new Date().getFullYear(),
+    );
   }
 
   @Get('accounting/vat-summary')
@@ -378,24 +392,78 @@ export class AdminController {
   }
 
   @Get('accounting/export/dac7')
-  async exportDac7(
+  async exportDac7(@Query('year') year: string, @Res() res: Response) {
+    const csv = await this.accountingService.exportDac7Csv(
+      parseInt(year) || new Date().getFullYear(),
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=dac7_${year}.csv`,
+    );
+    res.send('\uFEFF' + csv);
+  }
+
+  @Get('accounting/export/vat-summary')
+  async exportVatSummary(
     @Query('year') year: string,
     @Res() res: Response,
+    @Query('quarter') quarter?: string,
   ) {
-    const csv = await this.accountingService.exportDac7Csv(parseInt(year) || new Date().getFullYear());
+    const q = quarter ? parseInt(quarter) : undefined;
+    const csv = await this.accountingService.exportVatSummaryCsv(
+      parseInt(year) || new Date().getFullYear(),
+      q && q >= 1 && q <= 4 ? q : undefined,
+    );
+    const filename = quarter
+      ? `vat_summary_${year}_Q${quarter}.csv`
+      : `vat_summary_${year}.csv`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename=dac7_${year}.csv`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=${filename}`,
+    );
     res.send('\uFEFF' + csv);
   }
 
   @Get('accounting/export/modelo347')
-  async exportModelo347(
-    @Query('year') year: string,
-    @Res() res: Response,
-  ) {
-    const csv = await this.accountingService.exportModelo347Csv(parseInt(year) || new Date().getFullYear());
+  async exportModelo347(@Query('year') year: string, @Res() res: Response) {
+    const csv = await this.accountingService.exportModelo347Csv(
+      parseInt(year) || new Date().getFullYear(),
+    );
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename=modelo347_${year}.csv`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=modelo347_${year}.csv`,
+    );
+    res.send('\uFEFF' + csv);
+  }
+
+  // ============================================
+  // Cuenta de Resultados (P&L)
+  // ============================================
+
+  @Get('accounting/pnl')
+  getProfitAndLoss(
+    @Query('year') year: string,
+    @Query('quarter') quarter?: string,
+  ) {
+    return this.accountingService.getProfitAndLoss(
+      parseInt(year) || new Date().getFullYear(),
+      quarter ? parseInt(quarter) : undefined,
+    );
+  }
+
+  @Get('accounting/export/pnl')
+  async exportPnl(@Query('year') year: string, @Res() res: Response) {
+    const csv = await this.accountingService.exportPnlCsv(
+      parseInt(year) || new Date().getFullYear(),
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=pnl_${year}.csv`,
+    );
     res.send('\uFEFF' + csv);
   }
 }

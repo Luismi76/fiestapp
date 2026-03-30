@@ -111,7 +111,9 @@ export class FinancialReportService {
     period: 'daily' | 'weekly' | 'monthly',
     filters?: FinancialReportFilters,
   ) {
-    const where: Prisma.TransactionWhereInput = { status: { in: ['completed', 'held', 'released'] } };
+    const where: Prisma.TransactionWhereInput = {
+      status: { in: ['completed', 'held', 'released'] },
+    };
 
     if (filters?.startDate || filters?.endDate) {
       where.createdAt = {};
@@ -205,22 +207,39 @@ export class FinancialReportService {
               participants: true,
               createdAt: true,
               experience: {
-                select: { id: true, title: true, city: true, cancellationPolicy: true },
+                select: {
+                  id: true,
+                  title: true,
+                  city: true,
+                  cancellationPolicy: true,
+                },
               },
               host: { select: { id: true, name: true, email: true } },
               requester: { select: { id: true, name: true, email: true } },
               cancellation: {
                 select: {
-                  id: true, reason: true, policy: true, originalAmount: true,
-                  refundPercentage: true, refundAmount: true, penaltyAmount: true,
-                  processedAt: true, createdAt: true, cancelledById: true,
+                  id: true,
+                  reason: true,
+                  policy: true,
+                  originalAmount: true,
+                  refundPercentage: true,
+                  refundAmount: true,
+                  penaltyAmount: true,
+                  processedAt: true,
+                  createdAt: true,
+                  cancelledById: true,
                 },
               },
               disputes: {
                 select: {
-                  id: true, reason: true, status: true, resolution: true,
-                  refundAmount: true, refundPercentage: true,
-                  resolvedAt: true, createdAt: true,
+                  id: true,
+                  reason: true,
+                  status: true,
+                  resolution: true,
+                  refundAmount: true,
+                  refundPercentage: true,
+                  resolvedAt: true,
+                  createdAt: true,
                 },
                 orderBy: { createdAt: 'desc' as const },
                 take: 1,
@@ -369,22 +388,39 @@ export class FinancialReportService {
           createdAt: true,
           updatedAt: true,
           experience: {
-            select: { id: true, title: true, city: true, cancellationPolicy: true },
+            select: {
+              id: true,
+              title: true,
+              city: true,
+              cancellationPolicy: true,
+            },
           },
           host: { select: { id: true, name: true, email: true } },
           requester: { select: { id: true, name: true, email: true } },
           cancellation: {
             select: {
-              id: true, reason: true, policy: true, originalAmount: true,
-              refundPercentage: true, refundAmount: true, penaltyAmount: true,
-              processedAt: true, createdAt: true, cancelledById: true,
+              id: true,
+              reason: true,
+              policy: true,
+              originalAmount: true,
+              refundPercentage: true,
+              refundAmount: true,
+              penaltyAmount: true,
+              processedAt: true,
+              createdAt: true,
+              cancelledById: true,
             },
           },
           disputes: {
             select: {
-              id: true, reason: true, status: true, resolution: true,
-              refundAmount: true, refundPercentage: true,
-              resolvedAt: true, createdAt: true,
+              id: true,
+              reason: true,
+              status: true,
+              resolution: true,
+              refundAmount: true,
+              refundPercentage: true,
+              resolvedAt: true,
+              createdAt: true,
               openedBy: { select: { id: true, name: true } },
             },
             orderBy: { createdAt: 'asc' },
@@ -401,17 +437,31 @@ export class FinancialReportService {
     }
 
     if (match?.cancellation) {
-      events.push({ type: 'cancellation', date: match.cancellation.createdAt, data: match.cancellation });
+      events.push({
+        type: 'cancellation',
+        date: match.cancellation.createdAt,
+        data: match.cancellation,
+      });
     }
 
     for (const dispute of match?.disputes || []) {
-      events.push({ type: 'dispute_opened', date: dispute.createdAt, data: dispute });
+      events.push({
+        type: 'dispute_opened',
+        date: dispute.createdAt,
+        data: dispute,
+      });
       if (dispute.resolvedAt) {
-        events.push({ type: 'dispute_resolved', date: dispute.resolvedAt, data: dispute });
+        events.push({
+          type: 'dispute_resolved',
+          date: dispute.resolvedAt,
+          data: dispute,
+        });
       }
     }
 
-    events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    events.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
 
     return { match, events };
   }
@@ -421,7 +471,7 @@ export class FinancialReportService {
    */
   async getCommissionMetrics(filters?: FinancialReportFilters) {
     const where: Prisma.TransactionWhereInput = {
-      type: 'commission',
+      type: 'platform_fee',
       status: { in: ['completed', 'held', 'released'] },
     };
 
@@ -442,7 +492,11 @@ export class FinancialReportService {
 
     // Pagos totales para calcular porcentaje de comision
     const payments = await this.prisma.transaction.aggregate({
-      where: { ...where, type: 'payment' },
+      where: {
+        type: 'experience_payment',
+        status: { in: ['completed', 'held', 'released'] },
+        ...(where.createdAt ? { createdAt: where.createdAt } : {}),
+      },
       _sum: { amount: true },
     });
 

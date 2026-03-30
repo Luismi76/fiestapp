@@ -81,6 +81,29 @@ export interface VatSummary {
   vatRate: number;
 }
 
+export interface ProfitAndLossQuarter {
+  quarter: number;
+  label: string;
+  platformFees: number;
+  vatCollected: number;
+  totalRefunds: number;
+  grossRevenue: number;
+  netProfit: number;
+}
+
+export interface ProfitAndLoss {
+  year: number;
+  quarter?: number;
+  summary: {
+    totalPlatformFees: number;
+    totalVatCollected: number;
+    totalRefunds: number;
+    grossRevenue: number;
+    netProfit: number;
+  };
+  quarters: ProfitAndLossQuarter[];
+}
+
 // ============================================
 // Service
 // ============================================
@@ -110,22 +133,41 @@ export class AccountingService {
     const [current, previous, revenueChart] = await Promise.all([
       this.computePeriodMetrics(start, end),
       this.computePeriodMetrics(prevStart, prevEnd),
-      this.computeRevenueChart(start, end, granularity as 'daily' | 'weekly' | 'monthly'),
+      this.computeRevenueChart(
+        start,
+        end,
+        granularity as 'daily' | 'weekly' | 'monthly',
+      ),
     ]);
 
     return {
       kpis: {
         platformFees: current.totalCommissions,
-        platformFeesChange: this.pctChange(previous.totalCommissions, current.totalCommissions),
+        platformFeesChange: this.pctChange(
+          previous.totalCommissions,
+          current.totalCommissions,
+        ),
         walletTopups: current.totalTopups,
-        walletTopupsChange: this.pctChange(previous.totalTopups, current.totalTopups),
+        walletTopupsChange: this.pctChange(
+          previous.totalTopups,
+          current.totalTopups,
+        ),
         experiencePayments: current.totalExperiencePayments,
-        experiencePaymentsChange: this.pctChange(previous.totalExperiencePayments, current.totalExperiencePayments),
+        experiencePaymentsChange: this.pctChange(
+          previous.totalExperiencePayments,
+          current.totalExperiencePayments,
+        ),
         refunds: current.totalRefunds,
-        refundsChange: this.pctChange(previous.totalRefunds, current.totalRefunds),
+        refundsChange: this.pctChange(
+          previous.totalRefunds,
+          current.totalRefunds,
+        ),
         totalWalletBalance: current.totalWalletBalance,
         operationsCount: current.transactionCount,
-        operationsCountChange: this.pctChange(previous.transactionCount, current.transactionCount),
+        operationsCountChange: this.pctChange(
+          previous.transactionCount,
+          current.transactionCount,
+        ),
       },
       revenueChart,
     };
@@ -135,17 +177,22 @@ export class AccountingService {
     start: Date,
     end: Date,
     granularity: 'daily' | 'weekly' | 'monthly',
-  ): Promise<Array<{ period: string; revenue: number }>> {
+  ): Promise<
+    Array<{ period: string; revenue: number; breakdown: Record<string, number> }>
+  > {
     const transactions = await this.prisma.transaction.findMany({
       where: {
         status: { in: ['completed', 'held', 'released'] },
         createdAt: { gte: start, lt: end },
       },
-      select: { amount: true, createdAt: true },
+      select: { amount: true, createdAt: true, type: true },
       orderBy: { createdAt: 'asc' },
     });
 
-    const grouped = new Map<string, number>();
+    const grouped = new Map<
+      string,
+      { total: number; byType: Record<string, number> }
+    >();
     for (const t of transactions) {
       const date = new Date(t.createdAt);
       let key: string;
@@ -158,11 +205,24 @@ export class AccountingService {
       } else {
         key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       }
-      grouped.set(key, (grouped.get(key) || 0) + Math.abs(t.amount));
+      const entry = grouped.get(key) || { total: 0, byType: {} };
+      const abs = Math.abs(t.amount);
+      entry.total += abs;
+      entry.byType[t.type] = (entry.byType[t.type] || 0) + abs;
+      grouped.set(key, entry);
     }
 
     return Array.from(grouped.entries())
-      .map(([period, revenue]) => ({ period, revenue: Math.round(revenue * 100) / 100 }))
+      .map(([period, data]) => ({
+        period,
+        revenue: Math.round(data.total * 100) / 100,
+        breakdown: Object.fromEntries(
+          Object.entries(data.byType).map(([k, v]) => [
+            k,
+            Math.round(v * 100) / 100,
+          ]),
+        ),
+      }))
       .sort((a, b) => a.period.localeCompare(b.period));
   }
 
@@ -256,7 +316,9 @@ export class AccountingService {
 
   private pctChange(previous: number, current: number): number {
     if (previous === 0) return current > 0 ? 100 : 0;
-    return Math.round(((current - previous) / Math.abs(previous)) * 10000) / 100;
+    return (
+      Math.round(((current - previous) / Math.abs(previous)) * 10000) / 100
+    );
   }
 
   // ============================================
@@ -549,8 +611,198 @@ export class AccountingService {
   }
 
   // ============================================
+  // Profit & Loss (Cuenta de Resultados)
+  // ============================================
+
+  async getProfitAndLoss(
+    year: number,
+    quarter?: number,
+  ): Promise<ProfitAndLoss> {
+    const vatRate = 0.21;
+
+    const quarterBoundaries = [
+      {
+        quarter: 1,
+        label: 'Q1 (Ene-Mar)',
+        start: new Date(year, 0, 1),
+        end: new Date(year, 3, 1),
+      },
+      {
+        quarter: 2,
+        label: 'Q2 (Abr-Jun)',
+        start: new Date(year, 3, 1),
+        end: new Date(year, 6, 1),
+      },
+      {
+        quarter: 3,
+        label: 'Q3 (Jul-Sep)',
+        start: new Date(year, 6, 1),
+        end: new Date(year, 9, 1),
+      },
+      {
+        quarter: 4,
+        label: 'Q4 (Oct-Dic)',
+        start: new Date(year, 9, 1),
+        end: new Date(year + 1, 0, 1),
+      },
+    ];
+
+    const boundaries =
+      quarter && quarter >= 1 && quarter <= 4
+        ? quarterBoundaries.filter((q) => q.quarter === quarter)
+        : quarterBoundaries;
+
+    const statusFilter = { in: ['completed', 'held', 'released'] };
+
+    const quarters: ProfitAndLossQuarter[] = await Promise.all(
+      boundaries.map(async (qb) => {
+        const dateFilter = { gte: qb.start, lt: qb.end };
+
+        const [fees, topups, refunds] = await Promise.all([
+          this.prisma.transaction.aggregate({
+            where: {
+              type: 'platform_fee',
+              status: statusFilter,
+              createdAt: dateFilter,
+            },
+            _sum: { amount: true },
+          }),
+          this.prisma.transaction.aggregate({
+            where: {
+              type: 'topup',
+              status: statusFilter,
+              createdAt: dateFilter,
+            },
+            _sum: { amount: true },
+          }),
+          this.prisma.transaction.aggregate({
+            where: {
+              type: 'refund',
+              status: statusFilter,
+              createdAt: dateFilter,
+            },
+            _sum: { amount: true },
+          }),
+        ]);
+
+        const platformFees = Math.abs(fees._sum?.amount || 0);
+        const topupGross = topups._sum?.amount || 0;
+        const vatCollected =
+          Math.round((topupGross - topupGross / (1 + vatRate)) * 100) / 100;
+        const totalRefunds = Math.abs(refunds._sum?.amount || 0);
+        const grossRevenue =
+          Math.round((platformFees + vatCollected) * 100) / 100;
+        const netProfit =
+          Math.round((platformFees - totalRefunds) * 100) / 100;
+
+        return {
+          quarter: qb.quarter,
+          label: qb.label,
+          platformFees,
+          vatCollected,
+          totalRefunds,
+          grossRevenue,
+          netProfit,
+        };
+      }),
+    );
+
+    const summary = quarters.reduce(
+      (acc, q) => ({
+        totalPlatformFees:
+          Math.round((acc.totalPlatformFees + q.platformFees) * 100) / 100,
+        totalVatCollected:
+          Math.round((acc.totalVatCollected + q.vatCollected) * 100) / 100,
+        totalRefunds:
+          Math.round((acc.totalRefunds + q.totalRefunds) * 100) / 100,
+        grossRevenue:
+          Math.round((acc.grossRevenue + q.grossRevenue) * 100) / 100,
+        netProfit: Math.round((acc.netProfit + q.netProfit) * 100) / 100,
+      }),
+      {
+        totalPlatformFees: 0,
+        totalVatCollected: 0,
+        totalRefunds: 0,
+        grossRevenue: 0,
+        netProfit: 0,
+      },
+    );
+
+    return { year, quarter, summary, quarters };
+  }
+
+  async exportPnlCsv(year: number): Promise<string> {
+    const pnl = await this.getProfitAndLoss(year);
+
+    const headers = [
+      'Trimestre',
+      'Comisiones',
+      'IVA Recaudado',
+      'Reembolsos',
+      'Ingreso Bruto',
+      'Beneficio Neto',
+    ];
+    const rows = pnl.quarters.map((q) => [
+      q.label,
+      q.platformFees.toFixed(2),
+      q.vatCollected.toFixed(2),
+      q.totalRefunds.toFixed(2),
+      q.grossRevenue.toFixed(2),
+      q.netProfit.toFixed(2),
+    ]);
+    rows.push([
+      'TOTAL',
+      pnl.summary.totalPlatformFees.toFixed(2),
+      pnl.summary.totalVatCollected.toFixed(2),
+      pnl.summary.totalRefunds.toFixed(2),
+      pnl.summary.grossRevenue.toFixed(2),
+      pnl.summary.netProfit.toFixed(2),
+    ]);
+
+    return this.buildCsv(headers, rows);
+  }
+
+  // ============================================
   // CSV Exports
   // ============================================
+
+  async exportVatSummaryCsv(
+    year: number,
+    quarter?: number,
+  ): Promise<string> {
+    const data = await this.getVatSummary(year, quarter);
+    const typeLabels: Record<string, string> = {
+      platform_fee: 'Comisiones plataforma',
+      topup: 'Recargas wallet',
+      experience_payment: 'Pagos experiencias',
+      payment: 'Pagos (escrow)',
+      refund: 'Reembolsos',
+    };
+
+    const headers = [
+      'Concepto',
+      'N. Operaciones',
+      'Importe Bruto',
+      'Base Imponible',
+      'IVA (21%)',
+    ];
+    const rows = data.lines.map((line) => [
+      typeLabels[line.type] || line.type,
+      line.count.toString(),
+      line.grossAmount.toFixed(2),
+      line.netAmount.toFixed(2),
+      line.vatAmount.toFixed(2),
+    ]);
+    rows.push([
+      'TOTAL',
+      data.totals.count.toString(),
+      data.totals.grossAmount.toFixed(2),
+      data.totals.netAmount.toFixed(2),
+      data.totals.vatAmount.toFixed(2),
+    ]);
+
+    return this.buildCsv(headers, rows);
+  }
 
   async exportDac7Csv(year: number): Promise<string> {
     const report = await this.getDac7Report(year);
@@ -583,15 +835,7 @@ export class AccountingService {
   async exportModelo347Csv(year: number): Promise<string> {
     const entries = await this.getModelo347Report(year);
 
-    const headers = [
-      'NIF',
-      'Nombre',
-      'Total Anual',
-      'Q1',
-      'Q2',
-      'Q3',
-      'Q4',
-    ];
+    const headers = ['NIF', 'Nombre', 'Total Anual', 'Q1', 'Q2', 'Q3', 'Q4'];
 
     const rows = entries.map((entry) => [
       entry.taxId || '',
@@ -608,9 +852,7 @@ export class AccountingService {
 
   private buildCsv(headers: string[], rows: string[][]): string {
     const escapedRows = rows.map((row) =>
-      row
-        .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
-        .join(','),
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','),
     );
 
     return [headers.join(','), ...escapedRows].join('\n');

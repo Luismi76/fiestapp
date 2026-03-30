@@ -28,6 +28,15 @@ interface DashboardKpi {
 interface RevenueDataPoint {
   period: string;
   revenue: number;
+  breakdown?: Record<string, number>;
+}
+
+interface WalletStats {
+  totalBalance: number;
+  avgBalance: number;
+  totalWallets: number;
+  walletsWithBalance: number;
+  maxBalance: number;
 }
 
 interface DashboardData {
@@ -298,7 +307,7 @@ const accountingApi = {
     return { entries };
   },
 
-  getVatSummary: async (year: number, quarter: string): Promise<VatSummaryResponse> => {
+  getVatSummary: async (year: number, quarter: number): Promise<VatSummaryResponse> => {
     const { data } = await api.get(`/admin/accounting/vat-summary?year=${year}&quarter=${quarter}`);
     const typeLabels: Record<string, string> = {
       platform_fee: 'Comisiones plataforma',
@@ -416,6 +425,13 @@ function KpiCard({
   );
 }
 
+const BREAKDOWN_COLORS: Record<string, { color: string; label: string }> = {
+  platform_fee: { color: '#8B5CF6', label: 'Comisiones' },
+  topup: { color: '#3B82F6', label: 'Recargas' },
+  experience_payment: { color: '#10B981', label: 'Pagos exp.' },
+  refund: { color: '#F59E0B', label: 'Reembolsos' },
+};
+
 function RevenueBarChart({
   data,
   granularity,
@@ -435,6 +451,15 @@ function RevenueBarChart({
   }
 
   const maxValue = Math.max(...data.map((d) => d.revenue), 1);
+  const hasBreakdown = data.some((d) => d.breakdown && Object.keys(d.breakdown).length > 0);
+
+  // Collect all types present in data for the legend
+  const typesPresent = new Set<string>();
+  if (hasBreakdown) {
+    data.forEach((d) => {
+      if (d.breakdown) Object.keys(d.breakdown).forEach((t) => typesPresent.add(t));
+    });
+  }
 
   const formatLabel = (period: string) => {
     if (granularity === 'daily') {
@@ -444,29 +469,63 @@ function RevenueBarChart({
     if (granularity === 'weekly') {
       return `S${period.split('-W')[1] || period.slice(-2)}`;
     }
-    // monthly
     const parts = period.split('-');
     return parts[1] || period;
   };
 
+  // Ordered types for stacking (bottom to top)
+  const stackOrder = ['platform_fee', 'topup', 'experience_payment', 'refund'];
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
-      <h3 className="font-semibold text-gray-900 mb-4 text-sm md:text-base">Ingresos por periodo</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-gray-900 text-sm md:text-base">Ingresos por periodo</h3>
+        {hasBreakdown && (
+          <div className="flex flex-wrap gap-x-3 gap-y-1">
+            {stackOrder.filter((t) => typesPresent.has(t)).map((type) => {
+              const info = BREAKDOWN_COLORS[type];
+              return (
+                <div key={type} className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ backgroundColor: info?.color || '#9CA3AF' }} />
+                  <span className="text-[10px] text-gray-500">{info?.label || type}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
       <div className="flex items-end gap-0.5 md:gap-1 h-40">
         {data.map((item, index) => {
-          const height = (item.revenue / maxValue) * 100;
+          const totalHeight = (item.revenue / maxValue) * 100;
+          const segments = hasBreakdown && item.breakdown
+            ? stackOrder
+                .filter((t) => (item.breakdown?.[t] || 0) > 0)
+                .map((type) => ({
+                  type,
+                  value: item.breakdown![type],
+                  height: item.revenue > 0 ? ((item.breakdown![type] / item.revenue) * totalHeight) : 0,
+                  color: BREAKDOWN_COLORS[type]?.color || '#9CA3AF',
+                }))
+            : [{ type: 'total', value: item.revenue, height: totalHeight, color: '#8B5CF6' }];
+
           return (
             <div key={index} className="flex-1 flex flex-col items-center min-w-0">
               <div
-                className="w-full rounded-t transition-all duration-300 hover:opacity-80"
-                style={{
-                  height: `${height}%`,
-                  backgroundColor: '#8B5CF6',
-                  minHeight: item.revenue > 0 ? '4px' : '0',
-                  minWidth: '6px',
-                }}
+                className="w-full flex flex-col-reverse rounded-t overflow-hidden transition-all duration-300 hover:opacity-80"
+                style={{ height: `${totalHeight}%`, minHeight: item.revenue > 0 ? '4px' : '0', minWidth: '6px' }}
                 title={`${item.period}: ${formatEur(item.revenue)}`}
-              />
+              >
+                {segments.map((seg, si) => (
+                  <div
+                    key={si}
+                    style={{
+                      backgroundColor: seg.color,
+                      flex: `${seg.height} 0 0%`,
+                      minHeight: seg.value > 0 ? '2px' : '0',
+                    }}
+                  />
+                ))}
+              </div>
               <span className="text-[8px] md:text-[9px] text-gray-400 mt-1 truncate w-full text-center">
                 {formatLabel(item.period)}
               </span>
@@ -487,6 +546,7 @@ function ResumenTab() {
   const [endDate, setEndDate] = useState('');
   const [granularity, setGranularity] = useState('monthly');
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -494,8 +554,12 @@ function ResumenTab() {
     setLoading(true);
     setError('');
     try {
-      const data = await accountingApi.getDashboard(startDate || undefined, endDate || undefined, granularity);
+      const [data, walletData] = await Promise.all([
+        accountingApi.getDashboard(startDate || undefined, endDate || undefined, granularity),
+        api.get('/admin/reports/financial/wallets').then((r) => r.data).catch(() => null),
+      ]);
       setDashboardData(data);
+      setWalletStats(walletData);
     } catch {
       setError('Error al cargar el resumen contable');
     } finally {
@@ -561,7 +625,7 @@ function ResumenTab() {
           <div className="w-2 h-2 bg-green-500 rounded-full" />
           <h3 className="text-sm font-semibold text-gray-900">Ingresos de la plataforma</h3>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <KpiCard
             label="Comisiones"
             value={formatEur(kpis.platformFees)}
@@ -589,6 +653,15 @@ function ResumenTab() {
             icon={
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5 text-red-500">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+              </svg>
+            }
+          />
+          <KpiCard
+            label="Beneficio neto"
+            value={formatEur(kpis.platformFees - kpis.refunds)}
+            icon={
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`w-4 h-4 md:w-5 md:h-5 ${kpis.platformFees - kpis.refunds >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" />
               </svg>
             }
           />
@@ -633,6 +706,22 @@ function ResumenTab() {
             }
           />
         </div>
+        {walletStats && (
+          <div className="grid grid-cols-3 gap-3 md:gap-4">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4 text-center">
+              <div className="text-lg md:text-xl font-bold text-gray-900">{walletStats.walletsWithBalance}<span className="text-sm font-normal text-gray-400">/{walletStats.totalWallets}</span></div>
+              <div className="text-[10px] md:text-xs text-gray-500 mt-0.5">Wallets activos</div>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4 text-center">
+              <div className="text-lg md:text-xl font-bold text-gray-900">{formatEur(walletStats.avgBalance)}</div>
+              <div className="text-[10px] md:text-xs text-gray-500 mt-0.5">Saldo medio</div>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4 text-center">
+              <div className="text-lg md:text-xl font-bold text-gray-900">{formatEur(walletStats.maxBalance)}</div>
+              <div className="text-[10px] md:text-xs text-gray-500 mt-0.5">Saldo maximo</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Chart + period selector */}
@@ -1505,7 +1594,7 @@ function Dac7Tab() {
 
 function ObligacionesFiscalesTab() {
   const currentYear = new Date().getFullYear();
-  const currentQ = `Q${Math.ceil((new Date().getMonth() + 1) / 3)}`;
+  const currentQ = Math.ceil((new Date().getMonth() + 1) / 3);
   const [year, setYear] = useState(currentYear);
   const [quarter, setQuarter] = useState(currentQ);
   const [subTab, setSubTab] = useState<'iva' | '347'>('iva');
@@ -1556,7 +1645,7 @@ function ObligacionesFiscalesTab() {
     window.open(`${baseUrl}/admin/accounting/export/modelo347?year=${year}`, '_blank');
   };
 
-  const quarterLabel = { Q1: 'Ene - Mar', Q2: 'Abr - Jun', Q3: 'Jul - Sep', Q4: 'Oct - Dic' }[quarter] || '';
+  const quarterLabel = { 1: 'Ene - Mar', 2: 'Abr - Jun', 3: 'Jul - Sep', 4: 'Oct - Dic' }[quarter] || '';
 
   return (
     <div className="space-y-4">
@@ -1589,7 +1678,7 @@ function ObligacionesFiscalesTab() {
         <div className="space-y-4">
           {/* Filtros: año + trimestre */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4">
-            <div className="flex gap-3">
+            <div className="flex flex-wrap items-end gap-3">
               <div className="flex-1 sm:flex-none">
                 <label className="block text-xs text-gray-500 mb-1">Ejercicio</label>
                 <select
@@ -1606,21 +1695,33 @@ function ObligacionesFiscalesTab() {
                 <label className="block text-xs text-gray-500 mb-1">Trimestre</label>
                 <select
                   value={quarter}
-                  onChange={(e) => setQuarter(e.target.value)}
+                  onChange={(e) => setQuarter(Number(e.target.value))}
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium min-h-[44px]"
                 >
-                  <option value="Q1">Q1 (Ene - Mar)</option>
-                  <option value="Q2">Q2 (Abr - Jun)</option>
-                  <option value="Q3">Q3 (Jul - Sep)</option>
-                  <option value="Q4">Q4 (Oct - Dic)</option>
+                  <option value={1}>Q1 (Ene - Mar)</option>
+                  <option value={2}>Q2 (Abr - Jun)</option>
+                  <option value={3}>Q3 (Jul - Sep)</option>
+                  <option value={4}>Q4 (Oct - Dic)</option>
                 </select>
               </div>
+              <button
+                onClick={() => {
+                  const baseUrl = api.defaults.baseURL || '';
+                  window.open(`${baseUrl}/admin/accounting/export/vat-summary?year=${year}&quarter=${quarter}`, '_blank');
+                }}
+                className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary text-white rounded-lg text-xs font-medium hover:bg-secondary/90 transition-colors min-h-[44px]"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Exportar CSV
+              </button>
             </div>
           </div>
 
           {/* Header */}
           <div>
-            <h3 className="font-semibold text-gray-900 text-base">Resumen IVA &middot; {quarter} {year}</h3>
+            <h3 className="font-semibold text-gray-900 text-base">Resumen IVA &middot; Q{quarter} {year}</h3>
             <p className="text-xs text-gray-500 mt-0.5">
               Desglose de operaciones e IVA al 21% &middot; {quarterLabel} {year}
             </p>
@@ -1723,7 +1824,7 @@ function ObligacionesFiscalesTab() {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-gray-300 mx-auto mb-3">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
               </svg>
-              <p className="text-gray-500 text-sm">Sin operaciones en {quarter} {year}</p>
+              <p className="text-gray-500 text-sm">Sin operaciones en Q{quarter} {year}</p>
             </div>
           )}
         </div>
@@ -1904,14 +2005,228 @@ function Modelo347Card({ entry }: { entry: Modelo347Entry }) {
 }
 
 // ============================================
+// TAB: CUENTA DE RESULTADOS (P&L)
+// ============================================
+
+interface PnlQuarter {
+  quarter: number;
+  label: string;
+  platformFees: number;
+  vatCollected: number;
+  totalRefunds: number;
+  grossRevenue: number;
+  netProfit: number;
+}
+
+interface PnlData {
+  year: number;
+  summary: {
+    totalPlatformFees: number;
+    totalVatCollected: number;
+    totalRefunds: number;
+    grossRevenue: number;
+    netProfit: number;
+  };
+  quarters: PnlQuarter[];
+}
+
+function CuentaResultadosTab() {
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
+  const [data, setData] = useState<PnlData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchPnl = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const { data: result } = await api.get(`/admin/accounting/pnl?year=${year}`);
+      setData(result);
+    } catch {
+      setError('Error al cargar la cuenta de resultados');
+    } finally {
+      setLoading(false);
+    }
+  }, [year]);
+
+  useEffect(() => {
+    fetchPnl();
+  }, [fetchPnl]);
+
+  const handleExport = () => {
+    const baseUrl = api.defaults.baseURL || '';
+    window.open(`${baseUrl}/admin/accounting/export/pnl?year=${year}`, '_blank');
+  };
+
+  if (loading) return <LoadingSpinner text="Cargando cuenta de resultados..." />;
+  if (error) return <ErrorCard message={error} onRetry={fetchPnl} />;
+  if (!data) return null;
+
+  const s = data.summary;
+  const quarters = data.quarters || [];
+
+  return (
+    <div className="space-y-4">
+      {/* Year selector + export */}
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+        <div className="flex-1">
+          <label className="block text-xs text-gray-500 mb-1">Ejercicio fiscal</label>
+          <select
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="w-full sm:w-auto px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium min-h-[44px]"
+          >
+            {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={handleExport}
+          className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 bg-secondary text-white rounded-lg text-sm font-medium hover:bg-secondary/90 transition-colors min-h-[44px]"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+          Exportar CSV
+        </button>
+      </div>
+
+      {/* Summary KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Comisiones</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900">{formatEur(s.totalPlatformFees)}</div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">IVA recaudado</div>
+          <div className="text-xl md:text-2xl font-bold text-blue-600">{formatEur(s.totalVatCollected)}</div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Reembolsos</div>
+          <div className="text-xl md:text-2xl font-bold text-red-500">{formatEur(s.totalRefunds)}</div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Ingreso bruto</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900">{formatEur(s.grossRevenue)}</div>
+        </div>
+        <div className={`col-span-2 lg:col-span-1 rounded-2xl shadow-sm border-2 p-3 md:p-5 ${s.netProfit >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Beneficio neto</div>
+          <div className={`text-xl md:text-2xl font-bold ${s.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {formatEur(s.netProfit)}
+          </div>
+        </div>
+      </div>
+
+      {/* Quarterly breakdown */}
+      {quarters.length > 0 && (
+        <>
+          <div>
+            <h3 className="font-semibold text-gray-900 text-base">Desglose trimestral &middot; {year}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Comisiones - Reembolsos = Beneficio neto</p>
+          </div>
+
+          {/* MOBILE: Cards */}
+          <div className="md:hidden space-y-3">
+            {quarters.map((q) => (
+              <div key={q.quarter} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-semibold text-gray-900 text-sm">{q.label}</span>
+                  <span className={`text-sm font-bold ${q.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatEur(q.netProfit)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-gray-50 rounded-lg p-2">
+                    <div className="text-[10px] text-gray-400">Comisiones</div>
+                    <div className="text-xs font-semibold text-gray-900">{formatEur(q.platformFees)}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-2">
+                    <div className="text-[10px] text-gray-400">IVA</div>
+                    <div className="text-xs font-semibold text-blue-600">{formatEur(q.vatCollected)}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-2">
+                    <div className="text-[10px] text-gray-400">Reembolsos</div>
+                    <div className="text-xs font-semibold text-red-500">{formatEur(q.totalRefunds)}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-2">
+                    <div className="text-[10px] text-gray-400">Ingreso bruto</div>
+                    <div className="text-xs font-semibold text-gray-900">{formatEur(q.grossRevenue)}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP: Table */}
+          <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">Trimestre</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Comisiones</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">IVA recaudado</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Reembolsos</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Ingreso bruto</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Beneficio neto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quarters.map((q) => (
+                  <tr key={q.quarter} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-gray-900">{q.label}</td>
+                    <td className="px-4 py-3 text-right text-gray-600">{formatEur(q.platformFees)}</td>
+                    <td className="px-4 py-3 text-right text-blue-600">{formatEur(q.vatCollected)}</td>
+                    <td className="px-4 py-3 text-right text-red-500">{formatEur(q.totalRefunds)}</td>
+                    <td className="px-4 py-3 text-right text-gray-600">{formatEur(q.grossRevenue)}</td>
+                    <td className={`px-4 py-3 text-right font-semibold ${q.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatEur(q.netProfit)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-50 border-t-2 border-gray-200">
+                  <td className="px-4 py-3 font-bold text-gray-900">TOTAL {year}</td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(s.totalPlatformFees)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-blue-600">{formatEur(s.totalVatCollected)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-red-500">{formatEur(s.totalRefunds)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(s.grossRevenue)}</td>
+                  <td className={`px-4 py-3 text-right font-bold ${s.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatEur(s.netProfit)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </>
+      )}
+
+      {quarters.length === 0 && (
+        <EmptyState
+          icon={
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+            </svg>
+          }
+          message={`No hay datos para el ejercicio ${year}`}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================
 // TAB DEFINITIONS
 // ============================================
 
-type TabKey = 'resumen' | 'transacciones' | 'dac7' | 'fiscal';
+type TabKey = 'resumen' | 'transacciones' | 'pnl' | 'dac7' | 'fiscal';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'resumen', label: 'Resumen' },
   { key: 'transacciones', label: 'Transacciones' },
+  { key: 'pnl', label: 'Cuenta Resultados' },
   { key: 'dac7', label: 'DAC7' },
   { key: 'fiscal', label: 'Obligaciones' },
 ];
@@ -1987,6 +2302,7 @@ function FinanzasPageInner() {
       <div className="px-3 md:px-4 pb-8">
         {activeTab === 'resumen' && <ResumenTab />}
         {activeTab === 'transacciones' && <TransaccionesTab />}
+        {activeTab === 'pnl' && <CuentaResultadosTab />}
         {activeTab === 'dac7' && <Dac7Tab />}
         {activeTab === 'fiscal' && <ObligacionesFiscalesTab />}
       </div>
