@@ -174,7 +174,7 @@ const getMarkerColor = (type: string | undefined | null): string => {
 
 // Dynamically import Leaflet components (client-side only)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let MapContainer: React.ComponentType<any>, TileLayer: React.ComponentType<any>, Marker: React.ComponentType<any>, Popup: React.ComponentType<any>;
+let MapContainer: React.ComponentType<any>, TileLayer: React.ComponentType<any>, Marker: React.ComponentType<any>, Popup: React.ComponentType<any>, ZoomControl: React.ComponentType<any>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let L: any;
 let leafletReady = false;
@@ -234,6 +234,7 @@ function ExperienceMap({
       TileLayer = reactLeaflet.TileLayer;
       Marker = reactLeaflet.Marker;
       Popup = reactLeaflet.Popup;
+      ZoomControl = reactLeaflet.ZoomControl;
       leafletReady = true;
       setReady(true);
     });
@@ -336,8 +337,9 @@ function ExperienceMap({
           zoom={6}
           style={{ height: '100%', width: '100%' }}
           scrollWheelZoom={true}
-          zoomControl={true}
+          zoomControl={false}
         >
+          <ZoomControl position="bottomright" />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
