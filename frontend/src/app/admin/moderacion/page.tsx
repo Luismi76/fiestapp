@@ -595,9 +595,9 @@ const TYPE_LABELS: Record<string, string> = {
 const ACTIONS: Record<string, { label: string; color: string; description: string }> = {
   none: { label: 'Sin accion', color: 'bg-gray-100 text-gray-700', description: 'Solo marcar como resuelto' },
   warning: { label: 'Advertencia', color: 'bg-accent/10 text-accent-dark', description: 'Enviar advertencia al usuario' },
-  strike: { label: 'Strike', color: 'bg-terracotta/10 text-terracotta', description: 'Anadir un strike (3 = ban)' },
-  ban: { label: 'Baneo', color: 'bg-primary/10 text-primary', description: 'Banear usuario inmediatamente' },
-  remove_content: { label: 'Eliminar', color: 'bg-secondary/10 text-secondary', description: 'Eliminar contenido reportado' },
+  strike: { label: 'Falta', color: 'bg-terracotta/10 text-terracotta', description: 'Anadir una falta (3 = bloqueo)' },
+  ban: { label: 'Bloqueo', color: 'bg-primary/10 text-primary', description: 'Bloquear usuario inmediatamente' },
+  remove_content: { label: 'Eliminar', color: 'bg-secondary/10 text-secondary', description: 'Eliminar contenido denunciado' },
 };
 
 // Extended Report type with priority
@@ -662,7 +662,7 @@ function ReportesContent() {
       if (error.response?.status === 403) {
         setError('No tienes permisos de administrador');
       } else {
-        setError('Error al cargar reportes');
+        setError('Error al cargar denuncias');
       }
     } finally {
       setLoading(false);
@@ -693,8 +693,8 @@ function ReportesContent() {
     }
 
     const confirmMsg = action === 'resolve'
-      ? 'Marcar reporte como resuelto sin accion?'
-      : 'Desestimar este reporte?';
+      ? 'Marcar denuncia como resuelta sin accion?'
+      : 'Desestimar esta denuncia?';
 
     if (!confirm(confirmMsg)) return;
 
@@ -707,7 +707,7 @@ function ReportesContent() {
       });
       fetchReports();
     } catch {
-      alert('Error al actualizar reporte');
+      alert('Error al actualizar denuncia');
     } finally {
       setActionLoading(null);
     }
@@ -727,7 +727,7 @@ function ReportesContent() {
       setResolution({ status: 'resolved', action: 'none', adminNotes: '' });
       fetchReports();
     } catch {
-      alert('Error al resolver reporte');
+      alert('Error al resolver denuncia');
     } finally {
       setActionLoading(null);
     }
@@ -771,7 +771,7 @@ function ReportesContent() {
           <div className="font-medium text-gray-900">{entity.title || 'Experiencia'}</div>
           <div className="text-xs text-gray-400">
             {entity.city && `${entity.city} - `}
-            {entity.host && `Host: ${entity.host.name}`}
+            {entity.host && `Anfitrion: ${entity.host.name}`}
           </div>
         </div>
       );
@@ -1010,14 +1010,14 @@ function ReportesContent() {
                 {/* Description */}
                 {report.description && (
                   <div className="text-sm text-gray-600 mb-3 p-3 bg-amber-50 rounded-lg border-l-2 border-amber-400">
-                    <div className="text-xs text-accent mb-1 font-medium">Descripcion del reporte:</div>
+                    <div className="text-xs text-accent mb-1 font-medium">Descripcion de la denuncia:</div>
                     {report.description}
                   </div>
                 )}
 
                 {/* Reporter Info */}
                 <div className="text-xs text-gray-400 mb-3">
-                  Reportado por: <span className="font-medium">{report.reporter?.name || 'Usuario anonimo'}</span>
+                  Denunciado por: <span className="font-medium">{report.reporter?.name || 'Usuario anonimo'}</span>
                   {report.reporter?.email && ` (${report.reporter.email})`}
                 </div>
 
@@ -1086,7 +1086,7 @@ function ReportesContent() {
       {!loading && data && data.reports.length === 0 && (
         <div className="text-center py-12 bg-white rounded-xl shadow-sm">
           <div className="text-4xl mb-4">&#9989;</div>
-          <p className="text-gray-500 font-medium">No hay reportes con estos filtros</p>
+          <p className="text-gray-500 font-medium">No hay denuncias con estos filtros</p>
           <p className="text-gray-400 text-sm mt-1">Prueba cambiando los filtros o vuelve mas tarde</p>
         </div>
       )}
@@ -1120,7 +1120,7 @@ function ReportesContent() {
           <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 text-lg">Resolver Reporte</h3>
+                <h3 className="font-semibold text-gray-900 text-lg">Resolver denuncia</h3>
                 <button
                   onClick={() => setShowResolveModal(null)}
                   className="p-1 text-gray-400 hover:text-gray-600"
@@ -1133,7 +1133,7 @@ function ReportesContent() {
 
               {/* Report Summary */}
               <div className="bg-gray-50 rounded-xl p-4 mb-4">
-                <div className="text-xs text-gray-500 mb-2">Reporte contra:</div>
+                <div className="text-xs text-gray-500 mb-2">Denuncia contra:</div>
                 {renderReportedEntity(showResolveModal)}
                 <div className="mt-3 pt-3 border-t border-gray-200">
                   <div className="text-xs text-gray-500">Motivo:</div>
@@ -1213,7 +1213,7 @@ function ReportesContent() {
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                           <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
                         </svg>
-                        Con 3 strikes el usuario sera baneado automaticamente.
+                        Con 3 faltas el usuario sera bloqueado automaticamente.
                       </p>
                     )}
                     {resolution.action === 'ban' && (
@@ -1261,7 +1261,7 @@ function ReportesContent() {
                         : 'bg-gray-500 text-white hover:bg-gray-600'
                     }`}
                   >
-                    {actionLoading === showResolveModal.id ? 'Procesando...' : 'Confirmar Resolucion'}
+                    {actionLoading === showResolveModal.id ? 'Procesando...' : 'Confirmar'}
                   </button>
                 </div>
               </div>
@@ -1524,7 +1524,7 @@ interface AlertCounts {
 
 const TAB_TITLES: Record<string, string> = {
   disputas: 'Disputas',
-  reportes: 'Reportes y Denuncias',
+  reportes: 'Denuncias',
   verificaciones: 'Verificaciones de Identidad',
 };
 

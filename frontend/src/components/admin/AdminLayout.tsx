@@ -183,7 +183,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     header: 'MODERACION',
     items: [
       { href: '/admin/moderacion', tab: 'disputas', label: 'Disputas', icon: FireIcon, alertKey: 'disputes' },
-      { href: '/admin/moderacion', tab: 'reportes', label: 'Reportes', icon: FlagIcon, alertKey: 'reports' },
+      { href: '/admin/moderacion', tab: 'reportes', label: 'Denuncias', icon: FlagIcon, alertKey: 'reports' },
       { href: '/admin/moderacion', tab: 'verificaciones', label: 'Verificaciones', icon: CheckBadgeIcon, alertKey: 'verifications' },
     ],
   },

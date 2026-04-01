@@ -105,7 +105,7 @@ function UsersContent() {
   };
 
   const handleImpersonate = async (user: AdminUserAdvanced) => {
-    if (!confirm(`Iniciar sesion como ${user.name}? Seras redirigido al dashboard.`)) return;
+    if (!confirm(`Iniciar sesion como ${user.name}? Seras redirigido al panel.`)) return;
 
     setActionLoading(user.id);
     try {
@@ -124,30 +124,30 @@ function UsersContent() {
     try {
       const result = await adminApi.addStrike(showStrikeModal.id, strikeReason);
       if (result.banned) {
-        alert(`Usuario baneado automaticamente por alcanzar 3 strikes`);
+        alert(`Usuario bloqueado automaticamente por alcanzar 3 faltas`);
       } else {
-        alert(`Strike anadido. Total: ${result.strikes}/3`);
+        alert(`Falta anadida. Total: ${result.strikes}/3`);
       }
       setShowStrikeModal(null);
       setStrikeReason('');
       fetchUsers();
     } catch {
-      alert('Error al anadir strike');
+      alert('Error al anadir falta');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleRemoveStrike = async (user: AdminUserAdvanced) => {
-    if (!confirm(`Eliminar un strike de ${user.name}?`)) return;
+    if (!confirm(`Eliminar una falta de ${user.name}?`)) return;
 
     setActionLoading(user.id);
     try {
       const result = await adminApi.removeStrike(user.id);
-      alert(`Strike eliminado. Total: ${result.strikes}/3`);
+      alert(`Falta eliminada. Total: ${result.strikes}/3`);
       fetchUsers();
     } catch {
-      alert('Error al eliminar strike');
+      alert('Error al eliminar falta');
     } finally {
       setActionLoading(null);
     }
@@ -159,27 +159,27 @@ function UsersContent() {
     setActionLoading(showBanModal.id);
     try {
       await adminApi.banUser(showBanModal.id, banReason);
-      alert('Usuario baneado correctamente');
+      alert('Usuario bloqueado correctamente');
       setShowBanModal(null);
       setBanReason('');
       fetchUsers();
     } catch {
-      alert('Error al banear usuario');
+      alert('Error al bloquear usuario');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleUnban = async (user: AdminUserAdvanced) => {
-    if (!confirm(`Desbanear a ${user.name}?`)) return;
+    if (!confirm(`Desbloquear a ${user.name}?`)) return;
 
     setActionLoading(user.id);
     try {
       await adminApi.unbanUser(user.id);
-      alert('Usuario desbaneado correctamente');
+      alert('Usuario desbloqueado correctamente');
       fetchUsers();
     } catch {
-      alert('Error al desbanear usuario');
+      alert('Error al desbloquear usuario');
     } finally {
       setActionLoading(null);
     }
@@ -201,16 +201,16 @@ function UsersContent() {
 
   const handleBulkBan = async () => {
     if (selectedUsers.size === 0) return;
-    const reason = prompt('Motivo del baneo:');
+    const reason = prompt('Motivo del bloqueo:');
     if (!reason) return;
 
     try {
       const count = await adminApi.bulkBanUsers(Array.from(selectedUsers), reason);
-      alert(`${count} usuarios baneados`);
+      alert(`${count} usuarios bloqueados`);
       setSelectedUsers(new Set());
       fetchUsers();
     } catch {
-      alert('Error al banear usuarios');
+      alert('Error al bloquear usuarios');
     }
   };
 
@@ -274,7 +274,7 @@ function UsersContent() {
             type="text"
             value={filters.search || ''}
             onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-            placeholder="Buscar por nombre o email..."
+            placeholder="Buscar por nombre o correo..."
             className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-secondary/50"
           />
           <button type="submit" className="px-4 py-2 bg-secondary text-white rounded-xl font-medium">
@@ -311,7 +311,7 @@ function UsersContent() {
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
                 >
                   <option value="">Todos</option>
-                  <option value="true">Baneados</option>
+                  <option value="true">Bloqueados</option>
                   <option value="false">Activos</option>
                 </select>
               </div>
@@ -332,14 +332,14 @@ function UsersContent() {
 
               {/* Has Strikes */}
               <div>
-                <label className="block text-sm text-gray-600 mb-1">Strikes</label>
+                <label className="block text-sm text-gray-600 mb-1">Faltas</label>
                 <select
                   value={filters.hasStrikes ? 'true' : ''}
                   onChange={(e) => handleFilterChange('hasStrikes', e.target.value === 'true')}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
                 >
                   <option value="">Todos</option>
-                  <option value="true">Con strikes</option>
+                  <option value="true">Con faltas</option>
                 </select>
               </div>
             </div>
@@ -355,7 +355,7 @@ function UsersContent() {
                 >
                   <option value="createdAt">Fecha registro</option>
                   <option value="name">Nombre</option>
-                  <option value="email">Email</option>
+                  <option value="email">Correo</option>
                 </select>
               </div>
 
@@ -408,7 +408,7 @@ function UsersContent() {
                 onClick={handleBulkBan}
                 className="px-3 py-1.5 bg-primary text-white text-sm rounded-lg font-medium"
               >
-                Banear
+                Bloquear
               </button>
               <button
                 onClick={() => setSelectedUsers(new Set())}
@@ -477,11 +477,11 @@ function UsersContent() {
                         <span className="px-2 py-0.5 bg-emerald/10 text-emerald text-xs rounded-full">Verificado</span>
                       )}
                       {user.bannedAt && (
-                        <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">Baneado</span>
+                        <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">Bloqueado</span>
                       )}
                       {user.strikes > 0 && !user.bannedAt && (
                         <span className="px-2 py-0.5 bg-accent/10 text-accent-dark text-xs rounded-full">
-                          {user.strikes}/3 strikes
+                          {user.strikes}/3 faltas
                         </span>
                       )}
                     </div>
@@ -491,15 +491,15 @@ function UsersContent() {
                     {/* Stats Row */}
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2 text-xs text-gray-400">
                       <span>{user._count.experiences} exp.</span>
-                      <span>{user.totalMatches} matches</span>
-                      <span>{user._count.reviewsGiven} resenas</span>
+                      <span>{user.totalMatches} reservas</span>
+                      <span>{user._count.reviewsGiven} valoraciones</span>
                       <span>{user.walletBalance.toFixed(2)} EUR</span>
                     </div>
 
                     {/* Ban reason if applicable */}
                     {user.bannedAt && user.banReason && (
                       <div className="mt-2 text-xs text-primary bg-red-50 p-2 rounded">
-                        <strong>Motivo ban:</strong> {user.banReason}
+                        <strong>Motivo bloqueo:</strong> {user.banReason}
                       </div>
                     )}
 
@@ -543,7 +543,7 @@ function UsersContent() {
                           onClick={() => setShowStrikeModal(user)}
                           disabled={actionLoading === user.id}
                           className="p-2 text-gray-500 hover:text-accent hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50"
-                          title="Anadir strike"
+                          title="Anadir falta"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -554,7 +554,7 @@ function UsersContent() {
                             onClick={() => handleRemoveStrike(user)}
                             disabled={actionLoading === user.id}
                             className="p-2 text-gray-500 hover:text-emerald hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                            title="Eliminar strike"
+                            title="Eliminar falta"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                               <path strokeLinecap="round" strokeLinejoin="round" d="m9 12.75 3 3m0 0 3-3m-3 3v-7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -570,7 +570,7 @@ function UsersContent() {
                         onClick={() => handleUnban(user)}
                         disabled={actionLoading === user.id}
                         className="p-2 text-gray-500 hover:text-emerald hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                        title="Desbanear usuario"
+                        title="Desbloquear usuario"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
@@ -581,7 +581,7 @@ function UsersContent() {
                         onClick={() => setShowBanModal(user)}
                         disabled={actionLoading === user.id}
                         className="p-2 text-gray-500 hover:text-primary hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                        title="Banear usuario"
+                        title="Bloquear usuario"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
@@ -642,25 +642,25 @@ function UsersContent() {
       {showStrikeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6">
-            <h3 className="font-semibold text-gray-900 mb-2">Anadir Strike</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">Anadir falta</h3>
             <p className="text-sm text-gray-500 mb-4">
-              Estas a punto de anadir un strike a <strong>{showStrikeModal.name}</strong>.
-              Actualmente tiene {showStrikeModal.strikes}/3 strikes.
+              Estas a punto de anadir una falta a <strong>{showStrikeModal.name}</strong>.
+              Actualmente tiene {showStrikeModal.strikes}/3 faltas.
               {showStrikeModal.strikes === 2 && (
                 <span className="block text-primary mt-1">
-                  Atencion: Al anadir este strike, el usuario sera baneado automaticamente.
+                  Atencion: Al anadir esta falta, el usuario sera bloqueado automaticamente.
                 </span>
               )}
             </p>
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Motivo del strike *
+                Motivo de la falta *
               </label>
               <textarea
                 value={strikeReason}
                 onChange={(e) => setStrikeReason(e.target.value)}
-                placeholder="Describe el motivo del strike..."
+                placeholder="Describe el motivo de la falta..."
                 rows={3}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
@@ -678,7 +678,7 @@ function UsersContent() {
                 disabled={!strikeReason.trim() || actionLoading === showStrikeModal.id}
                 className="flex-1 py-3 bg-amber-500 text-white font-medium rounded-xl hover:bg-amber-600 transition-colors disabled:opacity-50"
               >
-                {actionLoading === showStrikeModal.id ? 'Anadiendo...' : 'Anadir Strike'}
+                {actionLoading === showStrikeModal.id ? 'Anadiendo...' : 'Anadir falta'}
               </button>
             </div>
           </div>
@@ -689,20 +689,20 @@ function UsersContent() {
       {showBanModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md p-6">
-            <h3 className="font-semibold text-gray-900 mb-2">Banear Usuario</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">Bloquear usuario</h3>
             <p className="text-sm text-gray-500 mb-4">
-              Estas a punto de banear a <strong>{showBanModal.name}</strong>.
+              Estas a punto de bloquear a <strong>{showBanModal.name}</strong>.
               Esta accion impedira que el usuario acceda a la plataforma.
             </p>
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Motivo del ban *
+                Motivo del bloqueo *
               </label>
               <textarea
                 value={banReason}
                 onChange={(e) => setBanReason(e.target.value)}
-                placeholder="Describe el motivo del ban..."
+                placeholder="Describe el motivo del bloqueo..."
                 rows={3}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-red-500"
               />
@@ -720,7 +720,7 @@ function UsersContent() {
                 disabled={!banReason.trim() || actionLoading === showBanModal.id}
                 className="flex-1 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50"
               >
-                {actionLoading === showBanModal.id ? 'Baneando...' : 'Banear Usuario'}
+                {actionLoading === showBanModal.id ? 'Bloqueando...' : 'Bloquear'}
               </button>
             </div>
           </div>
@@ -1021,7 +1021,7 @@ function ExperiencesContent() {
                     </div>
 
                     <div className="text-sm text-gray-400">
-                      Host: {exp.host?.name ?? ''} ({exp.host?.email ?? ''})
+                      Anfitrion: {exp.host?.name ?? ''} ({exp.host?.email ?? ''})
                     </div>
 
                     {/* Stats Row */}
@@ -1212,7 +1212,7 @@ function ExperiencesContent() {
                   <h4 className="font-medium text-gray-900 mb-2">Informacion del Host</h4>
                   <div className="space-y-1 text-sm">
                     <p><span className="text-gray-500">Nombre:</span> {showDetails.host?.name ?? ''}</p>
-                    <p><span className="text-gray-500">Email:</span> {showDetails.host?.email ?? ''}</p>
+                    <p><span className="text-gray-500">Correo:</span> {showDetails.host?.email ?? ''}</p>
                     <p><span className="text-gray-500">ID:</span> <span className="font-mono text-xs">{showDetails.host.id}</span></p>
                   </div>
                 </div>
