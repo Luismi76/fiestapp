@@ -1189,8 +1189,8 @@ function TransaccionesTab() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-gray-900 truncate">{tx.userName}</div>
-                      <div className="text-xs text-gray-500 truncate">{getEnrichedDescription(tx)}</div>
+                      <div className="text-sm font-medium text-gray-900">{tx.userName}</div>
+                      <div className="text-xs text-gray-500">{getEnrichedDescription(tx)}</div>
                       <div className="text-[11px] text-gray-400 mt-0.5">{formatDate(tx.date)}</div>
                     </div>
                     <div className="flex items-center gap-2 ml-2 flex-shrink-0">
@@ -1259,9 +1259,9 @@ function TransaccionesTab() {
                             {sBadge.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-500 text-xs max-w-[300px]">
+                        <td className="px-4 py-3 text-gray-500 text-xs">
                           <div className="flex items-center gap-1">
-                            <span className="truncate">{getEnrichedDescription(tx)}</span>
+                            <span>{getEnrichedDescription(tx)}</span>
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-4 h-4 text-gray-300 flex-shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
                               <path fillRule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
                             </svg>
