@@ -65,10 +65,12 @@ function PaymentResultContent() {
     return () => { cancelled = true; };
   }, [user, authLoading, matchId, status, router]);
 
+  const isError = !checking && !success;
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 max-w-md w-full text-center">
-        {checking ? (
+        {!isError && !success ? (
           <>
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

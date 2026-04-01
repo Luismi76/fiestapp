@@ -66,12 +66,13 @@ function TopUpResultContent() {
     return () => { cancelled = true; };
   }, [user, authLoading, sessionId, status, router]);
 
-  const isSuccess = status === 'success' && result?.success;
+  const isSuccess = result?.success === true;
+  const isError = !checking && !isSuccess;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 max-w-md w-full text-center">
-        {checking ? (
+        {!isError && !isSuccess ? (
           <>
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
