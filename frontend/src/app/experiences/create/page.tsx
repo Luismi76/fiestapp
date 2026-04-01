@@ -850,39 +850,6 @@ export default function CreateExperiencePage() {
               <p className="text-gray-500 mt-1">Añade fotos y selecciona cuándo estás disponible</p>
             </div>
 
-            {/* Photo Grid Preview */}
-            {photoPreviewUrls.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {photoPreviewUrls.map((url, index) => (
-                  <div key={index} className={`relative rounded-xl overflow-hidden ${index === 0 ? 'col-span-2 row-span-2' : ''}`}>
-                    <Image
-                      src={url}
-                      alt={`Foto ${index + 1}`}
-                      className={`w-full object-cover ${index === 0 ? 'h-48' : 'h-24'}`}
-                      width={400} height={192} unoptimized
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newPhotos = pendingPhotos.filter((_, i) => i !== index);
-                        setPendingPhotos(newPhotos);
-                      }}
-                      className="absolute top-2 right-2 w-7 h-7 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                    {index === 0 && (
-                      <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 backdrop-blur-sm rounded-lg text-white text-xs font-medium">
-                        Principal
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
             {/* Photo Uploader */}
             <PhotoUploader
               photos={[]}

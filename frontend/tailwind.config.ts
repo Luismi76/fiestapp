@@ -24,6 +24,7 @@ const config: Config = {
                 'fade-in-up': 'fade-in-up 0.4s ease-out',
                 'scale-in': 'scale-in 0.3s ease-out',
                 'slide-up': 'slide-up 0.3s ease-out',
+                'photo-added': 'photo-added 0.4s ease-out',
             },
             keyframes: {
                 float: {
@@ -49,6 +50,11 @@ const config: Config = {
                 'slide-up': {
                     from: { transform: 'translateY(100%)' },
                     to: { transform: 'translateY(0)' },
+                },
+                'photo-added': {
+                    '0%': { opacity: '0', transform: 'scale(0.8)' },
+                    '50%': { transform: 'scale(1.05)' },
+                    '100%': { opacity: '1', transform: 'scale(1)' },
                 },
             },
             backgroundSize: {
