@@ -1509,64 +1509,13 @@ function VerificacionesContent() {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   SUB-TAB PILLS
+   ALERT COUNTS TYPE
    ══════════════════════════════════════════════════════════════════════════ */
 
 interface AlertCounts {
   disputes?: { open?: number; underReview?: number; total?: number };
   reports?: { pending?: number };
   verifications?: { pending?: number };
-}
-
-const TAB_CONFIG = [
-  { key: 'disputas', label: 'Disputas', alertPath: (a: AlertCounts) => a.disputes?.total },
-  { key: 'reportes', label: 'Reportes', alertPath: (a: AlertCounts) => a.reports?.pending },
-  { key: 'verificaciones', label: 'Verificaciones', alertPath: (a: AlertCounts) => a.verifications?.pending },
-];
-
-function SubTabPills({
-  activeTab,
-  onTabChange,
-  alerts,
-}: {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-  alerts: AlertCounts | null;
-}) {
-  return (
-    <div className="hidden md:block sticky top-14 z-20 bg-white border-b border-gray-200">
-      <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
-        {TAB_CONFIG.map((tab) => {
-          const count = alerts ? tab.alertPath(alerts) : undefined;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => onTabChange(tab.key)}
-              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {tab.label}
-              {count !== undefined && count > 0 && (
-                <span
-                  className={`ml-1.5 inline-flex items-center justify-center min-w-[20px] h-5 rounded-full text-xs font-bold px-1.5 ${
-                    isActive
-                      ? 'bg-white/25 text-white'
-                      : 'bg-red-500 text-white'
-                  }`}
-                >
-                  {count > 99 ? '99+' : count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1610,10 +1559,6 @@ function ModeracionPageInner() {
     return () => { cancelled = true; };
   }, []);
 
-  const handleTabChange = (tab: string) => {
-    router.push(`/admin/moderacion?tab=${tab}`, { scroll: false });
-  };
-
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -1640,8 +1585,6 @@ function ModeracionPageInner() {
       title={TAB_TITLES[activeTab] || 'Moderacion'}
       alerts={layoutAlerts}
     >
-      <SubTabPills activeTab={activeTab} onTabChange={handleTabChange} alerts={alerts} />
-
       {activeTab === 'disputas' && <DisputasContent />}
       {activeTab === 'reportes' && <ReportesContent />}
       {activeTab === 'verificaciones' && <VerificacionesContent />}

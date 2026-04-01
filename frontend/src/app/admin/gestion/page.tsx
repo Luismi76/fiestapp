@@ -1523,38 +1523,6 @@ function CategoriesContent() {
 }
 
 /* ================================================================== */
-/*  SubTabPills                                                        */
-/* ================================================================== */
-
-const SUB_TABS = [
-  { key: 'usuarios', label: 'Usuarios' },
-  { key: 'experiencias', label: 'Experiencias' },
-  { key: 'categorias', label: 'Categorias' },
-] as const;
-
-function SubTabPills({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: string) => void }) {
-  return (
-    <div className="hidden md:block sticky top-14 z-20 bg-white border-b border-gray-200">
-      <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-hide">
-        {SUB_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => onTabChange(tab.key)}
-            className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-              activeTab === tab.key
-                ? 'bg-primary text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ================================================================== */
 /*  GestionPageInner                                                    */
 /* ================================================================== */
 
@@ -1587,10 +1555,6 @@ function GestionPageInner() {
     return () => { cancelled = true; };
   }, [isAuthenticated, user]);
 
-  const handleTabChange = (tab: string) => {
-    router.push(`/admin/gestion?tab=${tab}`, { scroll: false });
-  };
-
   const getTitle = () => {
     switch (activeTab) {
       case 'usuarios': return 'Usuarios';
@@ -1610,7 +1574,6 @@ function GestionPageInner() {
 
   return (
     <AdminLayout section="gestion" title={getTitle()} alerts={alerts}>
-      <SubTabPills activeTab={activeTab} onTabChange={handleTabChange} />
       {activeTab === 'usuarios' && <UsersContent />}
       {activeTab === 'experiencias' && <ExperiencesContent />}
       {activeTab === 'categorias' && <CategoriesContent />}

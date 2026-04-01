@@ -274,14 +274,14 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
         </header>
 
         {/* Mobile content */}
-        <main className={`flex-1 ${section === 'inicio' ? 'pb-20' : 'pb-32'}`}>
+        <main className={`flex-1 ${section === 'inicio' ? 'pb-20' : 'pb-40'}`}>
           {children}
         </main>
 
         {/* Mobile sub-nav (above bottom bar, only for sections with tabs) */}
         {section !== 'inicio' && sectionGroup && (
           <nav
-            className="fixed bottom-16 inset-x-0 z-50 bg-white border-t border-gray-100"
+            className="fixed bottom-16 inset-x-0 z-40 bg-white border-t border-gray-100"
             style={SHADOW_LIGHT}
           >
             <div className="flex gap-1.5 overflow-x-auto px-3 py-2 scrollbar-hide">
