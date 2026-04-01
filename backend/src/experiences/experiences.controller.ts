@@ -76,6 +76,17 @@ export class ExperiencesController {
     });
   }
 
+  // Calendario de experiencias (publico)
+  @Get('calendar/:year')
+  getCalendar(
+    @Param('year') year: string,
+    @Query('city') city?: string,
+  ) {
+    return this.experiencesService.getCalendarData(parseInt(year, 10), {
+      city: city || undefined,
+    });
+  }
+
   // Obtener ciudades unicas (publico)
   @Get('cities')
   getCities() {

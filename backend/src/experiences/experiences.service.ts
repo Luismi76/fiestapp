@@ -334,6 +334,121 @@ export class ExperiencesService {
     };
   }
 
+  /**
+   * Obtiene experiencias agrupadas por mes según sus fechas de disponibilidad
+   */
+  async getCalendarData(year: number, filters?: { city?: string }) {
+    const startOfYear = new Date(year, 0, 1);
+    const endOfYear = new Date(year, 11, 31);
+
+    const where: Record<string, unknown> = {
+      published: true,
+      availability: {
+        some: {
+          date: {
+            gte: startOfYear,
+            lte: endOfYear,
+          },
+        },
+      },
+    };
+
+    if (filters?.city) {
+      where.city = { contains: filters.city, mode: 'insensitive' };
+    }
+
+    const experiences = await this.prisma.experience.findMany({
+      where,
+      select: {
+        id: true,
+        title: true,
+        city: true,
+        price: true,
+        type: true,
+        photos: true,
+        host: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+          },
+        },
+        festival: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        availability: {
+          where: {
+            date: {
+              gte: startOfYear,
+              lte: endOfYear,
+            },
+          },
+          orderBy: { date: 'asc' },
+        },
+        _count: {
+          select: { reviews: true },
+        },
+      },
+    });
+
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+    ];
+
+    const byMonth = monthNames.map((monthName, index) => ({
+      month: index + 1,
+      monthName,
+      experiences: [] as {
+        id: string;
+        title: string;
+        city: string;
+        price: number | null;
+        type: string;
+        photo: string | null;
+        hostName: string;
+        hostAvatar: string | null;
+        festivalName: string | null;
+        dates: string[];
+        reviewCount: number;
+      }[],
+    }));
+
+    for (const exp of experiences) {
+      // Agrupar las fechas de disponibilidad por mes
+      const datesByMonth = new Map<number, string[]>();
+      for (const avail of exp.availability) {
+        const month = avail.date.getMonth();
+        if (!datesByMonth.has(month)) {
+          datesByMonth.set(month, []);
+        }
+        datesByMonth.get(month)!.push(avail.date.toISOString());
+      }
+
+      const mapped = {
+        id: exp.id,
+        title: exp.title,
+        city: exp.city,
+        price: exp.price,
+        type: exp.type,
+        photo: exp.photos.length > 0 ? exp.photos[0] : null,
+        hostName: exp.host.name,
+        hostAvatar: exp.host.avatar,
+        festivalName: exp.festival?.name || null,
+        reviewCount: exp._count.reviews,
+      };
+
+      for (const [month, dates] of datesByMonth) {
+        byMonth[month].experiences.push({ ...mapped, dates });
+      }
+    }
+
+    return byMonth.filter((m) => m.experiences.length > 0);
+  }
+
   async getCities(): Promise<string[]> {
     return this.cacheService.getOrSet(
       'experiences:cities',

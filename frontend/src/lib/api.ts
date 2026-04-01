@@ -171,6 +171,13 @@ export const experiencesApi = {
     return response.data;
   },
 
+  getCalendar: async (year: number, filters?: { city?: string }): Promise<ExperienceByMonth[]> => {
+    const params = new URLSearchParams();
+    if (filters?.city) params.append('city', filters.city);
+    const response = await api.get<ExperienceByMonth[]>(`/experiences/calendar/${year}?${params}`);
+    return response.data;
+  },
+
   // Calcular precio grupal
   calculatePrice: async (
     id: string,
@@ -252,6 +259,26 @@ export interface FestivalByMonth {
   month: number;
   monthName: string;
   festivals: CalendarFestival[];
+}
+
+export interface CalendarExperience {
+  id: string;
+  title: string;
+  city: string;
+  price: number | null;
+  type: string;
+  photo: string | null;
+  hostName: string;
+  hostAvatar: string | null;
+  festivalName: string | null;
+  dates: string[];
+  reviewCount: number;
+}
+
+export interface ExperienceByMonth {
+  month: number;
+  monthName: string;
+  experiences: CalendarExperience[];
 }
 
 export const festivalsApi = {

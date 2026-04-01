@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
-import { festivalsApi, FestivalByMonth, CalendarFestival } from '@/lib/api';
+import { festivalsApi, experiencesApi, FestivalByMonth, CalendarFestival, ExperienceByMonth, CalendarExperience } from '@/lib/api';
 import { getUploadUrl } from '@/lib/utils';
 import logger from '@/lib/logger';
 import Image from 'next/image';
@@ -46,10 +46,14 @@ const MapPinIcon = () => (
   </svg>
 );
 
+type ViewMode = 'festividades' | 'experiencias';
+
 export default function CalendarPage() {
   const [calendarData, setCalendarData] = useState<FestivalByMonth[]>([]);
+  const [experiencesData, setExperiencesData] = useState<ExperienceByMonth[]>([]);
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState(new Date().getFullYear());
+  const [viewMode, setViewMode] = useState<ViewMode>('experiencias');
   const [regions, setRegions] = useState<string[]>([]);
   const [types, setTypes] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
@@ -60,18 +64,25 @@ export default function CalendarPage() {
   });
   const [showFiltersModal, setShowFiltersModal] = useState(false);
   const [selectedFestival, setSelectedFestival] = useState<CalendarFestival | null>(null);
+  const [selectedExperience, setSelectedExperience] = useState<CalendarExperience | null>(null);
 
   // Contar filtros activos
-  const activeFiltersCount = [filters.region, filters.type, filters.city].filter(Boolean).length;
+  const activeFiltersCount = viewMode === 'festividades'
+    ? [filters.region, filters.type, filters.city].filter(Boolean).length
+    : [filters.city].filter(Boolean).length;
 
   useEffect(() => {
     loadFilters();
   }, []);
 
   useEffect(() => {
-    loadCalendar();
+    if (viewMode === 'festividades') {
+      loadCalendar();
+    } else {
+      loadExperiences();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, filters]);
+  }, [year, filters, viewMode]);
 
   const loadFilters = async () => {
     try {
@@ -99,6 +110,20 @@ export default function CalendarPage() {
       setCalendarData(data);
     } catch (error) {
       logger.error('Error loading calendar:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadExperiences = async () => {
+    try {
+      setLoading(true);
+      const data = await experiencesApi.getCalendar(year, {
+        city: filters.city || undefined,
+      });
+      setExperiencesData(data);
+    } catch (error) {
+      logger.error('Error loading experiences calendar:', error);
     } finally {
       setLoading(false);
     }
@@ -146,8 +171,35 @@ export default function CalendarPage() {
     }
   };
 
-  // Total de festivales
+  const getExperienceTypeLabel = (type: string) => {
+    switch (type) {
+      case 'pago': return 'Pago';
+      case 'intercambio': return 'Intercambio';
+      case 'ambos': return 'Pago / Intercambio';
+      default: return type;
+    }
+  };
+
+  const getExperienceTypeColor = (type: string) => {
+    switch (type) {
+      case 'pago': return 'bg-green-100 text-green-700';
+      case 'intercambio': return 'bg-blue-100 text-blue-700';
+      case 'ambos': return 'bg-purple-100 text-purple-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  // Totales
   const totalFestivals = calendarData.reduce((acc, month) => acc + month.festivals.length, 0);
+  const totalExperiences = experiencesData.reduce((acc, month) => acc + month.experiences.length, 0);
+
+  const monthEmoji = (month: number) => {
+    const emojis: Record<number, string> = {
+      1: '❄️', 2: '🎭', 3: '🌸', 4: '🐣', 5: '🌺', 6: '☀️',
+      7: '🎆', 8: '🏖️', 9: '🍇', 10: '🎃', 11: '🍂', 12: '🎄',
+    };
+    return emojis[month] || '';
+  };
 
   return (
     <MainLayout>
@@ -155,11 +207,37 @@ export default function CalendarPage() {
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-orange-500/10 via-primary/5 to-transparent py-6 px-4">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-2xl md:text-3xl font-bold text-center mb-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-center mb-4">
               <span className="bg-gradient-to-r from-orange-500 to-primary bg-clip-text text-transparent">
                 Calendario {year}
               </span>
             </h1>
+
+            {/* View Mode Toggle */}
+            <div className="flex justify-center mb-4">
+              <div className="bg-white rounded-full p-1 shadow-sm inline-flex">
+                <button
+                  onClick={() => setViewMode('experiencias')}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                    viewMode === 'experiencias'
+                      ? 'bg-primary text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Experiencias
+                </button>
+                <button
+                  onClick={() => setViewMode('festividades')}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                    viewMode === 'festividades'
+                      ? 'bg-primary text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  Festividades
+                </button>
+              </div>
+            </div>
 
             {/* Year Navigation */}
             <div className="flex items-center justify-center gap-4">
@@ -218,24 +296,29 @@ export default function CalendarPage() {
 
               {/* Contador */}
               <span className="text-sm text-gray-500">
-                {totalFestivals} festividad{totalFestivals !== 1 ? 'es' : ''}
+                {viewMode === 'festividades'
+                  ? `${totalFestivals} festividad${totalFestivals !== 1 ? 'es' : ''}`
+                  : `${totalExperiences} experiencia${totalExperiences !== 1 ? 's' : ''}`
+                }
               </span>
             </div>
 
-            {/* Exportar */}
-            <button
-              onClick={() => downloadIcal()}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <CalendarIcon />
-              <span className="hidden sm:inline">Exportar</span>
-            </button>
+            {/* Exportar - solo para festividades */}
+            {viewMode === 'festividades' && (
+              <button
+                onClick={() => downloadIcal()}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <CalendarIcon />
+                <span className="hidden sm:inline">Exportar</span>
+              </button>
+            )}
           </div>
 
           {/* Chips de filtros activos */}
           {activeFiltersCount > 0 && (
             <div className="px-4 md:px-6 lg:px-8 pb-2.5 flex gap-2 overflow-x-auto scrollbar-hide max-w-5xl mx-auto">
-              {filters.region && (
+              {filters.region && viewMode === 'festividades' && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full whitespace-nowrap">
                   {filters.region}
                   <button onClick={() => setFilters({ ...filters, region: '' })} className="p-0.5">
@@ -243,7 +326,7 @@ export default function CalendarPage() {
                   </button>
                 </span>
               )}
-              {filters.type && (
+              {filters.type && viewMode === 'festividades' && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full whitespace-nowrap">
                   {filters.type}
                   <button onClick={() => setFilters({ ...filters, type: '' })} className="p-0.5">
@@ -272,103 +355,192 @@ export default function CalendarPage() {
             <div className="flex items-center justify-center py-20">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : calendarData.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CalendarIcon />
+          ) : viewMode === 'festividades' ? (
+            /* ===================== VISTA FESTIVIDADES ===================== */
+            calendarData.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CalendarIcon />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Sin festividades</h2>
+                <p className="text-gray-500 mb-4">No hay festividades con los filtros seleccionados</p>
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 bg-primary text-white rounded-full text-sm font-medium"
+                  >
+                    Limpiar filtros
+                  </button>
+                )}
               </div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">Sin festividades</h2>
-              <p className="text-gray-500 mb-4">No hay festividades con los filtros seleccionados</p>
-              {activeFiltersCount > 0 && (
-                <button
-                  onClick={clearFilters}
-                  className="px-4 py-2 bg-primary text-white rounded-full text-sm font-medium"
-                >
-                  Limpiar filtros
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-              {calendarData.map((monthData) => (
-                <div key={monthData.month} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                  {/* Month Header */}
-                  <div className="px-4 py-3 bg-gradient-to-r from-primary/5 to-orange-500/5 flex items-center justify-between">
-                    <div>
-                      <h2 className="font-bold text-gray-900">{monthData.monthName}</h2>
-                      <p className="text-xs text-gray-500">{monthData.festivals.length} festividad{monthData.festivals.length !== 1 ? 'es' : ''}</p>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                {calendarData.map((monthData) => (
+                  <div key={monthData.month} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    {/* Month Header */}
+                    <div className="px-4 py-3 bg-gradient-to-r from-primary/5 to-orange-500/5 flex items-center justify-between">
+                      <div>
+                        <h2 className="font-bold text-gray-900">{monthData.monthName}</h2>
+                        <p className="text-xs text-gray-500">{monthData.festivals.length} festividad{monthData.festivals.length !== 1 ? 'es' : ''}</p>
+                      </div>
+                      <span className="text-2xl">{monthEmoji(monthData.month)}</span>
                     </div>
-                    <span className="text-2xl">
-                      {monthData.month === 1 && '❄️'}
-                      {monthData.month === 2 && '🎭'}
-                      {monthData.month === 3 && '🌸'}
-                      {monthData.month === 4 && '🐣'}
-                      {monthData.month === 5 && '🌺'}
-                      {monthData.month === 6 && '☀️'}
-                      {monthData.month === 7 && '🎆'}
-                      {monthData.month === 8 && '🏖️'}
-                      {monthData.month === 9 && '🍇'}
-                      {monthData.month === 10 && '🎃'}
-                      {monthData.month === 11 && '🍂'}
-                      {monthData.month === 12 && '🎄'}
-                    </span>
-                  </div>
 
-                  {/* Festivals */}
-                  <div className="divide-y divide-gray-50">
-                    {monthData.festivals.map((festival) => (
-                      <button
-                        key={festival.id}
-                        className="w-full p-4 hover:bg-gray-50 transition-colors text-left"
-                        onClick={() => setSelectedFestival(festival)}
-                      >
-                        <div className="flex items-center gap-3">
-                          {/* Fecha */}
-                          <div className="w-12 h-12 bg-gradient-to-br from-primary/10 to-orange-500/10 rounded-xl flex flex-col items-center justify-center flex-shrink-0">
-                            {festival.startDate ? (
-                              <>
-                                <span className="text-lg font-bold text-primary leading-none">
-                                  {new Date(festival.startDate).getDate()}
-                                </span>
-                                <span className="text-[10px] text-gray-500 uppercase">
-                                  {new Date(festival.startDate).toLocaleDateString('es-ES', { month: 'short' })}
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-xs text-gray-400">TBD</span>
-                            )}
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900 truncate">{festival.name}</h3>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className="flex items-center gap-1 text-xs text-gray-500">
-                                <MapPinIcon />
-                                {festival.city}
-                              </span>
-                              {festival.festivalType && (
-                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${getTypeColor(festival.festivalType)}`}>
-                                  {festival.festivalType}
-                                </span>
+                    {/* Festivals */}
+                    <div className="divide-y divide-gray-50">
+                      {monthData.festivals.map((festival) => (
+                        <button
+                          key={festival.id}
+                          className="w-full p-4 hover:bg-gray-50 transition-colors text-left"
+                          onClick={() => setSelectedFestival(festival)}
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Fecha */}
+                            <div className="w-12 h-12 bg-gradient-to-br from-primary/10 to-orange-500/10 rounded-xl flex flex-col items-center justify-center flex-shrink-0">
+                              {festival.startDate ? (
+                                <>
+                                  <span className="text-lg font-bold text-primary leading-none">
+                                    {new Date(festival.startDate).getDate()}
+                                  </span>
+                                  <span className="text-[10px] text-gray-500 uppercase">
+                                    {new Date(festival.startDate).toLocaleDateString('es-ES', { month: 'short' })}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-xs text-gray-400">TBD</span>
                               )}
                             </div>
-                            {festival.experienceCount > 0 && (
-                              <p className="text-xs text-primary font-medium mt-1">
-                                {festival.experienceCount} experiencia{festival.experienceCount !== 1 ? 's' : ''}
-                              </p>
-                            )}
-                          </div>
 
-                          {/* Arrow */}
-                          <ChevronRightIcon />
-                        </div>
-                      </button>
-                    ))}
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 truncate">{festival.name}</h3>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="flex items-center gap-1 text-xs text-gray-500">
+                                  <MapPinIcon />
+                                  {festival.city}
+                                </span>
+                                {festival.festivalType && (
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${getTypeColor(festival.festivalType)}`}>
+                                    {festival.festivalType}
+                                  </span>
+                                )}
+                              </div>
+                              {festival.experienceCount > 0 && (
+                                <p className="text-xs text-primary font-medium mt-1">
+                                  {festival.experienceCount} experiencia{festival.experienceCount !== 1 ? 's' : ''}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Arrow */}
+                            <ChevronRightIcon />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                ))}
+              </div>
+            )
+          ) : (
+            /* ===================== VISTA EXPERIENCIAS ===================== */
+            experiencesData.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-primary">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                  </svg>
                 </div>
-              ))}
-            </div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">Sin experiencias</h2>
+                <p className="text-gray-500 mb-4">No hay experiencias disponibles en este periodo</p>
+                {activeFiltersCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 bg-primary text-white rounded-full text-sm font-medium"
+                  >
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                {experiencesData.map((monthData) => (
+                  <div key={monthData.month} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    {/* Month Header */}
+                    <div className="px-4 py-3 bg-gradient-to-r from-purple-500/5 to-primary/5 flex items-center justify-between">
+                      <div>
+                        <h2 className="font-bold text-gray-900">{monthData.monthName}</h2>
+                        <p className="text-xs text-gray-500">{monthData.experiences.length} experiencia{monthData.experiences.length !== 1 ? 's' : ''}</p>
+                      </div>
+                      <span className="text-2xl">{monthEmoji(monthData.month)}</span>
+                    </div>
+
+                    {/* Experiences */}
+                    <div className="divide-y divide-gray-50">
+                      {monthData.experiences.map((experience) => (
+                        <button
+                          key={experience.id}
+                          className="w-full p-4 hover:bg-gray-50 transition-colors text-left"
+                          onClick={() => setSelectedExperience(experience)}
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Photo / Avatar */}
+                            <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                              {experience.photo ? (
+                                <Image
+                                  src={getUploadUrl(experience.photo) || ''}
+                                  alt={experience.title}
+                                  width={48}
+                                  height={48}
+                                  className="w-full h-full object-cover"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-primary">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 truncate">{experience.title}</h3>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span className="flex items-center gap-1 text-xs text-gray-500">
+                                  <MapPinIcon />
+                                  {experience.city}
+                                </span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${getExperienceTypeColor(experience.type)}`}>
+                                  {getExperienceTypeLabel(experience.type)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                {experience.price != null && experience.type !== 'intercambio' && (
+                                  <span className="text-xs font-semibold text-gray-900">{experience.price}€</span>
+                                )}
+                                <span className="text-xs text-gray-400">
+                                  {experience.dates.length} fecha{experience.dates.length !== 1 ? 's' : ''}
+                                </span>
+                                {experience.festivalName && (
+                                  <span className="text-xs text-orange-600 truncate max-w-[120px]">
+                                    {experience.festivalName}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Arrow */}
+                            <ChevronRightIcon />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
 
@@ -389,7 +561,9 @@ export default function CalendarPage() {
 
               {/* Header */}
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Filtrar festividades</h3>
+                <h3 className="text-lg font-semibold">
+                  {viewMode === 'festividades' ? 'Filtrar festividades' : 'Filtrar experiencias'}
+                </h3>
                 <button onClick={() => setShowFiltersModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
                   <CloseIcon />
                 </button>
@@ -397,33 +571,37 @@ export default function CalendarPage() {
 
               {/* Content */}
               <div className="p-4 space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Region</label>
-                  <select
-                    value={filters.region}
-                    onChange={(e) => setFilters({ ...filters, region: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
-                  >
-                    <option value="">Todas las regiones</option>
-                    {regions.map((region) => (
-                      <option key={region} value={region}>{region}</option>
-                    ))}
-                  </select>
-                </div>
+                {viewMode === 'festividades' && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Region</label>
+                      <select
+                        value={filters.region}
+                        onChange={(e) => setFilters({ ...filters, region: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                      >
+                        <option value="">Todas las regiones</option>
+                        {regions.map((region) => (
+                          <option key={region} value={region}>{region}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Tipo</label>
-                  <select
-                    value={filters.type}
-                    onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
-                  >
-                    <option value="">Todos los tipos</option>
-                    {types.map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Tipo</label>
+                      <select
+                        value={filters.type}
+                        onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                        className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                      >
+                        <option value="">Todos los tipos</option>
+                        {types.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Ciudad</label>
@@ -567,6 +745,120 @@ export default function CalendarPage() {
                       .ics
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Experience Detail Modal */}
+        {selectedExperience && (
+          <div
+            className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center md:justify-center animate-fade-in"
+            onClick={() => setSelectedExperience(null)}
+          >
+            <div
+              className="bg-white rounded-t-3xl md:rounded-2xl w-full md:w-[480px] max-h-[85vh] overflow-hidden animate-slide-up md:animate-scale-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Handle - solo en movil */}
+              <div className="flex justify-center pt-3 pb-2 md:hidden">
+                <div className="w-10 h-1 bg-gray-300 rounded-full" />
+              </div>
+
+              {/* Image/Header */}
+              <div className="h-36 bg-gradient-to-br from-purple-500 to-primary relative">
+                {selectedExperience.photo && (
+                  <Image
+                    src={getUploadUrl(selectedExperience.photo) || ''}
+                    alt={selectedExperience.title}
+                    className="w-full h-full object-cover"
+                    fill unoptimized
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <button
+                  onClick={() => setSelectedExperience(null)}
+                  className="absolute top-3 right-3 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white transition-colors"
+                >
+                  <CloseIcon />
+                </button>
+                <div className="absolute bottom-4 left-4 right-4 text-white">
+                  <h2 className="text-xl font-bold">{selectedExperience.title}</h2>
+                  <p className="text-sm opacity-90 flex items-center gap-1">
+                    <MapPinIcon />
+                    {selectedExperience.city}
+                  </p>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 space-y-4">
+                {/* Type & Price */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className={`text-sm px-3 py-2 rounded-full font-medium ${getExperienceTypeColor(selectedExperience.type)}`}>
+                    {getExperienceTypeLabel(selectedExperience.type)}
+                  </span>
+                  {selectedExperience.price != null && selectedExperience.type !== 'intercambio' && (
+                    <div className="flex items-center gap-1 px-3 py-2 bg-gray-100 rounded-full">
+                      <span className="text-sm font-bold text-gray-900">{selectedExperience.price}€</span>
+                      <span className="text-xs text-gray-500">/ persona</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Host */}
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                    {selectedExperience.hostAvatar ? (
+                      <Image
+                        src={getUploadUrl(selectedExperience.hostAvatar) || ''}
+                        alt={selectedExperience.hostName}
+                        width={32}
+                        height={32}
+                        className="w-full h-full object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold">
+                        {selectedExperience.hostName.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-700">por <span className="font-medium">{selectedExperience.hostName}</span></span>
+                </div>
+
+                {/* Festival link */}
+                {selectedExperience.festivalName && (
+                  <div className="bg-orange-50 border border-orange-100 rounded-xl p-3 flex items-center gap-2">
+                    <span className="text-lg">🎪</span>
+                    <p className="text-sm text-orange-700">{selectedExperience.festivalName}</p>
+                  </div>
+                )}
+
+                {/* Dates */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Fechas disponibles</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedExperience.dates.map((date, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-green-50 text-green-700 rounded-full text-xs font-medium border border-green-200"
+                      >
+                        {new Date(date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-2">
+                  <Link
+                    href={`/experiences/${selectedExperience.id}`}
+                    className="block w-full py-3 bg-primary text-white text-center font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+                  >
+                    Ver experiencia
+                  </Link>
                 </div>
               </div>
             </div>
