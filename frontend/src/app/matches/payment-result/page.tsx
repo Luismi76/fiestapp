@@ -18,12 +18,14 @@ function PaymentResultContent() {
   const matchId = searchParams.get('matchId');
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) return;
+
+    if (!user) {
       router.push('/login');
       return;
     }
 
-    if (!user || !matchId) {
+    if (!matchId) {
       setChecking(false);
       return;
     }
@@ -34,8 +36,9 @@ function PaymentResultContent() {
       return;
     }
 
-    // Verificar estado del pago. Primero inmediatamente, luego con polling
-    // porque el webhook de Stripe puede tardar unos segundos.
+    setChecking(true);
+    setSuccess(false);
+
     let cancelled = false;
     const delays = [0, 2000, 3000, 4000, 5000, 6000];
 

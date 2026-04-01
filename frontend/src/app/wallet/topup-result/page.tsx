@@ -18,25 +18,27 @@ function TopUpResultContent() {
   const sessionId = searchParams.get('session_id');
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) return;
+
+    if (!user) {
       router.push('/login');
       return;
     }
 
-    if (!user || !sessionId) {
+    if (!sessionId) {
       setChecking(false);
       return;
     }
 
-    // Si Stripe devolvió error, no hace falta reintentar
     if (status === 'error') {
       setResult({ success: false });
       setChecking(false);
       return;
     }
 
-    // Verificar estado de la recarga. Primero inmediatamente, luego con polling
-    // porque el webhook de Stripe puede tardar unos segundos.
+    setChecking(true);
+    setResult(null);
+
     let cancelled = false;
     const delays = [0, 2000, 3000, 4000, 5000, 6000];
 
