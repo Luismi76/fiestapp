@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getAvatarUrl } from '@/lib/utils';
 import { OptimizedAvatar } from '@/components/OptimizedImage';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { AdminPagination } from '@/components/admin';
 import { useToast } from '@/components/ui/Toast';
 import api, {
   adminDisputesApi,
@@ -438,28 +439,7 @@ function DisputasContent() {
           </>
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-            >
-              Anterior
-            </button>
-            <span className="text-sm text-gray-500">
-              Pagina {page} de {totalPages}
-            </span>
-            <button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
-            >
-              Siguiente
-            </button>
-          </div>
-        )}
+        <AdminPagination page={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
 
       {/* Resolve Modal */}
@@ -618,6 +598,7 @@ interface ExtendedReport extends Report {
 }
 
 function ReportesContent() {
+  const toast = useToast();
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [stats, setStats] = useState<ReportStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -685,18 +666,12 @@ function ReportesContent() {
         await reportsApi.updateStatus(report.id, 'reviewed');
         fetchReports();
       } catch {
-        alert('Error al actualizar estado');
+        toast.error('Error', 'No se pudo actualizar el estado');
       } finally {
         setActionLoading(null);
       }
       return;
     }
-
-    const confirmMsg = action === 'resolve'
-      ? 'Marcar denuncia como resuelta sin accion?'
-      : 'Desestimar esta denuncia?';
-
-    if (!confirm(confirmMsg)) return;
 
     setActionLoading(report.id);
     try {
@@ -707,7 +682,7 @@ function ReportesContent() {
       });
       fetchReports();
     } catch {
-      alert('Error al actualizar denuncia');
+      toast.error('Error', 'No se pudo actualizar la denuncia');
     } finally {
       setActionLoading(null);
     }
@@ -727,7 +702,7 @@ function ReportesContent() {
       setResolution({ status: 'resolved', action: 'none', adminNotes: '' });
       fetchReports();
     } catch {
-      alert('Error al resolver denuncia');
+      toast.error('Error', 'No se pudo resolver la denuncia');
     } finally {
       setActionLoading(null);
     }
@@ -1091,28 +1066,7 @@ function ReportesContent() {
         </div>
       )}
 
-      {/* Pagination */}
-      {data && data.pagination.pages > 1 && (
-        <div className="flex justify-center gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50"
-          >
-            Anterior
-          </button>
-          <span className="px-4 py-2 text-gray-600">
-            Pagina {page} de {data.pagination.pages}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(data.pagination.pages, p + 1))}
-            disabled={page === data.pagination.pages}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50"
-          >
-            Siguiente
-          </button>
-        </div>
-      )}
+      {data && <AdminPagination page={page} totalPages={data.pagination.pages} onPageChange={setPage} />}
 
       {/* Resolve Modal */}
       {showResolveModal && (
@@ -1373,8 +1327,6 @@ function VerificacionesContent() {
   const handleToggleVerification = async (userId: string, currentlyVerified: boolean) => {
     const newStatus = !currentlyVerified;
     const action = newStatus ? 'verificar' : 'desverificar';
-
-    if (!confirm(`${newStatus ? 'Verificar' : 'Desverificar'} a este usuario?`)) return;
 
     setProcessing(userId);
     try {

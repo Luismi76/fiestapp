@@ -7,6 +7,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { adminApi, AdminUserAdvanced, AdminUsersAdvancedResponse, UserFilters, AdminExperience, AdminExperiencesResponse, categoriesApi } from '@/lib/api';
 import { Category } from '@/types/experience';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { AdminPagination, ReasonModal } from '@/components/admin';
+import { useToast } from '@/components/ui/Toast';
+import ConfirmModal from '@/components/ConfirmModal';
 import api from '@/lib/api';
 
 /* ================================================================== */
@@ -15,6 +18,7 @@ import api from '@/lib/api';
 
 function UsersContent() {
   const { loginWithToken } = useAuth();
+  const toast = useToast();
   const [data, setData] = useState<AdminUsersAdvancedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,8 +28,11 @@ function UsersContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [showStrikeModal, setShowStrikeModal] = useState<AdminUserAdvanced | null>(null);
   const [showBanModal, setShowBanModal] = useState<AdminUserAdvanced | null>(null);
-  const [strikeReason, setStrikeReason] = useState('');
-  const [banReason, setBanReason] = useState('');
+  const [showBulkBanModal, setShowBulkBanModal] = useState(false);
+  const [confirmState, setConfirmState] = useState<{
+    title: string; message: string; variant?: 'danger' | 'warning' | 'success' | 'default';
+    confirmText?: string; onConfirm: () => Promise<void>;
+  } | null>(null);
 
   // Filters state
   const [filters, setFilters] = useState<UserFilters>({
@@ -71,147 +78,141 @@ function UsersContent() {
     setPage(1);
   };
 
-  const handleToggleRole = async (user: AdminUserAdvanced) => {
+  const showConfirm = (opts: typeof confirmState) => setConfirmState(opts);
+
+  const handleToggleRole = (user: AdminUserAdvanced) => {
     const newRole = user.role === 'admin' ? 'user' : 'admin';
-    const confirmMsg = user.role === 'admin'
-      ? `Quitar permisos de admin a ${user.name}?`
-      : `Dar permisos de admin a ${user.name}?`;
-
-    if (!confirm(confirmMsg)) return;
-
-    setActionLoading(user.id);
-    try {
-      await adminApi.setUserRole(user.id, newRole);
-      fetchUsers();
-    } catch {
-      alert('Error al cambiar rol');
-    } finally {
-      setActionLoading(null);
-    }
+    showConfirm({
+      title: 'Cambiar rol',
+      message: user.role === 'admin' ? `Quitar permisos de admin a ${user.name}?` : `Dar permisos de admin a ${user.name}?`,
+      variant: 'warning',
+      onConfirm: async () => {
+        setActionLoading(user.id);
+        try { await adminApi.setUserRole(user.id, newRole); fetchUsers(); }
+        catch { toast.error('Error', 'No se pudo cambiar el rol'); }
+        finally { setActionLoading(null); }
+      },
+    });
   };
 
-  const handleDelete = async (user: AdminUserAdvanced) => {
-    if (!confirm(`Eliminar permanentemente a ${user.name}? Esta accion no se puede deshacer.`)) return;
-
-    setActionLoading(user.id);
-    try {
-      await adminApi.deleteUser(user.id);
-      fetchUsers();
-    } catch {
-      alert('Error al eliminar usuario');
-    } finally {
-      setActionLoading(null);
-    }
+  const handleDelete = (user: AdminUserAdvanced) => {
+    showConfirm({
+      title: 'Eliminar usuario',
+      message: `Eliminar permanentemente a ${user.name}? Esta accion no se puede deshacer.`,
+      variant: 'danger', confirmText: 'Eliminar',
+      onConfirm: async () => {
+        setActionLoading(user.id);
+        try { await adminApi.deleteUser(user.id); fetchUsers(); }
+        catch { toast.error('Error', 'No se pudo eliminar el usuario'); }
+        finally { setActionLoading(null); }
+      },
+    });
   };
 
-  const handleImpersonate = async (user: AdminUserAdvanced) => {
-    if (!confirm(`Iniciar sesion como ${user.name}? Seras redirigido al panel.`)) return;
-
-    setActionLoading(user.id);
-    try {
-      await adminApi.impersonateUser(user.id);
-      await loginWithToken();
-    } catch {
-      alert('Error al impersonar usuario');
-      setActionLoading(null);
-    }
+  const handleImpersonate = (user: AdminUserAdvanced) => {
+    showConfirm({
+      title: 'Suplantar usuario',
+      message: `Iniciar sesion como ${user.name}? Seras redirigido al panel.`,
+      onConfirm: async () => {
+        setActionLoading(user.id);
+        try { await adminApi.impersonateUser(user.id); await loginWithToken(); }
+        catch { toast.error('Error', 'No se pudo suplantar al usuario'); setActionLoading(null); }
+      },
+    });
   };
 
-  const handleAddStrike = async () => {
-    if (!showStrikeModal || !strikeReason.trim()) return;
-
+  const handleAddStrike = async (reason: string) => {
+    if (!showStrikeModal || !reason.trim()) return;
     setActionLoading(showStrikeModal.id);
     try {
-      const result = await adminApi.addStrike(showStrikeModal.id, strikeReason);
+      const result = await adminApi.addStrike(showStrikeModal.id, reason);
       if (result.banned) {
-        alert(`Usuario bloqueado automaticamente por alcanzar 3 faltas`);
+        toast.warning('Atencion', 'Usuario bloqueado automaticamente por alcanzar 3 faltas');
       } else {
-        alert(`Falta anadida. Total: ${result.strikes}/3`);
+        toast.success('Falta anadida', `Total: ${result.strikes}/3`);
       }
       setShowStrikeModal(null);
-      setStrikeReason('');
       fetchUsers();
     } catch {
-      alert('Error al anadir falta');
+      toast.error('Error', 'No se pudo anadir la falta');
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleRemoveStrike = async (user: AdminUserAdvanced) => {
-    if (!confirm(`Eliminar una falta de ${user.name}?`)) return;
-
-    setActionLoading(user.id);
-    try {
-      const result = await adminApi.removeStrike(user.id);
-      alert(`Falta eliminada. Total: ${result.strikes}/3`);
-      fetchUsers();
-    } catch {
-      alert('Error al eliminar falta');
-    } finally {
-      setActionLoading(null);
-    }
+  const handleRemoveStrike = (user: AdminUserAdvanced) => {
+    showConfirm({
+      title: 'Eliminar falta',
+      message: `Eliminar una falta de ${user.name}?`,
+      variant: 'warning',
+      onConfirm: async () => {
+        setActionLoading(user.id);
+        try {
+          const result = await adminApi.removeStrike(user.id);
+          toast.success('Falta eliminada', `Total: ${result.strikes}/3`);
+          fetchUsers();
+        } catch { toast.error('Error', 'No se pudo eliminar la falta'); }
+        finally { setActionLoading(null); }
+      },
+    });
   };
 
-  const handleBan = async () => {
-    if (!showBanModal || !banReason.trim()) return;
-
+  const handleBan = async (reason: string) => {
+    if (!showBanModal || !reason.trim()) return;
     setActionLoading(showBanModal.id);
     try {
-      await adminApi.banUser(showBanModal.id, banReason);
-      alert('Usuario bloqueado correctamente');
+      await adminApi.banUser(showBanModal.id, reason);
+      toast.success('Listo', 'Usuario bloqueado correctamente');
       setShowBanModal(null);
-      setBanReason('');
       fetchUsers();
     } catch {
-      alert('Error al bloquear usuario');
+      toast.error('Error', 'No se pudo bloquear al usuario');
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleUnban = async (user: AdminUserAdvanced) => {
-    if (!confirm(`Desbloquear a ${user.name}?`)) return;
-
-    setActionLoading(user.id);
-    try {
-      await adminApi.unbanUser(user.id);
-      alert('Usuario desbloqueado correctamente');
-      fetchUsers();
-    } catch {
-      alert('Error al desbloquear usuario');
-    } finally {
-      setActionLoading(null);
-    }
+  const handleUnban = (user: AdminUserAdvanced) => {
+    showConfirm({
+      title: 'Desbloquear usuario',
+      message: `Desbloquear a ${user.name}?`,
+      variant: 'success',
+      onConfirm: async () => {
+        setActionLoading(user.id);
+        try { await adminApi.unbanUser(user.id); toast.success('Listo', 'Usuario desbloqueado'); fetchUsers(); }
+        catch { toast.error('Error', 'No se pudo desbloquear al usuario'); }
+        finally { setActionLoading(null); }
+      },
+    });
   };
 
-  const handleBulkVerify = async () => {
+  const handleBulkVerify = () => {
     if (selectedUsers.size === 0) return;
-    if (!confirm(`Verificar ${selectedUsers.size} usuarios seleccionados?`)) return;
-
-    try {
-      const count = await adminApi.bulkVerifyUsers(Array.from(selectedUsers));
-      alert(`${count} usuarios verificados`);
-      setSelectedUsers(new Set());
-      fetchUsers();
-    } catch {
-      alert('Error al verificar usuarios');
-    }
+    showConfirm({
+      title: 'Verificar usuarios',
+      message: `Verificar ${selectedUsers.size} usuarios seleccionados?`,
+      variant: 'success',
+      onConfirm: async () => {
+        try {
+          const count = await adminApi.bulkVerifyUsers(Array.from(selectedUsers));
+          toast.success('Listo', `${count} usuarios verificados`);
+          setSelectedUsers(new Set()); fetchUsers();
+        } catch { toast.error('Error', 'No se pudo verificar los usuarios'); }
+      },
+    });
   };
 
-  const handleBulkBan = async () => {
+  const handleBulkBan = () => {
     if (selectedUsers.size === 0) return;
-    const reason = prompt('Motivo del bloqueo:');
-    if (!reason) return;
+    setShowBulkBanModal(true);
+  };
 
+  const handleBulkBanSubmit = async (reason: string) => {
     try {
       const count = await adminApi.bulkBanUsers(Array.from(selectedUsers), reason);
-      alert(`${count} usuarios bloqueados`);
-      setSelectedUsers(new Set());
-      fetchUsers();
-    } catch {
-      alert('Error al bloquear usuarios');
-    }
+      toast.success('Listo', `${count} usuarios bloqueados`);
+      setSelectedUsers(new Set()); setShowBulkBanModal(false); fetchUsers();
+    } catch { toast.error('Error', 'No se pudo bloquear los usuarios'); }
   };
 
   const toggleSelectUser = (userId: string) => {
@@ -614,117 +615,57 @@ function UsersContent() {
           </div>
         )}
 
-        {/* Pagination */}
-        {data && data.pagination.pages > 1 && (
-          <div className="flex justify-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50"
-            >
-              Anterior
-            </button>
-            <span className="px-4 py-2 text-gray-600">
-              Pagina {page} de {data.pagination.pages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(data.pagination.pages, p + 1))}
-              disabled={page === data.pagination.pages}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50"
-            >
-              Siguiente
-            </button>
-          </div>
-        )}
+        {data && <AdminPagination page={page} totalPages={data.pagination.pages} onPageChange={setPage} />}
       </div>
 
-      {/* Strike Modal */}
-      {showStrikeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6">
-            <h3 className="font-semibold text-gray-900 mb-2">Anadir falta</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Estas a punto de anadir una falta a <strong>{showStrikeModal.name}</strong>.
-              Actualmente tiene {showStrikeModal.strikes}/3 faltas.
-              {showStrikeModal.strikes === 2 && (
-                <span className="block text-primary mt-1">
-                  Atencion: Al anadir esta falta, el usuario sera bloqueado automaticamente.
-                </span>
-              )}
-            </p>
+      <ReasonModal
+        isOpen={!!showStrikeModal}
+        title="Anadir falta"
+        description={showStrikeModal ? `Estas a punto de anadir una falta a ${showStrikeModal.name}. Actualmente tiene ${showStrikeModal.strikes}/3 faltas.` : ''}
+        warningMessage={showStrikeModal?.strikes === 2 ? 'Al anadir esta falta, el usuario sera bloqueado automaticamente.' : undefined}
+        submitLabel="Anadir falta"
+        submitLoadingLabel="Anadiendo..."
+        placeholder="Describe el motivo de la falta..."
+        variant="warning"
+        isLoading={actionLoading === showStrikeModal?.id}
+        onSubmit={handleAddStrike}
+        onClose={() => setShowStrikeModal(null)}
+      />
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Motivo de la falta *
-              </label>
-              <textarea
-                value={strikeReason}
-                onChange={(e) => setStrikeReason(e.target.value)}
-                placeholder="Describe el motivo de la falta..."
-                rows={3}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
+      <ReasonModal
+        isOpen={!!showBanModal}
+        title="Bloquear usuario"
+        description={showBanModal ? `Estas a punto de bloquear a ${showBanModal.name}. Esta accion impedira que acceda a la plataforma.` : ''}
+        submitLabel="Bloquear"
+        submitLoadingLabel="Bloqueando..."
+        placeholder="Describe el motivo del bloqueo..."
+        variant="danger"
+        isLoading={actionLoading === showBanModal?.id}
+        onSubmit={handleBan}
+        onClose={() => setShowBanModal(null)}
+      />
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowStrikeModal(null); setStrikeReason(''); }}
-                className="flex-1 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleAddStrike}
-                disabled={!strikeReason.trim() || actionLoading === showStrikeModal.id}
-                className="flex-1 py-3 bg-amber-500 text-white font-medium rounded-xl hover:bg-amber-600 transition-colors disabled:opacity-50"
-              >
-                {actionLoading === showStrikeModal.id ? 'Anadiendo...' : 'Anadir falta'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ReasonModal
+        isOpen={showBulkBanModal}
+        title="Bloquear usuarios"
+        description={`Bloquear ${selectedUsers.size} usuarios seleccionados.`}
+        submitLabel="Bloquear"
+        placeholder="Motivo del bloqueo..."
+        variant="danger"
+        onSubmit={handleBulkBanSubmit}
+        onClose={() => setShowBulkBanModal(false)}
+      />
 
-      {/* Ban Modal */}
-      {showBanModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6">
-            <h3 className="font-semibold text-gray-900 mb-2">Bloquear usuario</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Estas a punto de bloquear a <strong>{showBanModal.name}</strong>.
-              Esta accion impedira que el usuario acceda a la plataforma.
-            </p>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Motivo del bloqueo *
-              </label>
-              <textarea
-                value={banReason}
-                onChange={(e) => setBanReason(e.target.value)}
-                placeholder="Describe el motivo del bloqueo..."
-                rows={3}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowBanModal(null); setBanReason(''); }}
-                className="flex-1 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleBan}
-                disabled={!banReason.trim() || actionLoading === showBanModal.id}
-                className="flex-1 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-50"
-              >
-                {actionLoading === showBanModal.id ? 'Bloqueando...' : 'Bloquear'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {confirmState && (
+        <ConfirmModal
+          isOpen={true}
+          title={confirmState.title}
+          message={confirmState.message}
+          variant={confirmState.variant}
+          confirmText={confirmState.confirmText}
+          onConfirm={async () => { await confirmState.onConfirm(); setConfirmState(null); }}
+          onClose={() => setConfirmState(null)}
+        />
       )}
     </div>
   );
@@ -735,6 +676,7 @@ function UsersContent() {
 /* ================================================================== */
 
 function ExperiencesContent() {
+  const toast = useToast();
   const [data, setData] = useState<AdminExperiencesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -743,6 +685,10 @@ function ExperiencesContent() {
   const [page, setPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [selectedExperiences, setSelectedExperiences] = useState<Set<string>>(new Set());
+  const [confirmState, setConfirmState] = useState<{
+    title: string; message: string; variant?: 'danger' | 'warning' | 'success' | 'default';
+    confirmText?: string; onConfirm: () => Promise<void>;
+  } | null>(null);
   const [showDetails, setShowDetails] = useState<AdminExperience | null>(null);
 
   const fetchExperiences = useCallback(async () => {
@@ -784,66 +730,62 @@ function ExperiencesContent() {
     fetchExperiences();
   };
 
-  const handleTogglePublished = async (exp: AdminExperience) => {
-    const confirmMsg = exp.published
-      ? `Despublicar "${exp.title}"?`
-      : `Publicar "${exp.title}"?`;
+  const showConfirm = (opts: typeof confirmState) => setConfirmState(opts);
 
-    if (!confirm(confirmMsg)) return;
-
-    setActionLoading(exp.id);
-    try {
-      await adminApi.toggleExperiencePublished(exp.id);
-      fetchExperiences();
-    } catch {
-      alert('Error al cambiar estado');
-    } finally {
-      setActionLoading(null);
-    }
+  const handleTogglePublished = (exp: AdminExperience) => {
+    showConfirm({
+      title: exp.published ? 'Despublicar' : 'Publicar',
+      message: exp.published ? `Despublicar "${exp.title}"?` : `Publicar "${exp.title}"?`,
+      onConfirm: async () => {
+        setActionLoading(exp.id);
+        try { await adminApi.toggleExperiencePublished(exp.id); fetchExperiences(); }
+        catch { toast.error('Error', 'No se pudo cambiar el estado'); }
+        finally { setActionLoading(null); }
+      },
+    });
   };
 
-  const handleDelete = async (exp: AdminExperience) => {
-    if (!confirm(`Eliminar permanentemente "${exp.title}"? Esta accion no se puede deshacer.`)) return;
-
-    setActionLoading(exp.id);
-    try {
-      await adminApi.deleteExperience(exp.id);
-      fetchExperiences();
-    } catch {
-      alert('Error al eliminar experiencia');
-    } finally {
-      setActionLoading(null);
-    }
+  const handleDelete = (exp: AdminExperience) => {
+    showConfirm({
+      title: 'Eliminar experiencia',
+      message: `Eliminar permanentemente "${exp.title}"? Esta accion no se puede deshacer.`,
+      variant: 'danger', confirmText: 'Eliminar',
+      onConfirm: async () => {
+        setActionLoading(exp.id);
+        try { await adminApi.deleteExperience(exp.id); fetchExperiences(); }
+        catch { toast.error('Error', 'No se pudo eliminar la experiencia'); }
+        finally { setActionLoading(null); }
+      },
+    });
   };
 
-  const handleBulkPublish = async () => {
+  const handleBulkPublish = () => {
     if (selectedExperiences.size === 0) return;
-    if (!confirm(`Publicar ${selectedExperiences.size} experiencias seleccionadas?`)) return;
-
-    for (const expId of selectedExperiences) {
-      try {
-        await adminApi.toggleExperiencePublished(expId);
-      } catch {
-        // Continue with next
-      }
-    }
-    setSelectedExperiences(new Set());
-    fetchExperiences();
+    showConfirm({
+      title: 'Publicar experiencias',
+      message: `Publicar ${selectedExperiences.size} experiencias seleccionadas?`,
+      onConfirm: async () => {
+        for (const expId of selectedExperiences) {
+          try { await adminApi.toggleExperiencePublished(expId); } catch { /* continuar */ }
+        }
+        setSelectedExperiences(new Set()); fetchExperiences();
+      },
+    });
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedExperiences.size === 0) return;
-    if (!confirm(`Eliminar ${selectedExperiences.size} experiencias seleccionadas? Esta accion no se puede deshacer.`)) return;
-
-    for (const expId of selectedExperiences) {
-      try {
-        await adminApi.deleteExperience(expId);
-      } catch {
-        // Continue with next
-      }
-    }
-    setSelectedExperiences(new Set());
-    fetchExperiences();
+    showConfirm({
+      title: 'Eliminar experiencias',
+      message: `Eliminar ${selectedExperiences.size} experiencias seleccionadas? Esta accion no se puede deshacer.`,
+      variant: 'danger', confirmText: 'Eliminar',
+      onConfirm: async () => {
+        for (const expId of selectedExperiences) {
+          try { await adminApi.deleteExperience(expId); } catch { /* continuar */ }
+        }
+        setSelectedExperiences(new Set()); fetchExperiences();
+      },
+    });
   };
 
   const toggleSelectExperience = (expId: string) => {
@@ -1119,28 +1061,7 @@ function ExperiencesContent() {
           </div>
         )}
 
-        {/* Pagination */}
-        {data && data.pagination.pages > 1 && (
-          <div className="flex justify-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50"
-            >
-              Anterior
-            </button>
-            <span className="px-4 py-2 text-gray-600">
-              Pagina {page} de {data.pagination.pages}
-            </span>
-            <button
-              onClick={() => setPage((p) => Math.min(data.pagination.pages, p + 1))}
-              disabled={page === data.pagination.pages}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg disabled:opacity-50"
-            >
-              Siguiente
-            </button>
-          </div>
-        )}
+        {data && <AdminPagination page={page} totalPages={data.pagination.pages} onPageChange={setPage} />}
       </div>
 
       {/* Details Modal */}
@@ -1244,6 +1165,18 @@ function ExperiencesContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {confirmState && (
+        <ConfirmModal
+          isOpen={true}
+          title={confirmState.title}
+          message={confirmState.message}
+          variant={confirmState.variant}
+          confirmText={confirmState.confirmText}
+          onConfirm={async () => { await confirmState.onConfirm(); setConfirmState(null); }}
+          onClose={() => setConfirmState(null)}
+        />
       )}
     </div>
   );
