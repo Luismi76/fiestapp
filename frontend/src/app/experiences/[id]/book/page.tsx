@@ -68,6 +68,7 @@ export default function BookingPage() {
   const [offerExperienceId, setOfferExperienceId] = useState<string | null>(null);
   const [myExperiences, setMyExperiences] = useState<Array<{ id: string; title: string; city: string; photos?: string[]; type: string }>>([]);
   const [loadingMyExperiences, setLoadingMyExperiences] = useState(false);
+  const [bookingMode, setBookingMode] = useState<'pago' | 'intercambio' | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [occupancy, setOccupancy] = useState<DateOccupancy[]>([]);
@@ -245,6 +246,11 @@ export default function BookingPage() {
       return;
     }
 
+    if (isFlexible && !bookingMode) {
+      setSubmitError('Selecciona como quieres reservar: pago o intercambio');
+      return;
+    }
+
     // Validar que se ha seleccionado al menos una fecha (#62)
     if (selectedDates.length === 0 && experience.availability && experience.availability.length > 0) {
       setSubmitError('Selecciona al menos una fecha para continuar');
@@ -361,8 +367,10 @@ export default function BookingPage() {
     );
   }
 
-  const isPaid = experience.type === 'pago' || experience.type === 'ambos';
-  const isExchange = experience.type === 'intercambio';
+  const isFlexible = experience.type === 'ambos';
+  const effectiveMode = isFlexible ? bookingMode : (experience.type === 'intercambio' ? 'intercambio' : 'pago');
+  const isPaid = effectiveMode === 'pago';
+  const isExchange = effectiveMode === 'intercambio';
   const totalPrice = priceResult?.totalPrice || (experience.price ? experience.price * participants : 0);
 
   return (
@@ -376,7 +384,7 @@ export default function BookingPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <span className="mobile-header-title">{isExchange ? 'Proponer intercambio' : 'Reservar'}</span>
+          <span className="mobile-header-title">{isExchange ? 'Proponer intercambio' : isFlexible && !bookingMode ? 'Reservar' : 'Reservar'}</span>
           <div className="w-11" />
         </div>
       </header>
@@ -412,6 +420,39 @@ export default function BookingPage() {
             </div>
           </div>
         </div>
+
+        {/* Booking mode selector for flexible experiences */}
+        {isFlexible && (
+          <div className="card p-4">
+            <h2 className="font-semibold text-[#1A1410] mb-3">Como quieres reservar?</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => { setBookingMode('pago'); setOfferExperienceId(null); }}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  bookingMode === 'pago'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-gray-200 hover:border-primary/30'
+                }`}
+              >
+                <div className="text-2xl mb-2">💰</div>
+                <div className="font-semibold text-sm text-[#1A1410]">Pago</div>
+                <div className="text-xs text-[#8B7355] mt-0.5">{experience.price}€ por persona</div>
+              </button>
+              <button
+                onClick={() => setBookingMode('intercambio')}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  bookingMode === 'intercambio'
+                    ? 'border-secondary bg-secondary/5'
+                    : 'border-gray-200 hover:border-secondary/30'
+                }`}
+              >
+                <div className="text-2xl mb-2">🔄</div>
+                <div className="font-semibold text-sm text-[#1A1410]">Intercambio</div>
+                <div className="text-xs text-[#8B7355] mt-0.5">Ofrece tu experiencia</div>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Date selection */}
         <div className="card p-4">
@@ -749,7 +790,12 @@ export default function BookingPage() {
         <div className="flex items-center gap-3 max-w-2xl mx-auto">
           {/* Price summary */}
           <div className="flex-shrink-0">
-            {isPaid && experience.price ? (
+            {isFlexible && !bookingMode ? (
+              <div>
+                <span className="text-lg font-bold text-[#8B7355]">Flexible</span>
+                <p className="text-xs text-[#8B7355]">Elige una opcion</p>
+              </div>
+            ) : isPaid && experience.price ? (
               <div>
                 <span className="text-2xl font-bold text-[#1A1410]">
                   {priceLoading ? (
@@ -762,10 +808,15 @@ export default function BookingPage() {
                   {participants} pers. × {priceResult?.pricePerPerson?.toFixed(0) || experience.price}€
                 </p>
               </div>
-            ) : (
+            ) : isExchange ? (
               <div>
                 <span className="text-lg font-bold text-emerald">Intercambio</span>
                 <p className="text-xs text-[#8B7355]">Sin coste</p>
+              </div>
+            ) : (
+              <div>
+                <span className="text-lg font-bold text-[#8B7355]">Flexible</span>
+                <p className="text-xs text-[#8B7355]">Elige una opcion</p>
               </div>
             )}
           </div>
@@ -782,7 +833,7 @@ export default function BookingPage() {
                 Enviando...
               </span>
             ) : (
-              isPaid ? 'Enviar solicitud' : 'Proponer intercambio'
+              isExchange ? 'Proponer intercambio' : 'Enviar solicitud'
             )}
           </button>
         </div>

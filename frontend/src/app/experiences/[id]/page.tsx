@@ -577,7 +577,7 @@ export default function ExperienceDetailPage() {
               href={`/experiences/${experience.id}/book`}
               className="block w-full py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-center text-lg"
             >
-              {experience.type === 'intercambio' ? 'Proponer intercambio' : 'Reservar ahora'}
+              {experience.type === 'intercambio' ? 'Proponer intercambio' : experience.type === 'ambos' ? 'Reservar o intercambiar' : 'Reservar ahora'}
             </Link>
           )}
         </div>
@@ -611,7 +611,7 @@ export default function ExperienceDetailPage() {
               href={`/experiences/${experience.id}/book`}
               className="flex-1 py-4 bg-primary text-white font-semibold rounded-full hover:bg-primary/90 transition-colors text-center ripple"
             >
-              {experience.type === 'intercambio' ? 'Proponer intercambio' : 'Reservar ahora'}
+              {experience.type === 'intercambio' ? 'Proponer intercambio' : experience.type === 'ambos' ? 'Reservar o intercambiar' : 'Reservar ahora'}
             </Link>
           )}
         </div>
