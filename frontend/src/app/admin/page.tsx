@@ -274,7 +274,7 @@ export default function AdminDashboardPage() {
   return (
     <AdminLayout
       section="inicio"
-      title="Dashboard"
+      title="Panel"
       alerts={alerts ? {
         disputes: alerts.disputes.total,
         reports: alerts.reports.pending,
