@@ -258,19 +258,27 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
       {/* ───── MOBILE LAYOUT (< md) ───── */}
       <div className="md:hidden flex flex-col min-h-screen">
         {/* Mobile top header */}
-        <header className="sticky top-0 z-40 h-14 bg-white border-b border-gray-200 flex items-center px-4">
-          <span className="font-bold text-sm" style={{ color: '#8B5CF6' }}>
-            Admin
-          </span>
-          <span className="flex-1 text-center font-semibold text-gray-900 text-sm">
-            {title}
-          </span>
-          <Link
-            href="/dashboard"
-            className="text-red-500 text-xs font-medium transition-colors hover:text-red-600"
-          >
-            Salir
-          </Link>
+        <header className="sticky top-0 z-40 h-14 bg-white border-b border-gray-200">
+          <div className="h-full grid grid-cols-3 items-center px-4">
+            <div className="flex items-center gap-1.5">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-[11px] font-bold">F</span>
+              </div>
+              <span className="text-xs font-bold text-gray-600 tracking-wide">ADMIN</span>
+            </div>
+            <h1 className="text-center font-semibold text-gray-900 text-sm truncate">
+              {title}
+            </h1>
+            <div className="flex justify-end">
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                <ArrowLeftIcon className="w-3.5 h-3.5" />
+                Salir
+              </Link>
+            </div>
+          </div>
         </header>
 
         {/* Mobile content */}
@@ -351,10 +359,14 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
         {/* Desktop sidebar */}
         <aside className="fixed left-0 top-0 bottom-0 w-56 bg-white border-r border-gray-200 flex flex-col z-40">
           {/* Sidebar title */}
-          <div className="h-14 flex items-center px-4 border-b border-gray-100">
-            <span className="font-bold text-base" style={{ color: '#8B5CF6' }}>
-              FiestApp Admin
-            </span>
+          <div className="h-14 flex items-center gap-2.5 px-4 border-b border-gray-100">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm font-bold">F</span>
+            </div>
+            <div>
+              <span className="font-bold text-sm text-gray-900 leading-tight block">FiestApp</span>
+              <span className="text-[10px] text-gray-400 font-medium leading-tight block">Panel Admin</span>
+            </div>
           </div>
 
           {/* Sidebar navigation */}
