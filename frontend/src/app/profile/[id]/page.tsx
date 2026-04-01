@@ -675,7 +675,7 @@ export default function PublicProfilePage() {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="text-sm text-gray-500">Correo</p>
                     <p className="font-medium text-gray-900">{currentUser.email}</p>
                   </div>
                 </div>

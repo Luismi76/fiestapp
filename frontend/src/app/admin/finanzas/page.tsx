@@ -311,7 +311,7 @@ const accountingApi = {
     const { data } = await api.get(`/admin/accounting/vat-summary?year=${year}&quarter=${quarter}`);
     const typeLabels: Record<string, string> = {
       platform_fee: 'Comisiones plataforma',
-      topup: 'Recargas wallet',
+      topup: 'Recargas monedero',
       experience_payment: 'Pagos experiencias',
       payment: 'Pagos (escrow)',
       refund: 'Reembolsos',
@@ -687,7 +687,7 @@ function ResumenTab() {
             }
           />
           <KpiCard
-            label="Saldo total wallets"
+            label="Saldo total monederos"
             value={formatEur(kpis.totalWalletBalance)}
             icon={
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 md:w-5 md:h-5 text-blue-600">
@@ -710,7 +710,7 @@ function ResumenTab() {
           <div className="grid grid-cols-3 gap-3 md:gap-4">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4 text-center">
               <div className="text-lg md:text-xl font-bold text-gray-900">{walletStats.walletsWithBalance}<span className="text-sm font-normal text-gray-400">/{walletStats.totalWallets}</span></div>
-              <div className="text-[10px] md:text-xs text-gray-500 mt-0.5">Wallets activos</div>
+              <div className="text-[10px] md:text-xs text-gray-500 mt-0.5">Monederos activos</div>
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4 text-center">
               <div className="text-lg md:text-xl font-bold text-gray-900">{formatEur(walletStats.avgBalance)}</div>
@@ -880,7 +880,7 @@ function TransactionDetailPanel({ tx, timeline, timelineLoading }: {
         )}
         {tx.matchId && (
           <div>
-            <span className="text-gray-400 block">Match ID</span>
+            <span className="text-gray-400 block">ID Reserva</span>
             <span className="font-mono text-gray-700 break-all">{tx.matchId.slice(0, 8)}...</span>
           </div>
         )}

@@ -11,7 +11,7 @@ import { notificationsApi, Notification, NotificationType } from '@/lib/api';
 const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   system: { label: 'Sistema', color: '#8B5CF6', bg: '#F3F0FF' },
   warning: { label: 'Advertencia', color: '#D97706', bg: '#FFFBEB' },
-  strike: { label: 'Strike', color: '#DC2626', bg: '#FEF2F2' },
+  strike: { label: 'Falta', color: '#DC2626', bg: '#FEF2F2' },
   match_request: { label: 'Solicitud', color: '#8B5CF6', bg: '#F3F0FF' },
   match_accepted: { label: 'Aceptada', color: '#059669', bg: '#ECFDF5' },
   match_rejected: { label: 'Rechazada', color: '#DC2626', bg: '#FEF2F2' },

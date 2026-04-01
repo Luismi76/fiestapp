@@ -10,7 +10,7 @@ import { API_URL } from '@/lib/api';
 import Image from 'next/image';
 
 const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().email('Correo no valido'),
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
 });
 
@@ -53,7 +53,7 @@ export default function LoginPage() {
       const message = err instanceof Error ? err.message : '';
       const status = (err as Error & { status?: number }).status;
       if (message.includes('Invalid credentials')) {
-        setError('Email o contraseña incorrectos. Comprueba tus datos e inténtalo de nuevo.');
+        setError('Correo o contrasena incorrectos. Comprueba tus datos e intentalo de nuevo.');
       } else if (message.includes('verifica tu email')) {
         setError(message);
       } else if (message.includes('suspendida')) {
@@ -154,7 +154,7 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               {/* Email field */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Correo electronico</label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -168,7 +168,7 @@ export default function LoginPage() {
                     className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 border rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all ${
                       errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-200' : 'border-gray-200'
                     }`}
-                    placeholder="tu@email.com"
+                    placeholder="tu@correo.com"
                     aria-invalid={errors.email ? true : undefined}
                     aria-describedby={errors.email ? 'login-email-error' : undefined}
                   />

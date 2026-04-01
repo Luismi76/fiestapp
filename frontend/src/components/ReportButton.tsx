@@ -112,7 +112,7 @@ export default function ReportButton({ type, id, className = '' }: ReportButtonP
       >
         {/* Header */}
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Reportar {typeLabel}</h2>
+          <h2 className="font-semibold text-gray-900">Denunciar {typeLabel}</h2>
           <button
             onClick={handleClose}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
@@ -130,7 +130,7 @@ export default function ReportButton({ type, id, className = '' }: ReportButtonP
                 <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
               </svg>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Reporte enviado</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">Denuncia enviada</h3>
             <p className="text-gray-500 text-sm">Gracias por ayudarnos a mantener la comunidad segura.</p>
           </div>
         ) : (

@@ -12,7 +12,7 @@ import Image from 'next/image';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-  email: z.string().email('Email inválido'),
+  email: z.string().email('Correo no valido'),
   age: z.coerce.number().min(18, 'Debes ser mayor de 18 años'),
   city: z.string().min(2, 'La ciudad es requerida'),
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
@@ -207,7 +207,7 @@ export default function RegisterPage() {
 
               {/* Email field */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Correo electronico <span className="text-red-400">*</span></label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -219,7 +219,7 @@ export default function RegisterPage() {
                     {...register('email')}
                     type="email"
                     className={`${inputBaseClass} ${errors.email ? inputErrorClass : inputNormalClass}`}
-                    placeholder="tu@email.com"
+                    placeholder="tu@correo.com"
                     aria-invalid={errors.email ? true : undefined}
                     aria-describedby={errors.email ? 'register-email-error' : undefined}
                   />

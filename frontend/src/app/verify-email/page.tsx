@@ -70,7 +70,7 @@ function VerifyEmailContent() {
               <path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold mb-1">Verificación de Email</h1>
+          <h1 className="text-2xl font-bold mb-1">Verificacion de correo</h1>
           <p className="text-white/70 text-sm">Confirmando tu cuenta en FiestApp</p>
         </div>
       </div>
@@ -95,7 +95,7 @@ function VerifyEmailContent() {
                   <path fillRule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">Email verificado</h2>
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">Correo verificado</h2>
               <p className="text-gray-500 mb-2">{message}</p>
               <p className="text-sm text-gray-400 mb-4">Redirigiendo al login en {countdown}s...</p>
               <Link
