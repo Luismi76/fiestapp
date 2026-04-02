@@ -107,6 +107,12 @@ export default function Home() {
             >
               Crear cuenta
             </Link>
+            <Link
+              href="/guia"
+              className="block w-full text-white/80 font-medium py-2 text-center hover:text-white transition-colors text-sm"
+            >
+              ¿Cómo funciona? Ver guía de uso
+            </Link>
           </div>
         </div>
       </div>
@@ -132,6 +138,12 @@ export default function Home() {
               className="block w-full btn btn-secondary text-center"
             >
               Crear cuenta
+            </Link>
+            <Link
+              href="/guia"
+              className="block w-full text-center text-sm text-[#8B7355] hover:text-[#2D2318] transition-colors py-1"
+            >
+              ¿Cómo funciona? Ver guía de uso
             </Link>
           </div>
 

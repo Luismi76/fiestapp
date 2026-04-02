@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import MainLayout from '@/components/MainLayout';
+import { useAuth } from '@/contexts/AuthContext';
 
 type SectionId = string;
 
@@ -355,6 +356,7 @@ function AnfitrionSections({ openSections, toggle }: { openSections: Set<Section
 /* ─── PAGINA PRINCIPAL ─── */
 
 export default function GuiaPage() {
+  const { isAuthenticated } = useAuth();
   const [tab, setTab] = useState<'viajero' | 'anfitrion'>('viajero');
   const [openSections, setOpenSections] = useState<Set<SectionId>>(new Set());
 
@@ -388,7 +390,7 @@ export default function GuiaPage() {
         <div className="bg-white/95 backdrop-blur-md border-b border-[var(--border-light)] sticky top-0 z-10">
           <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
             <Link
-              href="/dashboard"
+              href={isAuthenticated ? '/dashboard' : '/'}
               className="w-10 h-10 flex items-center justify-center bg-[var(--surface-tile)] rounded-full text-[var(--text-secondary)] hover:bg-[var(--surface-warm)] transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">

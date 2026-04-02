@@ -222,6 +222,15 @@ function Header() {
                         </svg>
                         Estadísticas
                       </Link>
+                      <Link
+                        href="/guia"
+                        className="flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+                        </svg>
+                        Guía de uso
+                      </Link>
                       <div className="border-t border-gray-100 mt-2 pt-2 px-2">
                         <InstallButton />
                       </div>
@@ -374,6 +383,22 @@ function Header() {
                   </Link>
                 </>
               )}
+
+              <div className="border-t border-gray-100 mt-4 pt-4" />
+              <Link
+                href="/guia"
+                className={cn(
+                  'flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium transition-colors',
+                  isActive('/guia')
+                    ? 'text-primary bg-primary/10'
+                    : 'text-gray-700 hover:bg-gray-100'
+                )}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+                </svg>
+                Guía de uso
+              </Link>
             </nav>
 
             {isAuthenticated && (
