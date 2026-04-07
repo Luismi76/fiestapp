@@ -18,7 +18,7 @@ const DEFAULTS: Record<ConfigKey, { value: string; description: string }> = {
   },
   [ConfigKey.MIN_TOPUP]: {
     value: '4.5',
-    description: 'Recarga mínima del monedero (en euros)',
+    description: 'Recarga mínima del monedero (en euros). Se ajusta automáticamente para cubrir al menos 3 operaciones.',
   },
   [ConfigKey.VAT_RATE]: {
     value: '0.21',
@@ -117,10 +117,12 @@ export class PlatformConfigService implements OnModuleInit {
   }
 
   /**
-   * Recarga mínima (€)
+   * Recarga mínima (€) — siempre cubre al menos 3 operaciones
    */
   get minTopup(): number {
-    return this.getNumber(ConfigKey.MIN_TOPUP);
+    const configured = this.getNumber(ConfigKey.MIN_TOPUP);
+    const minRequired = Math.round(this.platformFee * 3 * 100) / 100;
+    return Math.max(configured, minRequired);
   }
 
   /**
