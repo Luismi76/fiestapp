@@ -7,11 +7,16 @@ import { FinancialReportService } from './financial-report.service';
 import { AccountingService } from './accounting.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { CancellationsModule } from '../cancellations/cancellations.module';
+import { WalletModule } from '../wallet/wallet.module';
 
 @Module({
   imports: [
     PrismaModule,
     NotificationsModule,
+    CancellationsModule,
+    WalletModule,
+    ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

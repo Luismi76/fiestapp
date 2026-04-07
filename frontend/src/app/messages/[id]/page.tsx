@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { matchesApi, reviewsApi, walletApi, chatApi, quickRepliesApi, WalletInfo, disputesApi } from '@/lib/api';
+import { matchesApi, reviewsApi, walletApi, chatApi, quickRepliesApi, WalletInfo, disputesApi, cancellationsApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessages } from '@/contexts/MessageContext';
 import { MatchDetail, Message } from '@/types/match';
@@ -362,12 +362,46 @@ export default function ChatPage() {
 
   const handleCancel = async () => {
     if (!match) return;
-    if (!confirm('¿Estás seguro de que quieres cancelar?')) return;
+
     try {
+      // Verificar advertencia de cancelaciones
+      const { data: warning } = await cancellationsApi.getWarning();
+
+      if (warning.warningLevel === 'blocked') {
+        setError(warning.message || 'Has alcanzado el límite de cancelaciones.');
+        return;
+      }
+
+      // Obtener preview de reembolso
+      let confirmMsg = '¿Estás seguro de que quieres cancelar?';
+      try {
+        const { data: preview } = await cancellationsApi.preview(match.id);
+        if (preview && preview.refund.refundAmount > 0) {
+          const netAmount = preview.stripeInfo
+            ? preview.stripeInfo.netRefundAmount
+            : preview.refund.refundAmount;
+          confirmMsg = `¿Estás seguro de que quieres cancelar?\n\nReembolso: ${preview.refund.refundPercentage}% (${netAmount.toFixed(2)}€)`;
+          if (preview.stripeInfo && preview.stripeInfo.estimatedStripeFee > 0) {
+            confirmMsg += `\nComisión de procesamiento: -${preview.stripeInfo.estimatedStripeFee.toFixed(2)}€`;
+          }
+        } else if (preview && preview.refund.refundPercentage === 0) {
+          confirmMsg = `¿Estás seguro de que quieres cancelar?\n\nSegún la política "${preview.policyInfo.name}", no recibirás reembolso.`;
+        }
+      } catch {
+        // Si falla el preview, continuar con mensaje genérico
+      }
+
+      if (warning.warningLevel === 'warning') {
+        confirmMsg += `\n\n⚠️ ${warning.message}`;
+      }
+
+      if (!confirm(confirmMsg)) return;
+
       await matchesApi.cancel(match.id);
       setMatch(prev => prev ? { ...prev, status: 'cancelled' } : prev);
-    } catch {
-      setError('No se pudo cancelar');
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'No se pudo cancelar';
+      setError(errorMsg);
     }
   };
 

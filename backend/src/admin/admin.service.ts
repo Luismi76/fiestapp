@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
@@ -7,15 +8,24 @@ import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CancellationsService } from '../cancellations/cancellations.service';
+import { WalletService } from '../wallet/wallet.service';
+import Stripe from 'stripe';
+import { ConfigService } from '@nestjs/config';
 
 const MAX_STRIKES = 3;
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
     private notificationsService: NotificationsService,
+    private cancellationsService: CancellationsService,
+    private walletService: WalletService,
+    private configService: ConfigService,
   ) {}
 
   /**
@@ -39,11 +49,19 @@ export class AdminService {
     ]);
 
     return {
-      disputes: { open: openDisputes, underReview: underReviewDisputes, total: openDisputes + underReviewDisputes },
+      disputes: {
+        open: openDisputes,
+        underReview: underReviewDisputes,
+        total: openDisputes + underReviewDisputes,
+      },
       reports: { pending: pendingReports },
       verifications: { pending: pendingVerifications },
       users: { withStrikes: usersWithStrikes, banned: bannedUsers },
-      totalPending: openDisputes + underReviewDisputes + pendingReports + pendingVerifications,
+      totalPending:
+        openDisputes +
+        underReviewDisputes +
+        pendingReports +
+        pendingVerifications,
     };
   }
 
@@ -97,13 +115,19 @@ export class AdminService {
     const [platformFees, topups, totalWalletBalance] = await Promise.all([
       // Comisiones de plataforma (1.5€ por acuerdo) - valores negativos, tomamos el absoluto
       this.prisma.transaction.aggregate({
-        where: { type: 'platform_fee', status: { in: ['completed', 'held', 'released'] } },
+        where: {
+          type: 'platform_fee',
+          status: { in: ['completed', 'held', 'released'] },
+        },
         _sum: { amount: true },
         _count: { amount: true },
       }),
       // Recargas de usuarios
       this.prisma.transaction.aggregate({
-        where: { type: 'topup', status: { in: ['completed', 'held', 'released'] } },
+        where: {
+          type: 'topup',
+          status: { in: ['completed', 'held', 'released'] },
+        },
         _sum: { amount: true },
         _count: { amount: true },
       }),
@@ -1207,5 +1231,181 @@ export class AdminService {
     }
 
     return result.count;
+  }
+
+  /**
+   * Cancela un festival por fuerza mayor y reembolsa todos los matches afectados
+   */
+  async cancelFestival(
+    festivalId: string,
+    reason?: string,
+  ): Promise<{ affectedMatches: number; totalRefunded: number }> {
+    const festival = await this.prisma.festival.findUnique({
+      where: { id: festivalId },
+    });
+
+    if (!festival) {
+      throw new NotFoundException('Festival no encontrado');
+    }
+
+    if ((festival as Record<string, unknown>).status === 'CANCELLED') {
+      throw new BadRequestException('Este festival ya está cancelado');
+    }
+
+    // Marcar festival como cancelado
+    await this.prisma.festival.update({
+      where: { id: festivalId },
+      data: { status: 'CANCELLED' },
+    });
+
+    // Buscar todos los matches activos vinculados a experiencias de este festival
+    const affectedMatches = await this.prisma.match.findMany({
+      where: {
+        experience: { festivalId },
+        status: { in: ['pending', 'accepted'] },
+      },
+      include: {
+        experience: {
+          select: { title: true, city: true, cancellationPolicy: true },
+        },
+        host: { select: { id: true, name: true, email: true } },
+        requester: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    let totalRefunded = 0;
+
+    for (const match of affectedMatches) {
+      try {
+        // Calcular reembolso con fuerza mayor (100% siempre)
+        if (match.totalPrice && match.startDate) {
+          const refundCalc = this.cancellationsService.calculateRefund(
+            match.experience.cancellationPolicy,
+            match.totalPrice,
+            match.startDate,
+            new Date(),
+            true, // forceMajeure
+          );
+
+          // Registrar cancelación
+          await this.cancellationsService.recordCancellation(
+            match.id,
+            'system',
+            reason || `Festival "${festival.name}" cancelado por fuerza mayor`,
+            refundCalc,
+            undefined,
+            true, // forceMajeure
+          );
+
+          // Procesar reembolso Stripe si hay pago
+          if (
+            match.paymentStatus === 'held' ||
+            match.paymentStatus === 'paid' ||
+            match.paymentStatus === 'released'
+          ) {
+            const paymentTx = await this.prisma.transaction.findFirst({
+              where: {
+                matchId: match.id,
+                type: 'experience_payment',
+                status: { in: ['held', 'completed', 'released'] },
+              },
+            });
+
+            if (paymentTx?.stripeId) {
+              try {
+                const stripeKey =
+                  this.configService.get<string>('STRIPE_SECRET_KEY');
+                if (stripeKey) {
+                  const stripe = new Stripe(stripeKey);
+                  const pi = await stripe.paymentIntents.retrieve(
+                    paymentTx.stripeId,
+                  );
+
+                  if (pi.status === 'requires_capture') {
+                    await stripe.paymentIntents.cancel(paymentTx.stripeId);
+                  } else if (pi.status === 'succeeded') {
+                    await stripe.refunds.create({
+                      payment_intent: paymentTx.stripeId,
+                      reason: 'requested_by_customer',
+                    });
+                  }
+                }
+
+                await this.prisma.transaction.create({
+                  data: {
+                    userId: match.requesterId,
+                    matchId: match.id,
+                    type: 'refund',
+                    amount: match.totalPrice,
+                    status: 'completed',
+                    description: `Reembolso por fuerza mayor: festival "${festival.name}" cancelado`,
+                  },
+                });
+
+                await this.prisma.transaction.update({
+                  where: { id: paymentTx.id },
+                  data: { status: 'refunded' },
+                });
+
+                totalRefunded += match.totalPrice;
+              } catch (error) {
+                this.logger.error(
+                  `Error procesando reembolso para match ${match.id}:`,
+                  error,
+                );
+              }
+            }
+          }
+
+          // Devolver comisiones de plataforma a ambas partes
+          await this.walletService.refundPlatformFee(match.requesterId, match.id);
+          await this.walletService.refundPlatformFee(match.hostId, match.id);
+        }
+
+        // Actualizar estado del match
+        await this.prisma.match.update({
+          where: { id: match.id },
+          data: {
+            status: 'cancelled',
+            paymentStatus:
+              match.totalPrice && match.totalPrice > 0
+                ? 'refunded'
+                : match.paymentStatus,
+          },
+        });
+
+        // Notificar a ambas partes
+        const cancelReason =
+          reason || `El festival "${festival.name}" ha sido cancelado`;
+        for (const user of [match.requester, match.host]) {
+          await this.notificationsService.create({
+            userId: user.id,
+            type: 'system',
+            title: 'Festival cancelado - Reembolso procesado',
+            message: `${cancelReason}. Tu reserva para "${match.experience.title}" ha sido cancelada y se ha procesado el reembolso completo.`,
+            data: {
+              matchId: match.id,
+              festivalId,
+              forceMajeure: true,
+              refundPercentage: 100,
+            },
+          });
+        }
+      } catch (error) {
+        this.logger.error(
+          `Error cancelando match ${match.id} por fuerza mayor:`,
+          error,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Festival "${festival.name}" cancelado: ${affectedMatches.length} matches afectados, ${totalRefunded}€ reembolsados`,
+    );
+
+    return {
+      affectedMatches: affectedMatches.length,
+      totalRefunded: Math.round(totalRefunded * 100) / 100,
+    };
   }
 }

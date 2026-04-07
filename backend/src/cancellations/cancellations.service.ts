@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CancellationPolicy } from '@prisma/client';
 
 export interface RefundCalculation {
@@ -21,7 +22,10 @@ export interface RefundCalculation {
 export class CancellationsService {
   private readonly logger = new Logger(CancellationsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   /**
    * Calcula el reembolso según la política de cancelación
@@ -29,23 +33,40 @@ export class CancellationsService {
    * @param originalAmount - Monto original pagado
    * @param startDate - Fecha de inicio de la experiencia
    * @param cancelDate - Fecha de cancelación (por defecto ahora)
+   * @param forceMajeure - Si es true, reembolso 100% independientemente de la política
    */
   calculateRefund(
     policy: CancellationPolicy,
     originalAmount: number,
     startDate: Date,
     cancelDate: Date = new Date(),
+    forceMajeure: boolean = false,
   ): RefundCalculation {
     const hoursUntilStart =
       (startDate.getTime() - cancelDate.getTime()) / (1000 * 60 * 60);
 
     let refundPercentage = 0;
 
+    // Fuerza mayor: reembolso total siempre
+    if (forceMajeure) {
+      refundPercentage = 100;
+      const refundAmount = originalAmount;
+      return {
+        refundPercentage,
+        refundAmount,
+        penaltyAmount: 0,
+        policy,
+        hoursUntilStart: Math.max(0, hoursUntilStart),
+      };
+    }
+
     switch (policy) {
       case CancellationPolicy.FLEXIBLE:
-        // 100% hasta 24h antes
+        // 100% hasta 24h, 50% entre 12-24h, 0% menos de 12h
         if (hoursUntilStart >= 24) {
           refundPercentage = 100;
+        } else if (hoursUntilStart >= 12) {
+          refundPercentage = 50;
         } else {
           refundPercentage = 0;
         }
@@ -81,6 +102,8 @@ export class CancellationsService {
         // Por defecto, usar política flexible
         if (hoursUntilStart >= 24) {
           refundPercentage = 100;
+        } else if (hoursUntilStart >= 12) {
+          refundPercentage = 50;
         } else {
           refundPercentage = 0;
         }
@@ -115,7 +138,8 @@ export class CancellationsService {
           description: 'Cancelación gratuita hasta 24 horas antes',
           rules: [
             'Reembolso del 100% si cancelas al menos 24 horas antes',
-            'Sin reembolso si cancelas con menos de 24 horas de antelación',
+            'Reembolso del 50% si cancelas entre 12 y 24 horas antes',
+            'Sin reembolso si cancelas con menos de 12 horas de antelación',
           ],
         };
 
@@ -157,7 +181,8 @@ export class CancellationsService {
           description: 'Cancelación gratuita hasta 24 horas antes',
           rules: [
             'Reembolso del 100% si cancelas al menos 24 horas antes',
-            'Sin reembolso si cancelas con menos de 24 horas de antelación',
+            'Reembolso del 50% si cancelas entre 12 y 24 horas antes',
+            'Sin reembolso si cancelas con menos de 12 horas de antelación',
           ],
         };
     }
@@ -171,6 +196,8 @@ export class CancellationsService {
     cancelledById: string,
     reason: string | undefined,
     refundCalculation: RefundCalculation,
+    cancelledByRole?: 'host' | 'requester',
+    forceMajeure?: boolean,
   ) {
     return this.prisma.cancellation.create({
       data: {
@@ -183,6 +210,8 @@ export class CancellationsService {
         refundPercentage: refundCalculation.refundPercentage,
         refundAmount: refundCalculation.refundAmount,
         penaltyAmount: refundCalculation.penaltyAmount,
+        cancelledByRole,
+        forceMajeure: forceMajeure ?? false,
         processedAt: refundCalculation.refundAmount > 0 ? new Date() : null,
       },
     });
@@ -269,11 +298,123 @@ export class CancellationsService {
   }
 
   /**
+   * Verifica el estado de cancelaciones de un usuario y devuelve advertencia/bloqueo
+   */
+  async getCancellationWarning(userId: string): Promise<{
+    canCancel: boolean;
+    warningLevel: 'none' | 'warning' | 'blocked';
+    recentCount: number;
+    limit: number;
+    message?: string;
+  }> {
+    const limit = 3;
+    const days = 30;
+    const recentCount = await this.prisma.cancellation.count({
+      where: {
+        cancelledById: userId,
+        createdAt: { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) },
+      },
+    });
+
+    if (recentCount >= limit) {
+      return {
+        canCancel: false,
+        warningLevel: 'blocked',
+        recentCount,
+        limit,
+        message: `Has alcanzado el límite de ${limit} cancelaciones en los últimos ${days} días. Contacta con soporte si necesitas ayuda.`,
+      };
+    }
+
+    if (recentCount >= limit - 1) {
+      return {
+        canCancel: true,
+        warningLevel: 'warning',
+        recentCount,
+        limit,
+        message: `Esta es tu cancelación ${recentCount + 1} de ${limit} permitidas en 30 días. Una más y tu cuenta podría ser restringida.`,
+      };
+    }
+
+    return { canCancel: true, warningLevel: 'none', recentCount, limit };
+  }
+
+  /**
+   * Verifica y penaliza a hosts con demasiadas cancelaciones
+   * - 2 cancelaciones en 30 días: advertencia
+   * - 3+ cancelaciones en 30 días: auto-strike + despublicar experiencias si >= 3 strikes
+   */
+  async checkAndPenalizeHost(userId: string): Promise<void> {
+    const days = 30;
+    const hostCancellations = await this.prisma.cancellation.count({
+      where: {
+        cancelledById: userId,
+        cancelledByRole: 'host',
+        createdAt: { gte: new Date(Date.now() - days * 24 * 60 * 60 * 1000) },
+      },
+    });
+
+    if (hostCancellations >= 3) {
+      // Auto-strike
+      const user = await this.prisma.user.update({
+        where: { id: userId },
+        data: { strikes: { increment: 1 } },
+      });
+
+      this.logger.warn(
+        `Host ${userId} recibió auto-strike por ${hostCancellations} cancelaciones en ${days} días (total strikes: ${user.strikes})`,
+      );
+
+      // Notificar al host
+      await this.notificationsService.create({
+        userId,
+        type: 'system',
+        title: 'Penalización por cancelaciones',
+        message: `Has acumulado ${hostCancellations} cancelaciones como anfitrión en los últimos ${days} días. Se ha registrado una advertencia en tu cuenta.`,
+        data: { hostCancellations, strikes: user.strikes },
+      });
+
+      // Si tiene 3+ strikes, despublicar todas sus experiencias
+      if (user.strikes >= 3) {
+        await this.prisma.experience.updateMany({
+          where: { hostId: userId, published: true },
+          data: { published: false },
+        });
+
+        await this.notificationsService.create({
+          userId,
+          type: 'system',
+          title: 'Experiencias despublicadas',
+          message: 'Tus experiencias han sido despublicadas debido a cancelaciones reiteradas. Contacta con soporte para más información.',
+          data: { strikes: user.strikes },
+        });
+
+        this.logger.warn(`Host ${userId} alcanzó ${user.strikes} strikes: experiencias despublicadas`);
+      }
+    } else if (hostCancellations >= 2) {
+      // Advertencia
+      await this.notificationsService.create({
+        userId,
+        type: 'system',
+        title: 'Aviso: cancelaciones frecuentes',
+        message: `Has cancelado ${hostCancellations} experiencias como anfitrión en los últimos ${days} días. Una más y recibirás una penalización en tu cuenta.`,
+        data: { hostCancellations },
+      });
+    }
+  }
+
+  /**
    * Calcula preview del reembolso para mostrar al usuario antes de cancelar
+   * Incluye estimación de costes Stripe para transparencia
    */
   async previewCancellation(matchId: string): Promise<{
     refund: RefundCalculation;
     policyInfo: ReturnType<typeof this.getPolicyDescription>;
+    stripeInfo: {
+      isStripeHold: boolean;
+      estimatedStripeFee: number;
+      netRefundAmount: number;
+    };
   } | null> {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
@@ -296,6 +437,105 @@ export class CancellationsService {
     );
     const policyInfo = this.getPolicyDescription(policy);
 
-    return { refund, policyInfo };
+    // Determinar si el pago está en stripe_hold o platform_hold
+    let isStripeHold = false;
+    if (refund.refundAmount > 0) {
+      const paymentTx = await this.prisma.transaction.findFirst({
+        where: {
+          matchId,
+          type: 'experience_payment',
+          status: { in: ['held', 'completed', 'released'] },
+        },
+      });
+      isStripeHold =
+        paymentTx?.description?.includes('[stripe_hold]') || false;
+    }
+
+    // Stripe no devuelve su comisión en refunds de pagos ya capturados
+    const estimatedStripeFee =
+      isStripeHold || refund.refundAmount === 0
+        ? 0
+        : Math.round((refund.refundAmount * 0.015 + 0.25) * 100) / 100;
+    const netRefundAmount =
+      Math.round((refund.refundAmount - estimatedStripeFee) * 100) / 100;
+
+    return {
+      refund,
+      policyInfo,
+      stripeInfo: { isStripeHold, estimatedStripeFee, netRefundAmount },
+    };
+  }
+
+  /**
+   * Obtiene las políticas de cancelación disponibles para un usuario.
+   * NON_REFUNDABLE requiere: verificationLevel >= IDENTITY, avgRating >= 4.0, 3+ experiencias completadas como host
+   */
+  async getAvailablePolicies(userId: string): Promise<{
+    policies: CancellationPolicy[];
+    restrictions: Record<string, { allowed: boolean; reason?: string }>;
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { verificationLevel: true },
+    });
+
+    // Calcular avgRating del host
+    const ratingAgg = await this.prisma.review.aggregate({
+      where: {
+        experience: { hostId: userId },
+      },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+
+    // Contar experiencias completadas como host
+    const completedAsHost = await this.prisma.match.count({
+      where: { hostId: userId, status: 'completed' },
+    });
+
+    const avgRating = ratingAgg._avg.rating || 0;
+    const verificationLevel = user?.verificationLevel || 'NONE';
+    const verificationMeetsRequirement =
+      verificationLevel === 'IDENTITY' || verificationLevel === 'FULL';
+
+    const nonRefundableAllowed =
+      verificationMeetsRequirement && avgRating >= 4.0 && completedAsHost >= 3;
+
+    const restrictions: Record<string, { allowed: boolean; reason?: string }> = {
+      FLEXIBLE: { allowed: true },
+      MODERATE: { allowed: true },
+      STRICT: { allowed: true },
+      NON_REFUNDABLE: {
+        allowed: nonRefundableAllowed,
+        reason: nonRefundableAllowed
+          ? undefined
+          : this.getNonRefundableRestrictionReason(
+              verificationMeetsRequirement,
+              avgRating,
+              completedAsHost,
+            ),
+      },
+    };
+
+    const policies = Object.entries(restrictions)
+      .filter(([, v]) => v.allowed)
+      .map(([k]) => k as CancellationPolicy);
+
+    return { policies, restrictions };
+  }
+
+  private getNonRefundableRestrictionReason(
+    verificationOk: boolean,
+    avgRating: number,
+    completedAsHost: number,
+  ): string {
+    const reasons: string[] = [];
+    if (!verificationOk)
+      reasons.push('verificación de identidad');
+    if (avgRating < 4.0)
+      reasons.push(`valoración media >= 4.0 (actual: ${avgRating.toFixed(1)})`);
+    if (completedAsHost < 3)
+      reasons.push(`3+ experiencias completadas (actual: ${completedAsHost})`);
+    return `Requiere: ${reasons.join(', ')}`;
   }
 }

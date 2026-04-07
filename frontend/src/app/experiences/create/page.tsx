@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
-import { experiencesApi, uploadsApi } from '@/lib/api';
+import { experiencesApi, uploadsApi, cancellationsApi } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
 import { ExperienceType, CreateExperienceData, CancellationPolicy } from '@/types/experience';
@@ -159,6 +159,7 @@ export default function CreateExperiencePage() {
   const [cityError, setCityError] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
   const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>('FLEXIBLE');
+  const [policyRestrictions, setPolicyRestrictions] = useState<Record<string, { allowed: boolean; reason?: string }>>({});
   const draftLoaded = useRef(false);
 
   const {
@@ -176,6 +177,13 @@ export default function CreateExperiencePage() {
 
   const watchedValues = watch();
   const selectedType = watchedValues.type as ExperienceType;
+
+  // --- Cargar restricciones de políticas de cancelación ---
+  useEffect(() => {
+    cancellationsApi.getAvailablePolicies()
+      .then(({ data }) => setPolicyRestrictions(data.restrictions))
+      .catch(() => {}); // Si falla, todas las opciones quedan habilitadas
+  }, []);
 
   // --- Borrador: cargar al montar ---
   useEffect(() => {
@@ -715,11 +723,16 @@ export default function CreateExperiencePage() {
                   onChange={(e) => setCancellationPolicy(e.target.value as CancellationPolicy)}
                   className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-xl text-gray-900 transition-colors focus:outline-none focus:border-primary"
                 >
-                  <option value="FLEXIBLE">Flexible — 100% hasta 24h antes</option>
+                  <option value="FLEXIBLE">Flexible — 100% hasta 24h, 50% hasta 12h</option>
                   <option value="MODERATE">Moderada — 100% hasta 72h, 50% hasta 24h</option>
                   <option value="STRICT">Estricta — 100% hasta 7 días, 50% hasta 72h</option>
-                  <option value="NON_REFUNDABLE">Sin reembolso</option>
+                  <option value="NON_REFUNDABLE" disabled={policyRestrictions['NON_REFUNDABLE'] && !policyRestrictions['NON_REFUNDABLE'].allowed}>
+                    Sin reembolso {policyRestrictions['NON_REFUNDABLE'] && !policyRestrictions['NON_REFUNDABLE'].allowed ? '(no disponible)' : ''}
+                  </option>
                 </select>
+                {policyRestrictions['NON_REFUNDABLE'] && !policyRestrictions['NON_REFUNDABLE'].allowed && (
+                  <p className="text-xs text-amber-600 mt-1">{policyRestrictions['NON_REFUNDABLE'].reason}</p>
+                )}
                 <p className="text-xs text-gray-400 mt-1.5">Determina cuánto se devuelve si el viajero cancela</p>
               </div>
             )}

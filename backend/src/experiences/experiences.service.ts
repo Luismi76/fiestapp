@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService, CACHE_KEYS, CACHE_TTL } from '../cache/cache.service';
+import { CancellationsService } from '../cancellations/cancellations.service';
 import { CreateExperienceDto } from './dto/create-experience.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
 import { CancellationPolicy } from '@prisma/client';
@@ -17,6 +18,7 @@ export class ExperiencesService {
   constructor(
     private prisma: PrismaService,
     private cacheService: CacheService,
+    private cancellationsService: CancellationsService,
   ) {}
 
   /**
@@ -95,8 +97,10 @@ export class ExperiencesService {
           photos: createDto.photos || [],
           highlights: createDto.highlights || [],
           capacity: createDto.capacity || 1,
-          cancellationPolicy:
-            (createDto.cancellationPolicy as CancellationPolicy) || 'FLEXIBLE',
+          cancellationPolicy: await this.validateCancellationPolicy(
+            userId,
+            createDto.cancellationPolicy,
+          ),
           hostId: userId,
         },
         include: {
@@ -663,7 +667,10 @@ export class ExperiencesService {
         data: {
           ...updateData,
           ...(cancellationPolicy && {
-            cancellationPolicy: cancellationPolicy as CancellationPolicy,
+            cancellationPolicy: await this.validateCancellationPolicy(
+              userId,
+              cancellationPolicy,
+            ),
           }),
           ...(coordinates && {
             latitude: coordinates.latitude,
@@ -871,5 +878,29 @@ export class ExperiencesService {
       capacity: experience.capacity,
       dates: Object.values(occupancyMap),
     };
+  }
+
+  /**
+   * Valida la política de cancelación: NON_REFUNDABLE requiere host verificado con buen historial.
+   * Si no cumple, hace fallback a STRICT.
+   */
+  private async validateCancellationPolicy(
+    userId: string,
+    policy?: string,
+  ): Promise<CancellationPolicy> {
+    if (!policy) return CancellationPolicy.FLEXIBLE;
+
+    if (policy === 'NON_REFUNDABLE') {
+      const available =
+        await this.cancellationsService.getAvailablePolicies(userId);
+      if (!available.restrictions['NON_REFUNDABLE']?.allowed) {
+        this.logger.warn(
+          `Host ${userId} intentó usar NON_REFUNDABLE sin cumplir requisitos. Fallback a STRICT.`,
+        );
+        return CancellationPolicy.STRICT;
+      }
+    }
+
+    return policy as CancellationPolicy;
   }
 }

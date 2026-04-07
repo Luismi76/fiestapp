@@ -16,7 +16,10 @@ import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PushService } from '../notifications/push.service';
 import { PricingService } from '../experiences/pricing.service';
-import { CancellationsService } from '../cancellations/cancellations.service';
+import {
+  CancellationsService,
+  RefundCalculation,
+} from '../cancellations/cancellations.service';
 import { EmailService } from '../email/email.service';
 import { ConfigService } from '@nestjs/config';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
@@ -1268,6 +1271,16 @@ export class MatchesService {
       throw new BadRequestException('Esta solicitud no se puede cancelar');
     }
 
+    // Verificar si el usuario tiene demasiadas cancelaciones recientes
+    const cancellationWarning =
+      await this.cancellationsService.getCancellationWarning(userId);
+    if (!cancellationWarning.canCancel) {
+      throw new BadRequestException(
+        cancellationWarning.message ||
+          'Has alcanzado el límite de cancelaciones. Contacta con soporte.',
+      );
+    }
+
     const isHost = userId === match.hostId;
     const cancelledByHost = isHost;
 
@@ -1280,6 +1293,27 @@ export class MatchesService {
       if (cancelledByHost) {
         refundPercentage = 100;
         refundAmount = match.totalPrice;
+
+        // Registrar cancelación del anfitrión
+        const hoursUntilStart =
+          (match.startDate.getTime() - Date.now()) / (1000 * 60 * 60);
+        const hostRefundCalc: RefundCalculation = {
+          refundPercentage: 100,
+          refundAmount: match.totalPrice,
+          penaltyAmount: 0,
+          policy: match.experience.cancellationPolicy,
+          hoursUntilStart: Math.max(0, hoursUntilStart),
+        };
+        await this.cancellationsService.recordCancellation(
+          id,
+          userId,
+          reason,
+          hostRefundCalc,
+          'host',
+        );
+
+        // Verificar y penalizar si tiene demasiadas cancelaciones
+        await this.cancellationsService.checkAndPenalizeHost(userId);
       } else {
         // Si el viajero cancela, aplicar política de cancelación
         const refundCalc = this.cancellationsService.calculateRefund(
@@ -1296,6 +1330,7 @@ export class MatchesService {
           userId,
           reason,
           refundCalc,
+          'requester',
         );
       }
 

@@ -113,6 +113,7 @@ model Festival {
   festivalType String?            // "religioso", "tradicional", "gastronomico", "musical"
   latitude     Float?
   longitude    Float?
+  status       FestivalStatus     @default(ACTIVE)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   experiences  Experience[]
@@ -587,10 +588,16 @@ enum MessageType {
 }
 
 enum CancellationPolicy {
-  FLEXIBLE        // 100% hasta 24h antes
+  FLEXIBLE        // 100% hasta 24h, 50% hasta 12h
   MODERATE        // 100% hasta 72h, 50% hasta 24h
   STRICT          // 100% hasta 7d, 50% hasta 72h, 0% después
-  NON_REFUNDABLE  // Sin reembolso
+  NON_REFUNDABLE  // Sin reembolso (solo hosts verificados)
+}
+
+enum FestivalStatus {
+  ACTIVE
+  CANCELLED
+  POSTPONED
 }
 
 enum DisputeReason {
@@ -715,6 +722,8 @@ model Cancellation {
   refundPercentage Float              // Porcentaje reembolsado (0-100)
   refundAmount     Float              // Monto reembolsado
   penaltyAmount    Float              // Monto retenido como penalización
+  forceMajeure     Boolean            @default(false)
+  cancelledByRole  String?            // "host" | "requester"
   processedAt      DateTime?          // Cuando se procesó el reembolso
   createdAt        DateTime           @default(now())
   match            Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)

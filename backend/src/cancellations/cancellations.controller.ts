@@ -9,6 +9,17 @@ export class CancellationsController {
   constructor(private cancellationsService: CancellationsService) {}
 
   /**
+   * Obtener advertencia de cancelaciones recientes del usuario
+   */
+  @Get('warning')
+  async getCancellationWarning(@Request() req: { user: { sub: string } }) {
+    const warning = await this.cancellationsService.getCancellationWarning(
+      req.user.sub,
+    );
+    return { data: warning };
+  }
+
+  /**
    * Obtener preview de cancelación para un match
    */
   @Get('preview/:matchId')
@@ -44,6 +55,17 @@ export class CancellationsController {
       ...this.cancellationsService.getPolicyDescription(policy),
     }));
     return { data: policies };
+  }
+
+  /**
+   * Obtener políticas disponibles para el usuario actual (NON_REFUNDABLE restringida)
+   */
+  @Get('available-policies')
+  async getAvailablePolicies(@Request() req: { user: { sub: string } }) {
+    const available = await this.cancellationsService.getAvailablePolicies(
+      req.user.sub,
+    );
+    return { data: available };
   }
 
   /**

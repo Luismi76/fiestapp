@@ -1587,6 +1587,12 @@ export const adminApi = {
     const response = await api.get<TopHost[]>(`/admin/top/hosts?limit=${limit}`);
     return response.data;
   },
+
+  // Festival management
+  cancelFestival: async (festivalId: string, reason?: string): Promise<{ affectedMatches: number; totalRefunded: number }> => {
+    const response = await api.post(`/admin/festivals/${festivalId}/cancel`, { reason });
+    return response.data;
+  },
 };
 
 // Search types
@@ -1823,6 +1829,59 @@ export const notificationsApi = {
   // Eliminar notificación
   delete: async (notificationId: string): Promise<void> => {
     await api.delete(`/notifications/${notificationId}`);
+  },
+};
+
+// Cancelaciones API
+export const cancellationsApi = {
+  // Obtener advertencia de cancelaciones recientes
+  getWarning: async (): Promise<{
+    data: {
+      canCancel: boolean;
+      warningLevel: 'none' | 'warning' | 'blocked';
+      recentCount: number;
+      limit: number;
+      message?: string;
+    };
+  }> => {
+    const response = await api.get('/cancellations/warning');
+    return response.data;
+  },
+
+  // Obtener preview de cancelación
+  preview: async (matchId: string): Promise<{
+    data: {
+      refund: {
+        refundPercentage: number;
+        refundAmount: number;
+        penaltyAmount: number;
+        hoursUntilStart: number;
+      };
+      policyInfo: {
+        name: string;
+        description: string;
+        rules: string[];
+      };
+      stripeInfo?: {
+        isStripeHold: boolean;
+        estimatedStripeFee: number;
+        netRefundAmount: number;
+      };
+    } | null;
+  }> => {
+    const response = await api.get(`/cancellations/preview/${matchId}`);
+    return response.data;
+  },
+
+  // Obtener políticas disponibles para el usuario
+  getAvailablePolicies: async (): Promise<{
+    data: {
+      policies: string[];
+      restrictions: Record<string, { allowed: boolean; reason?: string }>;
+    };
+  }> => {
+    const response = await api.get('/cancellations/available-policies');
+    return response.data;
   },
 };
 

@@ -29,6 +29,7 @@ export interface Festival {
   endDate?: string;
   latitude?: number;
   longitude?: number;
+  status?: 'ACTIVE' | 'CANCELLED' | 'POSTPONED';
   _count?: {
     experiences: number;
   };

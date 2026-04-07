@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
-import { experiencesApi, uploadsApi } from '@/lib/api';
+import { experiencesApi, uploadsApi, cancellationsApi } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
 import { ExperienceType, ExperienceDetail, CancellationPolicy } from '@/types/experience';
@@ -62,6 +62,7 @@ export default function EditExperiencePage() {
   const [city, setCity] = useState('');
   const [cityCoords, setCityCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>('FLEXIBLE');
+  const [policyRestrictions, setPolicyRestrictions] = useState<Record<string, { allowed: boolean; reason?: string }>>({});
 
   const {
     register,
@@ -78,6 +79,12 @@ export default function EditExperiencePage() {
       router.push('/login');
     }
   }, [authLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    cancellationsApi.getAvailablePolicies()
+      .then(({ data }) => setPolicyRestrictions(data.restrictions))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -650,11 +657,16 @@ export default function EditExperiencePage() {
               onChange={(e) => setCancellationPolicy(e.target.value as CancellationPolicy)}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
             >
-              <option value="FLEXIBLE">Flexible — 100% hasta 24h antes</option>
+              <option value="FLEXIBLE">Flexible — 100% hasta 24h, 50% hasta 12h</option>
               <option value="MODERATE">Moderada — 100% hasta 72h, 50% hasta 24h</option>
               <option value="STRICT">Estricta — 100% hasta 7 días, 50% hasta 72h</option>
-              <option value="NON_REFUNDABLE">Sin reembolso</option>
+              <option value="NON_REFUNDABLE" disabled={policyRestrictions['NON_REFUNDABLE'] && !policyRestrictions['NON_REFUNDABLE'].allowed}>
+                Sin reembolso {policyRestrictions['NON_REFUNDABLE'] && !policyRestrictions['NON_REFUNDABLE'].allowed ? '(no disponible)' : ''}
+              </option>
             </select>
+            {policyRestrictions['NON_REFUNDABLE'] && !policyRestrictions['NON_REFUNDABLE'].allowed && (
+              <p className="text-xs text-amber-600 mt-1">{policyRestrictions['NON_REFUNDABLE'].reason}</p>
+            )}
             <p className="text-xs text-gray-400 mt-1.5">Determina cuánto se devuelve si el viajero cancela</p>
           </div>
         )}

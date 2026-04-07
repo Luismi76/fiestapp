@@ -128,6 +128,14 @@ export class AdminController {
     return this.adminService.unbanUser(id);
   }
 
+  @Post('festivals/:id/cancel')
+  cancelFestival(
+    @Param('id') id: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.adminService.cancelFestival(id, reason);
+  }
+
   @Get('users/banned')
   getBannedUsers(@Query('page') page?: string, @Query('limit') limit?: string) {
     return this.adminService.getBannedUsers(

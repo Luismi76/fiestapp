@@ -725,7 +725,15 @@ export default function BookingPage() {
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span>Reembolso del 100% hasta 24h antes</span>
                 </div>
-                <p className="text-xs text-emerald-600 font-medium mt-1">Flexible - puedes cancelar sin coste</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-amber-500" />
+                  <span>50% si cancelas entre 12-24h antes</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500" />
+                  <span>Sin reembolso con menos de 12h</span>
+                </div>
+                <p className="text-xs text-emerald-600 font-medium mt-1">Flexible</p>
               </div>
             )}
             {experience.cancellationPolicy === 'MODERATE' && (
