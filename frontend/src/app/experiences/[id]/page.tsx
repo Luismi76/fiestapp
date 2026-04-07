@@ -501,12 +501,12 @@ export default function ExperienceDetailPage() {
           </div>
         )}
 
-        {/* Politica de cancelacion */}
+        {/* Política de cancelación */}
         {experience.cancellationPolicy && experience.type !== 'intercambio' && (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-4">
               <h2 className="font-bold text-gray-900 flex items-center gap-2 mb-3">
-                <span className="text-lg">🛡️</span> Politica de cancelacion
+                <span className="text-lg">🛡️</span> Política de cancelación
               </h2>
               <div className="space-y-2">
                 {experience.cancellationPolicy === 'FLEXIBLE' && (
@@ -519,7 +519,7 @@ export default function ExperienceDetailPage() {
                 )}
                 {experience.cancellationPolicy === 'MODERATE' && (
                   <div className="text-sm text-gray-600 space-y-1.5">
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span>100% de reembolso hasta 72h (3 dias) antes</span></div>
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span>100% de reembolso hasta 72h (3 días) antes</span></div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500" /><span>50% de reembolso entre 24 y 72h antes</span></div>
                     <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500" /><span>Sin reembolso con menos de 24h</span></div>
                     <p className="text-xs font-medium text-amber-600 pt-1">Moderada</p>
@@ -527,22 +527,22 @@ export default function ExperienceDetailPage() {
                 )}
                 {experience.cancellationPolicy === 'STRICT' && (
                   <div className="text-sm text-gray-600 space-y-1.5">
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span>100% de reembolso hasta 7 dias antes</span></div>
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500" /><span>50% de reembolso entre 3 y 7 dias antes</span></div>
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500" /><span>Sin reembolso con menos de 3 dias</span></div>
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span>100% de reembolso hasta 7 días antes</span></div>
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500" /><span>50% de reembolso entre 3 y 7 días antes</span></div>
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500" /><span>Sin reembolso con menos de 3 días</span></div>
                     <p className="text-xs font-medium text-orange-600 pt-1">Estricta</p>
                   </div>
                 )}
                 {experience.cancellationPolicy === 'NON_REFUNDABLE' && (
                   <div className="text-sm text-gray-600 space-y-1.5">
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500" /><span>Sin reembolso en caso de cancelacion</span></div>
-                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span>Reembolso total si el anfitrion cancela</span></div>
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500" /><span>Sin reembolso en caso de cancelación</span></div>
+                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span>Reembolso total si el anfitrión cancela</span></div>
                     <p className="text-xs font-medium text-red-600 pt-1">Sin reembolso</p>
                   </div>
                 )}
               </div>
               <a href="/cancelacion" className="text-xs text-primary hover:underline mt-3 inline-block">
-                Ver politica completa
+                Ver política completa
               </a>
             </div>
           </div>

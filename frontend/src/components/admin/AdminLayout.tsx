@@ -181,15 +181,15 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     ],
   },
   {
-    header: 'GESTION',
+    header: 'GESTIÓN',
     items: [
       { href: '/admin/gestion', tab: 'usuarios', label: 'Usuarios', icon: UserSmallIcon },
       { href: '/admin/gestion', tab: 'experiencias', label: 'Experiencias', icon: SparklesIcon },
-      { href: '/admin/gestion', tab: 'categorias', label: 'Categorias', icon: TagIcon },
+      { href: '/admin/gestion', tab: 'categorias', label: 'Categorías', icon: TagIcon },
     ],
   },
   {
-    header: 'MODERACION',
+    header: 'MODERACIÓN',
     items: [
       { href: '/admin/moderacion', tab: 'disputas', label: 'Disputas', icon: FireIcon, alertKey: 'disputes' },
       { href: '/admin/moderacion', tab: 'reportes', label: 'Denuncias', icon: FlagIcon, alertKey: 'reports' },
@@ -219,8 +219,8 @@ interface BottomBarItem {
 
 const BOTTOM_BAR_ITEMS: BottomBarItem[] = [
   { section: 'inicio', href: '/admin', label: 'Inicio', icon: HomeIcon },
-  { section: 'gestion', href: '/admin/gestion', label: 'Gestion', icon: UsersIcon },
-  { section: 'moderacion', href: '/admin/moderacion', label: 'Moderacion', icon: ShieldIcon },
+  { section: 'gestion', href: '/admin/gestion', label: 'Gestión', icon: UsersIcon },
+  { section: 'moderacion', href: '/admin/moderacion', label: 'Moderación', icon: ShieldIcon },
   { section: 'finanzas', href: '/admin/finanzas', label: 'Finanzas', icon: BanknotesIcon },
 ];
 

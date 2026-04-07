@@ -183,7 +183,7 @@ const formatDate = (dateStr: string) =>
   });
 
 const typeBadge: Record<string, { label: string; bg: string; text: string }> = {
-  platform_fee: { label: 'Comision', bg: 'bg-purple-100', text: 'text-purple-700' },
+  platform_fee: { label: 'Comisión', bg: 'bg-purple-100', text: 'text-purple-700' },
   topup: { label: 'Recarga', bg: 'bg-blue-100', text: 'text-blue-700' },
   refund: { label: 'Reembolso', bg: 'bg-amber-100', text: 'text-amber-700' },
   payment: { label: 'Pago', bg: 'bg-green-100', text: 'text-green-700' },
@@ -311,7 +311,7 @@ const accountingApi = {
   getVatSummary: async (year: number, quarter: number): Promise<VatSummaryResponse> => {
     const { data } = await api.get(`/admin/accounting/vat-summary?year=${year}&quarter=${quarter}`);
     const typeLabels: Record<string, string> = {
-      platform_fee: 'Comisiones de intermediacion',
+      platform_fee: 'Comisiones de intermediación',
       topup: 'Anticipos/recargas monedero',
       experience_payment: 'Pagos experiencias',
       payment: 'Pagos (escrow)',
@@ -720,7 +720,7 @@ function ResumenTab() {
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4 text-center">
               <div className="text-lg md:text-xl font-bold text-gray-900">{formatEur(walletStats.maxBalance)}</div>
-              <div className="text-[10px] md:text-xs text-gray-500 mt-0.5">Saldo maximo</div>
+              <div className="text-[10px] md:text-xs text-gray-500 mt-0.5">Saldo máximo</div>
             </div>
           </div>
         )}
@@ -767,7 +767,7 @@ const DISPUTE_STATUS_LABELS: Record<string, string> = {
 const DISPUTE_REASON_LABELS: Record<string, string> = {
   NO_SHOW: 'No presentado', EXPERIENCE_MISMATCH: 'No coincide con lo ofrecido',
   SAFETY_CONCERN: 'Problema de seguridad', PAYMENT_ISSUE: 'Problema de pago',
-  COMMUNICATION: 'Comunicacion', OTHER: 'Otro',
+  COMMUNICATION: 'Comunicación', OTHER: 'Otro',
 };
 
 function getEnrichedDescription(tx: Transaction): string {
@@ -777,10 +777,10 @@ function getEnrichedDescription(tx: Transaction): string {
   const dispute = tx.match.disputes?.[0];
 
   if (tx.type === 'refund' && cancel) {
-    return `Reembolso por cancelacion (${POLICY_NAMES[cancel.policy] || cancel.policy}, ${cancel.refundPercentage}%) · ${title}`;
+    return `Reembolso por cancelación (${POLICY_NAMES[cancel.policy] || cancel.policy}, ${cancel.refundPercentage}%) · ${title}`;
   }
   if (tx.type === 'refund' && dispute) {
-    return `Reembolso por disputa (${DISPUTE_STATUS_LABELS[dispute.status] || 'resolucion'}) · ${title}`;
+    return `Reembolso por disputa (${DISPUTE_STATUS_LABELS[dispute.status] || 'resolución'}) · ${title}`;
   }
   if ((tx.type === 'payment' || tx.type === 'experience_payment') && tx.match.experience.city) {
     return `${tx.description || title} · ${tx.match.experience.city}`;
@@ -800,14 +800,14 @@ function EscrowTimeline({ events }: { events: TimelineEvent[] }) {
           case 'pending': return { bg: 'bg-yellow-400', label: 'Pago iniciado' };
           case 'held': return { bg: 'bg-blue-500', label: 'Fondos retenidos (escrow)' };
           case 'capturing': return { bg: 'bg-cyan-500', label: 'Captura en curso' };
-          case 'released': return { bg: 'bg-green-500', label: 'Fondos liberados al anfitrion' };
+          case 'released': return { bg: 'bg-green-500', label: 'Fondos liberados al anfitrión' };
           case 'refunded': return { bg: 'bg-amber-500', label: 'Fondos reembolsados' };
           case 'completed': return { bg: 'bg-green-500', label: 'Completado' };
           case 'failed': return { bg: 'bg-red-500', label: 'Fallido' };
-          default: return { bg: 'bg-gray-400', label: status || 'Transaccion' };
+          default: return { bg: 'bg-gray-400', label: status || 'Transacción' };
         }
       }
-      case 'cancellation': return { bg: 'bg-red-400', label: 'Cancelacion registrada' };
+      case 'cancellation': return { bg: 'bg-red-400', label: 'Cancelación registrada' };
       case 'dispute_opened': return { bg: 'bg-orange-500', label: 'Disputa abierta' };
       case 'dispute_resolved': return { bg: 'bg-purple-500', label: 'Disputa resuelta' };
       default: return { bg: 'bg-gray-400', label: event.type };
@@ -828,7 +828,7 @@ function EscrowTimeline({ events }: { events: TimelineEvent[] }) {
     }
     if (event.type === 'cancellation') {
       const policy = POLICY_NAMES[(d.policy as string)] || String(d.policy);
-      return <span className="text-[11px] text-gray-500">{policy} · Reembolso {String(d.refundPercentage)}% ({formatEur(d.refundAmount as number)}) · Penalizacion {formatEur(d.penaltyAmount as number)}</span>;
+      return <span className="text-[11px] text-gray-500">{policy} · Reembolso {String(d.refundPercentage)}% ({formatEur(d.refundAmount as number)}) · Penalización {formatEur(d.penaltyAmount as number)}</span>;
     }
     if (event.type === 'dispute_opened') {
       return <span className="text-[11px] text-gray-500">{DISPUTE_REASON_LABELS[d.reason as string] || String(d.reason)}</span>;
@@ -908,11 +908,11 @@ function TransactionDetailPanel({ tx, timeline, timelineLoading }: {
             <div>
               <span className="text-gray-400">Experiencia</span>
               <p className="font-medium text-gray-900">{m.experience.title}</p>
-              <p className="text-gray-500">{m.experience.city} · Politica: {POLICY_NAMES[m.experience.cancellationPolicy] || m.experience.cancellationPolicy}</p>
+              <p className="text-gray-500">{m.experience.city} · Política: {POLICY_NAMES[m.experience.cancellationPolicy] || m.experience.cancellationPolicy}</p>
             </div>
             {m.host && (
               <div>
-                <span className="text-gray-400">Anfitrion</span>
+                <span className="text-gray-400">Anfitrión</span>
                 <p className="font-medium text-gray-900">{m.host.name}</p>
                 <p className="text-gray-500">{m.host.email}</p>
               </div>
@@ -938,11 +938,11 @@ function TransactionDetailPanel({ tx, timeline, timelineLoading }: {
       {/* Cancelación */}
       {cancel && (
         <div className="bg-red-50 rounded-xl border border-red-100 p-3 space-y-1">
-          <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">Cancelacion</p>
+          <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">Cancelación</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-            <div><span className="text-red-400">Politica</span><p className="font-medium text-red-700">{POLICY_NAMES[cancel.policy] || cancel.policy}</p></div>
+            <div><span className="text-red-400">Política</span><p className="font-medium text-red-700">{POLICY_NAMES[cancel.policy] || cancel.policy}</p></div>
             <div><span className="text-red-400">Reembolso</span><p className="font-medium text-red-700">{cancel.refundPercentage}% ({formatEur(cancel.refundAmount)})</p></div>
-            <div><span className="text-red-400">Penalizacion</span><p className="font-medium text-red-700">{formatEur(cancel.penaltyAmount)}</p></div>
+            <div><span className="text-red-400">Penalización</span><p className="font-medium text-red-700">{formatEur(cancel.penaltyAmount)}</p></div>
             <div><span className="text-red-400">Fecha</span><p className="font-medium text-red-700">{formatDate(cancel.createdAt)}</p></div>
           </div>
           {cancel.reason && <p className="text-xs text-red-600 mt-1">Motivo: {cancel.reason}</p>}
@@ -959,7 +959,7 @@ function TransactionDetailPanel({ tx, timeline, timelineLoading }: {
             {dispute.refundAmount != null && <div><span className="text-orange-400">Reembolso</span><p className="font-medium text-orange-700">{formatEur(dispute.refundAmount)}{dispute.refundPercentage != null ? ` (${dispute.refundPercentage}%)` : ''}</p></div>}
             {dispute.resolvedAt && <div><span className="text-orange-400">Resuelto</span><p className="font-medium text-orange-700">{formatDate(dispute.resolvedAt)}</p></div>}
           </div>
-          {dispute.resolution && <p className="text-xs text-orange-600 mt-1">Resolucion: {dispute.resolution}</p>}
+          {dispute.resolution && <p className="text-xs text-orange-600 mt-1">Resolución: {dispute.resolution}</p>}
         </div>
       )}
 
@@ -1083,7 +1083,7 @@ function TransaccionesTab() {
           >
             <option value="all">Todos</option>
             <option value="topup">Recarga</option>
-            <option value="platform_fee">Comision</option>
+            <option value="platform_fee">Comisión</option>
             <option value="refund">Reembolso</option>
             <option value="experience_payment">Pago exp.</option>
           </select>
@@ -1097,7 +1097,7 @@ function TransaccionesTab() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
           </svg>
-          {showFilters ? 'Ocultar filtros' : 'Mas filtros'}
+          {showFilters ? 'Ocultar filtros' : 'Más filtros'}
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={`w-3 h-3 transition-transform ${showFilters ? 'rotate-180' : ''}`}>
             <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
           </svg>
@@ -1226,7 +1226,7 @@ function TransaccionesTab() {
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Tipo</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-500">Importe</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Estado</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-500">Descripcion</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500">Descripción</th>
                 </tr>
               </thead>
               <tbody>
@@ -1435,7 +1435,7 @@ function Dac7Tab() {
           </svg>
           <div>
             <p className="text-sm font-medium text-amber-800">
-              {incompleteCount} {incompleteCount === 1 ? 'anfitrion tiene' : 'anfitriones tienen'} datos fiscales incompletos
+              {incompleteCount} {incompleteCount === 1 ? 'anfitrión tiene' : 'anfitriones tienen'} datos fiscales incompletos
             </p>
             <p className="text-xs text-amber-600 mt-0.5">
               Es necesario que completen su NIF e IBAN para cumplir con la normativa DAC7
@@ -1527,7 +1527,7 @@ function Dac7Tab() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="text-left px-4 py-3 font-medium text-gray-500">Anfitrion</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-500">Anfitrión</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-500">NIF</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-500">IBAN</th>
                     <th className="text-right px-4 py-3 font-medium text-gray-500">Ingresos</th>
@@ -1824,7 +1824,7 @@ function ObligacionesFiscalesTab() {
               {/* Nota fiscal */}
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mt-3">
                 <p className="text-xs text-amber-700">
-                  <strong>Modelo fiscal:</strong> Las recargas de monedero son anticipos (sin IVA). Las comisiones de plataforma son la prestacion de servicio gravada (IVA incluido).
+                  <strong>Modelo fiscal:</strong> Las recargas de monedero son anticipos (sin IVA). Las comisiones de plataforma son la prestación de servicio gravada (IVA incluido).
                   El IVA repercutido se calcula sobre las comisiones cobradas.
                 </p>
               </div>
@@ -1874,7 +1874,7 @@ function ObligacionesFiscalesTab() {
           <div>
             <h3 className="font-semibold text-gray-900 text-base">Modelo 347 &middot; {year}</h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Declaracion anual de operaciones con terceros que superen 3.005,06 EUR
+              Declaración anual de operaciones con terceros que superen 3.005,06 EUR
             </p>
           </div>
 
@@ -1942,7 +1942,7 @@ function ObligacionesFiscalesTab() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
               <p className="text-gray-500 text-sm">No hay operaciones que superen 3.005,06 EUR en {year}</p>
-              <p className="text-xs text-gray-400 mt-1">Umbral minimo para la declaracion anual</p>
+              <p className="text-xs text-gray-400 mt-1">Umbral mínimo para la declaración anual</p>
             </div>
           )}
         </div>
@@ -2232,8 +2232,8 @@ function CuentaResultadosTab() {
 // ============================================
 
 const CONFIG_LABELS: Record<string, { label: string; suffix: string; step: string; min: string }> = {
-  platform_fee: { label: 'Comision por operacion', suffix: '\u20ac', step: '0.1', min: '0' },
-  min_topup: { label: 'Recarga minima del monedero', suffix: '\u20ac', step: '0.5', min: '0' },
+  platform_fee: { label: 'Comisión por operación', suffix: '\u20ac', step: '0.1', min: '0' },
+  min_topup: { label: 'Recarga mínima del monedero', suffix: '\u20ac', step: '0.5', min: '0' },
   vat_rate: { label: 'Tipo de IVA', suffix: '%', step: '0.01', min: '0' },
 };
 
@@ -2261,7 +2261,7 @@ function ComisionesTab() {
         });
         setEditValues(values);
       })
-      .catch(() => setMessage({ type: 'error', text: 'Error cargando configuracion' }))
+      .catch(() => setMessage({ type: 'error', text: 'Error cargando configuración' }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -2281,9 +2281,9 @@ function ComisionesTab() {
           return u ? { ...c, value: u.value } : c;
         }));
       }
-      setMessage({ type: 'success', text: 'Configuracion guardada correctamente. Los cambios se aplican de inmediato.' });
+      setMessage({ type: 'success', text: 'Configuración guardada correctamente. Los cambios se aplican de inmediato.' });
     } catch {
-      setMessage({ type: 'error', text: 'Error al guardar la configuracion' });
+      setMessage({ type: 'error', text: 'Error al guardar la configuración' });
     } finally {
       setSaving(false);
     }
@@ -2357,11 +2357,11 @@ function ComisionesTab() {
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-        <h3 className="text-sm font-medium text-amber-800 mb-2">Informacion importante</h3>
+        <h3 className="text-sm font-medium text-amber-800 mb-2">Información importante</h3>
         <ul className="text-xs text-amber-700 space-y-1">
-          <li>La comision por operacion se descuenta del monedero de cada parte al cerrar un acuerdo.</li>
-          <li>El IVA se recauda una sola vez, al recargar el monedero. Las comisiones son una detraccion interna sobre saldo que ya tributo.</li>
-          <li>La recarga minima determina el importe minimo que un usuario puede anadir a su monedero.</li>
+          <li>La comisión por operación se descuenta del monedero de cada parte al cerrar un acuerdo.</li>
+          <li>El IVA se recauda una sola vez, al recargar el monedero. Las comisiones son una detracción interna sobre saldo que ya tributó.</li>
+          <li>La recarga mínima determina el importe mínimo que un usuario puede añadir a su monedero.</li>
           <li>Los cambios afectan solo a nuevas operaciones. Las transacciones ya realizadas no se modifican.</li>
         </ul>
       </div>
