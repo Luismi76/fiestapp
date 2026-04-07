@@ -2020,20 +2020,20 @@ function Modelo347Card({ entry }: { entry: Modelo347Entry }) {
 interface PnlQuarter {
   quarter: number;
   label: string;
-  platformFees: number;
+  topupGross: number;
+  topupNet: number;
   vatCollected: number;
   totalRefunds: number;
-  grossRevenue: number;
   netProfit: number;
 }
 
 interface PnlData {
   year: number;
   summary: {
-    totalPlatformFees: number;
+    totalTopupGross: number;
+    totalTopupNet: number;
     totalVatCollected: number;
     totalRefunds: number;
-    grossRevenue: number;
     netProfit: number;
   };
   quarters: PnlQuarter[];
@@ -2105,8 +2105,12 @@ function CuentaResultadosTab() {
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
-          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Comisiones</div>
-          <div className="text-xl md:text-2xl font-bold text-gray-900">{formatEur(s.totalPlatformFees)}</div>
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Recargas (IVA incl.)</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900">{formatEur(s.totalTopupGross)}</div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Base imponible</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900">{formatEur(s.totalTopupNet)}</div>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
           <div className="text-[11px] md:text-xs text-gray-500 mb-1">IVA recaudado</div>
@@ -2115,10 +2119,6 @@ function CuentaResultadosTab() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
           <div className="text-[11px] md:text-xs text-gray-500 mb-1">Reembolsos</div>
           <div className="text-xl md:text-2xl font-bold text-red-500">{formatEur(s.totalRefunds)}</div>
-        </div>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
-          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Ingreso bruto</div>
-          <div className="text-xl md:text-2xl font-bold text-gray-900">{formatEur(s.grossRevenue)}</div>
         </div>
         <div className={`col-span-2 lg:col-span-1 rounded-2xl shadow-sm border-2 p-3 md:p-5 ${s.netProfit >= 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
           <div className="text-[11px] md:text-xs text-gray-500 mb-1">Beneficio neto</div>
@@ -2133,7 +2133,7 @@ function CuentaResultadosTab() {
         <>
           <div>
             <h3 className="font-semibold text-gray-900 text-base">Desglose trimestral &middot; {year}</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Comisiones - Reembolsos = Beneficio neto</p>
+            <p className="text-xs text-gray-500 mt-0.5">Base imponible (recargas sin IVA) - Reembolsos = Beneficio neto</p>
           </div>
 
           {/* MOBILE: Cards */}
@@ -2148,20 +2148,20 @@ function CuentaResultadosTab() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-gray-50 rounded-lg p-2">
-                    <div className="text-[10px] text-gray-400">Comisiones</div>
-                    <div className="text-xs font-semibold text-gray-900">{formatEur(q.platformFees)}</div>
+                    <div className="text-[10px] text-gray-400">Recargas</div>
+                    <div className="text-xs font-semibold text-gray-900">{formatEur(q.topupGross)}</div>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-2">
-                    <div className="text-[10px] text-gray-400">IVA (recargas)</div>
+                    <div className="text-[10px] text-gray-400">Base imponible</div>
+                    <div className="text-xs font-semibold text-gray-700">{formatEur(q.topupNet)}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-2">
+                    <div className="text-[10px] text-gray-400">IVA recaudado</div>
                     <div className="text-xs font-semibold text-blue-600">{formatEur(q.vatCollected)}</div>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-2">
                     <div className="text-[10px] text-gray-400">Reembolsos</div>
                     <div className="text-xs font-semibold text-red-500">{formatEur(q.totalRefunds)}</div>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-2">
-                    <div className="text-[10px] text-gray-400">Ingreso bruto</div>
-                    <div className="text-xs font-semibold text-gray-900">{formatEur(q.grossRevenue)}</div>
                   </div>
                 </div>
               </div>
@@ -2174,10 +2174,10 @@ function CuentaResultadosTab() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Trimestre</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Comisiones</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">IVA (recargas)</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Recargas</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Base imponible</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">IVA recaudado</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-500">Reembolsos</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Ingreso bruto</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-500">Beneficio neto</th>
                 </tr>
               </thead>
@@ -2185,10 +2185,10 @@ function CuentaResultadosTab() {
                 {quarters.map((q) => (
                   <tr key={q.quarter} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-900">{q.label}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{formatEur(q.platformFees)}</td>
+                    <td className="px-4 py-3 text-right text-gray-600">{formatEur(q.topupGross)}</td>
+                    <td className="px-4 py-3 text-right text-gray-600">{formatEur(q.topupNet)}</td>
                     <td className="px-4 py-3 text-right text-blue-600">{formatEur(q.vatCollected)}</td>
                     <td className="px-4 py-3 text-right text-red-500">{formatEur(q.totalRefunds)}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{formatEur(q.grossRevenue)}</td>
                     <td className={`px-4 py-3 text-right font-semibold ${q.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatEur(q.netProfit)}
                     </td>
@@ -2198,10 +2198,10 @@ function CuentaResultadosTab() {
               <tfoot>
                 <tr className="bg-gray-50 border-t-2 border-gray-200">
                   <td className="px-4 py-3 font-bold text-gray-900">TOTAL {year}</td>
-                  <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(s.totalPlatformFees)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(s.totalTopupGross)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(s.totalTopupNet)}</td>
                   <td className="px-4 py-3 text-right font-bold text-blue-600">{formatEur(s.totalVatCollected)}</td>
                   <td className="px-4 py-3 text-right font-bold text-red-500">{formatEur(s.totalRefunds)}</td>
-                  <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(s.grossRevenue)}</td>
                   <td className={`px-4 py-3 text-right font-bold ${s.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatEur(s.netProfit)}
                   </td>

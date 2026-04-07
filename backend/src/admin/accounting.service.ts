@@ -85,25 +85,21 @@ export interface VatSummary {
 export interface ProfitAndLossQuarter {
   quarter: number;
   label: string;
-  platformFees: number;       // Importe bruto (IVA incluido)
-  platformFeesNet: number;    // Base imponible
-  platformFeesVat: number;    // IVA de comisiones
-  vatCollected: number;       // IVA total (comisiones + recargas)
-  totalRefunds: number;
-  grossRevenue: number;
-  netProfit: number;
+  topupGross: number;       // Recargas brutas (IVA incluido)
+  topupNet: number;         // Base imponible (recargas sin IVA) = ingreso real
+  vatCollected: number;     // IVA recaudado (a declarar a Hacienda)
+  totalRefunds: number;     // Devoluciones
+  netProfit: number;        // Base imponible - reembolsos
 }
 
 export interface ProfitAndLoss {
   year: number;
   quarter?: number;
   summary: {
-    totalPlatformFees: number;       // Importe bruto (IVA incluido)
-    totalPlatformFeesNet: number;    // Base imponible comisiones
-    totalPlatformFeesVat: number;    // IVA comisiones
-    totalVatCollected: number;       // IVA total (comisiones + recargas)
+    totalTopupGross: number;
+    totalTopupNet: number;
+    totalVatCollected: number;
     totalRefunds: number;
-    grossRevenue: number;
     netProfit: number;
   };
   quarters: ProfitAndLossQuarter[];
@@ -670,15 +666,7 @@ export class AccountingService {
       boundaries.map(async (qb) => {
         const dateFilter = { gte: qb.start, lt: qb.end };
 
-        const [fees, topups, refunds] = await Promise.all([
-          this.prisma.transaction.aggregate({
-            where: {
-              type: 'platform_fee',
-              status: statusFilter,
-              createdAt: dateFilter,
-            },
-            _sum: { amount: true },
-          }),
+        const [topups, refunds] = await Promise.all([
           this.prisma.transaction.aggregate({
             where: {
               type: 'topup',
@@ -697,10 +685,7 @@ export class AccountingService {
           }),
         ]);
 
-        // Comisiones: detracción interna, el IVA ya se recaudó en la recarga
-        const platformFees = Math.abs(fees._sum?.amount || 0);
-
-        // Recargas: ingreso con IVA → desglosar para saber cuánto IVA se recaudó
+        // Recargas = ingreso real de la plataforma (IVA incluido)
         const topupGross = topups._sum?.amount || 0;
         const topupNet =
           Math.round((topupGross / (1 + vatRate)) * 100) / 100;
@@ -709,23 +694,17 @@ export class AccountingService {
 
         const totalRefunds = Math.abs(refunds._sum?.amount || 0);
 
-        // Ingreso bruto = comisiones + IVA recaudado en recargas
-        const grossRevenue =
-          Math.round((platformFees + vatCollected) * 100) / 100;
-
-        // Beneficio neto = comisiones - reembolsos
+        // Beneficio neto = base imponible recargas - reembolsos
         const netProfit =
-          Math.round((platformFees - totalRefunds) * 100) / 100;
+          Math.round((topupNet - totalRefunds) * 100) / 100;
 
         return {
           quarter: qb.quarter,
           label: qb.label,
-          platformFees,
-          platformFeesNet: platformFees, // sin IVA adicional (ya tributó en recarga)
-          platformFeesVat: 0,            // IVA = 0 porque ya se cobró en la recarga
+          topupGross,
+          topupNet,
           vatCollected,
           totalRefunds,
-          grossRevenue,
           netProfit,
         };
       }),
@@ -733,27 +712,21 @@ export class AccountingService {
 
     const summary = quarters.reduce(
       (acc, q) => ({
-        totalPlatformFees:
-          Math.round((acc.totalPlatformFees + q.platformFees) * 100) / 100,
-        totalPlatformFeesNet:
-          Math.round((acc.totalPlatformFeesNet + q.platformFeesNet) * 100) / 100,
-        totalPlatformFeesVat:
-          Math.round((acc.totalPlatformFeesVat + q.platformFeesVat) * 100) / 100,
+        totalTopupGross:
+          Math.round((acc.totalTopupGross + q.topupGross) * 100) / 100,
+        totalTopupNet:
+          Math.round((acc.totalTopupNet + q.topupNet) * 100) / 100,
         totalVatCollected:
           Math.round((acc.totalVatCollected + q.vatCollected) * 100) / 100,
         totalRefunds:
           Math.round((acc.totalRefunds + q.totalRefunds) * 100) / 100,
-        grossRevenue:
-          Math.round((acc.grossRevenue + q.grossRevenue) * 100) / 100,
         netProfit: Math.round((acc.netProfit + q.netProfit) * 100) / 100,
       }),
       {
-        totalPlatformFees: 0,
-        totalPlatformFeesNet: 0,
-        totalPlatformFeesVat: 0,
+        totalTopupGross: 0,
+        totalTopupNet: 0,
         totalVatCollected: 0,
         totalRefunds: 0,
-        grossRevenue: 0,
         netProfit: 0,
       },
     );
@@ -766,26 +739,26 @@ export class AccountingService {
 
     const headers = [
       'Trimestre',
-      'Comisiones',
-      'IVA Recaudado (recargas)',
+      'Recargas (IVA incl.)',
+      'Base imponible',
+      'IVA recaudado',
       'Reembolsos',
-      'Ingreso Bruto',
-      'Beneficio Neto',
+      'Beneficio neto',
     ];
     const rows = pnl.quarters.map((q) => [
       q.label,
-      q.platformFees.toFixed(2),
+      q.topupGross.toFixed(2),
+      q.topupNet.toFixed(2),
       q.vatCollected.toFixed(2),
       q.totalRefunds.toFixed(2),
-      q.grossRevenue.toFixed(2),
       q.netProfit.toFixed(2),
     ]);
     rows.push([
       'TOTAL',
-      pnl.summary.totalPlatformFees.toFixed(2),
+      pnl.summary.totalTopupGross.toFixed(2),
+      pnl.summary.totalTopupNet.toFixed(2),
       pnl.summary.totalVatCollected.toFixed(2),
       pnl.summary.totalRefunds.toFixed(2),
-      pnl.summary.grossRevenue.toFixed(2),
       pnl.summary.netProfit.toFixed(2),
     ]);
 
