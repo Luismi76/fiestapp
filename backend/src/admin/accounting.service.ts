@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PlatformConfigService } from '../platform-config/platform-config.service';
 
 // ============================================
 // Interfaces
@@ -84,8 +85,10 @@ export interface VatSummary {
 export interface ProfitAndLossQuarter {
   quarter: number;
   label: string;
-  platformFees: number;
-  vatCollected: number;
+  platformFees: number;       // Importe bruto (IVA incluido)
+  platformFeesNet: number;    // Base imponible
+  platformFeesVat: number;    // IVA de comisiones
+  vatCollected: number;       // IVA total (comisiones + recargas)
   totalRefunds: number;
   grossRevenue: number;
   netProfit: number;
@@ -95,8 +98,10 @@ export interface ProfitAndLoss {
   year: number;
   quarter?: number;
   summary: {
-    totalPlatformFees: number;
-    totalVatCollected: number;
+    totalPlatformFees: number;       // Importe bruto (IVA incluido)
+    totalPlatformFeesNet: number;    // Base imponible comisiones
+    totalPlatformFeesVat: number;    // IVA comisiones
+    totalVatCollected: number;       // IVA total (comisiones + recargas)
     totalRefunds: number;
     grossRevenue: number;
     netProfit: number;
@@ -110,7 +115,10 @@ export interface ProfitAndLoss {
 
 @Injectable()
 export class AccountingService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private platformConfig: PlatformConfigService,
+  ) {}
 
   // ============================================
   // Dashboard KPIs
@@ -541,7 +549,7 @@ export class AccountingService {
   // ============================================
 
   async getVatSummary(year: number, quarter?: number): Promise<VatSummary> {
-    const vatRate = 0.21;
+    const vatRate = this.platformConfig.vatRate;
 
     let start: Date;
     let end: Date;
@@ -566,11 +574,11 @@ export class AccountingService {
     });
 
     // Tratamiento fiscal (comisionista en nombre ajeno, Art. 11 LIVA):
-    // - topup: Recarga de monedero = ingreso de la plataforma → IVA 21%
-    // - platform_fee: Comisión descontada del monedero (precio final IVA incluido) → sin IVA adicional
+    // - topup: Recarga de monedero = ingreso bruto con IVA → desglosar base + IVA
+    // - platform_fee: Comisión de plataforma, precio final IVA incluido → desglosar base + IVA
     // - payment/experience_payment: Depósito en garantía, ingreso del anfitrión → sin IVA
     // - refund: Rectificación/devolución → sin IVA
-    const TYPES_WITH_VAT = new Set(['topup']);
+    const TYPES_WITH_VAT = new Set(['topup', 'platform_fee']);
 
     const lines: VatLine[] = grouped.map((row) => {
       const grossAmount = Math.abs(row._sum.amount || 0);
@@ -618,7 +626,7 @@ export class AccountingService {
     year: number,
     quarter?: number,
   ): Promise<ProfitAndLoss> {
-    const vatRate = 0.21;
+    const vatRate = this.platformConfig.vatRate;
 
     const quarterBoundaries = [
       {
@@ -685,20 +693,38 @@ export class AccountingService {
           }),
         ]);
 
-        const platformFees = Math.abs(fees._sum?.amount || 0);
+        // Comisiones: importe bruto (IVA incluido) → desglosar
+        const platformFeesGross = Math.abs(fees._sum?.amount || 0);
+        const platformFeesNet =
+          Math.round((platformFeesGross / (1 + vatRate)) * 100) / 100;
+        const platformFeesVat =
+          Math.round((platformFeesGross - platformFeesNet) * 100) / 100;
+
+        // Recargas: importe bruto (IVA incluido) → desglosar
         const topupGross = topups._sum?.amount || 0;
-        const vatCollected =
+        const topupVat =
           Math.round((topupGross - topupGross / (1 + vatRate)) * 100) / 100;
+
+        // IVA total recaudado (comisiones + recargas)
+        const vatCollected =
+          Math.round((platformFeesVat + topupVat) * 100) / 100;
+
         const totalRefunds = Math.abs(refunds._sum?.amount || 0);
+
+        // Ingreso bruto = base imponible comisiones + IVA total
         const grossRevenue =
-          Math.round((platformFees + vatCollected) * 100) / 100;
+          Math.round((platformFeesNet + vatCollected) * 100) / 100;
+
+        // Beneficio neto = base imponible comisiones - reembolsos
         const netProfit =
-          Math.round((platformFees - totalRefunds) * 100) / 100;
+          Math.round((platformFeesNet - totalRefunds) * 100) / 100;
 
         return {
           quarter: qb.quarter,
           label: qb.label,
-          platformFees,
+          platformFees: platformFeesGross,
+          platformFeesNet,
+          platformFeesVat,
           vatCollected,
           totalRefunds,
           grossRevenue,
@@ -711,6 +737,10 @@ export class AccountingService {
       (acc, q) => ({
         totalPlatformFees:
           Math.round((acc.totalPlatformFees + q.platformFees) * 100) / 100,
+        totalPlatformFeesNet:
+          Math.round((acc.totalPlatformFeesNet + q.platformFeesNet) * 100) / 100,
+        totalPlatformFeesVat:
+          Math.round((acc.totalPlatformFeesVat + q.platformFeesVat) * 100) / 100,
         totalVatCollected:
           Math.round((acc.totalVatCollected + q.vatCollected) * 100) / 100,
         totalRefunds:
@@ -721,6 +751,8 @@ export class AccountingService {
       }),
       {
         totalPlatformFees: 0,
+        totalPlatformFeesNet: 0,
+        totalPlatformFeesVat: 0,
         totalVatCollected: 0,
         totalRefunds: 0,
         grossRevenue: 0,
@@ -736,8 +768,10 @@ export class AccountingService {
 
     const headers = [
       'Trimestre',
-      'Comisiones',
-      'IVA Recaudado',
+      'Comisiones (IVA incl.)',
+      'Base Imponible',
+      'IVA Comisiones',
+      'IVA Total',
       'Reembolsos',
       'Ingreso Bruto',
       'Beneficio Neto',
@@ -745,6 +779,8 @@ export class AccountingService {
     const rows = pnl.quarters.map((q) => [
       q.label,
       q.platformFees.toFixed(2),
+      q.platformFeesNet.toFixed(2),
+      q.platformFeesVat.toFixed(2),
       q.vatCollected.toFixed(2),
       q.totalRefunds.toFixed(2),
       q.grossRevenue.toFixed(2),
@@ -753,6 +789,8 @@ export class AccountingService {
     rows.push([
       'TOTAL',
       pnl.summary.totalPlatformFees.toFixed(2),
+      pnl.summary.totalPlatformFeesNet.toFixed(2),
+      pnl.summary.totalPlatformFeesVat.toFixed(2),
       pnl.summary.totalVatCollected.toFixed(2),
       pnl.summary.totalRefunds.toFixed(2),
       pnl.summary.grossRevenue.toFixed(2),
