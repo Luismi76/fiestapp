@@ -85,9 +85,9 @@ export interface VatSummary {
 export interface ProfitAndLossQuarter {
   quarter: number;
   label: string;
-  topupGross: number;       // Recargas brutas (IVA incluido)
-  topupNet: number;         // Base imponible (recargas sin IVA) = ingreso real
-  vatCollected: number;     // IVA recaudado (a declarar a Hacienda)
+  feesGross: number;        // Comisiones brutas (IVA incluido)
+  feesNet: number;          // Base imponible (comisiones sin IVA) = ingreso real
+  vatCollected: number;     // IVA repercutido (a declarar a Hacienda)
   totalRefunds: number;     // Devoluciones
   netProfit: number;        // Base imponible - reembolsos
 }
@@ -96,8 +96,8 @@ export interface ProfitAndLoss {
   year: number;
   quarter?: number;
   summary: {
-    totalTopupGross: number;
-    totalTopupNet: number;
+    totalFeesGross: number;
+    totalFeesNet: number;
     totalVatCollected: number;
     totalRefunds: number;
     netProfit: number;
@@ -570,17 +570,13 @@ export class AccountingService {
     });
 
     // Tratamiento fiscal (comisionista en nombre ajeno, Art. 11 LIVA):
-    // - topup: Recarga de monedero = ingreso de intermediación con IVA → desglosar base + IVA
-    // - platform_fee: Detracción interna del monedero, NO es un ingreso nuevo → se excluye
-    //   (el IVA ya se recaudó cuando el usuario recargó su monedero)
+    // - platform_fee: Comisión de intermediación = prestación de servicio gravada → IVA incluido, desglosar base + IVA
+    // - topup: Anticipo/depósito en monedero → sin IVA (no es hecho imponible)
     // - payment/experience_payment: Depósito en garantía, ingreso del anfitrión → sin IVA
     // - refund: Rectificación/devolución → sin IVA
-    const TYPES_WITH_VAT = new Set(['topup']);
-    const EXCLUDED_TYPES = new Set(['platform_fee']);
+    const TYPES_WITH_VAT = new Set(['platform_fee']);
 
-    const lines: VatLine[] = grouped
-      .filter((row) => !EXCLUDED_TYPES.has(row.type))
-      .map((row) => {
+    const lines: VatLine[] = grouped.map((row) => {
       const grossAmount = Math.abs(row._sum.amount || 0);
       const hasVat = TYPES_WITH_VAT.has(row.type);
       const netAmount = hasVat
@@ -666,10 +662,10 @@ export class AccountingService {
       boundaries.map(async (qb) => {
         const dateFilter = { gte: qb.start, lt: qb.end };
 
-        const [topups, refunds] = await Promise.all([
+        const [fees, refunds] = await Promise.all([
           this.prisma.transaction.aggregate({
             where: {
-              type: 'topup',
+              type: 'platform_fee',
               status: statusFilter,
               createdAt: dateFilter,
             },
@@ -685,24 +681,24 @@ export class AccountingService {
           }),
         ]);
 
-        // Recargas = ingreso real de la plataforma (IVA incluido)
-        const topupGross = topups._sum?.amount || 0;
-        const topupNet =
-          Math.round((topupGross / (1 + vatRate)) * 100) / 100;
+        // Comisiones = ingreso por prestación de servicio (IVA incluido)
+        const feesGross = Math.abs(fees._sum?.amount || 0);
+        const feesNet =
+          Math.round((feesGross / (1 + vatRate)) * 100) / 100;
         const vatCollected =
-          Math.round((topupGross - topupNet) * 100) / 100;
+          Math.round((feesGross - feesNet) * 100) / 100;
 
         const totalRefunds = Math.abs(refunds._sum?.amount || 0);
 
-        // Beneficio neto = base imponible recargas - reembolsos
+        // Beneficio neto = base imponible comisiones - reembolsos
         const netProfit =
-          Math.round((topupNet - totalRefunds) * 100) / 100;
+          Math.round((feesNet - totalRefunds) * 100) / 100;
 
         return {
           quarter: qb.quarter,
           label: qb.label,
-          topupGross,
-          topupNet,
+          feesGross,
+          feesNet,
           vatCollected,
           totalRefunds,
           netProfit,
@@ -712,10 +708,10 @@ export class AccountingService {
 
     const summary = quarters.reduce(
       (acc, q) => ({
-        totalTopupGross:
-          Math.round((acc.totalTopupGross + q.topupGross) * 100) / 100,
-        totalTopupNet:
-          Math.round((acc.totalTopupNet + q.topupNet) * 100) / 100,
+        totalFeesGross:
+          Math.round((acc.totalFeesGross + q.feesGross) * 100) / 100,
+        totalFeesNet:
+          Math.round((acc.totalFeesNet + q.feesNet) * 100) / 100,
         totalVatCollected:
           Math.round((acc.totalVatCollected + q.vatCollected) * 100) / 100,
         totalRefunds:
@@ -723,8 +719,8 @@ export class AccountingService {
         netProfit: Math.round((acc.netProfit + q.netProfit) * 100) / 100,
       }),
       {
-        totalTopupGross: 0,
-        totalTopupNet: 0,
+        totalFeesGross: 0,
+        totalFeesNet: 0,
         totalVatCollected: 0,
         totalRefunds: 0,
         netProfit: 0,
@@ -739,24 +735,24 @@ export class AccountingService {
 
     const headers = [
       'Trimestre',
-      'Recargas (IVA incl.)',
+      'Comisiones (IVA incl.)',
       'Base imponible',
-      'IVA recaudado',
+      'IVA repercutido',
       'Reembolsos',
       'Beneficio neto',
     ];
     const rows = pnl.quarters.map((q) => [
       q.label,
-      q.topupGross.toFixed(2),
-      q.topupNet.toFixed(2),
+      q.feesGross.toFixed(2),
+      q.feesNet.toFixed(2),
       q.vatCollected.toFixed(2),
       q.totalRefunds.toFixed(2),
       q.netProfit.toFixed(2),
     ]);
     rows.push([
       'TOTAL',
-      pnl.summary.totalTopupGross.toFixed(2),
-      pnl.summary.totalTopupNet.toFixed(2),
+      pnl.summary.totalFeesGross.toFixed(2),
+      pnl.summary.totalFeesNet.toFixed(2),
       pnl.summary.totalVatCollected.toFixed(2),
       pnl.summary.totalRefunds.toFixed(2),
       pnl.summary.netProfit.toFixed(2),
@@ -775,7 +771,8 @@ export class AccountingService {
   ): Promise<string> {
     const data = await this.getVatSummary(year, quarter);
     const typeLabels: Record<string, string> = {
-      topup: 'Recargas monedero',
+      platform_fee: 'Comisiones de intermediación',
+      topup: 'Anticipos/recargas monedero',
       experience_payment: 'Pagos experiencias',
       payment: 'Pagos (escrow)',
       refund: 'Reembolsos',

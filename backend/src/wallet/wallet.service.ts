@@ -117,13 +117,8 @@ export class WalletService {
       data: { status: 'cancelled' },
     });
 
-    // Calcular IVA: el usuario paga amount + IVA, el monedero recibe amount
-    const vatRate = this.platformConfig.vatRate;
-    const vatPct = Math.round(vatRate * 100);
-    const vatAmount = Math.round(amount * vatRate * 100) / 100;
-    const totalCharge = Math.round((amount + vatAmount) * 100) / 100;
-
-    // Crear Stripe Checkout Session con dos líneas: recarga + IVA
+    // Recarga = anticipo/depósito (sin IVA). El usuario paga exactamente lo que recarga.
+    // El IVA se aplica sobre las comisiones cuando se presta el servicio.
     const session = await this.ensureStripe().checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -139,30 +134,17 @@ export class WalletService {
           },
           quantity: 1,
         },
-        {
-          price_data: {
-            currency: 'eur',
-            product_data: {
-              name: `IVA (${vatPct}%)`,
-              description: `Impuesto sobre la recarga`,
-            },
-            unit_amount: Math.round(vatAmount * 100),
-          },
-          quantity: 1,
-        },
       ],
       metadata: {
         userId,
         type: 'wallet_topup',
         walletAmount: amount.toString(),
-        vatAmount: vatAmount.toString(),
-        totalCharge: totalCharge.toString(),
       },
       success_url: `${this.frontendUrl}/wallet/topup-result?status=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${this.frontendUrl}/wallet/topup-result?status=error`,
     });
 
-    // Registrar transacción pendiente (amount = lo que recibe el monedero, sin IVA)
+    // Registrar transacción pendiente
     await this.prisma.transaction.create({
       data: {
         userId,
@@ -170,12 +152,12 @@ export class WalletService {
         amount,
         status: 'pending',
         stripeId: session.id,
-        description: `Recarga de monedero: ${amount}€ (IVA: ${vatAmount}€, total cobrado: ${totalCharge}€)`,
+        description: `Recarga de monedero: ${amount}€`,
       },
     });
 
     this.logger.debug(
-      `TopUp session created: sessionId=${session.id}, wallet=${amount}€, vat=${vatAmount}€, total=${totalCharge}€, user=${userId}`,
+      `TopUp session created: sessionId=${session.id}, amount=${amount}€, user=${userId}`,
     );
 
     return {

@@ -277,8 +277,7 @@ export default function WalletPage() {
                   <div className="text-sm text-gray-500">{Math.floor(MIN_TOPUP / 1.5)} operaciones</div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">{withVat(MIN_TOPUP).toFixed(2).replace('.', ',')}€</div>
-                  <div className="text-xs text-gray-400">IVA incl.</div>
+                  <div className="text-2xl font-bold text-primary">{MIN_TOPUP.toFixed(2).replace('.', ',')}€</div>
                 </div>
               </button>
 
@@ -469,14 +468,8 @@ export default function WalletPage() {
                   </div>
                   <div className="flex flex-col items-end gap-0.5">
                     <span className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                      {tx.type === 'topup'
-                        ? `+${withVat(tx.amount).toFixed(2)}€`
-                        : `${tx.amount > 0 ? '+' : ''}${tx.amount.toFixed(2)}€`
-                      }
+                      {`${tx.amount > 0 ? '+' : ''}${tx.amount.toFixed(2)}€`}
                     </span>
-                    {tx.type === 'topup' && (
-                      <span className="text-xs text-gray-400">IVA incl.</span>
-                    )}
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
@@ -585,21 +578,10 @@ export default function WalletPage() {
               {/* Icon and amount */}
               <div className="flex flex-col items-center mb-6">
                 {getTransactionIcon(selectedTransaction.type, 'lg')}
-                {selectedTransaction.type === 'topup' ? (
-                  <>
-                    <p className="text-3xl font-bold mt-4 text-green-600">
-                      +{withVat(selectedTransaction.amount).toFixed(2)}€
-                    </p>
-                    <p className="text-gray-500 mt-1">{getTransactionTitle(selectedTransaction)}</p>
-                  </>
-                ) : (
-                  <>
-                    <p className={`text-3xl font-bold mt-4 ${selectedTransaction.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                      {selectedTransaction.amount > 0 ? '+' : ''}{selectedTransaction.amount.toFixed(2)}€
-                    </p>
-                    <p className="text-gray-500 mt-1">{getTransactionTitle(selectedTransaction)}</p>
-                  </>
-                )}
+                <p className={`text-3xl font-bold mt-4 ${selectedTransaction.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                  {selectedTransaction.amount > 0 ? '+' : ''}{selectedTransaction.amount.toFixed(2)}€
+                </p>
+                <p className="text-gray-500 mt-1">{getTransactionTitle(selectedTransaction)}</p>
               </div>
 
               {/* Details */}
@@ -614,20 +596,9 @@ export default function WalletPage() {
                 )}
 
                 {selectedTransaction.type === 'topup' && (
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                    <p className="text-sm text-gray-500 mb-2">Desglose</p>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Recarga monedero</span>
-                      <span className="font-medium text-gray-900">{selectedTransaction.amount.toFixed(2)}€</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">IVA (21%)</span>
-                      <span className="font-medium text-gray-900">{vatAmount(selectedTransaction.amount).toFixed(2)}€</span>
-                    </div>
-                    <div className="border-t border-gray-200 pt-2 flex justify-between text-sm">
-                      <span className="font-medium text-gray-900">Total cobrado</span>
-                      <span className="font-bold text-gray-900">{withVat(selectedTransaction.amount).toFixed(2)}€</span>
-                    </div>
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <p className="text-sm text-gray-500 mb-1">Recarga de monedero</p>
+                    <p className="font-medium text-gray-900">{selectedTransaction.amount.toFixed(2)}€ abonados a tu saldo</p>
                   </div>
                 )}
 

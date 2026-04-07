@@ -93,7 +93,7 @@ Este limite se reinicia de forma continua: solo cuenta las cancelaciones de los 
 
 ## La comision de la plataforma al cancelar
 
-Cuando se acepta una reserva, tanto el viajero como el anfitrion pagan una comision de servicio que se descuenta de su monedero. El importe de esta comision lo establece el equipo de FiestApp y puede consultarse en todo momento en la seccion de monedero de la aplicacion. Al cancelar:
+Cuando se acepta una reserva, tanto el viajero como el anfitrion pagan una comision de servicio que se descuenta de su monedero. Esta comision incluye el IVA correspondiente. El importe lo establece el equipo de FiestApp y puede consultarse en la seccion de monedero de la aplicacion. Al cancelar:
 
 - **Quien cancela pierde su comision.** No se devuelve.
 - **La otra parte recupera su comision.**
