@@ -392,6 +392,10 @@ export default function RegisterPage() {
                     <Link href="/privacy" className="text-primary hover:underline font-medium" target="_blank">
                       Política de privacidad
                     </Link>
+                    {' '}y la{' '}
+                    <Link href="/cancelacion" className="text-primary hover:underline font-medium" target="_blank">
+                      Política de cancelación
+                    </Link>
                   </span>
                 </label>
                 {errors.termsAccepted && (

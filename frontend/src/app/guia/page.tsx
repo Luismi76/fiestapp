@@ -460,12 +460,15 @@ export default function GuiaPage() {
             <p className="text-sm text-[var(--text-secondary)]">
               ¿No encuentras lo que buscas?
             </p>
-            <div className="flex justify-center gap-3">
+            <div className="flex justify-center gap-3 flex-wrap">
               <Link href="/terms" className="btn-ghost text-sm px-4 py-2 rounded-full">
                 Términos de uso
               </Link>
               <Link href="/privacy" className="btn-ghost text-sm px-4 py-2 rounded-full">
                 Privacidad
+              </Link>
+              <Link href="/cancelacion" className="btn-ghost text-sm px-4 py-2 rounded-full">
+                Cancelación
               </Link>
             </div>
             <p className="text-xs text-[var(--text-muted)]">
