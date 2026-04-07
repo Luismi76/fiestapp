@@ -2012,8 +2012,6 @@ interface PnlQuarter {
   quarter: number;
   label: string;
   platformFees: number;
-  platformFeesNet: number;
-  platformFeesVat: number;
   vatCollected: number;
   totalRefunds: number;
   grossRevenue: number;
@@ -2024,8 +2022,6 @@ interface PnlData {
   year: number;
   summary: {
     totalPlatformFees: number;
-    totalPlatformFeesNet: number;
-    totalPlatformFeesVat: number;
     totalVatCollected: number;
     totalRefunds: number;
     grossRevenue: number;
@@ -2143,19 +2139,11 @@ function CuentaResultadosTab() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-gray-50 rounded-lg p-2">
-                    <div className="text-[10px] text-gray-400">Comisiones (IVA incl.)</div>
+                    <div className="text-[10px] text-gray-400">Comisiones</div>
                     <div className="text-xs font-semibold text-gray-900">{formatEur(q.platformFees)}</div>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-2">
-                    <div className="text-[10px] text-gray-400">Base imponible</div>
-                    <div className="text-xs font-semibold text-gray-700">{formatEur(q.platformFeesNet || 0)}</div>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-2">
-                    <div className="text-[10px] text-gray-400">IVA comisiones</div>
-                    <div className="text-xs font-semibold text-blue-600">{formatEur(q.platformFeesVat || 0)}</div>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg p-2">
-                    <div className="text-[10px] text-gray-400">IVA total</div>
+                    <div className="text-[10px] text-gray-400">IVA (recargas)</div>
                     <div className="text-xs font-semibold text-blue-600">{formatEur(q.vatCollected)}</div>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-2">
@@ -2177,11 +2165,10 @@ function CuentaResultadosTab() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Trimestre</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Importe</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">Base imponible</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">IVA comisiones</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-500">IVA total</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Comisiones</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">IVA (recargas)</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-500">Reembolsos</th>
+                  <th className="text-right px-4 py-3 font-medium text-gray-500">Ingreso bruto</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-500">Beneficio neto</th>
                 </tr>
               </thead>
@@ -2190,10 +2177,9 @@ function CuentaResultadosTab() {
                   <tr key={q.quarter} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-900">{q.label}</td>
                     <td className="px-4 py-3 text-right text-gray-600">{formatEur(q.platformFees)}</td>
-                    <td className="px-4 py-3 text-right text-gray-600">{formatEur(q.platformFeesNet || 0)}</td>
-                    <td className="px-4 py-3 text-right text-blue-600">{formatEur(q.platformFeesVat || 0)}</td>
                     <td className="px-4 py-3 text-right text-blue-600">{formatEur(q.vatCollected)}</td>
                     <td className="px-4 py-3 text-right text-red-500">{formatEur(q.totalRefunds)}</td>
+                    <td className="px-4 py-3 text-right text-gray-600">{formatEur(q.grossRevenue)}</td>
                     <td className={`px-4 py-3 text-right font-semibold ${q.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {formatEur(q.netProfit)}
                     </td>
@@ -2204,10 +2190,9 @@ function CuentaResultadosTab() {
                 <tr className="bg-gray-50 border-t-2 border-gray-200">
                   <td className="px-4 py-3 font-bold text-gray-900">TOTAL {year}</td>
                   <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(s.totalPlatformFees)}</td>
-                  <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(s.totalPlatformFeesNet || 0)}</td>
-                  <td className="px-4 py-3 text-right font-bold text-blue-600">{formatEur(s.totalPlatformFeesVat || 0)}</td>
                   <td className="px-4 py-3 text-right font-bold text-blue-600">{formatEur(s.totalVatCollected)}</td>
                   <td className="px-4 py-3 text-right font-bold text-red-500">{formatEur(s.totalRefunds)}</td>
+                  <td className="px-4 py-3 text-right font-bold text-gray-900">{formatEur(s.grossRevenue)}</td>
                   <td className={`px-4 py-3 text-right font-bold ${s.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {formatEur(s.netProfit)}
                   </td>
@@ -2237,7 +2222,7 @@ function CuentaResultadosTab() {
 // ============================================
 
 const CONFIG_LABELS: Record<string, { label: string; suffix: string; step: string; min: string }> = {
-  platform_fee: { label: 'Comision por operacion (IVA incluido)', suffix: '\u20ac', step: '0.1', min: '0' },
+  platform_fee: { label: 'Comision por operacion', suffix: '\u20ac', step: '0.1', min: '0' },
   min_topup: { label: 'Recarga minima del monedero', suffix: '\u20ac', step: '0.5', min: '0' },
   vat_rate: { label: 'Tipo de IVA', suffix: '%', step: '0.01', min: '0' },
 };
@@ -2364,9 +2349,9 @@ function ComisionesTab() {
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
         <h3 className="text-sm font-medium text-amber-800 mb-2">Informacion importante</h3>
         <ul className="text-xs text-amber-700 space-y-1">
-          <li>La comision por operacion es el precio final (IVA incluido) que se descuenta del monedero de cada parte al cerrar un acuerdo.</li>
+          <li>La comision por operacion se descuenta del monedero de cada parte al cerrar un acuerdo.</li>
+          <li>El IVA se recauda una sola vez, al recargar el monedero. Las comisiones son una detraccion interna sobre saldo que ya tributo.</li>
           <li>La recarga minima determina el importe minimo que un usuario puede anadir a su monedero.</li>
-          <li>El IVA se aplica sobre las recargas de monedero (no sobre las comisiones, que ya lo incluyen).</li>
           <li>Los cambios afectan solo a nuevas operaciones. Las transacciones ya realizadas no se modifican.</li>
         </ul>
       </div>

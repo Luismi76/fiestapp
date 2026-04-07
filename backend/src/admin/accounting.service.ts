@@ -574,11 +574,12 @@ export class AccountingService {
     });
 
     // Tratamiento fiscal (comisionista en nombre ajeno, Art. 11 LIVA):
-    // - topup: Recarga de monedero = ingreso bruto con IVA → desglosar base + IVA
-    // - platform_fee: Comisión de plataforma, precio final IVA incluido → desglosar base + IVA
+    // - topup: Recarga de monedero = ingreso de intermediación con IVA → desglosar base + IVA
+    // - platform_fee: Detracción interna sobre saldo que YA tributó en la recarga → sin IVA
+    //   (el IVA de la comisión ya se recaudó cuando el usuario recargó su monedero)
     // - payment/experience_payment: Depósito en garantía, ingreso del anfitrión → sin IVA
     // - refund: Rectificación/devolución → sin IVA
-    const TYPES_WITH_VAT = new Set(['topup', 'platform_fee']);
+    const TYPES_WITH_VAT = new Set(['topup']);
 
     const lines: VatLine[] = grouped.map((row) => {
       const grossAmount = Math.abs(row._sum.amount || 0);
@@ -693,38 +694,32 @@ export class AccountingService {
           }),
         ]);
 
-        // Comisiones: importe bruto (IVA incluido) → desglosar
-        const platformFeesGross = Math.abs(fees._sum?.amount || 0);
-        const platformFeesNet =
-          Math.round((platformFeesGross / (1 + vatRate)) * 100) / 100;
-        const platformFeesVat =
-          Math.round((platformFeesGross - platformFeesNet) * 100) / 100;
+        // Comisiones: detracción interna, el IVA ya se recaudó en la recarga
+        const platformFees = Math.abs(fees._sum?.amount || 0);
 
-        // Recargas: importe bruto (IVA incluido) → desglosar
+        // Recargas: ingreso con IVA → desglosar para saber cuánto IVA se recaudó
         const topupGross = topups._sum?.amount || 0;
-        const topupVat =
-          Math.round((topupGross - topupGross / (1 + vatRate)) * 100) / 100;
-
-        // IVA total recaudado (comisiones + recargas)
+        const topupNet =
+          Math.round((topupGross / (1 + vatRate)) * 100) / 100;
         const vatCollected =
-          Math.round((platformFeesVat + topupVat) * 100) / 100;
+          Math.round((topupGross - topupNet) * 100) / 100;
 
         const totalRefunds = Math.abs(refunds._sum?.amount || 0);
 
-        // Ingreso bruto = base imponible comisiones + IVA total
+        // Ingreso bruto = comisiones + IVA recaudado en recargas
         const grossRevenue =
-          Math.round((platformFeesNet + vatCollected) * 100) / 100;
+          Math.round((platformFees + vatCollected) * 100) / 100;
 
-        // Beneficio neto = base imponible comisiones - reembolsos
+        // Beneficio neto = comisiones - reembolsos
         const netProfit =
-          Math.round((platformFeesNet - totalRefunds) * 100) / 100;
+          Math.round((platformFees - totalRefunds) * 100) / 100;
 
         return {
           quarter: qb.quarter,
           label: qb.label,
-          platformFees: platformFeesGross,
-          platformFeesNet,
-          platformFeesVat,
+          platformFees,
+          platformFeesNet: platformFees, // sin IVA adicional (ya tributó en recarga)
+          platformFeesVat: 0,            // IVA = 0 porque ya se cobró en la recarga
           vatCollected,
           totalRefunds,
           grossRevenue,
@@ -768,10 +763,8 @@ export class AccountingService {
 
     const headers = [
       'Trimestre',
-      'Comisiones (IVA incl.)',
-      'Base Imponible',
-      'IVA Comisiones',
-      'IVA Total',
+      'Comisiones',
+      'IVA Recaudado (recargas)',
       'Reembolsos',
       'Ingreso Bruto',
       'Beneficio Neto',
@@ -779,8 +772,6 @@ export class AccountingService {
     const rows = pnl.quarters.map((q) => [
       q.label,
       q.platformFees.toFixed(2),
-      q.platformFeesNet.toFixed(2),
-      q.platformFeesVat.toFixed(2),
       q.vatCollected.toFixed(2),
       q.totalRefunds.toFixed(2),
       q.grossRevenue.toFixed(2),
@@ -789,8 +780,6 @@ export class AccountingService {
     rows.push([
       'TOTAL',
       pnl.summary.totalPlatformFees.toFixed(2),
-      pnl.summary.totalPlatformFeesNet.toFixed(2),
-      pnl.summary.totalPlatformFeesVat.toFixed(2),
       pnl.summary.totalVatCollected.toFixed(2),
       pnl.summary.totalRefunds.toFixed(2),
       pnl.summary.grossRevenue.toFixed(2),

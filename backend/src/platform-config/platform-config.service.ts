@@ -12,7 +12,7 @@ export enum ConfigKey {
 const DEFAULTS: Record<ConfigKey, { value: string; description: string }> = {
   [ConfigKey.PLATFORM_FEE]: {
     value: '1.5',
-    description: 'Comisión de plataforma por operación, IVA incluido (en euros)',
+    description: 'Comisión de plataforma por operación (en euros). El IVA se recauda en la recarga del monedero.',
   },
   [ConfigKey.MIN_TOPUP]: {
     value: '4.5',
