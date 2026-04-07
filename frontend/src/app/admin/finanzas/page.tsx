@@ -163,6 +163,7 @@ interface VatRow {
 interface VatSummaryResponse {
   rows: VatRow[];
   totals: VatRow;
+  vatRate: number;
 }
 
 // ============================================
@@ -327,6 +328,7 @@ const accountingApi = {
     return {
       rows: (data.lines || []).map(mapRow),
       totals: data.totals ? mapRow(data.totals) : { concept: 'Total', operationsCount: 0, grossAmount: 0, taxableBase: 0, vatAmount: 0 },
+      vatRate: data.vatRate || 21,
     };
   },
 };
@@ -1723,7 +1725,7 @@ function ObligacionesFiscalesTab() {
           <div>
             <h3 className="font-semibold text-gray-900 text-base">Resumen IVA &middot; Q{quarter} {year}</h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Desglose de operaciones e IVA al 21% &middot; {quarterLabel} {year}
+              Desglose de operaciones e IVA al {vatSummary?.vatRate || 21}% &middot; {quarterLabel} {year}
             </p>
           </div>
 
@@ -1791,7 +1793,7 @@ function ObligacionesFiscalesTab() {
                       <th className="text-right px-4 py-3 font-medium text-gray-500">N.o Ops.</th>
                       <th className="text-right px-4 py-3 font-medium text-gray-500">Importe bruto</th>
                       <th className="text-right px-4 py-3 font-medium text-gray-500">Base imponible</th>
-                      <th className="text-right px-4 py-3 font-medium text-gray-500">IVA (21%)</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-500">IVA ({vatSummary?.vatRate || 21}%)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1817,6 +1819,14 @@ function ObligacionesFiscalesTab() {
                     </tr>
                   </tfoot>
                 </table>
+              </div>
+
+              {/* Nota fiscal */}
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mt-3">
+                <p className="text-xs text-amber-700">
+                  <strong>Nota:</strong> Las comisiones de plataforma aparecen con IVA = 0 porque el IVA se recauda una sola vez al recargar el monedero.
+                  La comision es una detraccion interna sobre saldo que ya tributo en la recarga.
+                </p>
               </div>
             </>
           ) : (
