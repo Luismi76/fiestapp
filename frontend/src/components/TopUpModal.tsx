@@ -7,11 +7,12 @@ import { getErrorMessage } from '@/lib/error';
 
 interface TopUpModalProps {
   amount: number;
+  platformFee?: number;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function TopUpModal({ amount, onClose }: TopUpModalProps) {
+export default function TopUpModal({ amount, platformFee = 1.5, onClose }: TopUpModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +63,7 @@ export default function TopUpModal({ amount, onClose }: TopUpModalProps) {
 
         <div className="text-center mb-6">
           <p className="text-3xl font-bold text-gray-900">{amount.toFixed(2)}€</p>
-          <p className="text-gray-500 text-sm">{Math.floor(amount / 1.5)} operaciones</p>
+          <p className="text-gray-500 text-sm">{Math.floor(amount / platformFee)} operaciones</p>
           <div className="mt-2 text-xs text-gray-400">
             <p>Se abonarán {amount.toFixed(2)}€ a tu monedero</p>
           </div>

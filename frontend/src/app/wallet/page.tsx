@@ -39,7 +39,8 @@ export default function WalletPage() {
   const [filter, setFilter] = useState<TransactionFilter>('all');
   const ITEMS_PER_PAGE = 10;
 
-  const MIN_TOPUP = 4.5;
+  const MIN_TOPUP = wallet?.minTopUp || 4.5;
+  const FEE = wallet?.platformFee || 1.5;
 
   const handleCustomAmountSubmit = () => {
     const value = parseFloat(customAmount.replace(',', '.'));
@@ -273,7 +274,7 @@ export default function WalletPage() {
               >
                 <div>
                   <div className="text-lg font-bold text-gray-900">Ingresar mínimo</div>
-                  <div className="text-sm text-gray-500">{Math.floor(MIN_TOPUP / 1.5)} operaciones</div>
+                  <div className="text-sm text-gray-500">{Math.floor(MIN_TOPUP / FEE)} operaciones</div>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-primary">{MIN_TOPUP.toFixed(2).replace('.', ',')}€</div>
@@ -329,7 +330,7 @@ export default function WalletPage() {
                   )}
                   {customAmount && !customAmountError && parseFloat(customAmount.replace(',', '.')) >= MIN_TOPUP && (
                     <p className="text-gray-500 text-sm mt-2">
-                      {Math.floor(parseFloat(customAmount.replace(',', '.')) / 1.5)} operaciones
+                      {Math.floor(parseFloat(customAmount.replace(',', '.')) / FEE)} operaciones
                     </p>
                   )}
                   <button
@@ -550,6 +551,7 @@ export default function WalletPage() {
       {showTopUpModal && (
         <TopUpModal
           amount={selectedAmount}
+          platformFee={FEE}
           onClose={() => setShowTopUpModal(false)}
           onSuccess={handleTopUpSuccess}
         />

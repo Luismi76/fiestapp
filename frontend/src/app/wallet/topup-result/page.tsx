@@ -12,6 +12,7 @@ function TopUpResultContent() {
   const { user, loading: authLoading } = useAuth();
   const [checking, setChecking] = useState(true);
   const [result, setResult] = useState<{ success: boolean; amount?: number } | null>(null);
+  const [operationsAvailable, setOperationsAvailable] = useState<number | null>(null);
 
   const status = searchParams.get('status');
   const sessionId = searchParams.get('session_id');
@@ -52,6 +53,11 @@ function TopUpResultContent() {
           if (data.success) {
             setResult(data);
             setChecking(false);
+            // Obtener operaciones disponibles reales del backend
+            try {
+              const walletData = await walletApi.getWallet();
+              setOperationsAvailable(walletData.operationsAvailable);
+            } catch { /* no crítico */ }
             return;
           }
         } catch {
@@ -93,7 +99,7 @@ function TopUpResultContent() {
               Se han añadido <span className="font-semibold text-green-600">{result?.amount?.toFixed(2)}€</span> a tu monedero.
             </p>
             <p className="text-sm text-gray-400 mb-6">
-              {result?.amount ? Math.floor(result.amount / 1.5) : 0} operaciones disponibles
+              {operationsAvailable ?? '...'} operaciones disponibles
             </p>
             <div className="flex gap-3">
               <button
