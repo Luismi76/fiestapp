@@ -6,6 +6,8 @@ export enum ConfigKey {
   PLATFORM_FEE = 'platform_fee',
   MIN_TOPUP = 'min_topup',
   VAT_RATE = 'vat_rate',
+  STRIPE_FEE_RATE = 'stripe_fee_rate',
+  STRIPE_FEE_FIXED = 'stripe_fee_fixed',
 }
 
 /** Valores por defecto */
@@ -21,6 +23,14 @@ const DEFAULTS: Record<ConfigKey, { value: string; description: string }> = {
   [ConfigKey.VAT_RATE]: {
     value: '0.21',
     description: 'Tipo de IVA aplicado a las recargas (0.21 = 21%)',
+  },
+  [ConfigKey.STRIPE_FEE_RATE]: {
+    value: '0.015',
+    description: 'Comisión porcentual de Stripe por transacción (0.015 = 1,5%)',
+  },
+  [ConfigKey.STRIPE_FEE_FIXED]: {
+    value: '0.25',
+    description: 'Comisión fija de Stripe por transacción (en euros)',
   },
 };
 
@@ -118,6 +128,16 @@ export class PlatformConfigService implements OnModuleInit {
    */
   get vatRate(): number {
     return this.getNumber(ConfigKey.VAT_RATE);
+  }
+
+  /**
+   * Calcula la comisión de Stripe para un importe dado.
+   * Fórmula: importe * tasa_porcentual + comisión_fija
+   */
+  calculateStripeFee(amount: number): number {
+    const rate = this.getNumber(ConfigKey.STRIPE_FEE_RATE);
+    const fixed = this.getNumber(ConfigKey.STRIPE_FEE_FIXED);
+    return Math.round((amount * rate + fixed) * 100) / 100;
   }
 
   /**

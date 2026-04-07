@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PlatformConfigService } from '../platform-config/platform-config.service';
 import { CancellationPolicy } from '@prisma/client';
 
 export interface RefundCalculation {
@@ -25,6 +26,7 @@ export class CancellationsService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private platformConfig: PlatformConfigService,
   ) {}
 
   /**
@@ -455,7 +457,7 @@ export class CancellationsService {
     const estimatedStripeFee =
       isStripeHold || refund.refundAmount === 0
         ? 0
-        : Math.round((refund.refundAmount * 0.015 + 0.25) * 100) / 100;
+        : this.platformConfig.calculateStripeFee(refund.refundAmount);
     const netRefundAmount =
       Math.round((refund.refundAmount - estimatedStripeFee) * 100) / 100;
 

@@ -904,7 +904,7 @@ export class MatchesService {
     const amountInCents = Math.round(match.totalPrice * 100);
 
     // Comisión de Stripe: 1,5% + 0,25€ (tarjeta europea estándar)
-    const stripeFee = Math.round((match.totalPrice * 0.015 + 0.25) * 100) / 100;
+    const stripeFee = this.platformConfig.calculateStripeFee(match.totalPrice);
 
     // Determinar modo escrow para pagos retenidos
     // stripe_hold (< 7 días): capture_method manual, cancelación gratuita
@@ -1041,7 +1041,7 @@ export class MatchesService {
         if (match) {
           const grossAmount = Math.abs(transaction.amount);
           const stripeFee =
-            Math.round((grossAmount * 0.015 + 0.25) * 100) / 100;
+            this.platformConfig.calculateStripeFee(grossAmount);
           const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
 
           await this.prisma.$transaction(async (tx) => {
@@ -1165,7 +1165,7 @@ export class MatchesService {
                   if (isImmediate) {
                     const grossAmount = Math.abs(transaction.amount);
                     const stripeFee =
-                      Math.round((grossAmount * 0.015 + 0.25) * 100) / 100;
+                      this.platformConfig.calculateStripeFee(grossAmount);
                     const netAmount =
                       Math.round((grossAmount - stripeFee) * 100) / 100;
                     await tx.wallet.upsert({
@@ -1392,24 +1392,38 @@ export class MatchesService {
               }
             }
 
-            // En stripe_hold cancelado, no hay comisión Stripe (cancelación gratuita).
-            // En platform_hold con refund, Stripe no devuelve su comisión → se descuenta.
+            // Registrar reembolso: el importe es lo que Stripe devuelve al viajero
+            // En stripe_hold no hay comisión Stripe (cancelación gratuita)
+            // En platform_hold, Stripe no devuelve su comisión → es un coste para la plataforma
             const stripeFeeOnRefund = isStripeHold
               ? 0
-              : Math.round((refundAmount * 0.015 + 0.25) * 100) / 100;
-            const netRefund =
-              Math.round((refundAmount - stripeFeeOnRefund) * 100) / 100;
+              : this.platformConfig.calculateStripeFee(refundAmount);
 
+            // Transacción de reembolso: registrar el importe REAL devuelto al viajero
             await this.prisma.transaction.create({
               data: {
                 userId: match.requesterId,
                 matchId: id,
                 type: 'refund',
-                amount: netRefund,
+                amount: refundAmount,
                 status: 'completed',
-                description: `Devolución por cancelación: ${match.experience.title}${stripeFeeOnRefund > 0 ? ` (comisión Stripe: ${stripeFeeOnRefund}€)` : ''}`,
+                description: `Devolución por cancelación: ${match.experience.title}`,
               },
             });
+
+            // Si hay comisión Stripe perdida, registrarla como gasto de plataforma
+            if (stripeFeeOnRefund > 0) {
+              await this.prisma.transaction.create({
+                data: {
+                  userId: match.requesterId,
+                  matchId: id,
+                  type: 'platform_fee',
+                  amount: -stripeFeeOnRefund,
+                  status: 'completed',
+                  description: `Comisión procesador de pagos no recuperable: ${match.experience.title}`,
+                },
+              });
+            }
 
             await this.prisma.transaction.update({
               where: { id: paymentTx.id },
@@ -1646,7 +1660,7 @@ export class MatchesService {
 
     // Calcular comisión Stripe (1,5% + 0,25€) que se descuenta al anfitrión
     const grossAmount = Math.abs(transaction.amount);
-    const stripeFee = Math.round((grossAmount * 0.015 + 0.25) * 100) / 100;
+    const stripeFee = this.platformConfig.calculateStripeFee(grossAmount);
     const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
 
     try {

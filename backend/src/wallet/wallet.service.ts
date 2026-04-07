@@ -86,13 +86,15 @@ export class WalletService {
   // Crear sesión de Stripe Checkout para recarga de monedero
   async createTopUpSession(
     userId: string,
-    amount: number = MIN_TOPUP,
+    amount?: number,
   ): Promise<{
     sessionUrl: string;
     sessionId: string;
   }> {
-    if (amount < MIN_TOPUP) {
-      throw new BadRequestException(`La recarga mínima es de ${MIN_TOPUP}€`);
+    const minTopup = this.platformConfig.minTopup;
+    if (!amount) amount = minTopup;
+    if (amount < minTopup) {
+      throw new BadRequestException(`La recarga mínima es de ${minTopup}€`);
     }
 
     const user = await this.prisma.user.findUnique({
@@ -116,7 +118,9 @@ export class WalletService {
     });
 
     // Calcular IVA: el usuario paga amount + IVA, el monedero recibe amount
-    const vatAmount = Math.round(amount * VAT_RATE * 100) / 100;
+    const vatRate = this.platformConfig.vatRate;
+    const vatPct = Math.round(vatRate * 100);
+    const vatAmount = Math.round(amount * vatRate * 100) / 100;
     const totalCharge = Math.round((amount + vatAmount) * 100) / 100;
 
     // Crear Stripe Checkout Session con dos líneas: recarga + IVA
@@ -139,7 +143,7 @@ export class WalletService {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: `IVA (21%)`,
+              name: `IVA (${vatPct}%)`,
               description: `Impuesto sobre la recarga`,
             },
             unit_amount: Math.round(vatAmount * 100),
