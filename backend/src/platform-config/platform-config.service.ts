@@ -32,8 +32,33 @@ export class PlatformConfigService implements OnModuleInit {
   constructor(private prisma: PrismaService) {}
 
   async onModuleInit() {
-    await this.seedDefaults();
-    await this.loadAll();
+    try {
+      await this.ensureTable();
+      await this.seedDefaults();
+      await this.loadAll();
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo cargar PlatformConfig desde BD, usando valores por defecto: ${error instanceof Error ? error.message : error}`,
+      );
+      // Cargar defaults en cache para que el servicio funcione sin BD
+      for (const [key, { value }] of Object.entries(DEFAULTS)) {
+        this.cache.set(key, value);
+      }
+    }
+  }
+
+  /**
+   * Crea la tabla si no existe (para entornos donde no se ejecutó la migración)
+   */
+  private async ensureTable() {
+    await this.prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS platform_config (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        description TEXT,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
   }
 
   /**
