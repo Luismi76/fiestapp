@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { walletApi } from '@/lib/api';
-import { vatAmount, withVat } from '@/lib/constants';
 import logger from '@/lib/logger';
 import { getErrorMessage } from '@/lib/error';
 

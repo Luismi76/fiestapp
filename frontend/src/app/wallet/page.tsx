@@ -7,7 +7,6 @@ import { walletApi, WalletInfo, WalletTransaction } from '@/lib/api';
 import TopUpModal from '@/components/TopUpModal';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
-import { vatAmount, withVat } from '@/lib/constants';
 import Image from 'next/image';
 
 // Tipos de filtro disponibles
