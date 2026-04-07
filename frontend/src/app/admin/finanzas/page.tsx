@@ -2222,7 +2222,7 @@ function CuentaResultadosTab() {
 // ============================================
 
 const CONFIG_LABELS: Record<string, { label: string; suffix: string; step: string; min: string }> = {
-  platform_fee: { label: 'Comision por operacion', suffix: '\u20ac', step: '0.1', min: '0' },
+  platform_fee: { label: 'Comision por operacion (IVA incluido)', suffix: '\u20ac', step: '0.1', min: '0' },
   min_topup: { label: 'Recarga minima del monedero', suffix: '\u20ac', step: '0.5', min: '0' },
   vat_rate: { label: 'Tipo de IVA', suffix: '%', step: '0.01', min: '0' },
 };
@@ -2340,7 +2340,7 @@ function ComisionesTab() {
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
         <h3 className="text-sm font-medium text-amber-800 mb-2">Informacion importante</h3>
         <ul className="text-xs text-amber-700 space-y-1">
-          <li>La comision por operacion se descuenta del monedero de cada parte al cerrar un acuerdo.</li>
+          <li>La comision por operacion es el precio final (IVA incluido) que se descuenta del monedero de cada parte al cerrar un acuerdo.</li>
           <li>La recarga minima determina el importe minimo que un usuario puede anadir a su monedero.</li>
           <li>El IVA se aplica sobre las recargas de monedero (no sobre las comisiones, que ya lo incluyen).</li>
           <li>Los cambios afectan solo a nuevas operaciones. Las transacciones ya realizadas no se modifican.</li>

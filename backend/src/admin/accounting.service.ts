@@ -567,7 +567,7 @@ export class AccountingService {
 
     // Tratamiento fiscal (comisionista en nombre ajeno, Art. 11 LIVA):
     // - topup: Recarga de monedero = ingreso de la plataforma → IVA 21%
-    // - platform_fee: Comisión descontada del monedero (ya tributó en la recarga) → sin IVA
+    // - platform_fee: Comisión descontada del monedero (precio final IVA incluido) → sin IVA adicional
     // - payment/experience_payment: Depósito en garantía, ingreso del anfitrión → sin IVA
     // - refund: Rectificación/devolución → sin IVA
     const TYPES_WITH_VAT = new Set(['topup']);
