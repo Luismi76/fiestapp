@@ -2236,8 +2236,11 @@ function ComisionesTab() {
 
   useEffect(() => {
     api.get('/admin/platform-config')
-      .then(({ data }) => {
-        const items = data.data;
+      .then(({ data: items }) => {
+        if (!Array.isArray(items)) {
+          setMessage({ type: 'error', text: 'Respuesta inesperada del servidor' });
+          return;
+        }
         setConfigs(items);
         const values: Record<string, string> = {};
         items.forEach((c: { key: string; value: string }) => {
@@ -2261,7 +2264,13 @@ function ComisionesTab() {
         // Convertir porcentaje a decimal para VAT
         value: key === 'vat_rate' ? String(parseFloat(value) / 100) : value,
       }));
-      await api.post('/admin/platform-config', { entries });
+      const { data: updated } = await api.post('/admin/platform-config', { entries });
+      if (Array.isArray(updated)) {
+        setConfigs((prev) => prev.map((c) => {
+          const u = updated.find((x: { key: string }) => x.key === c.key);
+          return u ? { ...c, value: u.value } : c;
+        }));
+      }
       setMessage({ type: 'success', text: 'Configuracion guardada correctamente. Los cambios se aplican de inmediato.' });
     } catch {
       setMessage({ type: 'error', text: 'Error al guardar la configuracion' });

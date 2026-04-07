@@ -33,16 +33,14 @@ export class AdminController {
 
   @Get('platform-config')
   async getPlatformConfig() {
-    const configs = await this.platformConfigService.getAll();
-    return { data: configs };
+    return this.platformConfigService.getAll();
   }
 
   @Post('platform-config')
   async updatePlatformConfig(
     @Body() body: { entries: { key: string; value: string }[] },
   ) {
-    const updated = await this.platformConfigService.updateMany(body.entries);
-    return { data: updated };
+    return this.platformConfigService.updateMany(body.entries);
   }
 
   @Get('dashboard')
