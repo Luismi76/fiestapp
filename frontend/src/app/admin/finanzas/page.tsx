@@ -311,7 +311,6 @@ const accountingApi = {
   getVatSummary: async (year: number, quarter: number): Promise<VatSummaryResponse> => {
     const { data } = await api.get(`/admin/accounting/vat-summary?year=${year}&quarter=${quarter}`);
     const typeLabels: Record<string, string> = {
-      platform_fee: 'Comisiones plataforma',
       topup: 'Recargas monedero',
       experience_payment: 'Pagos experiencias',
       payment: 'Pagos (escrow)',
@@ -1824,8 +1823,8 @@ function ObligacionesFiscalesTab() {
               {/* Nota fiscal */}
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mt-3">
                 <p className="text-xs text-amber-700">
-                  <strong>Nota:</strong> Las comisiones de plataforma aparecen con IVA = 0 porque el IVA se recauda una sola vez al recargar el monedero.
-                  La comision es una detraccion interna sobre saldo que ya tributo en la recarga.
+                  <strong>Nota:</strong> Las comisiones de plataforma no aparecen en este desglose porque son detracciones internas del monedero.
+                  El IVA se recauda una sola vez al recargar el monedero, que es el ingreso real de la plataforma.
                 </p>
               </div>
             </>

@@ -575,13 +575,16 @@ export class AccountingService {
 
     // Tratamiento fiscal (comisionista en nombre ajeno, Art. 11 LIVA):
     // - topup: Recarga de monedero = ingreso de intermediación con IVA → desglosar base + IVA
-    // - platform_fee: Detracción interna sobre saldo que YA tributó en la recarga → sin IVA
-    //   (el IVA de la comisión ya se recaudó cuando el usuario recargó su monedero)
+    // - platform_fee: Detracción interna del monedero, NO es un ingreso nuevo → se excluye
+    //   (el IVA ya se recaudó cuando el usuario recargó su monedero)
     // - payment/experience_payment: Depósito en garantía, ingreso del anfitrión → sin IVA
     // - refund: Rectificación/devolución → sin IVA
     const TYPES_WITH_VAT = new Set(['topup']);
+    const EXCLUDED_TYPES = new Set(['platform_fee']);
 
-    const lines: VatLine[] = grouped.map((row) => {
+    const lines: VatLine[] = grouped
+      .filter((row) => !EXCLUDED_TYPES.has(row.type))
+      .map((row) => {
       const grossAmount = Math.abs(row._sum.amount || 0);
       const hasVat = TYPES_WITH_VAT.has(row.type);
       const netAmount = hasVat
@@ -799,8 +802,7 @@ export class AccountingService {
   ): Promise<string> {
     const data = await this.getVatSummary(year, quarter);
     const typeLabels: Record<string, string> = {
-      platform_fee: 'Comisiones plataforma',
-      topup: 'Recargas wallet',
+      topup: 'Recargas monedero',
       experience_payment: 'Pagos experiencias',
       payment: 'Pagos (escrow)',
       refund: 'Reembolsos',
@@ -811,7 +813,7 @@ export class AccountingService {
       'N. Operaciones',
       'Importe Bruto',
       'Base Imponible',
-      'IVA (21%)',
+      `IVA (${data.vatRate}%)`,
     ];
     const rows = data.lines.map((line) => [
       typeLabels[line.type] || line.type,
