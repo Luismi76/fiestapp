@@ -11,7 +11,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { MatchStatus } from './dto/update-match.dto';
-import { WalletService, PLATFORM_FEE } from '../wallet/wallet.service';
+import { WalletService } from '../wallet/wallet.service';
 import { UsersService } from '../users/users.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PushService } from '../notifications/push.service';
@@ -21,6 +21,7 @@ import {
   RefundCalculation,
 } from '../cancellations/cancellations.service';
 import { EmailService } from '../email/email.service';
+import { PlatformConfigService } from '../platform-config/platform-config.service';
 import { ConfigService } from '@nestjs/config';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 import Stripe from 'stripe';
@@ -55,6 +56,7 @@ export class MatchesService {
     private emailService: EmailService,
     private configService: ConfigService,
     private stripeIdempotency: StripeIdempotencyService,
+    private platformConfig: PlatformConfigService,
   ) {}
 
   // Crear solicitud de match
@@ -710,13 +712,13 @@ export class MatchesService {
 
     if (!hostHasBalance) {
       throw new BadRequestException(
-        `No tienes saldo suficiente. Necesitas ${PLATFORM_FEE}€ para cerrar el acuerdo. Recarga tu monedero.`,
+        `No tienes saldo suficiente. Necesitas ${this.platformConfig.platformFee}€ para cerrar el acuerdo. Recarga tu monedero.`,
       );
     }
 
     if (!requesterHasBalance) {
       throw new BadRequestException(
-        `El viajero no tiene saldo suficiente (${PLATFORM_FEE}€) para cerrar el acuerdo.`,
+        `El viajero no tiene saldo suficiente (${this.platformConfig.platformFee}€) para cerrar el acuerdo.`,
       );
     }
 
@@ -750,23 +752,23 @@ export class MatchesService {
     ]);
 
     // Enviar notificaciones de cargo a ambos usuarios
-    const hostOperationsLeft = Math.floor(hostWallet.balance / PLATFORM_FEE);
+    const hostOperationsLeft = Math.floor(hostWallet.balance / this.platformConfig.platformFee);
     const requesterOperationsLeft = Math.floor(
-      requesterWallet.balance / PLATFORM_FEE,
+      requesterWallet.balance / this.platformConfig.platformFee,
     );
 
     await Promise.all([
       // Notificaciones al anfitrión
       this.notificationsService.notifyWalletCharged(
         match.hostId,
-        PLATFORM_FEE,
+        this.platformConfig.platformFee,
         experienceTitle,
         id,
         hostWallet.balance,
       ),
       this.pushService.pushWalletCharged(
         match.hostId,
-        PLATFORM_FEE,
+        this.platformConfig.platformFee,
         experienceTitle,
         id,
         hostWallet.balance,
@@ -774,14 +776,14 @@ export class MatchesService {
       // Notificaciones al viajero
       this.notificationsService.notifyWalletCharged(
         match.requesterId,
-        PLATFORM_FEE,
+        this.platformConfig.platformFee,
         experienceTitle,
         id,
         requesterWallet.balance,
       ),
       this.pushService.pushWalletCharged(
         match.requesterId,
-        PLATFORM_FEE,
+        this.platformConfig.platformFee,
         experienceTitle,
         id,
         requesterWallet.balance,
@@ -1764,7 +1766,7 @@ export class MatchesService {
     const hasBalance = await this.walletService.hasEnoughBalance(senderId);
     if (!hasBalance) {
       throw new BadRequestException(
-        `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para usar el chat. Recarga tu saldo.`,
+        `Necesitas al menos ${this.platformConfig.platformFee}€ en tu monedero para usar el chat. Recarga tu saldo.`,
       );
     }
 

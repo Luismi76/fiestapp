@@ -18,6 +18,7 @@ import { FinancialReportService } from './financial-report.service';
 import { AccountingService } from './accounting.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
+import { PlatformConfigService } from '../platform-config/platform-config.service';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -27,7 +28,22 @@ export class AdminController {
     private readonly financialReportService: FinancialReportService,
     private readonly accountingService: AccountingService,
     private readonly configService: ConfigService,
+    private readonly platformConfigService: PlatformConfigService,
   ) {}
+
+  @Get('platform-config')
+  async getPlatformConfig() {
+    const configs = await this.platformConfigService.getAll();
+    return { data: configs };
+  }
+
+  @Post('platform-config')
+  async updatePlatformConfig(
+    @Body() body: { entries: { key: string; value: string }[] },
+  ) {
+    const updated = await this.platformConfigService.updateMany(body.entries);
+    return { data: updated };
+  }
 
   @Get('dashboard')
   getDashboardStats() {

@@ -40,6 +40,7 @@ import { CurrencyModule } from './currency/currency.module';
 import { GdprModule } from './gdpr/gdpr.module';
 import { HealthModule } from './health/health.module';
 import { CategoriesModule } from './categories/categories.module';
+import { PlatformConfigModule } from './platform-config/platform-config.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { CategoriesModule } from './categories/categories.module';
     ]),
     StorageModule,
     PrismaModule,
+    PlatformConfigModule,
     AuthModule,
     UsersModule,
     ExperiencesModule,

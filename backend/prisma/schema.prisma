@@ -735,6 +735,19 @@ model Cancellation {
 }
 
 // ============================================
+// Configuración de la plataforma
+// ============================================
+
+model PlatformConfig {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("platform_config")
+}
+
+// ============================================
 // FASE 7: Verificación de Identidad
 // ============================================
 

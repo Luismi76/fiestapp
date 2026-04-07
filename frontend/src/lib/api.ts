@@ -1588,6 +1588,17 @@ export const adminApi = {
     return response.data;
   },
 
+  // Platform config
+  getPlatformConfig: async (): Promise<{ data: { key: string; value: string; description: string | null; updatedAt: string }[] }> => {
+    const response = await api.get('/admin/platform-config');
+    return response.data;
+  },
+
+  updatePlatformConfig: async (entries: { key: string; value: string }[]): Promise<{ data: { key: string; value: string }[] }> => {
+    const response = await api.post('/admin/platform-config', { entries });
+    return response.data;
+  },
+
   // Festival management
   cancelFestival: async (festivalId: string, reason?: string): Promise<{ affectedMatches: number; totalRefunded: number }> => {
     const response = await api.post(`/admin/festivals/${festivalId}/cancel`, { reason });

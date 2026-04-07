@@ -14,12 +14,8 @@ import {
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import {
-  WalletService,
-  MIN_TOPUP,
-  PLATFORM_FEE,
-  VAT_RATE,
-} from './wallet.service';
+import { WalletService } from './wallet.service';
+import { PlatformConfigService } from '../platform-config/platform-config.service';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
@@ -32,6 +28,7 @@ export class WalletController {
   constructor(
     private readonly walletService: WalletService,
     private readonly configService: ConfigService,
+    private readonly platformConfig: PlatformConfigService,
   ) {
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (stripeKey) {
@@ -44,15 +41,15 @@ export class WalletController {
   @UseGuards(JwtAuthGuard)
   async getWallet(@Request() req: AuthenticatedRequest) {
     const wallet = await this.walletService.getWallet(req.user.userId);
-    const canOperate = wallet.balance >= PLATFORM_FEE;
+    const fee = this.platformConfig.platformFee;
 
     return {
       balance: wallet.balance,
-      canOperate,
-      platformFee: PLATFORM_FEE,
-      minTopUp: MIN_TOPUP,
-      vatRate: VAT_RATE,
-      operationsAvailable: Math.floor(wallet.balance / PLATFORM_FEE),
+      canOperate: wallet.balance >= fee,
+      platformFee: fee,
+      minTopUp: this.platformConfig.minTopup,
+      vatRate: this.platformConfig.vatRate,
+      operationsAvailable: Math.floor(wallet.balance / fee),
     };
   }
 
@@ -63,7 +60,7 @@ export class WalletController {
     @Request() req: AuthenticatedRequest,
     @Body() body: { amount?: number },
   ) {
-    const amount = body.amount || MIN_TOPUP;
+    const amount = body.amount || this.platformConfig.minTopup;
     return this.walletService.createTopUpSession(req.user.userId, amount);
   }
 
@@ -138,7 +135,7 @@ export class WalletController {
     );
     return {
       canOperate: hasBalance,
-      requiredAmount: PLATFORM_FEE,
+      requiredAmount: this.platformConfig.platformFee,
     };
   }
 }

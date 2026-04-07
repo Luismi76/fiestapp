@@ -10,7 +10,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
-import { WalletService, PLATFORM_FEE } from '../wallet/wallet.service';
+import { WalletService } from '../wallet/wallet.service';
+import { PlatformConfigService } from '../platform-config/platform-config.service';
 import { LocationService } from './location.service';
 import { TranslationService } from './translation.service';
 import { Logger } from '@nestjs/common';
@@ -50,6 +51,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private walletService: WalletService,
     private locationService: LocationService,
     private translationService: TranslationService,
+    private platformConfig: PlatformConfigService,
   ) {}
 
   async handleConnection(client: AuthenticatedSocket) {
@@ -59,7 +61,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       // Extract token from auth, authorization header, or cookie
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       const cookieHeader = client.handshake.headers?.cookie || '';
       const cookieToken = cookieHeader
         .split(';')
@@ -202,9 +204,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         );
         return {
           success: false,
-          error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para acceder al chat. Recarga tu saldo.`,
+          error: `Necesitas al menos ${this.platformConfig.platformFee}€ en tu monedero para acceder al chat. Recarga tu saldo.`,
           requiresTopUp: true,
-          requiredAmount: PLATFORM_FEE,
+          requiredAmount: this.platformConfig.platformFee,
         };
       }
 
@@ -301,9 +303,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!hasBalance) {
         return {
           success: false,
-          error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para usar el chat. Recarga tu saldo.`,
+          error: `Necesitas al menos ${this.platformConfig.platformFee}€ en tu monedero para usar el chat. Recarga tu saldo.`,
           requiresTopUp: true,
-          requiredAmount: PLATFORM_FEE,
+          requiredAmount: this.platformConfig.platformFee,
         };
       }
 
@@ -427,7 +429,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!hasBalance) {
         return {
           success: false,
-          error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para usar el chat.`,
+          error: `Necesitas al menos ${this.platformConfig.platformFee}€ en tu monedero para usar el chat.`,
           requiresTopUp: true,
         };
       }
@@ -509,7 +511,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!hasBalance) {
         return {
           success: false,
-          error: `Necesitas al menos ${PLATFORM_FEE}€ en tu monedero para usar el chat.`,
+          error: `Necesitas al menos ${this.platformConfig.platformFee}€ en tu monedero para usar el chat.`,
           requiresTopUp: true,
         };
       }

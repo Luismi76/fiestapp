@@ -7,12 +7,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
+import { PlatformConfigService } from '../platform-config/platform-config.service';
 import Stripe from 'stripe';
 
-// Constantes del modelo de negocio
-export const PLATFORM_FEE = 1.5; // 1,50€ por operación
-export const MIN_TOPUP = 4.5; // 4,50€ mínimo de recarga (3 operaciones)
-export const VAT_RATE = 0.21; // IVA 21% aplicado a recargas
+// Constantes legacy (se mantienen para compatibilidad de imports existentes, pero el servicio usa PlatformConfigService)
+export const PLATFORM_FEE = 1.5;
+export const MIN_TOPUP = 4.5;
+export const VAT_RATE = 0.21;
 
 export type TransactionType = 'topup' | 'platform_fee' | 'refund';
 
@@ -26,6 +27,7 @@ export class WalletService {
     private prisma: PrismaService,
     private configService: ConfigService,
     private stripeIdempotency: StripeIdempotencyService,
+    private platformConfig: PlatformConfigService,
   ) {
     this.frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
@@ -74,8 +76,9 @@ export class WalletService {
   // Verificar si tiene saldo suficiente
   async hasEnoughBalance(
     userId: string,
-    amount: number = PLATFORM_FEE,
+    amount?: number,
   ): Promise<boolean> {
+    if (amount === undefined) amount = this.platformConfig.platformFee;
     const balance = await this.getBalance(userId);
     return balance >= amount;
   }
@@ -339,9 +342,11 @@ export class WalletService {
   ): Promise<void> {
     const wallet = await this.getWallet(userId);
 
-    if (wallet.balance < PLATFORM_FEE) {
+    const fee = this.platformConfig.platformFee;
+
+    if (wallet.balance < fee) {
       throw new BadRequestException(
-        `Saldo insuficiente. Necesitas ${PLATFORM_FEE}€ para completar esta operación.`,
+        `Saldo insuficiente. Necesitas ${fee}€ para completar esta operación.`,
       );
     }
 
@@ -355,7 +360,7 @@ export class WalletService {
       // Descontar del monedero
       await tx.wallet.update({
         where: { userId },
-        data: { balance: { decrement: PLATFORM_FEE } },
+        data: { balance: { decrement: fee } },
       });
 
       // Registrar transacción
@@ -365,7 +370,7 @@ export class WalletService {
           matchId,
           otherUserId,
           type: 'platform_fee',
-          amount: -PLATFORM_FEE,
+          amount: -fee,
           status: 'completed',
           description,
         },
@@ -391,10 +396,12 @@ export class WalletService {
     });
     if (alreadyRefunded) return; // Ya se devolvió
 
+    const fee = this.platformConfig.platformFee;
+
     await this.prisma.$transaction(async (tx) => {
       await tx.wallet.update({
         where: { userId },
-        data: { balance: { increment: PLATFORM_FEE } },
+        data: { balance: { increment: fee } },
       });
 
       await tx.transaction.create({
@@ -402,7 +409,7 @@ export class WalletService {
           userId,
           matchId,
           type: 'refund',
-          amount: PLATFORM_FEE,
+          amount: fee,
           status: 'completed',
           description: 'Devolución comisión por cancelación',
         },

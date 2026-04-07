@@ -2218,10 +2218,143 @@ function CuentaResultadosTab() {
 }
 
 // ============================================
+// TAB: COMISIONES DE PLATAFORMA
+// ============================================
+
+const CONFIG_LABELS: Record<string, { label: string; suffix: string; step: string; min: string }> = {
+  platform_fee: { label: 'Comision por operacion', suffix: '\u20ac', step: '0.1', min: '0' },
+  min_topup: { label: 'Recarga minima del monedero', suffix: '\u20ac', step: '0.5', min: '0' },
+  vat_rate: { label: 'Tipo de IVA', suffix: '%', step: '0.01', min: '0' },
+};
+
+function ComisionesTab() {
+  const [configs, setConfigs] = useState<{ key: string; value: string; description: string | null; updatedAt: string }[]>([]);
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    api.get('/admin/platform-config')
+      .then(({ data }) => {
+        const items = data.data;
+        setConfigs(items);
+        const values: Record<string, string> = {};
+        items.forEach((c: { key: string; value: string }) => {
+          // Mostrar VAT como porcentaje (0.21 -> 21)
+          values[c.key] = c.key === 'vat_rate'
+            ? String(Math.round(parseFloat(c.value) * 100))
+            : c.value;
+        });
+        setEditValues(values);
+      })
+      .catch(() => setMessage({ type: 'error', text: 'Error cargando configuracion' }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const entries = Object.entries(editValues).map(([key, value]) => ({
+        key,
+        // Convertir porcentaje a decimal para VAT
+        value: key === 'vat_rate' ? String(parseFloat(value) / 100) : value,
+      }));
+      await api.post('/admin/platform-config', { entries });
+      setMessage({ type: 'success', text: 'Configuracion guardada correctamente. Los cambios se aplican de inmediato.' });
+    } catch {
+      setMessage({ type: 'error', text: 'Error al guardar la configuracion' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const hasChanges = configs.some((c) => {
+    const displayValue = c.key === 'vat_rate'
+      ? String(Math.round(parseFloat(c.value) * 100))
+      : c.value;
+    return editValues[c.key] !== displayValue;
+  });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="spinner spinner-lg" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Comisiones y tarifas</h2>
+        <p className="text-sm text-gray-500 mb-6">
+          Ajusta las comisiones que cobra la plataforma. Los cambios se aplican de inmediato a nuevas operaciones.
+        </p>
+
+        <div className="space-y-5">
+          {configs.map((config) => {
+            const meta = CONFIG_LABELS[config.key] || { label: config.key, suffix: '', step: '0.01', min: '0' };
+            return (
+              <div key={config.key} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className="sm:w-64 flex-shrink-0">
+                  <label className="block text-sm font-medium text-gray-900">{meta.label}</label>
+                  {config.description && (
+                    <p className="text-xs text-gray-400 mt-0.5">{config.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    step={meta.step}
+                    min={meta.min}
+                    value={editValues[config.key] || ''}
+                    onChange={(e) => setEditValues((prev) => ({ ...prev, [config.key]: e.target.value }))}
+                    className="w-28 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                  />
+                  <span className="text-sm text-gray-500 w-6">{meta.suffix}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 flex items-center gap-4">
+          <button
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+            className="px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50"
+            style={{ backgroundColor: '#FF6B35' }}
+          >
+            {saving ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+          {message && (
+            <p className={`text-sm ${message.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+              {message.text}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <h3 className="text-sm font-medium text-amber-800 mb-2">Informacion importante</h3>
+        <ul className="text-xs text-amber-700 space-y-1">
+          <li>La comision por operacion se descuenta del monedero de cada parte al cerrar un acuerdo.</li>
+          <li>La recarga minima determina el importe minimo que un usuario puede anadir a su monedero.</li>
+          <li>El IVA se aplica sobre las recargas de monedero (no sobre las comisiones, que ya lo incluyen).</li>
+          <li>Los cambios afectan solo a nuevas operaciones. Las transacciones ya realizadas no se modifican.</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // TAB DEFINITIONS
 // ============================================
 
-type TabKey = 'resumen' | 'transacciones' | 'pnl' | 'dac7' | 'fiscal';
+type TabKey = 'resumen' | 'transacciones' | 'pnl' | 'dac7' | 'fiscal' | 'comisiones';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'resumen', label: 'Resumen' },
@@ -2229,6 +2362,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'pnl', label: 'Cuenta Resultados' },
   { key: 'dac7', label: 'DAC7' },
   { key: 'fiscal', label: 'Obligaciones' },
+  { key: 'comisiones', label: 'Comisiones' },
 ];
 
 // ============================================
@@ -2305,6 +2439,7 @@ function FinanzasPageInner() {
         {activeTab === 'pnl' && <CuentaResultadosTab />}
         {activeTab === 'dac7' && <Dac7Tab />}
         {activeTab === 'fiscal' && <ObligacionesFiscalesTab />}
+        {activeTab === 'comisiones' && <ComisionesTab />}
       </div>
     </AdminLayout>
   );
