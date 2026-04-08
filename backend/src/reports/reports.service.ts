@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, ReportStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AuditService } from '../audit/audit.service';
@@ -266,7 +266,7 @@ export class ReportsService {
     const where: Prisma.ReportWhereInput = {};
 
     if (filters.status) {
-      where.status = filters.status;
+      where.status = filters.status as ReportStatus;
     }
     if (filters.reportedType) {
       where.reportedType = filters.reportedType;

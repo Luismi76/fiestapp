@@ -608,7 +608,9 @@ enum MatchStatus {
 
 enum PaymentStatus {
   pending
+  pending_payment
   held
+  paid
   released
   refunded
 }
@@ -618,7 +620,9 @@ enum TransactionType {
   platform_fee
   refund
   payout
+  payment
   experience_payment
+  referral_credit
 }
 
 enum TransactionStatus {
@@ -627,6 +631,9 @@ enum TransactionStatus {
   held
   released
   failed
+  cancelled
+  refunded
+  capturing
 }
 
 enum ReportStatus {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TransactionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
 
@@ -656,7 +656,7 @@ export class AccountingService {
         ? quarterBoundaries.filter((q) => q.quarter === quarter)
         : quarterBoundaries;
 
-    const statusFilter = { in: ['completed', 'held', 'released'] };
+    const statusFilter = { in: ['completed', 'held', 'released'] as TransactionStatus[] };
 
     const quarters: ProfitAndLossQuarter[] = await Promise.all(
       boundaries.map(async (qb) => {

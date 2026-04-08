@@ -336,7 +336,7 @@ describe('ExperiencesService', () => {
       });
       mockCacheService.set.mockResolvedValue(undefined);
 
-      const result = await service.findOne('exp-1');
+      const result = await service.findOne('exp-1') as Record<string, unknown>;
 
       expect(result.id).toBe('exp-1');
       expect(result.avgRating).toBe(0);

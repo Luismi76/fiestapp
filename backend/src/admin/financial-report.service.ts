@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, TransactionType, TransactionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface FinancialReportFilters {
@@ -184,8 +184,8 @@ export class FinancialReportService {
       if (filters.endDate)
         (where.createdAt as Prisma.DateTimeFilter).lte = filters.endDate;
     }
-    if (filters?.type) where.type = filters.type;
-    if (filters?.status) where.status = filters.status;
+    if (filters?.type) where.type = filters.type as TransactionType;
+    if (filters?.status) where.status = filters.status as TransactionStatus;
 
     const [transactions, total] = await Promise.all([
       this.prisma.transaction.findMany({
