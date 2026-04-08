@@ -49,6 +49,7 @@ export class ExperiencesController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('hostHasPartner') hostHasPartner?: string,
+    @Query('hostHasFriends') hostHasFriends?: string,
     @Query('hostHasChildren') hostHasChildren?: string,
   ) {
     return this.experiencesService.findAll({
@@ -65,6 +66,12 @@ export class ExperiencesController {
         hostHasPartner === 'true'
           ? true
           : hostHasPartner === 'false'
+            ? false
+            : undefined,
+      hostHasFriends:
+        hostHasFriends === 'true'
+          ? true
+          : hostHasFriends === 'false'
             ? false
             : undefined,
       hostHasChildren:

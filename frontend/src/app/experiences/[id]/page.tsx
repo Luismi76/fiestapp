@@ -419,6 +419,19 @@ export default function ExperienceDetailPage() {
                     ⚡ Responde en ~{experience.host.avgResponseTimeHours < 1 ? '<1' : experience.host.avgResponseTimeHours}h
                   </span>
                 )}
+              {(experience.host?.hasPartner || experience.host?.hasFriends || experience.host?.hasChildren) && (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {experience.host.hasPartner && (
+                    <span className="text-xs px-2 py-0.5 bg-pink-50 text-pink-600 rounded-full">Con pareja</span>
+                  )}
+                  {experience.host.hasFriends && (
+                    <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">Con amigos</span>
+                  )}
+                  {experience.host.hasChildren && (
+                    <span className="text-xs px-2 py-0.5 bg-green-50 text-green-600 rounded-full">Con hijos</span>
+                  )}
+                </div>
+              )}
               </div>
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-400">

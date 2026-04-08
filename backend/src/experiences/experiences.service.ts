@@ -169,8 +169,9 @@ export class ExperiencesService {
     sortBy?: 'newest' | 'price_asc' | 'price_desc' | 'rating';
     page?: number;
     limit?: number;
-    // Filtros de compatibilidad familiar
+    // Filtros de compatibilidad
     hostHasPartner?: boolean;
+    hostHasFriends?: boolean;
     hostHasChildren?: boolean;
   }) {
     const {
@@ -184,6 +185,7 @@ export class ExperiencesService {
       page = 1,
       limit = 10,
       hostHasPartner,
+      hostHasFriends,
       hostHasChildren,
     } = options || {};
 
@@ -226,11 +228,14 @@ export class ExperiencesService {
       ];
     }
 
-    // Filtros de compatibilidad familiar
-    if (hostHasPartner !== undefined || hostHasChildren !== undefined) {
+    // Filtros de compatibilidad
+    if (hostHasPartner !== undefined || hostHasFriends !== undefined || hostHasChildren !== undefined) {
       where.host = {};
       if (hostHasPartner !== undefined) {
         (where.host as Record<string, boolean>).hasPartner = hostHasPartner;
+      }
+      if (hostHasFriends !== undefined) {
+        (where.host as Record<string, boolean>).hasFriends = hostHasFriends;
       }
       if (hostHasChildren !== undefined) {
         (where.host as Record<string, boolean>).hasChildren = hostHasChildren;

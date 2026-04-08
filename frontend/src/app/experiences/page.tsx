@@ -70,6 +70,9 @@ function ExperiencesContent() {
   const [minPrice, setMinPrice] = useState<string>(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState<string>(searchParams.get('maxPrice') || '');
   const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'newest');
+  const [hostHasPartner, setHostHasPartner] = useState(searchParams.get('hostHasPartner') === 'true');
+  const [hostHasFriends, setHostHasFriends] = useState(searchParams.get('hostHasFriends') === 'true');
+  const [hostHasChildren, setHostHasChildren] = useState(searchParams.get('hostHasChildren') === 'true');
   const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -196,6 +199,9 @@ function ExperiencesContent() {
       if (minPrice) filters.minPrice = Number(minPrice);
       if (maxPrice) filters.maxPrice = Number(maxPrice);
       if (sortBy) filters.sortBy = sortBy as ExperienceFilters['sortBy'];
+      if (hostHasPartner) filters.hostHasPartner = true;
+      if (hostHasFriends) filters.hostHasFriends = true;
+      if (hostHasChildren) filters.hostHasChildren = true;
 
       const response = await experiencesApi.getAll(filters);
 
@@ -213,7 +219,7 @@ function ExperiencesContent() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [searchQuery, selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy]);
+  }, [searchQuery, selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy, hostHasPartner, hostHasFriends, hostHasChildren]);
 
   // Keep ref in sync
   loadExperiencesRef.current = loadExperiences;
@@ -225,7 +231,7 @@ function ExperiencesContent() {
     }
     setPage(1);
     loadExperiencesRef.current?.(1, false);
-  }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy]);
+  }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy, hostHasPartner, hostHasFriends, hostHasChildren]);
 
   // Search with debounce (skip initial render - handled by filter effect above)
   const searchInitialized = useRef(false);
@@ -267,7 +273,7 @@ function ExperiencesContent() {
   }, [hasMore, loading, loadingMore]);
 
   // Count active filters
-  const activeFiltersCount = [selectedType, selectedFestival, selectedCity, minPrice, maxPrice].filter(Boolean).length;
+  const activeFiltersCount = [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, hostHasPartner, hostHasFriends, hostHasChildren].filter(Boolean).length;
 
   // Clear all filters
   const clearFilters = useCallback(() => {
@@ -276,6 +282,9 @@ function ExperiencesContent() {
     setSelectedCity('');
     setMinPrice('');
     setMaxPrice('');
+    setHostHasPartner(false);
+    setHostHasFriends(false);
+    setHostHasChildren(false);
     setSortBy('newest');
     setSearchQuery('');
     setShowFiltersModal(false);
@@ -402,6 +411,25 @@ function ExperiencesContent() {
                 onMinChange={setMinPrice}
                 onMaxChange={setMaxPrice}
               />
+
+              {/* Companion filter */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Anfitrión viaja con</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={hostHasPartner} onChange={(e) => setHostHasPartner(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                    <span className="text-sm text-gray-700">Pareja</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={hostHasFriends} onChange={(e) => setHostHasFriends(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                    <span className="text-sm text-gray-700">Amigos</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={hostHasChildren} onChange={(e) => setHostHasChildren(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                    <span className="text-sm text-gray-700">Hijos</span>
+                  </label>
+                </div>
+              </div>
 
               {/* Sort */}
               <div>
@@ -626,6 +654,25 @@ function ExperiencesContent() {
               onMinChange={setMinPrice}
               onMaxChange={setMaxPrice}
             />
+
+            {/* Companion filter */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Anfitrión viaja con</label>
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={hostHasPartner} onChange={(e) => setHostHasPartner(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                  <span className="text-sm text-gray-700">Pareja</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={hostHasFriends} onChange={(e) => setHostHasFriends(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                  <span className="text-sm text-gray-700">Amigos</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={hostHasChildren} onChange={(e) => setHostHasChildren(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
+                  <span className="text-sm text-gray-700">Hijos</span>
+                </label>
+              </div>
+            </div>
 
             {/* Sort */}
             <div>

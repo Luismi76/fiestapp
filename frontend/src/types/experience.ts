@@ -18,6 +18,10 @@ export interface Host {
   bio?: string;
   city?: string;
   avgResponseTimeHours?: number | null;
+  hasPartner?: boolean;
+  hasFriends?: boolean;
+  hasChildren?: boolean;
+  childrenAges?: string;
 }
 
 export interface Festival {
@@ -152,4 +156,7 @@ export interface ExperienceFilters {
   sortBy?: SortBy;
   page?: number;
   limit?: number;
+  hostHasPartner?: boolean;
+  hostHasFriends?: boolean;
+  hostHasChildren?: boolean;
 }
