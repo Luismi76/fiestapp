@@ -9,6 +9,8 @@ import { useMessages } from '@/contexts/MessageContext';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import InstallButton from '@/components/InstallButton';
+import OptimizedAvatar from '@/components/OptimizedAvatar';
+import { getAvatarUrl } from '@/lib/utils';
 
 function Header() {
   const pathname = usePathname();
@@ -130,9 +132,12 @@ function Header() {
                   aria-expanded={isMenuOpen}
                   aria-haspopup="true"
                 >
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </div>
+                  <OptimizedAvatar
+                    src={getAvatarUrl(user?.avatar)}
+                    name={user?.name || 'U'}
+                    size="sm"
+                    className="w-9 h-9"
+                  />
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -405,9 +410,12 @@ function Header() {
               <div className="p-4 border-t border-gray-100 space-y-3">
                 <InstallButton />
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </div>
+                  <OptimizedAvatar
+                    src={getAvatarUrl(user?.avatar)}
+                    name={user?.name || 'U'}
+                    size="md"
+                    className="w-10 h-10"
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{user?.name}</p>
                     <p className="text-sm text-gray-500 truncate">{user?.email}</p>
