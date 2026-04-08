@@ -37,17 +37,12 @@ export default function AppWrapper({ children }: AppWrapperProps) {
     sessionStorage.setItem('fiestapp_visited', 'true');
   };
 
-  // During SSR and initial hydration, render children normally
-  if (!isHydrated) {
-    return <>{children}</>;
-  }
-
   return (
     <>
-      {showSplash && isFirstVisit && (
+      {isHydrated && showSplash && isFirstVisit && (
         <SplashScreen onFinish={handleSplashFinish} duration={2500} />
       )}
-      <div className={showSplash && isFirstVisit ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
+      <div className={isHydrated && showSplash && isFirstVisit ? 'opacity-0' : 'opacity-100 transition-opacity duration-300'}>
         {children}
       </div>
     </>
