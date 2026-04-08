@@ -170,6 +170,7 @@ model Experience {
   // Campos para grupos (FASE 4)
   minParticipants Int                      @default(1)
   maxParticipants Int?                     // null = usa capacity
+  idealFor        String[]                 // ["pareja", "amigos", "hijos", "solo"]
   // Política de cancelación (FASE 7)
   cancellationPolicy CancellationPolicy    @default(FLEXIBLE)
   deletedAt       DateTime?                // Soft delete

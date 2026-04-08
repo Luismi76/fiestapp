@@ -158,6 +158,7 @@ export default function CreateExperiencePage() {
   const [cityCoords, setCityCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [cityError, setCityError] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
+  const [idealFor, setIdealFor] = useState<string[]>([]);
   const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>('FLEXIBLE');
   const [policyRestrictions, setPolicyRestrictions] = useState<Record<string, { allowed: boolean; reason?: string }>>({});
   const draftLoaded = useRef(false);
@@ -410,6 +411,7 @@ export default function CreateExperiencePage() {
         highlights: validHighlightsList.length > 0 ? validHighlightsList : undefined,
         capacity: capacity,
         availability: availabilityDates.length > 0 ? availabilityDates : undefined,
+        idealFor: idealFor.length > 0 ? idealFor : undefined,
         cancellationPolicy,
       };
 
@@ -853,6 +855,57 @@ export default function CreateExperiencePage() {
               <p className="text-xs text-gray-400 mt-3 text-center">
                 Las fechas se marcarán como completas cuando alcances esta capacidad
               </p>
+            </div>
+
+            {/* Ideal for */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Ideal para
+              </label>
+              <p className="text-sm text-gray-500 mb-3">
+                ¿A quién va dirigida esta experiencia?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: 'solo', label: 'Solo', icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                      <path d="M10 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.465 14.493a1.23 1.23 0 0 0 .41 1.412A9.957 9.957 0 0 0 10 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 0 0-13.074.003Z" />
+                    </svg>
+                  ), activeClass: 'bg-purple-100 text-purple-700 ring-1 ring-purple-300' },
+                  { value: 'pareja', label: 'Pareja', icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                      <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.723.723 0 0 1-.692 0h-.002Z" />
+                    </svg>
+                  ), activeClass: 'bg-pink-100 text-pink-700 ring-1 ring-pink-300' },
+                  { value: 'amigos', label: 'Amigos', icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                      <path d="M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM14.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.615 16.428a1.224 1.224 0 0 1-.569-1.175 6.002 6.002 0 0 1 11.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 0 1 7 18a9.953 9.953 0 0 1-5.385-1.572ZM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 0 0-1.588-3.755 4.502 4.502 0 0 1 5.874 2.636.818.818 0 0 1-.36.98A7.465 7.465 0 0 1 14.5 16Z" />
+                    </svg>
+                  ), activeClass: 'bg-blue-100 text-blue-700 ring-1 ring-blue-300' },
+                  { value: 'hijos', label: 'Con hijos', icon: (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                      <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM1.49 15.326a.78.78 0 0 1-.358-.442 3 3 0 0 1 4.308-3.516 6.484 6.484 0 0 0-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 0 1-2.07-.655ZM16.44 15.98a4.97 4.97 0 0 0 2.07-.654.78.78 0 0 0 .357-.442 3 3 0 0 0-4.308-3.517 6.484 6.484 0 0 1 1.907 3.96 2.32 2.32 0 0 1-.026.654ZM18 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM5.304 16.19a.844.844 0 0 1-.277-.71 5 5 0 0 1 9.947 0 .843.843 0 0 1-.277.71A6.975 6.975 0 0 1 10 18a6.974 6.974 0 0 1-4.696-1.81Z" />
+                    </svg>
+                  ), activeClass: 'bg-green-100 text-green-700 ring-1 ring-green-300' },
+                ].map((option) => {
+                  const isActive = idealFor.includes(option.value);
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setIdealFor(prev =>
+                        isActive ? prev.filter(v => v !== option.value) : [...prev, option.value]
+                      )}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all ${
+                        isActive ? option.activeClass : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                      }`}
+                    >
+                      {option.icon}
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}

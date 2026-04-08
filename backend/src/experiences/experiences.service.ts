@@ -96,6 +96,7 @@ export class ExperiencesService {
           type: createDto.type,
           photos: createDto.photos || [],
           highlights: createDto.highlights || [],
+          idealFor: createDto.idealFor || [],
           capacity: createDto.capacity || 1,
           cancellationPolicy: await this.validateCancellationPolicy(
             userId,
@@ -173,6 +174,7 @@ export class ExperiencesService {
     hostHasPartner?: boolean;
     hostHasFriends?: boolean;
     hostHasChildren?: boolean;
+    idealFor?: string[];
   }) {
     const {
       festivalId,
@@ -187,6 +189,7 @@ export class ExperiencesService {
       hostHasPartner,
       hostHasFriends,
       hostHasChildren,
+      idealFor,
     } = options || {};
 
     const where: Record<string, unknown> = {
@@ -240,6 +243,11 @@ export class ExperiencesService {
       if (hostHasChildren !== undefined) {
         (where.host as Record<string, boolean>).hasChildren = hostHasChildren;
       }
+    }
+
+    // Filtro por idealFor (la experiencia contiene todos los tags seleccionados)
+    if (idealFor && idealFor.length > 0) {
+      where.idealFor = { hasEvery: idealFor };
     }
 
     // Ordenacion

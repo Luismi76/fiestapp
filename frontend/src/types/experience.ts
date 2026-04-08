@@ -59,6 +59,7 @@ export interface Experience {
   categoryId?: string;
   photos: string[];
   highlights?: string[];
+  idealFor?: string[];
   capacity: number;
   minParticipants?: number;
   maxParticipants?: number | null;
@@ -124,6 +125,7 @@ export interface CreateExperienceData {
   maxParticipants?: number | null;
   groupPricing?: GroupPricingTier[];
   availability?: string[];
+  idealFor?: string[];
   cancellationPolicy?: CancellationPolicy;
 }
 
@@ -159,4 +161,5 @@ export interface ExperienceFilters {
   hostHasPartner?: boolean;
   hostHasFriends?: boolean;
   hostHasChildren?: boolean;
+  idealFor?: string[];
 }

@@ -70,9 +70,9 @@ function ExperiencesContent() {
   const [minPrice, setMinPrice] = useState<string>(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState<string>(searchParams.get('maxPrice') || '');
   const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'newest');
-  const [hostHasPartner, setHostHasPartner] = useState(searchParams.get('hostHasPartner') === 'true');
-  const [hostHasFriends, setHostHasFriends] = useState(searchParams.get('hostHasFriends') === 'true');
-  const [hostHasChildren, setHostHasChildren] = useState(searchParams.get('hostHasChildren') === 'true');
+  const [filterPareja, setFilterPareja] = useState(searchParams.get('filterPareja') === 'true');
+  const [filterAmigos, setFilterAmigos] = useState(searchParams.get('filterAmigos') === 'true');
+  const [filterHijos, setFilterHijos] = useState(searchParams.get('filterHijos') === 'true');
   const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -199,9 +199,11 @@ function ExperiencesContent() {
       if (minPrice) filters.minPrice = Number(minPrice);
       if (maxPrice) filters.maxPrice = Number(maxPrice);
       if (sortBy) filters.sortBy = sortBy as ExperienceFilters['sortBy'];
-      if (hostHasPartner) filters.hostHasPartner = true;
-      if (hostHasFriends) filters.hostHasFriends = true;
-      if (hostHasChildren) filters.hostHasChildren = true;
+      const idealForTags: string[] = [];
+      if (filterPareja) idealForTags.push('pareja');
+      if (filterAmigos) idealForTags.push('amigos');
+      if (filterHijos) idealForTags.push('hijos');
+      if (idealForTags.length > 0) filters.idealFor = idealForTags;
 
       const response = await experiencesApi.getAll(filters);
 
@@ -219,7 +221,7 @@ function ExperiencesContent() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [searchQuery, selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy, hostHasPartner, hostHasFriends, hostHasChildren]);
+  }, [searchQuery, selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy, filterPareja, filterAmigos, filterHijos]);
 
   // Keep ref in sync
   loadExperiencesRef.current = loadExperiences;
@@ -231,7 +233,7 @@ function ExperiencesContent() {
     }
     setPage(1);
     loadExperiencesRef.current?.(1, false);
-  }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy, hostHasPartner, hostHasFriends, hostHasChildren]);
+  }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy, filterPareja, filterAmigos, filterHijos]);
 
   // Search with debounce (skip initial render - handled by filter effect above)
   const searchInitialized = useRef(false);
@@ -273,7 +275,7 @@ function ExperiencesContent() {
   }, [hasMore, loading, loadingMore]);
 
   // Count active filters
-  const activeFiltersCount = [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, hostHasPartner, hostHasFriends, hostHasChildren].filter(Boolean).length;
+  const activeFiltersCount = [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, filterPareja, filterAmigos, filterHijos].filter(Boolean).length;
 
   // Clear all filters
   const clearFilters = useCallback(() => {
@@ -282,9 +284,9 @@ function ExperiencesContent() {
     setSelectedCity('');
     setMinPrice('');
     setMaxPrice('');
-    setHostHasPartner(false);
-    setHostHasFriends(false);
-    setHostHasChildren(false);
+    setFilterPareja(false);
+    setFilterAmigos(false);
+    setFilterHijos(false);
     setSortBy('newest');
     setSearchQuery('');
     setShowFiltersModal(false);
@@ -450,9 +452,9 @@ function ExperiencesContent() {
                   </label>
                   <div className="flex flex-wrap gap-2">
                     <button
-                      onClick={() => setHostHasPartner(!hostHasPartner)}
+                      onClick={() => setFilterPareja(!filterPareja)}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
-                        hostHasPartner
+                        filterPareja
                           ? 'bg-pink-100 text-pink-700 ring-1 ring-pink-300'
                           : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                       }`}
@@ -463,9 +465,9 @@ function ExperiencesContent() {
                       Pareja
                     </button>
                     <button
-                      onClick={() => setHostHasFriends(!hostHasFriends)}
+                      onClick={() => setFilterAmigos(!filterAmigos)}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
-                        hostHasFriends
+                        filterAmigos
                           ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
                           : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                       }`}
@@ -476,9 +478,9 @@ function ExperiencesContent() {
                       Amigos
                     </button>
                     <button
-                      onClick={() => setHostHasChildren(!hostHasChildren)}
+                      onClick={() => setFilterHijos(!filterHijos)}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
-                        hostHasChildren
+                        filterHijos
                           ? 'bg-green-100 text-green-700 ring-1 ring-green-300'
                           : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                       }`}
@@ -754,9 +756,9 @@ function ExperiencesContent() {
               </label>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => setHostHasPartner(!hostHasPartner)}
+                  onClick={() => setFilterPareja(!filterPareja)}
                   className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all ${
-                    hostHasPartner
+                    filterPareja
                       ? 'bg-pink-100 text-pink-700 ring-1 ring-pink-300'
                       : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                   }`}
@@ -767,9 +769,9 @@ function ExperiencesContent() {
                   Pareja
                 </button>
                 <button
-                  onClick={() => setHostHasFriends(!hostHasFriends)}
+                  onClick={() => setFilterAmigos(!filterAmigos)}
                   className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all ${
-                    hostHasFriends
+                    filterAmigos
                       ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
                       : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                   }`}
@@ -780,9 +782,9 @@ function ExperiencesContent() {
                   Amigos
                 </button>
                 <button
-                  onClick={() => setHostHasChildren(!hostHasChildren)}
+                  onClick={() => setFilterHijos(!filterHijos)}
                   className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all ${
-                    hostHasChildren
+                    filterHijos
                       ? 'bg-green-100 text-green-700 ring-1 ring-green-300'
                       : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                   }`}

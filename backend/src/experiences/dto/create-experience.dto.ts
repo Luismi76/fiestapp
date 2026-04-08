@@ -78,6 +78,11 @@ export class CreateExperienceDto {
   availability?: string[];
 
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true, message: 'Cada valor de idealFor debe ser un texto' })
+  idealFor?: string[];
+
+  @IsOptional()
   @IsIn(['FLEXIBLE', 'MODERATE', 'STRICT', 'NON_REFUNDABLE'], {
     message:
       'Política de cancelación debe ser: FLEXIBLE, MODERATE, STRICT o NON_REFUNDABLE',

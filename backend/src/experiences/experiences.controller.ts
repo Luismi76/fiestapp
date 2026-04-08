@@ -51,6 +51,7 @@ export class ExperiencesController {
     @Query('hostHasPartner') hostHasPartner?: string,
     @Query('hostHasFriends') hostHasFriends?: string,
     @Query('hostHasChildren') hostHasChildren?: string,
+    @Query('idealFor') idealForParam?: string,
   ) {
     return this.experiencesService.findAll({
       festivalId,
@@ -80,6 +81,7 @@ export class ExperiencesController {
           : hostHasChildren === 'false'
             ? false
             : undefined,
+      idealFor: idealForParam ? idealForParam.split(',') : undefined,
     });
   }
 
