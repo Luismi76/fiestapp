@@ -19,8 +19,9 @@ model User {
   avatar                    String?
   phone                     String?          // Teléfono para verificación
   phoneVerified             Boolean          @default(false)
-  hasPartner                Boolean?         // tiene pareja
-  hasChildren               Boolean?         // tiene hijos
+  hasPartner                Boolean?         // viaja con pareja
+  hasFriends                Boolean?         // viaja con amigos
+  hasChildren               Boolean?         // viaja con hijos
   childrenAges              String?          // edades de los hijos (ej: "5, 8, 12")
   verified                  Boolean          @default(false) // email verified
   emailVerificationToken    String?

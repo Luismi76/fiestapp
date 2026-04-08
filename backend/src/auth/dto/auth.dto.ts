@@ -52,12 +52,17 @@ export class RegisterDto {
   @IsString()
   city?: string;
 
-  @ApiPropertyOptional({ example: true, description: 'Indica si tiene pareja' })
+  @ApiPropertyOptional({ example: true, description: 'Viaja con pareja' })
   @IsOptional()
   @IsBoolean({ message: 'hasPartner debe ser verdadero o falso' })
   hasPartner?: boolean;
 
-  @ApiPropertyOptional({ example: false, description: 'Indica si tiene hijos' })
+  @ApiPropertyOptional({ example: false, description: 'Viaja con amigos' })
+  @IsOptional()
+  @IsBoolean({ message: 'hasFriends debe ser verdadero o falso' })
+  hasFriends?: boolean;
+
+  @ApiPropertyOptional({ example: false, description: 'Viaja con hijos' })
   @IsOptional()
   @IsBoolean({ message: 'hasChildren debe ser verdadero o falso' })
   hasChildren?: boolean;
@@ -129,6 +134,7 @@ export class AuthResponseDto {
     age?: number;
     bio?: string;
     hasPartner?: boolean;
+    hasFriends?: boolean;
     hasChildren?: boolean;
     childrenAges?: string;
   };

@@ -27,6 +27,7 @@ export interface RegisterData {
     age?: number;
     city?: string;
     hasPartner?: boolean;
+    hasFriends?: boolean;
     hasChildren?: boolean;
     childrenAges?: string;
     termsAccepted: boolean;

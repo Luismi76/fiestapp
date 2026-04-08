@@ -39,6 +39,7 @@ export class UsersService {
         city: true,
         age: true,
         hasPartner: true,
+        hasFriends: true,
         hasChildren: true,
         childrenAges: true,
         verified: true,
@@ -189,6 +190,7 @@ export class UsersService {
         verified: true,
         createdAt: true,
         hasPartner: true,
+        hasFriends: true,
         hasChildren: true,
         childrenAges: true,
       },
@@ -215,6 +217,7 @@ export class UsersService {
         verified: true,
         createdAt: true,
         hasPartner: true,
+        hasFriends: true,
         hasChildren: true,
         childrenAges: true,
         _count: {

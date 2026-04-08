@@ -13,6 +13,7 @@ export interface UserDataExport {
     bio?: string;
     phone?: string;
     hasPartner?: boolean;
+    hasFriends?: boolean;
     hasChildren?: boolean;
     childrenAges?: string;
     verified: boolean;
@@ -182,6 +183,7 @@ export class GdprService {
         bio: user.bio ?? undefined,
         phone: user.phone ?? undefined,
         hasPartner: user.hasPartner ?? undefined,
+        hasFriends: user.hasFriends ?? undefined,
         hasChildren: user.hasChildren ?? undefined,
         childrenAges: user.childrenAges ?? undefined,
         verified: user.verified,
@@ -311,6 +313,7 @@ export class GdprService {
           phone: null,
           phoneVerified: false,
           hasPartner: null,
+          hasFriends: null,
           hasChildren: null,
           childrenAges: null,
           verified: false,

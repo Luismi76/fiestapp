@@ -9,6 +9,7 @@ export interface UserPublicProfile {
   city?: string;
   age?: number;
   hasPartner?: boolean;
+  hasFriends?: boolean;
   hasChildren?: boolean;
   childrenAges?: string;
   verified: boolean;
@@ -31,6 +32,7 @@ export interface UserFullProfile {
   city?: string;
   avatar?: string;
   hasPartner?: boolean;
+  hasFriends?: boolean;
   hasChildren?: boolean;
   childrenAges?: string;
   verified: boolean;
@@ -57,6 +59,7 @@ export interface UpdateProfileData {
   city?: string;
   avatar?: string;
   hasPartner?: boolean;
+  hasFriends?: boolean;
   hasChildren?: boolean;
   childrenAges?: string;
 }

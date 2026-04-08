@@ -269,6 +269,7 @@ export class ExperiencesService {
               avatar: true,
               verified: true,
               hasPartner: true,
+              hasFriends: true,
               hasChildren: true,
               childrenAges: true,
             },

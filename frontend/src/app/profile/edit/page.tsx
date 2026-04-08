@@ -17,6 +17,7 @@ interface FormData {
   bio: string;
   city: string;
   hasPartner: boolean;
+  hasFriends: boolean;
   hasChildren: boolean;
   childrenAges: string;
 }
@@ -55,6 +56,7 @@ export default function EditProfilePage() {
           bio: profile.bio || '',
           city: profile.city || '',
           hasPartner: profile.hasPartner || false,
+          hasFriends: profile.hasFriends || false,
           hasChildren: profile.hasChildren || false,
           childrenAges: profile.childrenAges || '',
         });
@@ -82,6 +84,7 @@ export default function EditProfilePage() {
         city: data.city || undefined,
         age: data.age ? parseInt(data.age, 10) : undefined,
         hasPartner: data.hasPartner,
+        hasFriends: data.hasFriends,
         hasChildren: data.hasChildren,
         childrenAges: data.childrenAges || undefined,
       };
@@ -381,11 +384,11 @@ export default function EditProfilePage() {
           </div>
         </div>
 
-        {/* Situación familiar */}
+        {/* Con quién viajo */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-100">
             <label className="block text-xs font-medium text-gray-500 mb-3">
-              Situación familiar
+              Con quién disfruto mis viajes
             </label>
             <p className="text-xs text-gray-400 mb-4">
               Esta información ayuda a encontrar experiencias compatibles
@@ -399,8 +402,20 @@ export default function EditProfilePage() {
                   {...register('hasPartner')}
                 />
                 <div>
-                  <span className="text-gray-900 font-medium">Tengo pareja</span>
+                  <span className="text-gray-900 font-medium">Con mi pareja</span>
                   <p className="text-xs text-gray-400">Viajo o asisto a fiestas con mi pareja</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                  {...register('hasFriends')}
+                />
+                <div>
+                  <span className="text-gray-900 font-medium">Con amigos</span>
+                  <p className="text-xs text-gray-400">Viajo o asisto a fiestas con mi grupo de amigos</p>
                 </div>
               </label>
 
@@ -411,7 +426,7 @@ export default function EditProfilePage() {
                   {...register('hasChildren')}
                 />
                 <div>
-                  <span className="text-gray-900 font-medium">Tengo hijos</span>
+                  <span className="text-gray-900 font-medium">Con hijos</span>
                   <p className="text-xs text-gray-400">Viajo o asisto a fiestas con mis hijos</p>
                 </div>
               </label>

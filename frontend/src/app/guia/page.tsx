@@ -94,7 +94,7 @@ function ViajeroSections({ openSections, toggle }: { openSections: Set<SectionId
           <p>Ve a <strong>Registrarse</strong> desde la pantalla de inicio. Puedes registrarte con tu email o directamente con <strong>Google</strong>.</p>
         </Step>
         <Step n={2}>
-          <p>Rellena tus datos: nombre, email, contraseña, edad y ciudad. Opcionalmente puedes indicar si viajas en pareja o con hijos.</p>
+          <p>Rellena tus datos: nombre, email, contraseña, edad y ciudad. Opcionalmente puedes indicar si viajas con pareja, amigos o hijos.</p>
         </Step>
         <Step n={3}>
           <p>Confirma tu email haciendo clic en el enlace que recibirás en tu bandeja de entrada.</p>

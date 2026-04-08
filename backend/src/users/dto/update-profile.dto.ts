@@ -39,6 +39,10 @@ export class UpdateProfileDto {
   hasPartner?: boolean;
 
   @IsOptional()
+  @IsBoolean({ message: 'hasFriends debe ser verdadero o falso' })
+  hasFriends?: boolean;
+
+  @IsOptional()
   @IsBoolean({ message: 'hasChildren debe ser verdadero o falso' })
   hasChildren?: boolean;
 
