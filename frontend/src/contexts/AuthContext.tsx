@@ -51,7 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw new Error('Se requiere verificación en dos pasos. Contacta al administrador.');
             }
             setUser(response.user);
-            router.push('/dashboard');
+            const isNewUser = !response.user.avatar && !response.user.bio;
+            router.push(isNewUser ? '/dashboard' : '/experiences');
         } catch (error) {
             if (error instanceof Error && error.message.includes('verificación en dos pasos')) {
                 throw error;
@@ -84,7 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const userData = await authApi.getProfile();
             setUser(userData);
-            router.push('/dashboard');
+            const isNewUser = !userData.avatar && !userData.bio;
+            router.push(isNewUser ? '/dashboard' : '/experiences');
         } catch {
             // Cookie invalid
         }
