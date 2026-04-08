@@ -149,7 +149,7 @@ export default function MapPage() {
                 {/* Image */}
                 <div className="w-28 h-28 flex-shrink-0 relative">
                   <Image
-                    src={getUploadUrl(selectedExperience.photos?.[0]) || '/images/placeholder.jpg'}
+                    src={getUploadUrl(selectedExperience.photos?.[0]) || '/images/placeholder-experience.svg'}
                     alt={selectedExperience.title}
                     className="w-full h-full object-cover"
                     fill unoptimized

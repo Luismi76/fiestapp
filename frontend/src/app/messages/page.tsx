@@ -347,6 +347,9 @@ export default function MessagesPage() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
                               <h3 className="font-semibold text-[#1A1410] truncate">
+                                <span className="text-xs font-normal text-[#A89880]">
+                                  {activeTab === 'received' ? 'Solicitud de ' : 'Tu solicitud a '}
+                                </span>
                                 {person?.name || 'Usuario'}
                               </h3>
                               {person?.verified && <VerifiedIcon />}
@@ -403,6 +406,7 @@ export default function MessagesPage() {
                             <button
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCancelModal({ isOpen: true, match }); }}
                               className="px-3 py-2 min-h-[44px] text-xs text-primary font-semibold hover:text-primary-dark hover:bg-primary/5 rounded-lg transition-colors"
+                              aria-label="Cancelar solicitud"
                             >
                               Cancelar
                             </button>

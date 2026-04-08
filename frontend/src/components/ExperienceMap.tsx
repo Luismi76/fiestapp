@@ -368,7 +368,7 @@ function ExperienceMap({
                           className="flex items-center gap-2 p-2 mb-1 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
                         >
                           <Image
-                            src={getUploadUrl(exp.photos?.[0] || '/images/placeholder.jpg') || ''}
+                            src={getUploadUrl(exp.photos?.[0]) || '/images/placeholder-experience.svg'}
                             alt={exp.title}
                             className="w-10 h-10 rounded-md object-cover flex-shrink-0"
                             width={40} height={40} unoptimized

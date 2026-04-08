@@ -140,7 +140,7 @@ export default function PhotoUploader({
                 style={{ aspectRatio: index === 0 && totalCount > 1 ? 'auto' : '1' }}
               >
                 <OptimizedImage
-                  src={getUploadUrl(photo) || '/images/placeholder.png'}
+                  src={getUploadUrl(photo) || '/images/placeholder-experience.svg'}
                   alt={`Foto ${index + 1}`}
                   fill
                   preset="galleryThumbnail"

@@ -119,9 +119,9 @@ function ExperienceCard({
     if (experience.photos && experience.photos.length > 0) {
       const photo = experience.photos[0];
       if (photo.startsWith('/images/')) return photo;
-      return getUploadUrl(photo) || '/images/placeholder.png';
+      return getUploadUrl(photo) || '/images/placeholder-experience.svg';
     }
-    return '/images/placeholder.png';
+    return '/images/placeholder-experience.svg';
   };
 
   const getHostAvatarSrc = () => {

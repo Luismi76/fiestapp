@@ -64,7 +64,7 @@ export default function DashboardPage() {
 
   // Helpers
   const getImageUrl = (photos?: string[]) => {
-    if (!photos || photos.length === 0) return '/images/placeholder.jpg';
+    if (!photos || photos.length === 0) return '/images/placeholder-experience.svg';
     const photo = photos[0];
     if (photo.startsWith('/images/')) return photo;
     return getUploadUrl(photo);
@@ -339,7 +339,7 @@ export default function DashboardPage() {
                       href="/experiences"
                       className="text-sm text-primary font-medium hover:text-primary-dark transition-colors"
                     >
-                      Ver ejemplos
+                      Explorar experiencias
                     </Link>
                   </div>
                 </div>

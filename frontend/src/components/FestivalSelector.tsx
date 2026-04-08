@@ -43,8 +43,8 @@ const PROVINCES: Record<string, string[]> = {
 
 const ALL_PROVINCES = Object.values(PROVINCES).flat().sort();
 
-// Mock festivals con más datos
-const mockFestivals: Festival[] = [
+// Festividades de fallback (solo en desarrollo)
+const fallbackFestivals: Festival[] = process.env.NODE_ENV === 'development' ? [
   { id: 'fest-feria', name: 'Feria de Abril', city: 'Sevilla' },
   { id: 'fest-sanfermin', name: 'San Fermín', city: 'Pamplona' },
   { id: 'fest-fallas', name: 'Las Fallas', city: 'Valencia' },
@@ -61,7 +61,7 @@ const mockFestivals: Festival[] = [
   { id: 'fest-semana-grande', name: 'Semana Grande', city: 'Bilbao' },
   { id: 'fest-corpus', name: 'Corpus Christi', city: 'Toledo' },
   { id: 'fest-bienal', name: 'Bienal de Flamenco', city: 'Sevilla' },
-];
+] : [];
 
 export default function FestivalSelector({ value, onChange, error }: FestivalSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -91,10 +91,10 @@ export default function FestivalSelector({ value, onChange, error }: FestivalSel
         if (data && data.length > 0) {
           setFestivals(data);
         } else {
-          setFestivals(mockFestivals);
+          setFestivals(fallbackFestivals);
         }
       } catch {
-        setFestivals(mockFestivals);
+        setFestivals(fallbackFestivals);
       }
     };
     fetchFestivals();

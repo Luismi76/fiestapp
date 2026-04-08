@@ -14,93 +14,6 @@ import { ProfileSkeleton } from '@/components/ui/Skeleton';
 import { OptimizedImage, OptimizedAvatar } from '@/components/OptimizedImage';
 import logger from '@/lib/logger';
 
-// Mock profiles para fallback (partial data for development)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mockProfiles: Record<string, any> = {
-  'user-maria': {
-    id: 'user-maria',
-    name: 'María García',
-    bio: 'Sevillana de toda la vida. Me encanta compartir nuestras tradiciones con visitantes de todo el mundo. La Feria de Abril es mi pasión y quiero que todo el mundo pueda vivirla como un auténtico sevillano.',
-    city: 'Sevilla',
-    avatar: '/images/user_maria.png',
-    verified: true,
-    createdAt: '2024-01-15',
-    avgRating: 4.9,
-    _count: { experiences: 1, reviewsReceived: 127 },
-    experiences: [
-      { id: 'exp-1', title: 'Vive la Feria como un sevillano', type: 'pago', price: 45, avgRating: 4.9, photos: ['/images/feria_abril.png'], festival: { id: 'fest-feria', name: 'Feria de Abril', city: 'Sevilla' } },
-    ],
-    reviews: [
-      { id: 'r1', rating: 5, comment: '¡Increíble experiencia! María fue muy amable y la caseta estaba genial.', createdAt: '2024-04-20', author: { id: 'user-carlos', name: 'Carlos M.', avatar: '/images/user_carlos.png', verified: true }, experience: { id: 'exp-1', title: 'Vive la Feria como un sevillano' } },
-      { id: 'r2', rating: 5, comment: 'La mejor forma de vivir la Feria. María y su familia son encantadores.', createdAt: '2024-04-18', author: { id: 'user-ana', name: 'Ana L.', avatar: '/images/user_ana.png', verified: true }, experience: { id: 'exp-1', title: 'Vive la Feria como un sevillano' } },
-    ],
-  },
-  'user-carlos': {
-    id: 'user-carlos',
-    name: 'Carlos Martínez',
-    bio: 'Pamplonés de nacimiento. Llevo corriendo encierros desde los 18 años. Si quieres vivir San Fermín de verdad, ¡yo te llevo!',
-    city: 'Pamplona',
-    avatar: '/images/user_carlos.png',
-    verified: true,
-    createdAt: '2024-02-20',
-    avgRating: 4.8,
-    _count: { experiences: 1, reviewsReceived: 89 },
-    experiences: [
-      { id: 'exp-2', title: 'Encierro y tapas tradicionales', type: 'intercambio', price: undefined, avgRating: 4.8, photos: ['/images/san_fermin.png'], festival: { id: 'fest-sanfermin', name: 'San Fermín', city: 'Pamplona' } },
-    ],
-    reviews: [
-      { id: 'r3', rating: 5, comment: 'Carlos conoce todos los rincones de Pamplona. Una experiencia auténtica.', createdAt: '2024-07-10', author: { id: 'user-laura', name: 'Laura P.', avatar: '/images/user_laura.png', verified: true }, experience: { id: 'exp-2', title: 'Encierro y tapas tradicionales' } },
-    ],
-  },
-  'user-laura': {
-    id: 'user-laura',
-    name: 'Laura Pérez',
-    bio: 'Valenciana apasionada por las Fallas. Mi familia lleva 4 generaciones siendo falleros. ¡Ven a vivir la mascletà y la paella!',
-    city: 'Valencia',
-    avatar: '/images/user_laura.png',
-    verified: true,
-    createdAt: '2024-03-10',
-    avgRating: 5.0,
-    _count: { experiences: 1, reviewsReceived: 64 },
-    experiences: [
-      { id: 'exp-3', title: 'Mascletà y paella valenciana', type: 'pago', price: 35, avgRating: 5.0, photos: ['/images/las_fallas.png'], festival: { id: 'fest-fallas', name: 'Las Fallas', city: 'Valencia' } },
-    ],
-    reviews: [
-      { id: 'r4', rating: 5, comment: 'La paella de Laura es la mejor que he probado. Las Fallas desde dentro, una pasada.', createdAt: '2024-03-18', author: { id: 'user-maria', name: 'María G.', avatar: '/images/user_maria.png', verified: true }, experience: { id: 'exp-3', title: 'Mascletà y paella valenciana' } },
-    ],
-  },
-  'user-ana': {
-    id: 'user-ana',
-    name: 'Ana López',
-    bio: 'Gaditana de corazón. El Carnaval corre por mis venas. Chirigotas, comparsas y mucho pescaíto frito.',
-    city: 'Cádiz',
-    avatar: '/images/user_ana.png',
-    verified: true,
-    createdAt: '2024-01-20',
-    avgRating: 4.8,
-    _count: { experiences: 1, reviewsReceived: 92 },
-    experiences: [
-      { id: 'exp-6', title: 'Carnaval gaditano auténtico', type: 'intercambio', price: undefined, avgRating: 4.8, photos: ['/images/carnaval.png'], festival: { id: 'fest-carnaval', name: 'Carnaval de Cádiz', city: 'Cádiz' } },
-    ],
-    reviews: [
-      { id: 'r5', rating: 5, comment: 'El Carnaval de Cádiz con Ana fue espectacular. Las chirigotas, el pescaíto, la fiesta... ¡Volveré!', createdAt: '2024-02-18', author: { id: 'user-demo', name: 'Usuario D.', avatar: undefined, verified: false }, experience: { id: 'exp-6', title: 'Carnaval gaditano auténtico' } },
-    ],
-  },
-  'user-demo': {
-    id: 'user-demo',
-    name: 'Usuario Demo',
-    bio: 'Viajero entusiasta buscando experiencias auténticas en las festividades españolas.',
-    city: 'Madrid',
-    avatar: undefined,
-    verified: false,
-    createdAt: '2024-06-01',
-    avgRating: 0,
-    _count: { experiences: 0, reviewsReceived: 0 },
-    experiences: [],
-    reviews: [],
-  },
-};
-
 const getExperienceImage = (exp: { photos?: string[] }) => {
   if (exp.photos && exp.photos.length > 0) {
     const photo = exp.photos[0];
@@ -134,11 +47,8 @@ export default function PublicProfilePage() {
         const data = await usersApi.getPublicProfile(userId);
         setProfile(data);
       } catch {
-        if (mockProfiles[userId]) {
-          setProfile(mockProfiles[userId]);
-        } else if (userId === 'me' || params.id === 'me') {
-          // Use demo profile for "me" if not authenticated
-          setProfile(mockProfiles['user-demo']);
+        if (userId === 'me' || params.id === 'me') {
+          router.push('/login');
         } else {
           setError('No se pudo cargar el perfil');
         }
@@ -150,7 +60,7 @@ export default function PublicProfilePage() {
     if (params.id) {
       fetchProfile();
     }
-  }, [params.id, currentUser?.id]);
+  }, [params.id, currentUser?.id, router]);
 
   // Fetch wallet data for own profile
   useEffect(() => {
