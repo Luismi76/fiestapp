@@ -336,114 +336,182 @@ function ExperiencesContent() {
         <div className="lg:flex lg:gap-6 px-4 md:px-6 lg:px-8">
           {/* Desktop sidebar filters */}
           <aside className="hidden lg:block lg:w-72 lg:flex-shrink-0 lg:sticky lg:top-20 lg:self-start">
-            <div className="card p-5 space-y-5">
-              <div className="flex items-center justify-between">
-                <h3 className="font-display text-lg text-[#1A1410]">Filtros</h3>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="font-display text-lg text-[#1A1410] flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-primary">
+                    <path fillRule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clipRule="evenodd" />
+                  </svg>
+                  Filtros
+                </h3>
                 {activeFiltersCount > 0 && (
                   <button
                     onClick={clearFilters}
-                    className="text-sm text-primary font-semibold hover:text-primary-dark transition-colors"
+                    className="text-xs text-primary font-semibold hover:text-primary-dark transition-colors bg-primary/10 px-2.5 py-1 rounded-lg"
                   >
-                    Limpiar
+                    Limpiar ({activeFiltersCount})
                   </button>
                 )}
               </div>
 
-              {/* Type */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Tipo de experiencia</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { value: '', label: 'Todas' },
-                    { value: 'pago', label: 'De pago' },
-                    { value: 'intercambio', label: 'Intercambio' },
-                    { value: 'ambos', label: 'Flexible' },
-                  ].map((type) => (
+              <div className="p-5 space-y-6">
+                {/* Type */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path fillRule="evenodd" d="M3.5 2A1.5 1.5 0 0 0 2 3.5V5c0 .325.104.634.296.886l4.204 5.04V15.5a1.5 1.5 0 0 0 .704 1.272l2 1.25A1.5 1.5 0 0 0 11.5 16.75v-5.824l4.204-5.04A1.5 1.5 0 0 0 16 5V3.5A1.5 1.5 0 0 0 14.5 2h-11Z" clipRule="evenodd" />
+                    </svg>
+                    Tipo
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { value: '', label: 'Todas' },
+                      { value: 'pago', label: 'De pago' },
+                      { value: 'intercambio', label: 'Intercambio' },
+                      { value: 'ambos', label: 'Flexible' },
+                    ].map((type) => (
+                      <button
+                        key={type.value}
+                        onClick={() => setSelectedType(type.value)}
+                        className={`py-2 rounded-lg text-sm font-medium transition-all ${
+                          selectedType === type.value
+                            ? 'bg-primary text-white shadow-sm shadow-primary/30'
+                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-100" />
+
+                {/* Festividad */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Z" clipRule="evenodd" />
+                    </svg>
+                    Festividad
+                  </label>
+                  <select
+                    value={selectedFestival}
+                    onChange={(e) => setSelectedFestival(e.target.value)}
+                    className="w-full py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-colors"
+                  >
+                    <option value="">Todas las festividades</option>
+                    {festivals.map((f) => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* City */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.274 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
+                    </svg>
+                    Ciudad
+                  </label>
+                  <select
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    className="w-full py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-colors"
+                  >
+                    <option value="">Todas las ciudades</option>
+                    {cities.map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="border-t border-gray-100" />
+
+                {/* Price range */}
+                <PriceRangeSlider
+                  minValue={minPrice}
+                  maxValue={maxPrice}
+                  onMinChange={setMinPrice}
+                  onMaxChange={setMaxPrice}
+                />
+
+                <div className="border-t border-gray-100" />
+
+                {/* Companion filter */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM1.49 15.326a.78.78 0 0 1-.358-.442 3 3 0 0 1 4.308-3.516 6.484 6.484 0 0 0-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 0 1-2.07-.655ZM16.44 15.98a4.97 4.97 0 0 0 2.07-.654.78.78 0 0 0 .357-.442 3 3 0 0 0-4.308-3.517 6.484 6.484 0 0 1 1.907 3.96 2.32 2.32 0 0 1-.026.654ZM18 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM5.304 16.19a.844.844 0 0 1-.277-.71 5 5 0 0 1 9.947 0 .843.843 0 0 1-.277.71A6.975 6.975 0 0 1 10 18a6.974 6.974 0 0 1-4.696-1.81Z" />
+                    </svg>
+                    Perfecto si vas con
+                  </label>
+                  <div className="flex flex-wrap gap-2">
                     <button
-                      key={type.value}
-                      onClick={() => setSelectedType(type.value)}
-                      className={`py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                        selectedType === type.value
-                          ? 'bg-primary text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      onClick={() => setHostHasPartner(!hostHasPartner)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
+                        hostHasPartner
+                          ? 'bg-pink-100 text-pink-700 ring-1 ring-pink-300'
+                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                       }`}
                     >
-                      {type.label}
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                        <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.723.723 0 0 1-.692 0h-.002Z" />
+                      </svg>
+                      Pareja
                     </button>
-                  ))}
+                    <button
+                      onClick={() => setHostHasFriends(!hostHasFriends)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
+                        hostHasFriends
+                          ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                      }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                        <path d="M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM14.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.615 16.428a1.224 1.224 0 0 1-.569-1.175 6.002 6.002 0 0 1 11.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 0 1 7 18a9.953 9.953 0 0 1-5.385-1.572ZM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 0 0-1.588-3.755 4.502 4.502 0 0 1 5.874 2.636.818.818 0 0 1-.36.98A7.465 7.465 0 0 1 14.5 16Z" />
+                      </svg>
+                      Amigos
+                    </button>
+                    <button
+                      onClick={() => setHostHasChildren(!hostHasChildren)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${
+                        hostHasChildren
+                          ? 'bg-green-100 text-green-700 ring-1 ring-green-300'
+                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                      }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                        <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM1.49 15.326a.78.78 0 0 1-.358-.442 3 3 0 0 1 4.308-3.516 6.484 6.484 0 0 0-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 0 1-2.07-.655ZM16.44 15.98a4.97 4.97 0 0 0 2.07-.654.78.78 0 0 0 .357-.442 3 3 0 0 0-4.308-3.517 6.484 6.484 0 0 1 1.907 3.96 2.32 2.32 0 0 1-.026.654ZM18 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM5.304 16.19a.844.844 0 0 1-.277-.71 5 5 0 0 1 9.947 0 .843.843 0 0 1-.277.71A6.975 6.975 0 0 1 10 18a6.974 6.974 0 0 1-4.696-1.81Z" />
+                      </svg>
+                      Hijos
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Festividad */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Festividad</label>
-                <select
-                  value={selectedFestival}
-                  onChange={(e) => setSelectedFestival(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="">Todas las festividades</option>
-                  {festivals.map((f) => (
-                    <option key={f.id} value={f.id}>{f.name}</option>
-                  ))}
-                </select>
-              </div>
+                <div className="border-t border-gray-100" />
 
-              {/* City */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Ciudad</label>
-                <select
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="">Todas las ciudades</option>
-                  {cities.map((city) => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Price range */}
-              <PriceRangeSlider
-                minValue={minPrice}
-                maxValue={maxPrice}
-                onMinChange={setMinPrice}
-                onMaxChange={setMaxPrice}
-              />
-
-              {/* Companion filter */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Perfecto si vas con</label>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={hostHasPartner} onChange={(e) => setHostHasPartner(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                    <span className="text-sm text-gray-700">Pareja</span>
+                {/* Sort */}
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path fillRule="evenodd" d="M2 3.75A.75.75 0 0 1 2.75 3h11.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75ZM2 7.5a.75.75 0 0 1 .75-.75h7.508a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.5ZM14 7a.75.75 0 0 1 .75.75v6.59l1.95-2.1a.75.75 0 1 1 1.1 1.02l-3.25 3.5a.75.75 0 0 1-1.1 0l-3.25-3.5a.75.75 0 1 1 1.1-1.02l1.95 2.1V7.75A.75.75 0 0 1 14 7ZM2 11.25a.75.75 0 0 1 .75-.75h4.562a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                    </svg>
+                    Ordenar
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={hostHasFriends} onChange={(e) => setHostHasFriends(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                    <span className="text-sm text-gray-700">Amigos</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={hostHasChildren} onChange={(e) => setHostHasChildren(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                    <span className="text-sm text-gray-700">Hijos</span>
-                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full py-2.5 px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-colors"
+                  >
+                    <option value="newest">M&aacute;s recientes</option>
+                    <option value="price_asc">Precio: menor a mayor</option>
+                    <option value="price_desc">Precio: mayor a menor</option>
+                    <option value="rating">Mejor valoradas</option>
+                  </select>
                 </div>
-              </div>
-
-              {/* Sort */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Ordenar por</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  <option value="newest">M&aacute;s recientes</option>
-                  <option value="price_asc">Precio: menor a mayor</option>
-                  <option value="price_desc">Precio: mayor a menor</option>
-                  <option value="rating">Mejor valoradas</option>
-                </select>
               </div>
             </div>
           </aside>
@@ -594,7 +662,12 @@ function ExperiencesContent() {
           <div className="space-y-6">
             {/* Type */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Tipo de experiencia</label>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path fillRule="evenodd" d="M3.5 2A1.5 1.5 0 0 0 2 3.5V5c0 .325.104.634.296.886l4.204 5.04V15.5a1.5 1.5 0 0 0 .704 1.272l2 1.25A1.5 1.5 0 0 0 11.5 16.75v-5.824l4.204-5.04A1.5 1.5 0 0 0 16 5V3.5A1.5 1.5 0 0 0 14.5 2h-11Z" clipRule="evenodd" />
+                </svg>
+                Tipo
+              </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { value: '', label: 'Todas' },
@@ -605,10 +678,10 @@ function ExperiencesContent() {
                   <button
                     key={type.value}
                     onClick={() => setSelectedType(type.value)}
-                    className={`py-3 rounded-xl text-sm font-medium transition-colors ${
+                    className={`py-2.5 rounded-xl text-sm font-medium transition-all ${
                       selectedType === type.value
-                        ? 'bg-primary text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-primary text-white shadow-sm shadow-primary/30'
+                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                     }`}
                   >
                     {type.label}
@@ -617,13 +690,20 @@ function ExperiencesContent() {
               </div>
             </div>
 
+            <div className="border-t border-gray-100" />
+
             {/* Festividad */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Festividad</label>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Z" clipRule="evenodd" />
+                </svg>
+                Festividad
+              </label>
               <select
                 value={selectedFestival}
                 onChange={(e) => setSelectedFestival(e.target.value)}
-                className="w-full py-3 px-4 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
               >
                 <option value="">Todas las festividades</option>
                 {festivals.map((f) => (
@@ -634,11 +714,16 @@ function ExperiencesContent() {
 
             {/* City */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Ciudad</label>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path fillRule="evenodd" d="m9.69 18.933.003.001C9.89 19.02 10 19 10 19s.11.02.308-.066l.002-.001.006-.003.018-.008a5.741 5.741 0 0 0 .281-.14c.186-.096.446-.24.757-.433.62-.384 1.445-.966 2.274-1.765C15.302 14.988 17 12.493 17 9A7 7 0 1 0 3 9c0 3.492 1.698 5.988 3.355 7.584a13.731 13.731 0 0 0 2.274 1.765 11.842 11.842 0 0 0 .976.544l.062.029.018.008.006.003ZM10 11.25a2.25 2.25 0 1 0 0-4.5 2.25 2.25 0 0 0 0 4.5Z" clipRule="evenodd" />
+                </svg>
+                Ciudad
+              </label>
               <select
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
-                className="w-full py-3 px-4 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
               >
                 <option value="">Todas las ciudades</option>
                 {cities.map((city) => (
@@ -646,6 +731,8 @@ function ExperiencesContent() {
                 ))}
               </select>
             </div>
+
+            <div className="border-t border-gray-100" />
 
             {/* Price range */}
             <PriceRangeSlider
@@ -655,32 +742,73 @@ function ExperiencesContent() {
               onMaxChange={setMaxPrice}
             />
 
+            <div className="border-t border-gray-100" />
+
             {/* Companion filter */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Perfecto si vas con</label>
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={hostHasPartner} onChange={(e) => setHostHasPartner(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                  <span className="text-sm text-gray-700">Pareja</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={hostHasFriends} onChange={(e) => setHostHasFriends(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                  <span className="text-sm text-gray-700">Amigos</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={hostHasChildren} onChange={(e) => setHostHasChildren(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
-                  <span className="text-sm text-gray-700">Hijos</span>
-                </label>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM1.49 15.326a.78.78 0 0 1-.358-.442 3 3 0 0 1 4.308-3.516 6.484 6.484 0 0 0-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 0 1-2.07-.655ZM16.44 15.98a4.97 4.97 0 0 0 2.07-.654.78.78 0 0 0 .357-.442 3 3 0 0 0-4.308-3.517 6.484 6.484 0 0 1 1.907 3.96 2.32 2.32 0 0 1-.026.654ZM18 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM5.304 16.19a.844.844 0 0 1-.277-.71 5 5 0 0 1 9.947 0 .843.843 0 0 1-.277.71A6.975 6.975 0 0 1 10 18a6.974 6.974 0 0 1-4.696-1.81Z" />
+                </svg>
+                Perfecto si vas con
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setHostHasPartner(!hostHasPartner)}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all ${
+                    hostHasPartner
+                      ? 'bg-pink-100 text-pink-700 ring-1 ring-pink-300'
+                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-1.9C4.045 12.733 2 10.352 2 7.5a4.5 4.5 0 0 1 8-2.828A4.5 4.5 0 0 1 18 7.5c0 2.852-2.044 5.233-3.885 6.82a22.049 22.049 0 0 1-3.744 2.582l-.019.01-.005.003h-.002a.723.723 0 0 1-.692 0h-.002Z" />
+                  </svg>
+                  Pareja
+                </button>
+                <button
+                  onClick={() => setHostHasFriends(!hostHasFriends)}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all ${
+                    hostHasFriends
+                      ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path d="M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM14.5 9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM1.615 16.428a1.224 1.224 0 0 1-.569-1.175 6.002 6.002 0 0 1 11.908 0c.058.467-.172.92-.57 1.174A9.953 9.953 0 0 1 7 18a9.953 9.953 0 0 1-5.385-1.572ZM14.5 16h-.106c.07-.297.088-.611.048-.933a7.47 7.47 0 0 0-1.588-3.755 4.502 4.502 0 0 1 5.874 2.636.818.818 0 0 1-.36.98A7.465 7.465 0 0 1 14.5 16Z" />
+                  </svg>
+                  Amigos
+                </button>
+                <button
+                  onClick={() => setHostHasChildren(!hostHasChildren)}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-medium transition-all ${
+                    hostHasChildren
+                      ? 'bg-green-100 text-green-700 ring-1 ring-green-300'
+                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                  }`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                    <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM6 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM1.49 15.326a.78.78 0 0 1-.358-.442 3 3 0 0 1 4.308-3.516 6.484 6.484 0 0 0-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 0 1-2.07-.655ZM16.44 15.98a4.97 4.97 0 0 0 2.07-.654.78.78 0 0 0 .357-.442 3 3 0 0 0-4.308-3.517 6.484 6.484 0 0 1 1.907 3.96 2.32 2.32 0 0 1-.026.654ZM18 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM5.304 16.19a.844.844 0 0 1-.277-.71 5 5 0 0 1 9.947 0 .843.843 0 0 1-.277.71A6.975 6.975 0 0 1 10 18a6.974 6.974 0 0 1-4.696-1.81Z" />
+                  </svg>
+                  Hijos
+                </button>
               </div>
             </div>
 
+            <div className="border-t border-gray-100" />
+
             {/* Sort */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Ordenar por</label>
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                  <path fillRule="evenodd" d="M2 3.75A.75.75 0 0 1 2.75 3h11.5a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 3.75ZM2 7.5a.75.75 0 0 1 .75-.75h7.508a.75.75 0 0 1 0 1.5H2.75A.75.75 0 0 1 2 7.5ZM14 7a.75.75 0 0 1 .75.75v6.59l1.95-2.1a.75.75 0 1 1 1.1 1.02l-3.25 3.5a.75.75 0 0 1-1.1 0l-3.25-3.5a.75.75 0 1 1 1.1-1.02l1.95 2.1V7.75A.75.75 0 0 1 14 7ZM2 11.25a.75.75 0 0 1 .75-.75h4.562a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+                </svg>
+                Ordenar
+              </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full py-3 px-4 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
               >
                 <option value="newest">M&aacute;s recientes</option>
                 <option value="price_asc">Precio: menor a mayor</option>
