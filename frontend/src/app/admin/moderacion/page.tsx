@@ -1367,7 +1367,7 @@ function VerificacionesContent() {
           </div>
           <div className="bg-white rounded-xl p-3 text-center border border-gray-100">
             <p className="text-2xl font-bold text-primary">{stats.approvalRate}%</p>
-            <p className="text-xs text-gray-500">Tasa verificacion</p>
+            <p className="text-xs text-gray-500">Tasa verificación</p>
           </div>
         </div>
       )}

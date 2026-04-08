@@ -11,7 +11,7 @@ const BADGE_COLORS: Record<string, { color: string; bgColor: string }> = {
   milestone: { color: 'text-blue-700', bgColor: 'bg-blue-100' },
 };
 
-// Colores especificos por codigo de badge
+// Colores específicos por codigo de badge
 const BADGE_SPECIFIC_COLORS: Record<string, { color: string; bgColor: string }> = {
   verificado: { color: 'text-green-700', bgColor: 'bg-green-100' },
   primer_acuerdo: { color: 'text-teal-700', bgColor: 'bg-teal-100' },

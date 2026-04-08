@@ -10,7 +10,7 @@ import { API_URL } from '@/lib/api';
 import Image from 'next/image';
 
 const loginSchema = z.object({
-  email: z.string().email('Correo no valido'),
+  email: z.string().email('Correo no válido'),
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
 });
 
@@ -53,7 +53,7 @@ export default function LoginPage() {
       const message = err instanceof Error ? err.message : '';
       const status = (err as Error & { status?: number }).status;
       if (message.includes('Invalid credentials')) {
-        setError('Correo o contrasena incorrectos. Comprueba tus datos e intentalo de nuevo.');
+        setError('Correo o contraseña incorrectos. Comprueba tus datos e inténtalo de nuevo.');
       } else if (message.includes('verifica tu email')) {
         setError(message);
       } else if (message.includes('suspendida')) {
@@ -154,7 +154,7 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               {/* Email field */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Correo electronico</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Correo electrónico</label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">

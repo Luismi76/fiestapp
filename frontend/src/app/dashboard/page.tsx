@@ -19,6 +19,7 @@ import {
   MapPinIcon,
 } from '@/components/icons';
 import InstallButton from '@/components/InstallButton';
+import OnboardingBanner from '@/components/OnboardingBanner';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -140,6 +141,17 @@ export default function DashboardPage() {
             </div>
           </div>
         </header>
+
+        {/* Onboarding para usuarios nuevos */}
+        <div className="lg:px-4 lg:mt-6">
+          <OnboardingBanner
+            userName={user?.name?.split(' ')[0] || 'Viajero'}
+            hasExperiences={myExperiences.length > 0}
+            hasMatches={receivedMatches.length > 0 || sentMatches.length > 0}
+            hasAvatar={!!user?.avatar}
+            hasBio={!!user?.bio}
+          />
+        </div>
 
         {/* Desktop multi-column layout */}
         <div className="lg:grid lg:grid-cols-3 lg:gap-6 lg:px-4 lg:mt-6">

@@ -411,8 +411,15 @@ export default function ExperienceDetailPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs text-gray-500 mb-0.5">Anfitrión</p>
-              <p className="font-bold text-gray-900 text-lg">{experience.host?.name ?? 'Anfitrion'}</p>
-              <p className="text-sm text-gray-500">{experience.host?.city}</p>
+              <p className="font-bold text-gray-900 text-lg">{experience.host?.name ?? 'Anfitrión'}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-gray-500">{experience.host?.city}</p>
+                {experience.host?.avgResponseTimeHours != null && (
+                  <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                    ⚡ Responde en ~{experience.host.avgResponseTimeHours < 1 ? '<1' : experience.host.avgResponseTimeHours}h
+                  </span>
+                )}
+              </div>
             </div>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-400">
               <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />

@@ -17,6 +17,7 @@ export interface Host {
   verified: boolean;
   bio?: string;
   city?: string;
+  avgResponseTimeHours?: number | null;
 }
 
 export interface Festival {

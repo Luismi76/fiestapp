@@ -38,13 +38,13 @@ function ResetPasswordContent() {
 
   useEffect(() => {
     if (!token) {
-      setError('Token no valido. Por favor, solicita un nuevo enlace de recuperacion.');
+      setError('Token no válido. Por favor, solicita un nuevo enlace de recuperación.');
     }
   }, [token]);
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     if (!token) {
-      setError('Token no valido');
+      setError('Token no válido');
       return;
     }
 
@@ -126,9 +126,9 @@ function ResetPasswordContent() {
                   <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.72 6.97a.75.75 0 1 0-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06L12 13.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L13.06 12l1.72-1.72a.75.75 0 1 0-1.06-1.06L12 10.94l-1.72-1.72Z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Enlace no valido</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Enlace no válido</h2>
               <p className="text-gray-600 mb-6">
-                El enlace de recuperacion no es valido o ha expirado. Por favor, solicita uno nuevo.
+                El enlace de recuperación no es válido o ha expirado. Por favor, solicita uno nuevo.
               </p>
               <Link
                 href="/forgot-password"

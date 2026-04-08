@@ -127,9 +127,30 @@ export class UsersService {
       take: 5,
     });
 
+    // Calcular tiempo medio de respuesta a solicitudes (en horas)
+    const matchesAsHost = await this.prisma.match.findMany({
+      where: {
+        hostId: userId,
+        status: { not: 'pending' },
+      },
+      select: { createdAt: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+      take: 20,
+    });
+
+    let avgResponseTimeHours: number | null = null;
+    if (matchesAsHost.length > 0) {
+      const totalHours = matchesAsHost.reduce((sum, m) => {
+        const diff = m.updatedAt.getTime() - m.createdAt.getTime();
+        return sum + diff / (1000 * 60 * 60);
+      }, 0);
+      avgResponseTimeHours = Math.round(totalHours / matchesAsHost.length);
+    }
+
     const result = {
       ...user,
       avgRating: avgRating._avg.rating || 0,
+      avgResponseTimeHours,
       experiences: experiencesWithRating,
       reviews,
     };

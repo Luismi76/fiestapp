@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { authApi } from '@/lib/api';
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email('Correo no valido'),
+  email: z.string().email('Correo no válido'),
 });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -114,7 +114,7 @@ export default function ForgotPasswordPage() {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
                 {/* Email field */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Correo electronico</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Correo electrónico</label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">

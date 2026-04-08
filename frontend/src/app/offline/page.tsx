@@ -93,12 +93,12 @@ export default function OfflinePage() {
 
         {/* Title */}
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Sin conexion
+          Sin conexión
         </h1>
 
         {/* Description */}
         <p className="text-gray-600 mb-8">
-          Parece que no tienes conexion a internet. Comprueba tu conexion y vuelve a intentarlo.
+          Parece que no tienes conexión a internet. Comprueba tu conexión y vuelve a intentarlo.
         </p>
 
         {/* Retry Button */}

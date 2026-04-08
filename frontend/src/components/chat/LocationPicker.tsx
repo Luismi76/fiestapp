@@ -77,7 +77,7 @@ export default function LocationPicker({ onSelect, onCancel }: LocationPickerPro
       // If accuracy is worse than 50km, the position is likely IP-based and unreliable
       if (accuracy > 50000) {
         setMode('search');
-        setError('No se pudo obtener una ubicacion precisa. Busca tu ubicacion manualmente.');
+        setError('No se pudo obtener una ubicación precisa. Busca tu ubicación manualmente.');
         setLoading(false);
         return;
       }
@@ -88,7 +88,7 @@ export default function LocationPicker({ onSelect, onCancel }: LocationPickerPro
       if (err instanceof GeolocationPositionError) {
         switch (err.code) {
           case err.PERMISSION_DENIED:
-            setError('Permiso de ubicacion denegado.');
+            setError('Permiso de ubicación denegado.');
             break;
           case err.POSITION_UNAVAILABLE:
             setError('Ubicacion no disponible.');
@@ -97,10 +97,10 @@ export default function LocationPicker({ onSelect, onCancel }: LocationPickerPro
             setError('Tiempo agotado.');
             break;
           default:
-            setError('Error al obtener la ubicacion.');
+            setError('Error al obtener la ubicación.');
         }
       } else {
-        setError('Error al obtener la ubicacion.');
+        setError('Error al obtener la ubicación.');
       }
       setMode('search');
     } finally {
@@ -198,7 +198,7 @@ export default function LocationPicker({ onSelect, onCancel }: LocationPickerPro
       <div className="bg-white w-full sm:w-[400px] sm:rounded-2xl rounded-t-2xl overflow-hidden max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="text-lg font-bold">Compartir ubicacion</h2>
+          <h2 className="text-lg font-bold">Compartir ubicación</h2>
           <button
             onClick={onCancel}
             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
@@ -255,7 +255,7 @@ export default function LocationPicker({ onSelect, onCancel }: LocationPickerPro
           {loading && (
             <div className="flex flex-col items-center justify-center py-8">
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-gray-500 text-sm">Obteniendo tu ubicacion...</p>
+              <p className="text-gray-500 text-sm">Obteniendo tu ubicación...</p>
             </div>
           )}
 
@@ -268,7 +268,7 @@ export default function LocationPicker({ onSelect, onCancel }: LocationPickerPro
               </div>
               <p className="text-sm text-gray-600 mb-3">{error}</p>
               {mode === 'search' && (
-                <p className="text-xs text-gray-400">Usa el buscador de arriba para encontrar tu ubicacion</p>
+                <p className="text-xs text-gray-400">Usa el buscador de arriba para encontrar tu ubicación</p>
               )}
               {mode === 'auto' && (
                 <button onClick={getCurrentLocation} className="text-sm text-primary font-medium hover:underline">
@@ -285,7 +285,7 @@ export default function LocationPicker({ onSelect, onCancel }: LocationPickerPro
                 <iframe
                   src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.longitude - 0.005},${location.latitude - 0.003},${location.longitude + 0.005},${location.latitude + 0.003}&layer=mapnik&marker=${location.latitude},${location.longitude}`}
                   className="w-full h-full border-0"
-                  title="Tu ubicacion"
+                  title="Tu ubicación"
                 />
               </div>
 
@@ -313,7 +313,7 @@ export default function LocationPicker({ onSelect, onCancel }: LocationPickerPro
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                   <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-1.5 0a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0ZM10 11.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" clipRule="evenodd" />
                 </svg>
-                Usar mi ubicacion GPS
+                Usar mi ubicación GPS
               </button>
             </div>
           )}

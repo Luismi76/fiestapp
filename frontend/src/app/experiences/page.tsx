@@ -69,6 +69,7 @@ function ExperiencesContent() {
   const [selectedCity, setSelectedCity] = useState<string>(searchParams.get('city') || '');
   const [minPrice, setMinPrice] = useState<string>(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState<string>(searchParams.get('maxPrice') || '');
+  const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'newest');
   const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -132,6 +133,7 @@ function ExperiencesContent() {
     city?: string;
     minPrice?: string;
     maxPrice?: string;
+    sortBy?: string;
   }) => {
     const params = new URLSearchParams();
     if (filters.q) params.set('q', filters.q);
@@ -140,6 +142,7 @@ function ExperiencesContent() {
     if (filters.city) params.set('city', filters.city);
     if (filters.minPrice) params.set('minPrice', filters.minPrice);
     if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+    if (filters.sortBy && filters.sortBy !== 'newest') params.set('sortBy', filters.sortBy);
 
     const queryString = params.toString();
     const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
@@ -155,8 +158,9 @@ function ExperiencesContent() {
       city: selectedCity,
       minPrice,
       maxPrice,
+      sortBy,
     });
-  }, [searchQuery, selectedType, selectedFestival, selectedCity, minPrice, maxPrice, updateUrlParams]);
+  }, [searchQuery, selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy, updateUrlParams]);
 
   // Load initial data
   useEffect(() => {
@@ -188,6 +192,7 @@ function ExperiencesContent() {
       if (selectedCity) filters.city = selectedCity;
       if (minPrice) filters.minPrice = Number(minPrice);
       if (maxPrice) filters.maxPrice = Number(maxPrice);
+      if (sortBy) filters.sortBy = sortBy as ExperienceFilters['sortBy'];
 
       const response = await experiencesApi.getAll(filters);
 
@@ -205,13 +210,13 @@ function ExperiencesContent() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [searchQuery, selectedType, selectedFestival, selectedCity, minPrice, maxPrice]);
+  }, [searchQuery, selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy]);
 
   // Initial load and filter changes
   useEffect(() => {
     setPage(1);
     loadExperiences(1, false);
-  }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, loadExperiences]);
+  }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy, loadExperiences]);
 
   // Search with debounce
   useEffect(() => {
@@ -257,6 +262,7 @@ function ExperiencesContent() {
     setSelectedCity('');
     setMinPrice('');
     setMaxPrice('');
+    setSortBy('newest');
     setSearchQuery('');
     setShowFiltersModal(false);
   }, []);
@@ -382,6 +388,21 @@ function ExperiencesContent() {
                 onMinChange={setMinPrice}
                 onMaxChange={setMaxPrice}
               />
+
+              {/* Sort */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Ordenar por</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full py-2.5 px-3 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="newest">M&aacute;s recientes</option>
+                  <option value="price_asc">Precio: menor a mayor</option>
+                  <option value="price_desc">Precio: mayor a menor</option>
+                  <option value="rating">Mejor valoradas</option>
+                </select>
+              </div>
             </div>
           </aside>
 
@@ -591,6 +612,21 @@ function ExperiencesContent() {
               onMinChange={setMinPrice}
               onMaxChange={setMaxPrice}
             />
+
+            {/* Sort */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Ordenar por</label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full py-3 px-4 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="newest">M&aacute;s recientes</option>
+                <option value="price_asc">Precio: menor a mayor</option>
+                <option value="price_desc">Precio: mayor a menor</option>
+                <option value="rating">Mejor valoradas</option>
+              </select>
+            </div>
           </div>
         </BottomSheet>
       </div>
