@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useCallback, useEffect, useState, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useCallback, useEffect, useState, useMemo, useRef, ReactNode } from 'react';
 import { useSocket, useSocketEvent } from '@/hooks/useSocket';
 import { useAuth } from '@/contexts/AuthContext';
 import { matchesApi } from '@/lib/api';
@@ -20,10 +20,12 @@ export function MessageProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const { socket, isConnected, markAsRead } = useSocket();
   const [unreadCount, setUnreadCount] = useState(0);
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  useEffect(() => { isAuthenticatedRef.current = isAuthenticated; }, [isAuthenticated]);
 
   // Fetch unread count from backend
   const refreshUnreadCount = useCallback(async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticatedRef.current) {
       setUnreadCount(0);
       return;
     }
@@ -33,12 +35,11 @@ export function MessageProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       logger.error('Failed to fetch message unread count:', error);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   // Initial fetch when user logs in
   useEffect(() => {
     if (isAuthenticated) {
-      // Use microtask to avoid synchronous setState in effect
       queueMicrotask(() => void refreshUnreadCount());
     } else {
       queueMicrotask(() => setUnreadCount(0));

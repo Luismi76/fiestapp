@@ -50,10 +50,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [toast]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recentNotifications, setRecentNotifications] = useState<Notification[]>([]);
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  useEffect(() => { isAuthenticatedRef.current = isAuthenticated; }, [isAuthenticated]);
 
   // Fetch initial unread count from backend
   const refreshCount = useCallback(async () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticatedRef.current) {
       setUnreadCount(0);
       return;
     }
@@ -63,7 +65,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       logger.error('Failed to fetch notification count:', error);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   // Initial fetch when user logs in
   useEffect(() => {

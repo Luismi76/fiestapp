@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
@@ -8,13 +8,15 @@ import Image from 'next/image';
 
 export default function Home() {
   const router = useRouter();
+  const routerRef = useRef(router);
+  useEffect(() => { routerRef.current = router; }, [router]);
   const { isAuthenticated, loading } = useAuth();
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      router.replace('/dashboard');
+      routerRef.current.replace('/dashboard');
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading]);
 
   // Mientras carga, mostrar spinner
   if (loading) {

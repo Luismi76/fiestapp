@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import MainLayout from '@/components/MainLayout';
@@ -23,6 +23,8 @@ import OnboardingBanner from '@/components/OnboardingBanner';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const routerRef = useRef(router);
+  useEffect(() => { routerRef.current = router; }, [router]);
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [myExperiences, setMyExperiences] = useState<Experience[]>([]);
   const [receivedMatches, setReceivedMatches] = useState<Match[]>([]);
@@ -33,7 +35,7 @@ export default function DashboardPage() {
     if (authLoading) return;
 
     if (!isAuthenticated) {
-      router.push('/login');
+      routerRef.current.push('/login');
       return;
     }
 
@@ -56,7 +58,7 @@ export default function DashboardPage() {
     };
 
     loadData();
-  }, [isAuthenticated, authLoading, router]);
+  }, [isAuthenticated, authLoading]);
 
   // Stats
   const pendingReceived = receivedMatches.filter(m => m.status === 'pending').length;

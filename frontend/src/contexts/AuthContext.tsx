@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { User, LoginData, RegisterData } from '@/types/auth';
@@ -27,6 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+    const routerRef = useRef(router);
+    useEffect(() => { routerRef.current = router; }, [router]);
 
     // Check if user is logged in on mount (cookie is sent automatically)
     useEffect(() => {
@@ -52,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             setUser(response.user);
             const isNewUser = !response.user.avatar && !response.user.bio;
-            router.push(isNewUser ? '/dashboard' : '/experiences');
+            routerRef.current.push(isNewUser ? '/dashboard' : '/experiences');
         } catch (error) {
             if (error instanceof Error && error.message.includes('verificación en dos pasos')) {
                 throw error;
@@ -64,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             (err as Error & { status?: number }).status = status;
             throw err;
         }
-    }, [router]);
+    }, []);
 
     const register = useCallback(async (data: RegisterData): Promise<string> => {
         try {
@@ -86,11 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const userData = await authApi.getProfile();
             setUser(userData);
             const isNewUser = !userData.avatar && !userData.bio;
-            router.push(isNewUser ? '/dashboard' : '/experiences');
+            routerRef.current.push(isNewUser ? '/dashboard' : '/experiences');
         } catch {
             // Cookie invalid
         }
-    }, [router]);
+    }, []);
 
     const logout = useCallback(async () => {
         try {
@@ -107,8 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {
             // localStorage puede no estar disponible
         }
-        router.push('/');
-    }, [router]);
+        routerRef.current.push('/');
+    }, []);
 
     const refreshUser = useCallback(async () => {
         try {
