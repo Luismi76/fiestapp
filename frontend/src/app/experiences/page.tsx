@@ -161,16 +161,12 @@ function ExperiencesContent() {
   // Load initial data
   useEffect(() => {
     const loadInitialData = async () => {
-      try {
-        const [festRes, citiesRes] = await Promise.all([
-          festivalsApi.getAll(),
-          experiencesApi.getCities(),
-        ]);
-        setFestivals(festRes || []);
-        setCities(citiesRes || []);
-      } catch (error) {
-        logger.error('Error loading filters:', error);
-      }
+      const [festRes, citiesRes] = await Promise.allSettled([
+        festivalsApi.getAll(),
+        experiencesApi.getCities(),
+      ]);
+      if (festRes.status === 'fulfilled') setFestivals(festRes.value || []);
+      if (citiesRes.status === 'fulfilled') setCities(citiesRes.value || []);
     };
     loadInitialData();
   }, []);

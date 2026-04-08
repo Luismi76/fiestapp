@@ -103,12 +103,20 @@ export class FestivalsService implements OnModuleInit {
             _count: {
               select: {
                 experiences: true,
+                favoritedBy: true,
               },
             },
           },
           orderBy: {
             name: 'asc',
           },
+        }).catch(async () => {
+          // Fallback sin _count si la query compleja falla
+          this.logger.warn('Festival findAll with _count failed, falling back to simple query');
+          return this.prisma.festival.findMany({
+            where: { status: 'ACTIVE' },
+            orderBy: { name: 'asc' },
+          });
         });
       },
       CACHE_TTL.FESTIVALS,
