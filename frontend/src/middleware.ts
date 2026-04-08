@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('access_token');
+  const accessToken = request.cookies.get('access_token');
+  const refreshToken = request.cookies.get('refresh_token');
 
-  if (!token) {
+  // Permitir si tiene access_token o refresh_token (el interceptor axios renovara el access_token)
+  if (!accessToken && !refreshToken) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
