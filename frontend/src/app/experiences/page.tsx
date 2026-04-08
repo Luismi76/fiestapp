@@ -227,8 +227,13 @@ function ExperiencesContent() {
     loadExperiencesRef.current?.(1, false);
   }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy]);
 
-  // Search with debounce
+  // Search with debounce (skip initial render - handled by filter effect above)
+  const searchInitialized = useRef(false);
   useEffect(() => {
+    if (!searchInitialized.current) {
+      searchInitialized.current = true;
+      return;
+    }
     const timer = setTimeout(() => {
       setPage(1);
       loadExperiencesRef.current?.(1, false);
