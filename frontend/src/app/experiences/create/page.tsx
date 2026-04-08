@@ -216,7 +216,7 @@ export default function CreateExperiencePage() {
       }
 
       // Solo marcar como borrador si tiene contenido real
-      const hasContent = !!(draft.formValues?.title || draft.formValues?.description || draft.city || (draft.highlights && draft.highlights.length > 0));
+      const hasContent = !!(draft.formValues?.title || draft.formValues?.description || draft.city || (draft.highlights && draft.highlights.some(h => h.trim())));
       setHasDraft(hasContent);
     } catch {
       // Si el borrador está corrupto, lo eliminamos
@@ -248,7 +248,7 @@ export default function CreateExperiencePage() {
         currentStep,
         savedAt: Date.now(),
       };
-      const hasContent = !!(draft.formValues?.title || draft.formValues?.description || draft.city || (draft.highlights && draft.highlights.length > 0));
+      const hasContent = !!(draft.formValues?.title || draft.formValues?.description || draft.city || (draft.highlights && draft.highlights.some(h => h.trim())));
       if (hasContent) {
         localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
         setHasDraft(true);
