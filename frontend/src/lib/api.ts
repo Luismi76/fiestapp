@@ -73,12 +73,13 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Si es 401 y no es el propio refresh ni retry
+    // Si es 401 y no es el propio refresh, login ni la comprobación inicial de auth
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
       !originalRequest.url?.includes('/auth/refresh') &&
-      !originalRequest.url?.includes('/auth/login')
+      !originalRequest.url?.includes('/auth/login') &&
+      !originalRequest.url?.includes('/auth/me')
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -95,10 +96,6 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        // Redirigir a login si el refresh falla
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
