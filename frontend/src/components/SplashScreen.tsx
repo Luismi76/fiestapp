@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 
 interface SplashScreenProps {
@@ -10,6 +10,8 @@ interface SplashScreenProps {
 
 export default function SplashScreen({ onFinish, duration = 2000 }: SplashScreenProps) {
   const [fadeOut, setFadeOut] = useState(false);
+  const onFinishRef = useRef(onFinish);
+  useEffect(() => { onFinishRef.current = onFinish; }, [onFinish]);
 
   useEffect(() => {
     const fadeTimer = setTimeout(() => {
@@ -17,14 +19,14 @@ export default function SplashScreen({ onFinish, duration = 2000 }: SplashScreen
     }, duration - 500);
 
     const finishTimer = setTimeout(() => {
-      onFinish?.();
+      onFinishRef.current?.();
     }, duration);
 
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(finishTimer);
     };
-  }, [duration, onFinish]);
+  }, [duration]);
 
   return (
     <div
