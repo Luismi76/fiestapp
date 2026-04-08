@@ -73,6 +73,8 @@ function ExperiencesContent() {
   const [showFiltersModal, setShowFiltersModal] = useState(false);
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const isFirstRender = useRef(true);
+  const loadExperiencesRef = useRef<((pageNum: number, append?: boolean) => Promise<void>) | null>(null);
 
   // Load favorite IDs when user is authenticated
   useEffect(() => {
@@ -149,8 +151,9 @@ function ExperiencesContent() {
     router.replace(newUrl, { scroll: false });
   }, [pathname, router]);
 
-  // Update URL when filters change
+  // Update URL when filters change (skip first render to avoid loop)
   useEffect(() => {
+    if (isFirstRender.current) return;
     updateUrlParams({
       q: searchQuery,
       type: selectedType,
@@ -212,27 +215,33 @@ function ExperiencesContent() {
     }
   }, [searchQuery, selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy]);
 
+  // Keep ref in sync
+  loadExperiencesRef.current = loadExperiences;
+
   // Initial load and filter changes
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+    }
     setPage(1);
-    loadExperiences(1, false);
-  }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy, loadExperiences]);
+    loadExperiencesRef.current?.(1, false);
+  }, [selectedType, selectedFestival, selectedCity, minPrice, maxPrice, sortBy]);
 
   // Search with debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       setPage(1);
-      loadExperiences(1, false);
+      loadExperiencesRef.current?.(1, false);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, loadExperiences]);
+  }, [searchQuery]);
 
   // Load more on page change
   useEffect(() => {
     if (page > 1) {
-      loadExperiences(page, true);
+      loadExperiencesRef.current?.(page, true);
     }
-  }, [page, loadExperiences]);
+  }, [page]);
 
   // Infinite scroll
   useEffect(() => {
