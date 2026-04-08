@@ -214,7 +214,9 @@ export default function CreateExperiencePage() {
         setCurrentStep(Math.min(draft.currentStep, STEPS.length));
       }
 
-      setHasDraft(true);
+      // Solo marcar como borrador si tiene contenido real
+      const hasContent = !!(draft.formValues?.title || draft.formValues?.description || draft.city || (draft.highlights && draft.highlights.length > 0));
+      setHasDraft(hasContent);
     } catch {
       // Si el borrador está corrupto, lo eliminamos
       localStorage.removeItem(DRAFT_KEY);
@@ -245,8 +247,11 @@ export default function CreateExperiencePage() {
         currentStep,
         savedAt: Date.now(),
       };
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-      setHasDraft(true);
+      const hasContent = !!(draft.formValues?.title || draft.formValues?.description || draft.city || (draft.highlights && draft.highlights.length > 0));
+      if (hasContent) {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        setHasDraft(true);
+      }
     }, 500);
 
     return () => clearTimeout(timeout);
