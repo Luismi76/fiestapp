@@ -14,10 +14,10 @@ interface BeforeInstallPromptEvent extends Event {
  */
 export default function InstallButton() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isIOS, setIsIOS] = useState(() =>
+  const [isIOS] = useState(() =>
     typeof navigator !== 'undefined' ? /iPad|iPhone|iPod/.test(navigator.userAgent) : false
   );
-  const [isStandalone, setIsStandalone] = useState(() =>
+  const [isStandalone] = useState(() =>
     typeof window !== 'undefined'
       ? window.matchMedia('(display-mode: standalone)').matches ||
         (window.navigator as { standalone?: boolean }).standalone === true

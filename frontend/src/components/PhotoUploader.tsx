@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { getUploadUrl } from '@/lib/utils';
 import { OptimizedImage } from '@/components/OptimizedImage';
 import Image from 'next/image';
@@ -29,13 +29,11 @@ export default function PhotoUploader({
   const totalCount = photos.length + pendingFiles.length;
   const canAddMore = totalCount < maxPhotos;
 
-  // Preview URLs for pending files
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  useEffect(() => {
-    const urls = pendingFiles.map(file => URL.createObjectURL(file));
-    setPreviewUrls(urls);
-    return () => urls.forEach(url => URL.revokeObjectURL(url));
-  }, [pendingFiles]);
+  // Preview URLs for pending files - derived state, no effect needed
+  const previewUrls = useMemo(
+    () => pendingFiles.map(file => URL.createObjectURL(file)),
+    [pendingFiles],
+  );
 
   const handleFiles = (files: FileList | null) => {
     if (!files || disabled) return;
