@@ -646,13 +646,13 @@ function ExperiencesContent() {
             <>
               <button
                 onClick={clearFilters}
-                className="btn btn-secondary flex-1"
+                className="btn btn-secondary btn-sm flex-1 py-2.5 text-sm"
               >
                 Limpiar
               </button>
               <button
                 onClick={() => setShowFiltersModal(false)}
-                className="btn btn-primary flex-1"
+                className="btn btn-primary btn-sm flex-1 py-2.5 text-sm"
               >
                 Ver {totalResults} resultado{totalResults !== 1 ? 's' : ''}
               </button>
