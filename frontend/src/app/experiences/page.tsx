@@ -654,7 +654,7 @@ function ExperiencesContent() {
                 onClick={() => setShowFiltersModal(false)}
                 className="btn btn-primary btn-sm flex-1 py-2.5 text-sm"
               >
-                Ver {totalResults} resultado{totalResults !== 1 ? 's' : ''}
+                Ver {totalResults} experiencia{totalResults !== 1 ? 's' : ''}
               </button>
             </>
           }
