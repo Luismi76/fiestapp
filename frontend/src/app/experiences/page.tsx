@@ -414,7 +414,7 @@ function ExperiencesContent() {
 
               {/* Companion filter */}
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Anfitrión viaja con</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Perfecto si vas con</label>
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={hostHasPartner} onChange={(e) => setHostHasPartner(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
@@ -657,7 +657,7 @@ function ExperiencesContent() {
 
             {/* Companion filter */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Anfitrión viaja con</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Perfecto si vas con</label>
               <div className="space-y-3">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={hostHasPartner} onChange={(e) => setHostHasPartner(e.target.checked)} className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary" />
