@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "User" ADD COLUMN "hasFriends" BOOLEAN;
+ALTER TABLE "users" ADD COLUMN     "hasFriends" BOOLEAN;
