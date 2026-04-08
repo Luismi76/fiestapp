@@ -19,7 +19,7 @@ import { WalletModule } from '../wallet/wallet.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '7d' },
+        signOptions: { expiresIn: '1h' },
       }),
     }),
   ],

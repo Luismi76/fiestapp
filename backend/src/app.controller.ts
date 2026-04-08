@@ -26,30 +26,33 @@ export class AppController {
   }
 
   @Get('health')
-  async getHealth(): Promise<HealthCheckResult> {
-    const checks: HealthCheckResult['checks'] = {
-      database: 'error',
-    };
+  async getHealth(): Promise<Partial<HealthCheckResult>> {
+    const isProduction = process.env.NODE_ENV === 'production';
 
     // Check database connection
+    let dbStatus: 'ok' | 'error' = 'error';
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      checks.database = 'ok';
+      dbStatus = 'ok';
     } catch {
-      checks.database = 'error';
+      dbStatus = 'error';
     }
 
-    // Check Redis if configured
+    const status = dbStatus === 'error' ? 'error' : 'ok';
+
+    // En produccion solo devolver status basico
+    if (isProduction) {
+      return { status, timestamp: new Date().toISOString() };
+    }
+
+    // En desarrollo devolver info detallada
+    const checks: HealthCheckResult['checks'] = { database: dbStatus };
     const redisUrl = process.env.REDIS_URL;
     if (redisUrl) {
-      checks.redis = 'ok'; // CacheService handles Redis internally
+      checks.redis = 'ok';
     } else {
       checks.redis = 'not_configured';
     }
-
-    // Determine overall status
-    const hasErrors = checks.database === 'error';
-    const status = hasErrors ? 'error' : 'ok';
 
     return {
       status,

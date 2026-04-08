@@ -8,6 +8,7 @@ import {
   Query,
   Res,
   HttpCode,
+  UnauthorizedException,
 } from '@nestjs/common';
 import type { Request as ExpressRequest, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
@@ -46,25 +47,36 @@ export class AuthController {
     private twoFactorService: TwoFactorService,
   ) {}
 
-  private setAuthCookie(res: Response, token: string) {
+  private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
-    res.cookie('access_token', token, {
+    const sameSite: 'none' | 'lax' = isProduction ? 'none' : 'lax';
+    const cookieOptions = {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+      sameSite,
       path: '/',
+    };
+    res.cookie('access_token', accessToken, {
+      ...cookieOptions,
+      maxAge: 60 * 60 * 1000, // 1 hora
+    });
+    res.cookie('refresh_token', refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
     });
   }
 
-  private clearAuthCookie(res: Response) {
+  private clearAuthCookies(res: Response) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
-    res.clearCookie('access_token', {
+    const sameSite: 'none' | 'lax' = isProduction ? 'none' : 'lax';
+    const cookieOptions = {
       httpOnly: true,
       secure: isProduction,
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite,
       path: '/',
-    });
+    };
+    res.clearCookie('access_token', cookieOptions);
+    res.clearCookie('refresh_token', cookieOptions);
   }
 
   @Post('register')
@@ -86,9 +98,9 @@ export class AuthController {
     description: 'Demasiados intentos. Rate limit excedido.',
   })
   @Throttle({
-    short: { limit: 2, ttl: 1000 },
-    medium: { limit: 5, ttl: 60000 },
-    long: { limit: 20, ttl: 3600000 },
+    short: { limit: 1, ttl: 1000 },
+    medium: { limit: 3, ttl: 60000 },
+    long: { limit: 10, ttl: 3600000 },
   })
   async register(@Body() registerDto: RegisterDto) {
     await this.captchaService.verifyCaptcha(registerDto.captchaToken);
@@ -114,17 +126,17 @@ export class AuthController {
     description: 'Demasiados intentos. Rate limit excedido.',
   })
   @Throttle({
-    short: { limit: 3, ttl: 1000 },
+    short: { limit: 2, ttl: 1000 },
     medium: { limit: 5, ttl: 60000 },
-    long: { limit: 20, ttl: 3600000 },
+    long: { limit: 15, ttl: 3600000 },
   })
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.login(loginDto);
-    if ('access_token' in result) {
-      this.setAuthCookie(res, result.access_token);
+    if ('access_token' in result && 'refresh_token' in result) {
+      this.setAuthCookies(res, result.access_token, result.refresh_token as string);
     }
     return result;
   }
@@ -244,8 +256,8 @@ export class AuthController {
       dto.tempToken,
       dto.twoFactorCode,
     );
-    if ('access_token' in result) {
-      this.setAuthCookie(res, result.access_token);
+    if ('access_token' in result && 'refresh_token' in result) {
+      this.setAuthCookies(res, result.access_token, result.refresh_token as string);
     }
     return result;
   }
@@ -292,8 +304,31 @@ export class AuthController {
   @ApiOperation({ summary: 'Cerrar sesión' })
   @ApiResponse({ status: 200, description: 'Sesión cerrada correctamente' })
   logout(@Res({ passthrough: true }) res: Response) {
-    this.clearAuthCookie(res);
-    return { message: 'Sesión cerrada correctamente' };
+    this.clearAuthCookies(res);
+    return { message: 'Sesion cerrada correctamente' };
+  }
+
+  @Post('refresh')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Renovar access token usando refresh token' })
+  @ApiResponse({ status: 200, description: 'Tokens renovados' })
+  @ApiResponse({ status: 401, description: 'Refresh token invalido o expirado' })
+  @Throttle({
+    short: { limit: 5, ttl: 1000 },
+    medium: { limit: 20, ttl: 60000 },
+    long: { limit: 100, ttl: 3600000 },
+  })
+  async refresh(
+    @Request() req: ExpressRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies?.refresh_token;
+    if (!refreshToken) {
+      throw new UnauthorizedException('No se encontro refresh token.');
+    }
+    const tokens = await this.authService.refreshTokens(refreshToken);
+    this.setAuthCookies(res, tokens.access_token, tokens.refresh_token);
+    return { message: 'Tokens renovados' };
   }
 
   // Iniciar flujo de Google OAuth
@@ -312,8 +347,8 @@ export class AuthController {
   ) {
     const result = await this.authService.googleLogin(req.user);
 
-    // Set httpOnly cookie
-    this.setAuthCookie(res, result.access_token);
+    // Set httpOnly cookies
+    this.setAuthCookies(res, result.access_token, result.refresh_token);
 
     // Redirigir al frontend (sin token en URL)
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');

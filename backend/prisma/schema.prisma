@@ -12,7 +12,7 @@ model User {
   email                     String           @unique
   password                  String
   name                      String
-  role                      String           @default("user") // user, admin
+  role                      UserRole         @default(user)
   age                       Int?
   bio                       String?
   city                      String?
@@ -50,6 +50,7 @@ model User {
   fiscalAddress             String?          // Dirección fiscal
   // Preferencias de moneda
   preferredCurrency         Currency         @default(EUR)
+  deletedAt                 DateTime?        // Soft delete
   createdAt                 DateTime         @default(now())
   updatedAt                 DateTime         @updatedAt
   experiences        Experience[]
@@ -86,6 +87,10 @@ model User {
   identityVerification    IdentityVerification?
   verificationsApproved   IdentityVerification[] @relation("VerificationVerifiedBy")
 
+  @@index([verified])
+  @@index([bannedAt])
+  @@index([role])
+  @@index([referredById])
   @@map("users")
 }
 
@@ -166,6 +171,7 @@ model Experience {
   maxParticipants Int?                     // null = usa capacity
   // Política de cancelación (FASE 7)
   cancellationPolicy CancellationPolicy    @default(FLEXIBLE)
+  deletedAt       DateTime?                // Soft delete
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
   availability    ExperienceAvailability[]
@@ -205,8 +211,8 @@ model Match {
   experienceId          String
   requesterId           String
   hostId                String
-  status                String        @default("pending")
-  paymentStatus         String?       // pending, held, released, refunded
+  status                MatchStatus    @default(pending)
+  paymentStatus         PaymentStatus?
   hostConfirmed         Boolean       @default(false)    // anfitrion ha confirmado
   requesterConfirmed    Boolean       @default(false)    // viajero ha confirmado
   startDate             DateTime?
@@ -240,6 +246,9 @@ model Match {
   @@index([status])
   @@index([createdAt])
   @@index([startDate])
+  @@index([experienceId, status])
+  @@index([requesterId, status])
+  @@index([hostId, status])
   @@map("matches")
 }
 
@@ -273,10 +282,10 @@ model Transaction {
   userId      String
   matchId     String?
   otherUserId String?  // ID del otro usuario en transacciones de platform_fee
-  type        String
+  type        TransactionType
   amount      Float
   currency    Currency @default(EUR)
-  status      String   @default("pending")
+  status      TransactionStatus @default(pending)
   stripeId    String?  @unique
   description String?
   createdAt   DateTime @default(now())
@@ -289,6 +298,7 @@ model Transaction {
   @@index([status])
   @@index([createdAt])
   @@index([userId, createdAt])
+  @@index([userId, status])
   @@map("transactions")
 }
 
@@ -379,13 +389,15 @@ model Report {
   reportedId    String
   reason        String      // spam, inappropriate, fraud, harassment, other
   description   String?
-  status        String      @default("pending") // pending, reviewed, resolved, dismissed
+  status        ReportStatus @default(pending)
   adminNotes    String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   resolvedAt    DateTime?
   reporter      User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 
+  @@index([status])
+  @@index([createdAt])
   @@map("reports")
 }
 
@@ -579,6 +591,50 @@ model GroupPricing {
 // ============================================
 // FASE 5: Chat Mejorado
 // ============================================
+
+// Enums de negocio
+enum UserRole {
+  user
+  admin
+}
+
+enum MatchStatus {
+  pending
+  accepted
+  completed
+  rejected
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  held
+  released
+  refunded
+}
+
+enum TransactionType {
+  topup
+  platform_fee
+  refund
+  payout
+  experience_payment
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  held
+  released
+  failed
+}
+
+enum ReportStatus {
+  pending
+  reviewed
+  resolved
+  dismissed
+}
 
 enum MessageType {
   TEXT

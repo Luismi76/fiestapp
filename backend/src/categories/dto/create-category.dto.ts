@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsNumber, IsBoolean, IsIn, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsIn,
+  MinLength,
+} from 'class-validator';
 
 export class CreateCategoryDto {
   @IsString()
@@ -10,7 +17,9 @@ export class CreateCategoryDto {
   slug: string;
 
   @IsString()
-  @IsIn(['fiesta', 'local'], { message: 'El grupo debe ser "fiesta" o "local"' })
+  @IsIn(['fiesta', 'local'], {
+    message: 'El grupo debe ser "fiesta" o "local"',
+  })
   group: string;
 
   @IsString()

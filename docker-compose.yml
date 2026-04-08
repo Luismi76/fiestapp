@@ -17,6 +17,16 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   redis:
     image: redis:7-alpine
@@ -30,6 +40,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   libretranslate:
     image: libretranslate/libretranslate:latest
@@ -46,6 +66,16 @@ services:
       timeout: 10s
       retries: 10
       start_period: 300s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
@@ -59,11 +89,11 @@ services:
       redis:
         condition: service_healthy
       libretranslate:
-        condition: service_started
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-fiestapp}:${POSTGRES_PASSWORD:-fiestapp_secret}@postgres:5432/${POSTGRES_DB:-fiestapp}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fiestapp}:${POSTGRES_PASSWORD:-fiestapp_secret}@postgres:5432/${POSTGRES_DB:-fiestapp}?connection_limit=10&pool_timeout=30
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET es obligatorio - definelo en .env}
       NODE_ENV: production
       RUN_SEED: ${RUN_SEED:-false}
       # Cloudinary Configuration
@@ -71,9 +101,9 @@ services:
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
       # Redsys (TPV CaixaBank)
-      REDSYS_MERCHANT_CODE: ${REDSYS_MERCHANT_CODE:-999008881}
+      REDSYS_MERCHANT_CODE: ${REDSYS_MERCHANT_CODE:-}
       REDSYS_TERMINAL: ${REDSYS_TERMINAL:-1}
-      REDSYS_SECRET_KEY: ${REDSYS_SECRET_KEY:-sq7HjrUOBfKmC576ILgskD5srU870gJ7}
+      REDSYS_SECRET_KEY: ${REDSYS_SECRET_KEY:-}
       REDSYS_SANDBOX: ${REDSYS_SANDBOX:-true}
       # Email Configuration (Resend)
       RESEND_API_KEY: ${RESEND_API_KEY:-}
@@ -91,6 +121,16 @@ services:
       timeout: 10s
       retries: 10
       start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fiestapp-backend.rule=Host(`fiestapp-api.lmsc.es`)"
@@ -119,6 +159,16 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fiestapp-frontend.rule=Host(`fiestapp.lmsc.es`)"

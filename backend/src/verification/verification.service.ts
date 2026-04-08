@@ -57,7 +57,9 @@ export class VerificationService {
           attempts: { increment: 1 },
         },
       });
-      this.logger.log(`User ${userId} resubmitted verification (attempt ${updated.attempts})`);
+      this.logger.log(
+        `User ${userId} resubmitted verification (attempt ${updated.attempts})`,
+      );
       return this.mapToResponse(updated);
     }
 
@@ -196,7 +198,11 @@ export class VerificationService {
   /**
    * Admin: Verificar/desverificar un usuario manualmente
    */
-  async toggleVerification(userId: string, adminId: string, newVerified: boolean) {
+  async toggleVerification(
+    userId: string,
+    adminId: string,
+    newVerified: boolean,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });

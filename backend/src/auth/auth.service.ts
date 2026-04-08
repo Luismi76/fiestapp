@@ -32,6 +32,51 @@ export class AuthService {
     private emailService: EmailService,
   ) {}
 
+  /**
+   * Genera un par access_token (1h) + refresh_token (7d)
+   */
+  generateTokens(userId: string, email: string) {
+    const payload = { sub: userId, email };
+    const access_token = this.jwtService.sign(payload); // 1h (config del modulo)
+    const refresh_token = this.jwtService.sign(
+      { ...payload, type: 'refresh' },
+      { expiresIn: '7d' },
+    );
+    return { access_token, refresh_token };
+  }
+
+  /**
+   * Valida un refresh token y emite nuevos tokens
+   */
+  async refreshTokens(refreshToken: string): Promise<{ access_token: string; refresh_token: string }> {
+    let payload: { sub: string; email: string; type?: string };
+    try {
+      payload = this.jwtService.verify(refreshToken);
+    } catch {
+      throw new UnauthorizedException('Refresh token invalido o expirado.');
+    }
+
+    if (payload.type !== 'refresh') {
+      throw new UnauthorizedException('Token no es un refresh token.');
+    }
+
+    // Verificar que el usuario sigue activo
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, email: true, bannedAt: true },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado.');
+    }
+
+    if (user.bannedAt) {
+      throw new UnauthorizedException('Tu cuenta ha sido suspendida.');
+    }
+
+    return this.generateTokens(user.id, user.email);
+  }
+
   async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
     const {
       email,
@@ -52,15 +97,17 @@ export class AuthService {
       );
     }
 
-    this.logger.debug(`Attempting registration for: ${email}`);
+    this.logger.debug('Attempting registration');
 
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      this.logger.debug(`Registration failed: Email ${email} already exists`);
-      throw new ConflictException('Este email ya está registrado');
+      this.logger.debug(`Registration failed: Email already exists`);
+      throw new ConflictException(
+        'No se ha podido completar el registro. Si ya tienes cuenta, prueba a iniciar sesion.',
+      );
     }
 
     this.logger.debug('Hashing password...');
@@ -132,7 +179,9 @@ export class AuthService {
       );
 
       if (error instanceof Error && 'code' in error && error.code === 'P2002') {
-        throw new ConflictException('Este email ya está registrado');
+        throw new ConflictException(
+          'No se ha podido completar el registro. Si ya tienes cuenta, prueba a iniciar sesion.',
+        );
       }
       throw error;
     }
@@ -140,34 +189,34 @@ export class AuthService {
 
   async login(loginDto: LoginDto): Promise<LoginResponseDto> {
     const { email, password } = loginDto;
-    this.logger.debug(`Login attempt for: ${email}`);
+    this.logger.debug('Login attempt');
 
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
 
     if (!user) {
-      this.logger.debug(`Login failed: User ${email} not found`);
+      this.logger.debug('Login failed: user not found');
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      this.logger.debug(`Login failed: Invalid password for ${email}`);
+      this.logger.debug('Login failed: invalid password');
       throw new UnauthorizedException('Invalid credentials');
     }
 
     // Verificar si el usuario esta baneado
     if (user.bannedAt) {
-      this.logger.debug(`Login failed: User ${email} is banned`);
+      this.logger.debug('Login failed: user banned');
       throw new UnauthorizedException(
         `Tu cuenta ha sido suspendida. Motivo: ${user.banReason || 'No especificado'}`,
       );
     }
 
     if (!user.verified) {
-      this.logger.debug(`Login failed: Email not verified for ${email}`);
+      this.logger.debug('Login failed: email not verified');
       throw new UnauthorizedException(
         'Por favor, verifica tu email antes de iniciar sesion. Revisa tu bandeja de entrada o solicita un nuevo email de verificacion.',
       );
@@ -175,7 +224,7 @@ export class AuthService {
 
     // Si 2FA está habilitado, devolver token temporal
     if (user.twoFactorEnabled) {
-      this.logger.debug(`2FA required for ${email}`);
+      this.logger.debug('2FA required');
       // Crear token temporal para 2FA (expira en 5 minutos)
       const tempPayload = {
         sub: user.id,
@@ -191,12 +240,12 @@ export class AuthService {
       } as TwoFactorRequiredResponseDto;
     }
 
-    const payload = { sub: user.id, email: user.email };
-    const access_token = this.jwtService.sign(payload);
-    this.logger.debug(`Login successful for ${email}`);
+    const { access_token, refresh_token } = this.generateTokens(user.id, user.email);
+    this.logger.debug('Login successful');
 
     return {
       access_token,
+      refresh_token,
       user: {
         id: user.id,
         email: user.email,
@@ -250,13 +299,13 @@ export class AuthService {
       throw new UnauthorizedException('Código de autenticación inválido.');
     }
 
-    // Generar el JWT completo
-    const fullPayload = { sub: user.id, email: user.email };
-    const access_token = this.jwtService.sign(fullPayload);
+    // Generar tokens
+    const { access_token, refresh_token } = this.generateTokens(user.id, user.email);
     this.logger.debug(`2FA verification successful for ${user.email}`);
 
     return {
       access_token,
+      refresh_token,
       user: {
         id: user.id,
         email: user.email,
@@ -560,12 +609,12 @@ export class AuthService {
       this.logger.debug(`New user created via Google: ${user.email}`);
     }
 
-    // Generar JWT
-    const payload = { sub: user.id, email: user.email };
-    const access_token = this.jwtService.sign(payload);
+    // Generar tokens
+    const { access_token, refresh_token } = this.generateTokens(user.id, user.email);
 
     return {
       access_token,
+      refresh_token,
       user: {
         id: user.id,
         email: user.email,

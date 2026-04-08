@@ -9,7 +9,19 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'fiestapp-api.lmsc.es',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.tile.openstreetmap.org',
       },
       {
         protocol: 'http',
@@ -50,16 +62,16 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://hcaptcha.com https://*.hcaptcha.com",
+              "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://hcaptcha.com https://*.hcaptcha.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
-              "img-src 'self' data: blob: https: http:",
+              "img-src 'self' data: blob: https://res.cloudinary.com https://lh3.googleusercontent.com https://*.tile.openstreetmap.org https://fiestapp-api.lmsc.es",
               "font-src 'self' https://fonts.gstatic.com",
-              "connect-src 'self' http://localhost:* https://fiestapp-api.lmsc.es https://*.sentry.io https://*.google-analytics.com https://hcaptcha.com https://*.hcaptcha.com https://res.cloudinary.com https://nominatim.openstreetmap.org wss: ws:",
+              "connect-src 'self' http://localhost:* https://fiestapp-api.lmsc.es https://*.sentry.io https://*.google-analytics.com https://hcaptcha.com https://*.hcaptcha.com https://res.cloudinary.com https://nominatim.openstreetmap.org wss://fiestapp-api.lmsc.es ws://localhost:*",
               "media-src 'self' https://res.cloudinary.com",
-              "frame-src https://hcaptcha.com https://*.hcaptcha.com https://www.openstreetmap.org https://sis.redsys.es https://sis-t.redsys.es",
+              "frame-src https://hcaptcha.com https://*.hcaptcha.com https://www.openstreetmap.org",
               "object-src 'none'",
               "base-uri 'self'",
-              "form-action 'self' https://sis.redsys.es https://sis-t.redsys.es:25443",
+              "form-action 'self'",
             ].join('; '),
           },
         ],

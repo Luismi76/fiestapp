@@ -21,7 +21,9 @@ export class UsersService {
 
     // Solo usar cache para perfiles ajenos (el propio puede tener experiencias no publicadas)
     if (!isOwnProfile) {
-      const cached = await this.cacheService.get(CACHE_KEYS.USER_PUBLIC(userId));
+      const cached = await this.cacheService.get(
+        CACHE_KEYS.USER_PUBLIC(userId),
+      );
       if (cached) {
         return cached;
       }

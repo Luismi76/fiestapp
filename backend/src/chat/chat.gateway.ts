@@ -32,7 +32,9 @@ const RATE_LIMIT_WINDOW = 60000; // 1 minuto
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+      : ['http://localhost:3000'],
     credentials: true,
   },
   namespace: '/chat',

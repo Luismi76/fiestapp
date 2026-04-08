@@ -510,12 +510,8 @@ export class DisputesService {
         dispute.match.experience.title,
         dto.resolution,
         dto.resolutionDescription,
-        refundRecipientId === dispute.openedById
-          ? refundAmount
-          : undefined,
-        refundRecipientId === dispute.openedById
-          ? refundPercentage
-          : undefined,
+        refundRecipientId === dispute.openedById ? refundAmount : undefined,
+        refundRecipientId === dispute.openedById ? refundPercentage : undefined,
       ),
       // Respondent
       this.notificationsService.create({
@@ -533,9 +529,7 @@ export class DisputesService {
         dto.resolution,
         dto.resolutionDescription,
         // Solo mostrar reembolso al que lo recibe
-        refundRecipientId === dispute.respondentId
-          ? refundAmount
-          : undefined,
+        refundRecipientId === dispute.respondentId ? refundAmount : undefined,
         refundRecipientId === dispute.respondentId
           ? refundPercentage
           : undefined,
@@ -555,7 +549,15 @@ export class DisputesService {
    * Obtener todas las disputas (admin) con filtros avanzados
    */
   async getAllDisputes(filters: DisputeFilters = {}) {
-    const { status, reason, search, dateFrom, dateTo, page = 1, limit = 20 } = filters;
+    const {
+      status,
+      reason,
+      search,
+      dateFrom,
+      dateTo,
+      page = 1,
+      limit = 20,
+    } = filters;
     const skip = (page - 1) * limit;
     const where: Prisma.DisputeWhereInput = {};
 
@@ -575,7 +577,11 @@ export class DisputesService {
         { description: { contains: search, mode: 'insensitive' } },
         { openedBy: { name: { contains: search, mode: 'insensitive' } } },
         { respondent: { name: { contains: search, mode: 'insensitive' } } },
-        { match: { experience: { title: { contains: search, mode: 'insensitive' } } } },
+        {
+          match: {
+            experience: { title: { contains: search, mode: 'insensitive' } },
+          },
+        },
       ];
     }
 
@@ -755,7 +761,9 @@ export class DisputesService {
   /**
    * Exportar disputas a CSV
    */
-  async exportDisputesCsv(filters: Omit<DisputeFilters, 'page' | 'limit'> = {}) {
+  async exportDisputesCsv(
+    filters: Omit<DisputeFilters, 'page' | 'limit'> = {},
+  ) {
     const where: Prisma.DisputeWhereInput = {};
 
     if (filters.status) where.status = filters.status as DisputeStatus;
@@ -781,7 +789,8 @@ export class DisputesService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const header = 'ID,Fecha,Estado,Motivo,Experiencia,Ciudad,Abierta por,Email opener,Contra,Email respondent,Resuelta por,Reembolso,Porcentaje,Descripcion,Resolucion\n';
+    const header =
+      'ID,Fecha,Estado,Motivo,Experiencia,Ciudad,Abierta por,Email opener,Contra,Email respondent,Resuelta por,Reembolso,Porcentaje,Descripcion,Resolucion\n';
     const rows = disputes.map((d) => {
       const escape = (s: string | null | undefined) =>
         `"${(s || '').replace(/"/g, '""')}"`;

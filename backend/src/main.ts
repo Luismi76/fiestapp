@@ -7,14 +7,17 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { SanitizePipe } from './common/pipes/sanitize.pipe';
 import { Request, Response, NextFunction } from 'express';
+import { v4 as uuidv4 } from 'uuid';
 
 async function bootstrap() {
+  const isProduction = process.env.NODE_ENV === 'production';
+
   const app = await NestFactory.create(AppModule, {
     rawBody: true, // Necesario para verificar firmas de webhooks Stripe
+    logger: isProduction ? ['error', 'warn', 'log'] : ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
   // Allowed origins from environment or defaults
-  const isProduction = process.env.NODE_ENV === 'production';
   const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
     : isProduction
@@ -24,9 +27,18 @@ async function bootstrap() {
   if (isProduction && !process.env.ALLOWED_ORIGINS) {
     const logger = new Logger('Bootstrap');
     logger.error(
-      'ALLOWED_ORIGINS not set in production! CORS will block all cross-origin requests.',
+      'ALLOWED_ORIGINS not set in production! Aborting startup.',
     );
+    process.exit(1);
   }
+
+  // Request ID para correlacion de logs
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const requestId = (req.headers['x-request-id'] as string) || uuidv4();
+    req.headers['x-request-id'] = requestId;
+    res.setHeader('X-Request-ID', requestId);
+    next();
+  });
 
   // RAW CORS middleware - handles preflight BEFORE anything else
   app.use((req: Request, res: Response, next: NextFunction) => {

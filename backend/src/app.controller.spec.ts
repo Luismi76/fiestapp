@@ -41,7 +41,7 @@ describe('AppController', () => {
       const result = await appController.getHealth();
 
       expect(result.status).toBe('ok');
-      expect(result.checks.database).toBe('ok');
+      expect(result.checks?.database).toBe('ok');
       expect(result.timestamp).toBeDefined();
       expect(result.uptime).toBeGreaterThanOrEqual(0);
     });
@@ -54,7 +54,7 @@ describe('AppController', () => {
       const result = await appController.getHealth();
 
       expect(result.status).toBe('error');
-      expect(result.checks.database).toBe('error');
+      expect(result.checks?.database).toBe('error');
     });
   });
 

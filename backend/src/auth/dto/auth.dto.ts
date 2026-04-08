@@ -101,8 +101,11 @@ export class LoginDto {
 }
 
 export class AuthResponseDto {
-  @ApiProperty({ description: 'Token JWT para autenticación' })
+  @ApiProperty({ description: 'Access token JWT (1h)' })
   access_token: string;
+
+  @ApiProperty({ description: 'Refresh token JWT (7d)' })
+  refresh_token: string;
 
   @ApiProperty({
     description: 'Datos del usuario autenticado',
