@@ -286,8 +286,29 @@ export default function CalendarPage() {
   // Datos del mini-calendario
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const isToday = (day: number) =>
     day === now.getDate() && currentMonth === now.getMonth() && currentYear === now.getFullYear();
+
+  const isDayPast = (day: number) => {
+    const d = new Date(currentYear, currentMonth, day);
+    d.setHours(0, 0, 0, 0);
+    return d < today;
+  };
+
+  const isFestivalPast = (festival: CalendarFestival) => {
+    const endDate = festival.endDate || festival.startDate;
+    if (!endDate) return false;
+    return new Date(endDate) < today;
+  };
+
+  const isExperiencePast = (experience: CalendarExperience) => {
+    if (experience.dates.length === 0) return false;
+    const lastDate = experience.dates.reduce((latest, d) => d > latest ? d : latest, experience.dates[0]);
+    return new Date(lastDate) < today;
+  };
 
   const totalItems = viewMode === 'festividades' ? filteredFestivals.length : filteredExperiences.length;
 
@@ -360,7 +381,8 @@ export default function CalendarPage() {
                   const key = dateKey(currentYear, currentMonth, day);
                   const marker = dayMarkers[key];
                   const selected = selectedDay === day;
-                  const today = isToday(day);
+                  const todayCell = isToday(day);
+                  const past = isDayPast(day);
 
                   return (
                     <button
@@ -369,11 +391,13 @@ export default function CalendarPage() {
                       className={`aspect-square flex flex-col items-center justify-center rounded-full relative transition-all text-sm ${
                         selected
                           ? 'bg-primary text-white font-bold'
-                          : today
+                          : todayCell
                             ? 'bg-primary/10 text-primary font-bold'
-                            : marker
-                              ? 'text-gray-900 font-medium'
-                              : 'text-gray-400'
+                            : past
+                              ? 'text-gray-300'
+                              : marker
+                                ? 'text-gray-900 font-medium'
+                                : 'text-gray-400'
                       }`}
                     >
                       {day}
@@ -492,7 +516,7 @@ export default function CalendarPage() {
               {filteredFestivals.map((festival) => (
                 <button
                   key={festival.id}
-                  className="w-full bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all text-left"
+                  className={`w-full bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all text-left ${isFestivalPast(festival) ? 'opacity-40' : ''}`}
                   onClick={() => setSelectedFestival(festival)}
                 >
                   <div className="flex items-center gap-3">
@@ -539,7 +563,7 @@ export default function CalendarPage() {
               {filteredExperiences.map((experience) => (
                 <button
                   key={experience.id}
-                  className="w-full bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all text-left"
+                  className={`w-full bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all text-left ${isExperiencePast(experience) ? 'opacity-40' : ''}`}
                   onClick={() => setSelectedExperience(experience)}
                 >
                   <div className="flex items-center gap-3">
