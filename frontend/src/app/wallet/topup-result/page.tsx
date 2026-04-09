@@ -11,7 +11,7 @@ function TopUpResultContent() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [checking, setChecking] = useState(true);
-  const [result, setResult] = useState<{ success: boolean; amount?: number } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; amount?: number; credits?: number; packId?: string } | null>(null);
   const [operationsAvailable, setOperationsAvailable] = useState<number | null>(null);
 
   const status = searchParams.get('status');
@@ -85,7 +85,7 @@ function TopUpResultContent() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">Verificando pago...</h1>
-            <p className="text-gray-500">Comprobando el estado de tu recarga</p>
+            <p className="text-gray-500">Comprobando el estado de tu compra</p>
           </>
         ) : isSuccess ? (
           <>
@@ -94,12 +94,15 @@ function TopUpResultContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">Recarga completada</h1>
+            <h1 className="text-xl font-bold text-gray-900 mb-2">Compra completada</h1>
             <p className="text-gray-500 mb-1">
-              Se han añadido <span className="font-semibold text-green-600">{result?.amount?.toFixed(2)}€</span> a tu monedero.
+              {result?.credits
+                ? <>Se han añadido <span className="font-semibold text-green-600">{result.credits} experiencias</span> a tu monedero.</>
+                : <>Se han añadido <span className="font-semibold text-green-600">{result?.amount?.toFixed(2)}€</span> a tu monedero.</>
+              }
             </p>
             <p className="text-sm text-gray-400 mb-6">
-              {operationsAvailable ?? '...'} operaciones disponibles
+              {operationsAvailable ?? '...'} experiencias disponibles en total
             </p>
             <div className="flex gap-3">
               <button

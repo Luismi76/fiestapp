@@ -4,17 +4,17 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { walletApi, WalletInfo, WalletTransaction } from '@/lib/api';
-import TopUpModal from '@/components/TopUpModal';
+import PackPurchaseModal from '@/components/PackPurchaseModal';
 import MainLayout from '@/components/MainLayout';
 import logger from '@/lib/logger';
 import Image from 'next/image';
 
 // Tipos de filtro disponibles
-type TransactionFilter = 'all' | 'topup' | 'platform_fee' | 'refund';
+type TransactionFilter = 'all' | 'topup' | 'pack_purchase' | 'platform_fee' | 'refund';
 
 const FILTER_OPTIONS: { value: TransactionFilter; label: string }[] = [
   { value: 'all', label: 'Todas' },
-  { value: 'topup', label: 'Recargas' },
+  { value: 'pack_purchase', label: 'Packs' },
   { value: 'platform_fee', label: 'Acuerdos' },
   { value: 'refund', label: 'Reembolsos' },
 ];
@@ -25,11 +25,7 @@ export default function WalletPage() {
   const [wallet, setWallet] = useState<WalletInfo | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showTopUpModal, setShowTopUpModal] = useState(false);
-  const [selectedAmount, setSelectedAmount] = useState<number>(4.5);
-  const [showCustomAmount, setShowCustomAmount] = useState(false);
-  const [customAmount, setCustomAmount] = useState('');
-  const [customAmountError, setCustomAmountError] = useState<string | null>(null);
+  const [showPackModal, setShowPackModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<WalletTransaction | null>(null);
 
   // Estados para paginacion y filtros
@@ -38,24 +34,6 @@ export default function WalletPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState<TransactionFilter>('all');
   const ITEMS_PER_PAGE = 10;
-
-  const MIN_TOPUP = wallet?.minTopUp || 4.5;
-  const FEE = wallet?.platformFee || 1.5;
-
-  const handleCustomAmountSubmit = () => {
-    const value = parseFloat(customAmount.replace(',', '.'));
-    if (isNaN(value) || value < MIN_TOPUP) {
-      setCustomAmountError(`El mínimo es ${MIN_TOPUP.toFixed(2).replace('.', ',')}€`);
-      return;
-    }
-    // Redondear a 2 decimales
-    const rounded = Math.round(value * 100) / 100;
-    setCustomAmountError(null);
-    setSelectedAmount(rounded);
-    setShowCustomAmount(false);
-    setCustomAmount('');
-    setShowTopUpModal(true);
-  };
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -140,9 +118,8 @@ export default function WalletPage() {
     }
   };
 
-  const handleTopUpSuccess = () => {
-    setShowTopUpModal(false);
-    // Recargar todo desde el principio para ver la nueva transaccion
+  const handlePackSuccess = () => {
+    setShowPackModal(false);
     loadWalletData();
   };
 
@@ -200,8 +177,9 @@ export default function WalletPage() {
   };
 
   const getTransactionTitle = (tx: WalletTransaction) => {
+    if (tx.type === 'pack_purchase') return tx.description || 'Compra de pack';
     if (tx.type === 'topup') return 'Recarga de saldo';
-    if (tx.type === 'platform_fee') return 'Comisión de servicio';
+    if (tx.type === 'platform_fee') return 'Experiencia';
     if (tx.type === 'refund') return 'Reembolso';
     return 'Transacción';
   };
@@ -235,126 +213,37 @@ export default function WalletPage() {
       {/* Balance Card */}
       <div className="px-4 mt-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="text-center mb-6">
-            <p className="text-gray-500 text-sm mb-1">Saldo disponible</p>
-            <p className="text-4xl font-bold text-gray-900">
-              {wallet?.balance.toFixed(2)}€
+          <div className="text-center mb-4">
+            <p className="text-gray-500 text-sm mb-1">Experiencias disponibles</p>
+            <p className="text-5xl font-bold text-gray-900">
+              {wallet?.operationsAvailable || 0}
             </p>
-            <p className="text-sm text-gray-500 mt-2">
-              {wallet?.operationsAvailable || 0} operaciones disponibles
-            </p>
+            {(wallet?.balance ?? 0) > 0 && (
+              <p className="text-xs text-gray-400 mt-1">
+                + {wallet?.balance.toFixed(2)}€ de saldo anterior
+              </p>
+            )}
           </div>
 
-          {/* Status indicator */}
           {wallet && !wallet.canOperate && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
               <div className="flex items-center gap-2">
                 <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <span className="text-amber-700 text-sm">
-                  Saldo insuficiente. Recarga para poder operar.
+                  Compra un pack para poder cerrar acuerdos.
                 </span>
               </div>
             </div>
           )}
 
-          {/* Opciones de recarga */}
-          <div className="space-y-3">
-            <p className="text-sm text-gray-600 font-medium">Selecciona cantidad a recargar:</p>
-            <div className="flex flex-col gap-3">
-              {/* Opción 1: Mínimo */}
-              <button
-                onClick={() => {
-                  setSelectedAmount(MIN_TOPUP);
-                  setShowCustomAmount(false);
-                  setShowTopUpModal(true);
-                }}
-                className="w-full p-4 rounded-xl border-2 border-primary bg-orange-50 hover:bg-orange-100 transition-all text-left flex items-center justify-between"
-              >
-                <div>
-                  <div className="text-lg font-bold text-gray-900">Ingresar mínimo</div>
-                  <div className="text-sm text-gray-500">{Math.floor(MIN_TOPUP / FEE)} operaciones</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">{MIN_TOPUP.toFixed(2).replace('.', ',')}€</div>
-                </div>
-              </button>
-
-              {/* Opción 2: Otra cantidad */}
-              {!showCustomAmount ? (
-                <button
-                  onClick={() => setShowCustomAmount(true)}
-                  className="w-full p-4 rounded-xl border-2 border-gray-200 hover:border-primary hover:bg-gray-50 transition-all text-left flex items-center justify-between"
-                >
-                  <div>
-                    <div className="text-lg font-bold text-gray-900">Otra cantidad</div>
-                    <div className="text-sm text-gray-500">Mínimo {MIN_TOPUP.toFixed(2).replace('.', ',')}€</div>
-                  </div>
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              ) : (
-                <div className="p-4 rounded-xl border-2 border-primary bg-orange-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="relative flex-1">
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min={MIN_TOPUP}
-                        value={customAmount}
-                        onChange={(e) => {
-                          setCustomAmount(e.target.value);
-                          setCustomAmountError(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleCustomAmountSubmit();
-                        }}
-                        placeholder={`Mín. ${MIN_TOPUP.toFixed(2).replace('.', ',')}€`}
-                        className="w-full px-4 py-3 pr-8 border border-gray-300 rounded-xl text-lg font-semibold focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                        autoFocus
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-semibold text-gray-400">€</span>
-                    </div>
-                    <button
-                      onClick={handleCustomAmountSubmit}
-                      className="btn-primary px-5 py-3 rounded-xl font-semibold whitespace-nowrap"
-                    >
-                      Ingresar
-                    </button>
-                  </div>
-                  {customAmountError && (
-                    <p className="text-red-500 text-sm mt-2">{customAmountError}</p>
-                  )}
-                  {customAmount && !customAmountError && parseFloat(customAmount.replace(',', '.')) >= MIN_TOPUP && (
-                    <p className="text-gray-500 text-sm mt-2">
-                      {Math.floor(parseFloat(customAmount.replace(',', '.')) / FEE)} operaciones
-                    </p>
-                  )}
-                  <button
-                    onClick={() => {
-                      setShowCustomAmount(false);
-                      setCustomAmount('');
-                      setCustomAmountError(null);
-                    }}
-                    className="text-sm text-gray-500 hover:text-gray-700 mt-2"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Info */}
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Coste por operación</span>
-              <span className="font-medium">{wallet?.platformFee}€</span>
-            </div>
-          </div>
+          <button
+            onClick={() => setShowPackModal(true)}
+            className="w-full btn-primary py-3 rounded-xl font-semibold"
+          >
+            Comprar pack de experiencias
+          </button>
         </div>
       </div>
 
@@ -395,13 +284,13 @@ export default function WalletPage() {
                   Aqui veras el historial de comisiones, recargas y reembolsos de tu monedero.
                 </p>
                 <button
-                  onClick={() => setShowTopUpModal(true)}
+                  onClick={() => setShowPackModal(true)}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Hacer mi primera recarga
+                  Comprar mi primer pack
                 </button>
               </>
             ) : filter === 'topup' ? (
@@ -411,18 +300,18 @@ export default function WalletPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                 </div>
-                <p className="text-gray-900 font-medium text-lg mb-1">Sin recargas</p>
+                <p className="text-gray-900 font-medium text-lg mb-1">Sin compras</p>
                 <p className="text-gray-500 text-sm mb-4">
-                  Todavia no has realizado ninguna recarga en tu monedero
+                  Todavia no has comprado ningun pack de experiencias
                 </p>
                 <button
-                  onClick={() => setShowTopUpModal(true)}
+                  onClick={() => setShowPackModal(true)}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Recargar ahora
+                  Comprar pack
                 </button>
               </>
             ) : (
@@ -522,8 +411,8 @@ export default function WalletPage() {
               <span className="text-primary font-bold text-sm">1</span>
             </div>
             <div>
-              <p className="font-medium text-gray-900">Recarga tu monedero</p>
-              <p className="text-sm text-gray-500">Mínimo 4,50€ (3 operaciones)</p>
+              <p className="font-medium text-gray-900">Compra un pack</p>
+              <p className="text-sm text-gray-500">Cuanto mayor el pack, más experiencias gratis</p>
             </div>
           </div>
           <div className="flex gap-3">
@@ -540,20 +429,18 @@ export default function WalletPage() {
               <span className="text-primary font-bold text-sm">3</span>
             </div>
             <div>
-              <p className="font-medium text-gray-900">Al cerrar acuerdo, se descuenta</p>
-              <p className="text-sm text-gray-500">1,50€ a cada usuario</p>
+              <p className="font-medium text-gray-900">Al cerrar acuerdo se usa 1 experiencia</p>
+              <p className="text-sm text-gray-500">Tanto viajero como anfitrión</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* TopUp Modal */}
-      {showTopUpModal && (
-        <TopUpModal
-          amount={selectedAmount}
-          platformFee={FEE}
-          onClose={() => setShowTopUpModal(false)}
-          onSuccess={handleTopUpSuccess}
+      {/* Pack Purchase Modal */}
+      {showPackModal && (
+        <PackPurchaseModal
+          onClose={() => setShowPackModal(false)}
+          onSuccess={handlePackSuccess}
         />
       )}
 
