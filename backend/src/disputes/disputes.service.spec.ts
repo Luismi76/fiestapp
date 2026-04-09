@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DisputesService } from './disputes.service';
+import { DisputeReason } from '@prisma/client';
 import { WalletService } from '../wallet/wallet.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
@@ -110,9 +111,9 @@ describe('DisputesService', () => {
     it('should throw ForbiddenException if user is not part of match', async () => {
       mockPrismaService.match.findUnique.mockResolvedValue(mockMatch);
 
-      await expect(
-        service.openDispute('other-user', dto),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.openDispute('other-user', dto)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should throw BadRequestException if match status is not accepted or completed', async () => {
@@ -433,19 +434,19 @@ describe('DisputesService', () => {
 
   describe('getReasonDescription', () => {
     it('should return readable description for each reason', () => {
-      expect(service.getReasonDescription('NO_SHOW' as any)).toContain(
-        'no se present',
-      );
       expect(
-        service.getReasonDescription('EXPERIENCE_MISMATCH' as any),
+        service.getReasonDescription('NO_SHOW' as DisputeReason),
+      ).toContain('no se present');
+      expect(
+        service.getReasonDescription('EXPERIENCE_MISMATCH' as DisputeReason),
       ).toContain('no coincid');
       expect(
-        service.getReasonDescription('SAFETY_CONCERN' as any),
+        service.getReasonDescription('SAFETY_CONCERN' as DisputeReason),
       ).toContain('seguridad');
-      expect(service.getReasonDescription('PAYMENT_ISSUE' as any)).toContain(
-        'pago',
-      );
-      expect(service.getReasonDescription('OTHER' as any)).toContain(
+      expect(
+        service.getReasonDescription('PAYMENT_ISSUE' as DisputeReason),
+      ).toContain('pago');
+      expect(service.getReasonDescription('OTHER' as DisputeReason)).toContain(
         'Otro',
       );
     });
@@ -583,7 +584,9 @@ describe('DisputesService', () => {
 
       await service.getUserDisputes('user-1', 'OPEN');
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const findManyCall = mockPrismaService.dispute.findMany.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(findManyCall.where.status).toBe('OPEN');
     });
   });

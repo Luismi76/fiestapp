@@ -1,10 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ExperiencesService } from './experiences.service';
+import { CreateExperienceDto } from './dto/create-experience.dto';
+import { UpdateExperienceDto } from './dto/update-experience.dto';
 import { CacheService } from '../cache/cache.service';
 import { CancellationsService } from '../cancellations/cancellations.service';
 
@@ -66,8 +65,7 @@ describe('ExperiencesService', () => {
     jest.clearAllMocks();
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      json: () =>
-        Promise.resolve([{ lat: '39.4699', lon: '-0.3763' }]),
+      json: () => Promise.resolve([{ lat: '39.4699', lon: '-0.3763' }]),
     });
   });
 
@@ -90,9 +88,9 @@ describe('ExperiencesService', () => {
     it('should throw NotFoundException if festival does not exist', async () => {
       mockPrismaService.festival.findUnique.mockResolvedValue(null);
 
-      await expect(service.create(createDto as any, userId)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.create(createDto as CreateExperienceDto, userId),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should create an experience successfully', async () => {
@@ -107,12 +105,24 @@ describe('ExperiencesService', () => {
         hostId: userId,
         published: false,
         host: { id: userId, name: 'Test User', avatar: null, verified: true },
-        festival: { id: 'festival-1', name: 'Fallas', city: 'Valencia', latitude: null, longitude: null },
-        category: { id: 'cat-1', name: 'Gastronomia', slug: 'gastronomia', group: 'CULTURE', icon: null },
+        festival: {
+          id: 'festival-1',
+          name: 'Fallas',
+          city: 'Valencia',
+          latitude: null,
+          longitude: null,
+        },
+        category: {
+          id: 'cat-1',
+          name: 'Gastronomia',
+          slug: 'gastronomia',
+          group: 'CULTURE',
+          icon: null,
+        },
       };
 
       mockPrismaService.$transaction.mockImplementation(
-        async (callback: any) => {
+        (callback: (tx: any) => unknown) => {
           const mockTx = {
             experience: {
               create: jest.fn().mockResolvedValue(createdExperience),
@@ -126,7 +136,10 @@ describe('ExperiencesService', () => {
       );
       mockCacheService.invalidateExperiences.mockResolvedValue(undefined);
 
-      const result = await service.create(createDto as any, userId);
+      const result = await service.create(
+        createDto as CreateExperienceDto,
+        userId,
+      );
 
       expect(result.id).toBe('exp-1');
       expect(result.title).toBe('Experiencia Fallas');
@@ -142,11 +155,17 @@ describe('ExperiencesService', () => {
         hostId: userId,
         host: { id: userId, name: 'Test User', avatar: null, verified: true },
         festival: null,
-        category: { id: 'cat-1', name: 'Gastronomia', slug: 'gastronomia', group: 'CULTURE', icon: null },
+        category: {
+          id: 'cat-1',
+          name: 'Gastronomia',
+          slug: 'gastronomia',
+          group: 'CULTURE',
+          icon: null,
+        },
       };
 
       mockPrismaService.$transaction.mockImplementation(
-        async (callback: any) => {
+        (callback: (tx: any) => unknown) => {
           const mockTx = {
             experience: {
               create: jest.fn().mockResolvedValue(createdExperience),
@@ -160,7 +179,10 @@ describe('ExperiencesService', () => {
       );
       mockCacheService.invalidateExperiences.mockResolvedValue(undefined);
 
-      const result = await service.create(dtoNoFestival as any, userId);
+      const result = await service.create(
+        dtoNoFestival as CreateExperienceDto,
+        userId,
+      );
 
       expect(result.id).toBe('exp-2');
       // Should not have looked up a festival
@@ -174,26 +196,38 @@ describe('ExperiencesService', () => {
         availability: ['2026-03-15', '2026-03-16', '2026-03-17'],
       };
 
-      let createManyCalledWith: any = null;
+      let createManyCalledWith: {
+        data: unknown[];
+        skipDuplicates: boolean;
+      } | null = null;
 
       mockPrismaService.$transaction.mockImplementation(
-        async (callback: any) => {
+        (callback: (tx: any) => unknown) => {
           const mockTx = {
             experience: {
               create: jest.fn().mockResolvedValue({
                 id: 'exp-3',
                 ...dtoWithDates,
                 hostId: userId,
-                host: { id: userId, name: 'Test User', avatar: null, verified: true },
+                host: {
+                  id: userId,
+                  name: 'Test User',
+                  avatar: null,
+                  verified: true,
+                },
                 festival: null,
                 category: null,
               }),
             },
             experienceAvailability: {
-              createMany: jest.fn().mockImplementation((args) => {
-                createManyCalledWith = args;
-                return Promise.resolve({ count: 3 });
-              }),
+              createMany: jest
+                .fn()
+                .mockImplementation(
+                  (args: { data: unknown[]; skipDuplicates: boolean }) => {
+                    createManyCalledWith = args;
+                    return Promise.resolve({ count: 3 });
+                  },
+                ),
             },
           };
           return callback(mockTx);
@@ -201,11 +235,11 @@ describe('ExperiencesService', () => {
       );
       mockCacheService.invalidateExperiences.mockResolvedValue(undefined);
 
-      await service.create(dtoWithDates as any, userId);
+      await service.create(dtoWithDates as CreateExperienceDto, userId);
 
       expect(createManyCalledWith).not.toBeNull();
-      expect(createManyCalledWith.data).toHaveLength(3);
-      expect(createManyCalledWith.skipDuplicates).toBe(true);
+      expect(createManyCalledWith!.data).toHaveLength(3);
+      expect(createManyCalledWith!.skipDuplicates).toBe(true);
     });
   });
 
@@ -218,8 +252,22 @@ describe('ExperiencesService', () => {
         published: true,
         type: 'intercambio',
         createdAt: new Date(),
-        host: { id: 'u1', name: 'Host', avatar: null, verified: true, hasPartner: false, hasChildren: false, childrenAges: [] },
-        festival: { id: 'f1', name: 'Fallas', city: 'Valencia', latitude: null, longitude: null },
+        host: {
+          id: 'u1',
+          name: 'Host',
+          avatar: null,
+          verified: true,
+          hasPartner: false,
+          hasChildren: false,
+          childrenAges: [],
+        },
+        festival: {
+          id: 'f1',
+          name: 'Fallas',
+          city: 'Valencia',
+          latitude: null,
+          longitude: null,
+        },
         category: null,
         _count: { reviews: 2, matches: 3 },
       },
@@ -245,8 +293,10 @@ describe('ExperiencesService', () => {
 
       await service.findAll({ city: 'Valencia' });
 
-      const findManyCall =
-        mockPrismaService.experience.findMany.mock.calls[0][0];
+      // prettier-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const findManyCall = mockPrismaService.experience.findMany.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(findManyCall.where.city).toEqual({
         contains: 'Valencia',
         mode: 'insensitive',
@@ -259,8 +309,10 @@ describe('ExperiencesService', () => {
 
       await service.findAll({ type: 'pago' });
 
-      const findManyCall =
-        mockPrismaService.experience.findMany.mock.calls[0][0];
+      // prettier-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const findManyCall = mockPrismaService.experience.findMany.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(findManyCall.where.type).toBe('pago');
     });
 
@@ -270,8 +322,10 @@ describe('ExperiencesService', () => {
 
       await service.findAll({ minPrice: 10, maxPrice: 50 });
 
-      const findManyCall =
-        mockPrismaService.experience.findMany.mock.calls[0][0];
+      // prettier-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const findManyCall = mockPrismaService.experience.findMany.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(findManyCall.where.price).toEqual({ gte: 10, lte: 50 });
     });
 
@@ -281,9 +335,12 @@ describe('ExperiencesService', () => {
 
       await service.findAll({ search: 'fallas' });
 
-      const findManyCall =
-        mockPrismaService.experience.findMany.mock.calls[0][0];
+      // prettier-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const findManyCall = mockPrismaService.experience.findMany.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(findManyCall.where.OR).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(findManyCall.where.OR).toHaveLength(4);
     });
 
@@ -293,8 +350,10 @@ describe('ExperiencesService', () => {
 
       await service.findAll({ sortBy: 'price_asc' });
 
-      const findManyCall =
-        mockPrismaService.experience.findMany.mock.calls[0][0];
+      // prettier-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const findManyCall = mockPrismaService.experience.findMany.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(findManyCall.orderBy).toEqual({ price: 'asc' });
     });
   });
@@ -336,7 +395,10 @@ describe('ExperiencesService', () => {
       });
       mockCacheService.set.mockResolvedValue(undefined);
 
-      const result = await service.findOne('exp-1') as Record<string, unknown>;
+      const result = (await service.findOne('exp-1')) as Record<
+        string,
+        unknown
+      >;
 
       expect(result.id).toBe('exp-1');
       expect(result.avgRating).toBe(0);
@@ -351,9 +413,9 @@ describe('ExperiencesService', () => {
     it('should throw NotFoundException if experience does not exist', async () => {
       mockPrismaService.experience.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.togglePublished(expId, userId),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.togglePublished(expId, userId)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException if user is not the host', async () => {
@@ -363,9 +425,9 @@ describe('ExperiencesService', () => {
         published: true,
       });
 
-      await expect(
-        service.togglePublished(expId, userId),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.togglePublished(expId, userId)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('should toggle published from true to false', async () => {
@@ -457,7 +519,11 @@ describe('ExperiencesService', () => {
       mockPrismaService.experience.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.update(expId, { title: 'Updated' } as any, userId),
+        service.update(
+          expId,
+          { title: 'Updated' } as UpdateExperienceDto,
+          userId,
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -469,7 +535,11 @@ describe('ExperiencesService', () => {
       });
 
       await expect(
-        service.update(expId, { title: 'Updated' } as any, userId),
+        service.update(
+          expId,
+          { title: 'Updated' } as UpdateExperienceDto,
+          userId,
+        ),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -487,7 +557,7 @@ describe('ExperiencesService', () => {
       };
 
       mockPrismaService.$transaction.mockImplementation(
-        async (callback: any) => {
+        (callback: (tx: any) => unknown) => {
           const mockTx = {
             experience: {
               update: jest.fn().mockResolvedValue(updated),
@@ -504,7 +574,7 @@ describe('ExperiencesService', () => {
 
       const result = await service.update(
         expId,
-        { title: 'Updated Title' } as any,
+        { title: 'Updated Title' } as UpdateExperienceDto,
         userId,
       );
 

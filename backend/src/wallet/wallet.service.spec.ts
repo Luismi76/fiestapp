@@ -1,8 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from './wallet.service';
 import { ConfigService } from '@nestjs/config';
@@ -185,18 +182,18 @@ describe('WalletService', () => {
 
   describe('addBalance', () => {
     it('should throw BadRequestException for non-positive amount', async () => {
-      await expect(
-        service.addBalance('user-1', 0, 'test'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.addBalance('user-1', 0, 'test')).rejects.toThrow(
+        BadRequestException,
+      );
 
-      await expect(
-        service.addBalance('user-1', -5, 'test'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.addBalance('user-1', -5, 'test')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should add balance via transaction', async () => {
       mockPrismaService.$transaction.mockImplementation(
-        async (callback: any) => {
+        (callback: (tx: any) => unknown) => {
           const mockTx = {
             wallet: {
               upsert: jest.fn().mockResolvedValue({ balance: 15 }),
@@ -243,7 +240,7 @@ describe('WalletService', () => {
       });
 
       mockPrismaService.$transaction.mockImplementation(
-        async (callback: any) => {
+        (callback: (tx: any) => unknown) => {
           const mockTx = {
             wallet: {
               update: jest.fn().mockResolvedValue({ balance: 8.5 }),
@@ -296,7 +293,7 @@ describe('WalletService', () => {
         .mockResolvedValueOnce(null); // No prior refund
 
       mockPrismaService.$transaction.mockImplementation(
-        async (callback: any) => {
+        (callback: (tx: any) => unknown) => {
           const mockTx = {
             wallet: {
               update: jest.fn().mockResolvedValue({}),
@@ -317,17 +314,17 @@ describe('WalletService', () => {
 
   describe('createTopUpSession', () => {
     it('should throw BadRequestException for amount below minimum', async () => {
-      await expect(
-        service.createTopUpSession('user-1', 1),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.createTopUpSession('user-1', 1)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw NotFoundException if user does not exist', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.createTopUpSession('user-1', 10),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.createTopUpSession('user-1', 10)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -367,7 +364,10 @@ describe('WalletService', () => {
 
       expect(result.transactions).toHaveLength(0);
       // Verify that the where clause includes the type filter
+      // prettier-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const findManyCall = mockPrismaService.transaction.findMany.mock.calls[0][0];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(findManyCall.where.type).toBe('topup');
     });
 
@@ -381,9 +381,7 @@ describe('WalletService', () => {
           otherUserId: 'user-2',
         },
       ];
-      const otherUsers = [
-        { id: 'user-2', name: 'Other User', avatar: null },
-      ];
+      const otherUsers = [{ id: 'user-2', name: 'Other User', avatar: null }];
       mockPrismaService.transaction.findMany.mockResolvedValue(transactions);
       mockPrismaService.transaction.count.mockResolvedValue(1);
       mockPrismaService.user.findMany.mockResolvedValue(otherUsers);

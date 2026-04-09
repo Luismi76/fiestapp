@@ -47,7 +47,11 @@ export class AuthController {
     private twoFactorService: TwoFactorService,
   ) {}
 
-  private setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+  private setAuthCookies(
+    res: Response,
+    accessToken: string,
+    refreshToken: string,
+  ) {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
     const sameSite: 'none' | 'lax' = isProduction ? 'none' : 'lax';
     const cookieOptions = {
@@ -136,7 +140,7 @@ export class AuthController {
   ) {
     const result = await this.authService.login(loginDto);
     if ('access_token' in result && 'refresh_token' in result) {
-      this.setAuthCookies(res, result.access_token, result.refresh_token as string);
+      this.setAuthCookies(res, result.access_token, result.refresh_token);
     }
     return result;
   }
@@ -257,7 +261,7 @@ export class AuthController {
       dto.twoFactorCode,
     );
     if ('access_token' in result && 'refresh_token' in result) {
-      this.setAuthCookies(res, result.access_token, result.refresh_token as string);
+      this.setAuthCookies(res, result.access_token, result.refresh_token);
     }
     return result;
   }
@@ -312,7 +316,10 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Renovar access token usando refresh token' })
   @ApiResponse({ status: 200, description: 'Tokens renovados' })
-  @ApiResponse({ status: 401, description: 'Refresh token invalido o expirado' })
+  @ApiResponse({
+    status: 401,
+    description: 'Refresh token invalido o expirado',
+  })
   @Throttle({
     short: { limit: 5, ttl: 1000 },
     medium: { limit: 20, ttl: 60000 },
@@ -322,7 +329,7 @@ export class AuthController {
     @Request() req: ExpressRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const refreshToken = req.cookies?.refresh_token;
+    const refreshToken = req.cookies?.refresh_token as string | undefined;
     if (!refreshToken) {
       throw new UnauthorizedException('No se encontro refresh token.');
     }
