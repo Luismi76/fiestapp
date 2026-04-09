@@ -80,7 +80,7 @@ describe('ExperiencesService', () => {
       description: 'Vive las Fallas desde dentro',
       city: 'Valencia',
       type: 'intercambio' as const,
-      price: null,
+      price: undefined,
       festivalId: 'festival-1',
       categoryId: 'cat-1',
     };
