@@ -20,6 +20,8 @@ interface FormData {
   hasFriends: boolean;
   hasChildren: boolean;
   childrenAges: string;
+  taxId: string;
+  bankAccount: string;
 }
 
 export default function EditProfilePage() {
@@ -58,6 +60,8 @@ export default function EditProfilePage() {
           hasPartner: profile.hasPartner || false,
           hasFriends: profile.hasFriends || false,
           hasChildren: profile.hasChildren || false,
+          taxId: profile.taxId || '',
+          bankAccount: profile.bankAccount || '',
           childrenAges: profile.childrenAges || '',
         });
       } catch {
@@ -87,6 +91,8 @@ export default function EditProfilePage() {
         hasFriends: data.hasFriends,
         hasChildren: data.hasChildren,
         childrenAges: data.childrenAges || undefined,
+        taxId: data.taxId || undefined,
+        bankAccount: data.bankAccount ? data.bankAccount.replace(/\s/g, '').toUpperCase() : undefined,
       };
 
       await usersApi.updateProfile(updateData);
@@ -451,6 +457,59 @@ export default function EditProfilePage() {
             <p className="text-xs text-gray-400 mt-1">
               Opcional. Separa las edades con comas
             </p>
+          </div>
+        </div>
+
+        {/* Datos fiscales */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-100">
+            <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                <path fillRule="evenodd" d="M15.988 3.012A2.25 2.25 0 0 1 18 5.25v6.5A2.25 2.25 0 0 1 15.75 14H13.5V7A2.5 2.5 0 0 0 11 4.5H8.128a2.252 2.252 0 0 1 1.884-1.488A2.25 2.25 0 0 1 12.25 1h1.5a2.25 2.25 0 0 1 2.238 2.012ZM11.5 3.25a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v.25h-3v-.25Z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M2 7a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7Zm2 3.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75Zm0 3.5a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1-.75-.75Z" clipRule="evenodd" />
+              </svg>
+              Datos fiscales
+            </label>
+            <p className="text-xs text-gray-400">
+              Necesarios para recibir pagos como anfitrión
+            </p>
+          </div>
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                DNI / NIE
+              </label>
+              <input
+                type="text"
+                className="w-full text-gray-900 font-medium focus:outline-none placeholder:text-gray-300 uppercase"
+                placeholder="12345678A"
+                {...register('taxId', {
+                  pattern: { value: /^[0-9A-Za-z]{7,12}$/, message: 'Formato no válido' },
+                })}
+              />
+              {errors.taxId && (
+                <p className="text-red-500 text-xs mt-1">{errors.taxId.message}</p>
+              )}
+            </div>
+            <div className="border-t border-gray-100 pt-4">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                IBAN
+              </label>
+              <input
+                type="text"
+                className="w-full text-gray-900 font-medium focus:outline-none placeholder:text-gray-300 uppercase"
+                placeholder="ES12 3456 7890 1234 5678 9012"
+                {...register('bankAccount', {
+                  pattern: { value: /^[A-Za-z]{2}[0-9]{2}[A-Za-z0-9\s]{4,34}$/, message: 'Formato de IBAN no válido' },
+                })}
+              />
+              {errors.bankAccount && (
+                <p className="text-red-500 text-xs mt-1">{errors.bankAccount.message}</p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">
+                Sin espacios. Ej: ES1234567890123456789012
+              </p>
+            </div>
           </div>
         </div>
 

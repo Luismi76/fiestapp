@@ -193,6 +193,8 @@ export class UsersService {
         hasFriends: true,
         hasChildren: true,
         childrenAges: true,
+        taxId: true,
+        bankAccount: true,
       },
     });
 
@@ -220,6 +222,8 @@ export class UsersService {
         hasFriends: true,
         hasChildren: true,
         childrenAges: true,
+        taxId: true,
+        bankAccount: true,
         _count: {
           select: {
             experiences: true,

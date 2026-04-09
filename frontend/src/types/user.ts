@@ -35,6 +35,8 @@ export interface UserFullProfile {
   hasFriends?: boolean;
   hasChildren?: boolean;
   childrenAges?: string;
+  taxId?: string;
+  bankAccount?: string;
   verified: boolean;
   createdAt: string;
   avgRating: number;
@@ -62,4 +64,6 @@ export interface UpdateProfileData {
   hasFriends?: boolean;
   hasChildren?: boolean;
   childrenAges?: string;
+  taxId?: string;
+  bankAccount?: string;
 }

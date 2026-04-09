@@ -6,6 +6,7 @@ import {
   MinLength,
   MaxLength,
   IsBoolean,
+  Matches,
 } from 'class-validator';
 
 export class UpdateProfileDto {
@@ -52,4 +53,14 @@ export class UpdateProfileDto {
     message: 'Las edades de los hijos no pueden tener más de 50 caracteres',
   })
   childrenAges?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[0-9A-Z]{7,12}$/, { message: 'Formato de DNI/NIE no válido' })
+  taxId?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Z]{2}[0-9]{2}[A-Z0-9]{4,30}$/, { message: 'Formato de IBAN no válido' })
+  bankAccount?: string;
 }
