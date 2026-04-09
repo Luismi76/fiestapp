@@ -879,12 +879,22 @@ export interface PaymentStatus {
 }
 
 // Wallet types
+export interface Pack {
+  id: string;
+  name: string;
+  price: number;
+  experiences: number;
+  bonus: number;
+}
+
 export interface WalletInfo {
   balance: number;
+  credits: number;
   canOperate: boolean;
   platformFee: number;
   minTopUp: number;
   operationsAvailable: number;
+  packs: Pack[];
 }
 
 export interface WalletTransaction {
@@ -940,6 +950,18 @@ export const walletApi = {
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (type) params.append('type', type);
     const response = await api.get<WalletTransactionsResponse>(`/wallet/transactions?${params}`);
+    return response.data;
+  },
+
+  // Obtener packs disponibles
+  getPacks: async (): Promise<{ data: Pack[] }> => {
+    const response = await api.get('/wallet/packs');
+    return response.data;
+  },
+
+  // Comprar un pack
+  purchasePack: async (packId: string): Promise<{ sessionUrl: string; sessionId: string }> => {
+    const response = await api.post('/wallet/purchase-pack', { packId });
     return response.data;
   },
 

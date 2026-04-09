@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { MatchStatus } from '@/types/match';
 import { WalletInfo } from '@/lib/api';
 import { CanReviewResponse } from '@/types/review';
-import TopUpModal from '@/components/TopUpModal';
+import PackPurchaseModal from '@/components/PackPurchaseModal';
 
 interface MatchActionsProps {
   status: MatchStatus;
@@ -29,31 +29,8 @@ interface MatchActionsProps {
   startDate?: string;
 }
 
-const MIN_TOPUP = 4.5;
-
 function WalletWarning({ walletInfo, onTopUpSuccess }: { walletInfo: WalletInfo; onTopUpSuccess?: () => void }) {
-  const [showTopUp, setShowTopUp] = useState(false);
-  const [topUpAmount, setTopUpAmount] = useState(MIN_TOPUP);
-  const [showCustom, setShowCustom] = useState(false);
-  const [customAmount, setCustomAmount] = useState('');
-  const [customError, setCustomError] = useState<string | null>(null);
-
-  const handleTopUp = (amount: number) => {
-    setTopUpAmount(amount);
-    setShowTopUp(true);
-  };
-
-  const handleCustomSubmit = () => {
-    const value = parseFloat(customAmount.replace(',', '.'));
-    if (isNaN(value) || value < MIN_TOPUP) {
-      setCustomError(`Mínimo ${MIN_TOPUP.toFixed(2).replace('.', ',')}€`);
-      return;
-    }
-    setCustomError(null);
-    setShowCustom(false);
-    setCustomAmount('');
-    handleTopUp(Math.round(value * 100) / 100);
-  };
+  const [showPacks, setShowPacks] = useState(false);
 
   return (
     <>
@@ -65,61 +42,24 @@ function WalletWarning({ walletInfo, onTopUpSuccess }: { walletInfo: WalletInfo;
             </svg>
           </div>
           <div>
-            <p className="font-medium text-amber-800">Saldo insuficiente</p>
+            <p className="font-medium text-amber-800">Sin experiencias disponibles</p>
             <p className="text-sm text-amber-600">
-              Necesitas {walletInfo.platformFee}€ en tu monedero. Saldo actual: {walletInfo.balance.toFixed(2)}€
+              Necesitas al menos 1 experiencia en tu monedero para cerrar acuerdos.
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => handleTopUp(MIN_TOPUP)}
-            className="flex-1 py-2 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors text-center text-sm"
-          >
-            Recargar {MIN_TOPUP.toFixed(2).replace('.', ',')}€
-          </button>
-          <button
-            onClick={() => setShowCustom(!showCustom)}
-            className="flex-1 py-2 bg-white text-amber-700 font-semibold rounded-lg border border-amber-300 hover:bg-amber-100 transition-colors text-center text-sm"
-          >
-            Otra cantidad
-          </button>
-        </div>
-        {showCustom && (
-          <div className="mt-3 flex items-center gap-2">
-            <div className="relative flex-1">
-              <input
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                min={MIN_TOPUP}
-                value={customAmount}
-                onChange={(e) => { setCustomAmount(e.target.value); setCustomError(null); }}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleCustomSubmit(); }}
-                placeholder={`Mín. ${MIN_TOPUP.toFixed(2).replace('.', ',')}€`}
-                className="w-full px-3 py-2 pr-7 border border-amber-300 rounded-lg text-sm font-semibold focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                autoFocus
-              />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400">€</span>
-            </div>
-            <button
-              onClick={handleCustomSubmit}
-              className="py-2 px-4 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors text-sm"
-            >
-              Ingresar
-            </button>
-          </div>
-        )}
-        {customError && (
-          <p className="text-red-500 text-xs mt-1.5">{customError}</p>
-        )}
+        <button
+          onClick={() => setShowPacks(true)}
+          className="w-full py-2.5 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition-colors text-center text-sm"
+        >
+          Comprar pack de experiencias
+        </button>
       </div>
-      {showTopUp && (
-        <TopUpModal
-          amount={topUpAmount}
-          onClose={() => setShowTopUp(false)}
+      {showPacks && (
+        <PackPurchaseModal
+          onClose={() => setShowPacks(false)}
           onSuccess={() => {
-            setShowTopUp(false);
+            setShowPacks(false);
             onTopUpSuccess?.();
           }}
         />
