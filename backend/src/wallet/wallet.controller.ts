@@ -42,18 +42,37 @@ export class WalletController {
   async getWallet(@Request() req: AuthenticatedRequest) {
     const wallet = await this.walletService.getWallet(req.user.userId);
     const fee = this.platformConfig.platformFee;
+    const legacyOps = Math.floor(wallet.balance / fee);
 
     return {
       balance: wallet.balance,
-      canOperate: wallet.balance >= fee,
+      credits: wallet.credits,
+      canOperate: wallet.credits >= 1 || wallet.balance >= fee,
       platformFee: fee,
       minTopUp: this.platformConfig.minTopup,
       vatRate: this.platformConfig.vatRate,
-      operationsAvailable: Math.floor(wallet.balance / fee),
+      operationsAvailable: wallet.credits + legacyOps,
+      packs: this.platformConfig.getPacks(),
     };
   }
 
-  // Crear sesión de Stripe Checkout para recarga
+  // Obtener packs disponibles (público para mostrar precios sin login)
+  @Get('packs')
+  getPacks() {
+    return { data: this.platformConfig.getPacks() };
+  }
+
+  // Comprar un pack
+  @Post('purchase-pack')
+  @UseGuards(JwtAuthGuard)
+  async purchasePack(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { packId: string },
+  ) {
+    return this.walletService.createPackPurchaseSession(req.user.userId, body.packId);
+  }
+
+  // Crear sesión de Stripe Checkout para recarga legacy
   @Post('topup')
   @UseGuards(JwtAuthGuard)
   async createTopUp(
@@ -130,11 +149,11 @@ export class WalletController {
   @Get('can-operate')
   @UseGuards(JwtAuthGuard)
   async canOperate(@Request() req: AuthenticatedRequest) {
-    const hasBalance = await this.walletService.hasEnoughBalance(
+    const canOperate = await this.walletService.hasEnoughCredits(
       req.user.userId,
     );
     return {
-      canOperate: hasBalance,
+      canOperate,
       requiredAmount: this.platformConfig.platformFee,
     };
   }

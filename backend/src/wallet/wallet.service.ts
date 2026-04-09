@@ -15,7 +15,7 @@ export const PLATFORM_FEE = 1.5;
 export const MIN_TOPUP = 4.5;
 export const VAT_RATE = 0.21;
 
-export type TransactionType = 'topup' | 'platform_fee' | 'refund';
+export type TransactionType = 'topup' | 'pack_purchase' | 'platform_fee' | 'refund';
 
 @Injectable()
 export class WalletService {
@@ -73,7 +73,7 @@ export class WalletService {
     return wallet.balance;
   }
 
-  // Verificar si tiene saldo suficiente
+  // Verificar si tiene saldo suficiente (legacy euros)
   async hasEnoughBalance(
     userId: string,
     amount?: number,
@@ -81,6 +81,90 @@ export class WalletService {
     if (amount === undefined) amount = this.platformConfig.platformFee;
     const balance = await this.getBalance(userId);
     return balance >= amount;
+  }
+
+  // Verificar si tiene créditos de experiencia suficientes
+  async hasEnoughCredits(userId: string): Promise<boolean> {
+    const wallet = await this.getWallet(userId);
+    // Primero intentar créditos, si no hay, fallback a euros
+    if (wallet.credits >= 1) return true;
+    return wallet.balance >= this.platformConfig.platformFee;
+  }
+
+  // Crear sesión de Stripe Checkout para compra de pack
+  async createPackPurchaseSession(
+    userId: string,
+    packId: string,
+  ): Promise<{ sessionUrl: string; sessionId: string }> {
+    const pack = this.platformConfig.getPack(packId);
+    if (!pack) {
+      throw new BadRequestException(`Pack no válido: ${packId}`);
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Cancelar compras pendientes antiguas
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+    await this.prisma.transaction.updateMany({
+      where: {
+        userId,
+        type: 'pack_purchase',
+        status: 'pending',
+        createdAt: { lt: thirtyMinutesAgo },
+      },
+      data: { status: 'cancelled' },
+    });
+
+    const session = await this.ensureStripe().checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: `Pack ${pack.name}`,
+              description: `${pack.experiences} experiencias${pack.bonus > 0 ? ` (${pack.bonus} gratis)` : ''}`,
+            },
+            unit_amount: Math.round(pack.price * 100),
+          },
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId,
+        type: 'pack_purchase',
+        packId: pack.id,
+        credits: pack.experiences.toString(),
+        walletAmount: pack.price.toString(),
+      },
+      success_url: `${this.frontendUrl}/wallet/topup-result?status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${this.frontendUrl}/wallet/topup-result?status=error`,
+    });
+
+    await this.prisma.transaction.create({
+      data: {
+        userId,
+        type: 'pack_purchase',
+        amount: pack.price,
+        creditsAmount: pack.experiences,
+        packId: pack.id,
+        status: 'pending',
+        stripeId: session.id,
+        description: `Pack ${pack.name}: ${pack.experiences} experiencias`,
+      },
+    });
+
+    this.logger.debug(
+      `Pack purchase session created: sessionId=${session.id}, pack=${pack.id}, price=${pack.price}€, credits=${pack.experiences}, user=${userId}`,
+    );
+
+    return { sessionUrl: session.url!, sessionId: session.id };
   }
 
   // Crear sesión de Stripe Checkout para recarga de monedero
@@ -174,8 +258,8 @@ export class WalletService {
 
     const session = event.data.object;
 
-    // Solo procesar eventos de wallet_topup
-    if (session.metadata?.type !== 'wallet_topup') {
+    // Solo procesar eventos de wallet
+    if (session.metadata?.type !== 'wallet_topup' && session.metadata?.type !== 'pack_purchase') {
       return;
     }
 
@@ -189,7 +273,7 @@ export class WalletService {
     this.logger.log(`Stripe wallet webhook: session=${sessionId}`);
 
     const transaction = await this.prisma.transaction.findFirst({
-      where: { stripeId: sessionId, type: 'topup' },
+      where: { stripeId: sessionId, type: { in: ['topup', 'pack_purchase'] } },
     });
 
     if (!transaction) {
@@ -203,22 +287,33 @@ export class WalletService {
     }
 
     if (session.payment_status === 'paid') {
-      // Pago exitoso - actualizar saldo
+      // Pago exitoso - actualizar saldo o créditos
+      const isPack = transaction.type === 'pack_purchase';
       await this.prisma.$transaction(async (tx) => {
         await tx.transaction.update({
           where: { id: transaction.id },
           data: { status: 'completed' },
         });
 
-        await tx.wallet.upsert({
-          where: { userId: transaction.userId },
-          update: { balance: { increment: transaction.amount } },
-          create: { userId: transaction.userId, balance: transaction.amount },
-        });
+        if (isPack && transaction.creditsAmount) {
+          await tx.wallet.upsert({
+            where: { userId: transaction.userId },
+            update: { credits: { increment: transaction.creditsAmount } },
+            create: { userId: transaction.userId, balance: 0, credits: transaction.creditsAmount },
+          });
+        } else {
+          await tx.wallet.upsert({
+            where: { userId: transaction.userId },
+            update: { balance: { increment: transaction.amount } },
+            create: { userId: transaction.userId, balance: transaction.amount },
+          });
+        }
       });
 
       this.logger.log(
-        `TopUp completed: session=${sessionId}, amount=${transaction.amount}€, user=${transaction.userId}`,
+        isPack
+          ? `Pack purchase completed: session=${sessionId}, credits=${transaction.creditsAmount}, user=${transaction.userId}`
+          : `TopUp completed: session=${sessionId}, amount=${transaction.amount}€, user=${transaction.userId}`,
       );
     } else {
       // Pago fallido
@@ -237,9 +332,9 @@ export class WalletService {
   async checkTopUpResult(
     sessionId: string,
     userId: string,
-  ): Promise<{ success: boolean; amount?: number }> {
+  ): Promise<{ success: boolean; amount?: number; credits?: number; packId?: string }> {
     const transaction = await this.prisma.transaction.findFirst({
-      where: { stripeId: sessionId, type: 'topup', userId },
+      where: { stripeId: sessionId, type: { in: ['topup', 'pack_purchase'] }, userId },
     });
 
     if (!transaction) {
@@ -253,23 +348,34 @@ export class WalletService {
           await this.ensureStripe().checkout.sessions.retrieve(sessionId);
         if (session.payment_status === 'paid') {
           // El webhook aún no llegó, pero el pago sí se completó
+          const isPack = transaction.type === 'pack_purchase';
           await this.prisma.$transaction(async (tx) => {
             await tx.transaction.update({
               where: { id: transaction.id },
               data: { status: 'completed' },
             });
 
-            await tx.wallet.upsert({
-              where: { userId: transaction.userId },
-              update: { balance: { increment: transaction.amount } },
-              create: {
-                userId: transaction.userId,
-                balance: transaction.amount,
-              },
-            });
+            if (isPack && transaction.creditsAmount) {
+              await tx.wallet.upsert({
+                where: { userId: transaction.userId },
+                update: { credits: { increment: transaction.creditsAmount } },
+                create: { userId: transaction.userId, balance: 0, credits: transaction.creditsAmount },
+              });
+            } else {
+              await tx.wallet.upsert({
+                where: { userId: transaction.userId },
+                update: { balance: { increment: transaction.amount } },
+                create: { userId: transaction.userId, balance: transaction.amount },
+              });
+            }
           });
 
-          return { success: true, amount: transaction.amount };
+          return {
+            success: true,
+            amount: transaction.amount,
+            credits: transaction.creditsAmount ?? undefined,
+            packId: transaction.packId ?? undefined,
+          };
         }
       } catch {
         // Si falla la verificación, devolver el estado actual de BD
@@ -279,6 +385,8 @@ export class WalletService {
     return {
       success: transaction.status === 'completed',
       amount: transaction.amount,
+      credits: transaction.creditsAmount ?? undefined,
+      packId: transaction.packId ?? undefined,
     };
   }
 
@@ -318,6 +426,7 @@ export class WalletService {
   }
 
   // Descontar tarifa de plataforma (llamado al cerrar acuerdo)
+  // Usa créditos de pack si los tiene, si no usa saldo en euros (legacy)
   async deductPlatformFee(
     userId: string,
     matchId: string,
@@ -327,36 +436,41 @@ export class WalletService {
     otherUserName: string,
   ): Promise<void> {
     const wallet = await this.getWallet(userId);
-
     const fee = this.platformConfig.platformFee;
+    const useCredits = wallet.credits >= 1;
 
-    if (wallet.balance < fee) {
+    if (!useCredits && wallet.balance < fee) {
       throw new BadRequestException(
-        `Saldo insuficiente. Necesitas ${fee}€ para completar esta operación.`,
+        `No tienes experiencias disponibles. Compra un pack para continuar.`,
       );
     }
 
-    // Descripción clara: Experiencia + con quién
     const description =
       role === 'host'
         ? `${experienceTitle} · ${otherUserName}`
         : `${experienceTitle} · con ${otherUserName}`;
 
     await this.prisma.$transaction(async (tx) => {
-      // Descontar del monedero
-      await tx.wallet.update({
-        where: { userId },
-        data: { balance: { decrement: fee } },
-      });
+      if (useCredits) {
+        await tx.wallet.update({
+          where: { userId },
+          data: { credits: { decrement: 1 } },
+        });
+      } else {
+        await tx.wallet.update({
+          where: { userId },
+          data: { balance: { decrement: fee } },
+        });
+      }
 
-      // Registrar transacción
       await tx.transaction.create({
         data: {
           userId,
           matchId,
           otherUserId,
           type: 'platform_fee',
-          amount: -fee,
+          amount: useCredits ? 0 : -fee,
+          creditsAmount: useCredits ? -1 : null,
           status: 'completed',
           description,
         },
@@ -366,11 +480,10 @@ export class WalletService {
 
   // Devolver comisión al wallet (cuando se cancela un match)
   async refundPlatformFee(userId: string, matchId: string): Promise<void> {
-    // Verificar que existe una comisión cobrada para este match y que no se devolvió ya
     const feeCharged = await this.prisma.transaction.findFirst({
       where: { userId, matchId, type: 'platform_fee', status: 'completed' },
     });
-    if (!feeCharged) return; // No se cobró comisión, nada que devolver
+    if (!feeCharged) return;
 
     const alreadyRefunded = await this.prisma.transaction.findFirst({
       where: {
@@ -380,22 +493,32 @@ export class WalletService {
         description: 'Devolución comisión por cancelación',
       },
     });
-    if (alreadyRefunded) return; // Ya se devolvió
+    if (alreadyRefunded) return;
 
+    // Si se cobró con créditos, devolver crédito. Si con euros, devolver euros.
+    const usedCredits = feeCharged.creditsAmount !== null && feeCharged.creditsAmount < 0;
     const fee = this.platformConfig.platformFee;
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.wallet.update({
-        where: { userId },
-        data: { balance: { increment: fee } },
-      });
+      if (usedCredits) {
+        await tx.wallet.update({
+          where: { userId },
+          data: { credits: { increment: 1 } },
+        });
+      } else {
+        await tx.wallet.update({
+          where: { userId },
+          data: { balance: { increment: fee } },
+        });
+      }
 
       await tx.transaction.create({
         data: {
           userId,
           matchId,
           type: 'refund',
-          amount: fee,
+          amount: usedCredits ? 0 : fee,
+          creditsAmount: usedCredits ? 1 : null,
           status: 'completed',
           description: 'Devolución comisión por cancelación',
         },
@@ -413,7 +536,7 @@ export class WalletService {
     const skip = (page - 1) * limit;
 
     // Tipos validos para filtrar
-    const validTypes = ['topup', 'platform_fee', 'refund'];
+    const validTypes = ['topup', 'pack_purchase', 'platform_fee', 'refund'];
     const filterType = type && validTypes.includes(type) ? type : null;
 
     // Filtro: mostrar transacciones completadas (topups, fees, refunds)

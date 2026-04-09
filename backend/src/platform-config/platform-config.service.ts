@@ -143,6 +143,25 @@ export class PlatformConfigService implements OnModuleInit {
   }
 
   /**
+   * Definiciones de packs de experiencias (calculados a partir de la comisión)
+   */
+  getPacks(): { id: string; name: string; price: number; experiences: number; bonus: number }[] {
+    const fee = this.platformFee;
+    return [
+      { id: 'basico', name: 'Básico', price: Math.round(2 * fee * 100) / 100, experiences: 2, bonus: 0 },
+      { id: 'aventura', name: 'Aventura', price: Math.round(4 * fee * 100) / 100, experiences: 5, bonus: 1 },
+      { id: 'viajero', name: 'Viajero', price: Math.round(8 * fee * 100) / 100, experiences: 13, bonus: 3 },
+    ];
+  }
+
+  /**
+   * Obtiene un pack por ID
+   */
+  getPack(packId: string) {
+    return this.getPacks().find(p => p.id === packId) || null;
+  }
+
+  /**
    * Obtiene toda la configuración
    */
   async getAll(): Promise<
