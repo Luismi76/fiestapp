@@ -61,31 +61,40 @@ export class ConnectService {
       return { accountId: user.stripeConnectAccountId };
     }
 
-    const account = await this.ensureStripe().accounts.create({
-      type: 'express',
-      country: 'ES',
-      email: user.email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-      business_type: 'individual',
-      metadata: {
-        userId: user.id,
-        platform: 'fiestapp',
-      },
-    });
+    try {
+      const account = await this.ensureStripe().accounts.create({
+        type: 'express',
+        country: 'ES',
+        email: user.email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        business_type: 'individual',
+        metadata: {
+          userId: user.id,
+          platform: 'fiestapp',
+        },
+      });
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { stripeConnectAccountId: account.id },
-    });
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { stripeConnectAccountId: account.id },
+      });
 
-    this.logger.log(
-      `Stripe Connect account created: ${account.id} for user ${userId}`,
-    );
+      this.logger.log(
+        `Stripe Connect account created: ${account.id} for user ${userId}`,
+      );
 
-    return { accountId: account.id };
+      return { accountId: account.id };
+    } catch (error) {
+      this.logger.error(
+        `Failed to create Connect account for user ${userId}: ${error instanceof Error ? error.message : JSON.stringify(error)}`,
+      );
+      throw new BadRequestException(
+        `Error al crear cuenta de cobros: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+      );
+    }
   }
 
   /**
