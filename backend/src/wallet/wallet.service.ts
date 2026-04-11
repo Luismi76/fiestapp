@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -16,7 +17,7 @@ export type TransactionType =
   | 'refund';
 
 @Injectable()
-export class WalletService {
+export class WalletService implements OnModuleInit {
   private readonly logger = new Logger(WalletService.name);
   private frontendUrl: string;
   private stripe: Stripe | null = null;
@@ -36,6 +37,41 @@ export class WalletService {
     } else {
       this.logger.warn(
         'STRIPE_SECRET_KEY not configured - wallet top-ups disabled',
+      );
+    }
+  }
+
+  /**
+   * Migración automática: convierte balance legacy (euros) a credits.
+   * Se ejecuta una sola vez al arrancar. Los wallets con balance > 0 y credits = 0
+   * reciben credits equivalentes (balance / platformFee, redondeado hacia abajo).
+   */
+  async onModuleInit() {
+    try {
+      const fee = this.platformConfig.platformFee;
+      const walletsToMigrate = await this.prisma.wallet.findMany({
+        where: { balance: { gt: 0 }, credits: 0 },
+      });
+
+      if (walletsToMigrate.length === 0) return;
+
+      for (const wallet of walletsToMigrate) {
+        const newCredits = Math.max(1, Math.floor(wallet.balance / fee));
+        await this.prisma.wallet.update({
+          where: { id: wallet.id },
+          data: { credits: newCredits, balance: 0 },
+        });
+        this.logger.log(
+          `Migrated wallet ${wallet.userId}: ${wallet.balance}€ → ${newCredits} credits`,
+        );
+      }
+
+      this.logger.log(
+        `Balance-to-credits migration: ${walletsToMigrate.length} wallets migrated`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Balance migration failed (non-critical): ${error instanceof Error ? error.message : error}`,
       );
     }
   }
