@@ -8,6 +8,8 @@ import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
+import { ConnectService } from '../connect/connect.service';
+import { PlatformConfigService } from '../platform-config/platform-config.service';
 import Stripe from 'stripe';
 
 export enum PaymentStatus {
@@ -34,6 +36,8 @@ export class PaymentsService {
     private prisma: PrismaService,
     private configService: ConfigService,
     private stripeIdempotency: StripeIdempotencyService,
+    private connectService: ConnectService,
+    private platformConfig: PlatformConfigService,
   ) {
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!stripeKey) {
@@ -392,6 +396,17 @@ export class PaymentsService {
           continue;
         }
 
+        const grossAmount = Math.abs(transaction.amount);
+        const stripeFee = this.platformConfig.calculateStripeFee(grossAmount);
+        const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
+
+        await this.connectService.createTransferToHost(
+          hostId,
+          netAmount,
+          matchId,
+          `Reconciliación pago experiencia - Match ${matchId}`,
+        );
+
         await this.prisma.$transaction(async (tx) => {
           await tx.transaction.update({
             where: { id: transaction.id },
@@ -401,12 +416,6 @@ export class PaymentsService {
           await tx.match.update({
             where: { id: matchId },
             data: { paymentStatus: PaymentStatus.RELEASED },
-          });
-
-          await tx.wallet.upsert({
-            where: { userId: hostId },
-            update: { balance: { increment: transaction.amount } },
-            create: { userId: hostId, balance: transaction.amount },
           });
         });
 
