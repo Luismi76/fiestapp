@@ -49,7 +49,7 @@ function TopUpResultContent() {
         if (cancelled) return;
 
         try {
-          const data = await walletApi.checkTopUpResult(sessionId);
+          const data = await walletApi.checkPurchaseResult(sessionId);
           if (data.success) {
             setResult(data);
             setChecking(false);

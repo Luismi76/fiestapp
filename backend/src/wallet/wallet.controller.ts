@@ -41,17 +41,13 @@ export class WalletController {
   @UseGuards(JwtAuthGuard)
   async getWallet(@Request() req: AuthenticatedRequest) {
     const wallet = await this.walletService.getWallet(req.user.userId);
-    const fee = this.platformConfig.platformFee;
-    const legacyOps = Math.floor(wallet.balance / fee);
 
     return {
-      balance: wallet.balance,
       credits: wallet.credits,
-      canOperate: wallet.credits >= 1 || wallet.balance >= fee,
-      platformFee: fee,
-      minTopUp: this.platformConfig.minTopup,
+      canOperate: wallet.credits >= 1,
+      platformFee: this.platformConfig.platformFee,
       vatRate: this.platformConfig.vatRate,
-      operationsAvailable: wallet.credits + legacyOps,
+      operationsAvailable: wallet.credits,
       packs: this.platformConfig.getPacks(),
     };
   }
@@ -69,21 +65,13 @@ export class WalletController {
     @Request() req: AuthenticatedRequest,
     @Body() body: { packId: string },
   ) {
-    return this.walletService.createPackPurchaseSession(req.user.userId, body.packId);
+    return this.walletService.createPackPurchaseSession(
+      req.user.userId,
+      body.packId,
+    );
   }
 
-  // Crear sesión de Stripe Checkout para recarga legacy
-  @Post('topup')
-  @UseGuards(JwtAuthGuard)
-  async createTopUp(
-    @Request() req: AuthenticatedRequest,
-    @Body() body: { amount?: number },
-  ) {
-    const amount = body.amount || this.platformConfig.minTopup;
-    return this.walletService.createTopUpSession(req.user.userId, amount);
-  }
-
-  // Webhook de Stripe para recargas - SIN autenticación JWT ni rate limiting
+  // Webhook de Stripe para compras de pack - SIN autenticación JWT ni rate limiting
   @SkipThrottle()
   @Post('stripe-webhook')
   async stripeWebhook(
@@ -118,14 +106,14 @@ export class WalletController {
     return { received: true };
   }
 
-  // Verificar resultado de un pedido (llamado desde el frontend al volver de Stripe)
+  // Verificar resultado de compra de pack (llamado desde el frontend al volver de Stripe)
   @Get('topup-result')
   @UseGuards(JwtAuthGuard)
-  async checkTopUpResult(
+  async checkPurchaseResult(
     @Request() req: AuthenticatedRequest,
     @Query('sessionId') sessionId: string,
   ) {
-    return this.walletService.checkTopUpResult(sessionId, req.user.userId);
+    return this.walletService.checkPurchaseResult(sessionId, req.user.userId);
   }
 
   // Obtener historial de transacciones

@@ -26,17 +26,14 @@ export const envValidationSchema = Joi.object({
     }),
 
   // CORS - required in production
-  ALLOWED_ORIGINS: Joi.string()
-    .when('NODE_ENV', {
-      is: 'production',
-      then: Joi.string().required().messages({
-        'any.required':
-          'ALLOWED_ORIGINS es obligatorio en produccion (lista de origenes separados por coma)',
-      }),
-      otherwise: Joi.string()
-        .optional()
-        .default('http://localhost:3000'),
+  ALLOWED_ORIGINS: Joi.string().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string().required().messages({
+      'any.required':
+        'ALLOWED_ORIGINS es obligatorio en produccion (lista de origenes separados por coma)',
     }),
+    otherwise: Joi.string().optional().default('http://localhost:3000'),
+  }),
 
   // Optional services - validated if present
   REDIS_URL: Joi.string().uri().optional().allow(''),

@@ -10,7 +10,7 @@ import logger from '@/lib/logger';
 import Image from 'next/image';
 
 // Tipos de filtro disponibles
-type TransactionFilter = 'all' | 'topup' | 'pack_purchase' | 'platform_fee' | 'refund';
+type TransactionFilter = 'all' | 'pack_purchase' | 'platform_fee' | 'refund';
 
 const FILTER_OPTIONS: { value: TransactionFilter; label: string }[] = [
   { value: 'all', label: 'Todas' },
@@ -149,15 +149,6 @@ export default function WalletPage() {
     const sizeClass = size === 'lg' ? 'w-14 h-14' : 'w-10 h-10';
     const iconSize = size === 'lg' ? 'w-7 h-7' : 'w-5 h-5';
 
-    if (type === 'topup') {
-      return (
-        <div className={`${sizeClass} rounded-full bg-green-100 flex items-center justify-center`}>
-          <svg className={`${iconSize} text-green-600`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-        </div>
-      );
-    }
     if (type === 'refund') {
       return (
         <div className={`${sizeClass} rounded-full bg-blue-100 flex items-center justify-center`}>
@@ -178,7 +169,6 @@ export default function WalletPage() {
 
   const getTransactionTitle = (tx: WalletTransaction) => {
     if (tx.type === 'pack_purchase') return tx.description || 'Compra de pack';
-    if (tx.type === 'topup') return 'Recarga de saldo';
     if (tx.type === 'platform_fee') return 'Experiencia';
     if (tx.type === 'refund') return 'Reembolso';
     return 'Transacción';
@@ -218,11 +208,6 @@ export default function WalletPage() {
             <p className="text-5xl font-bold text-gray-900">
               {wallet?.operationsAvailable || 0}
             </p>
-            {(wallet?.balance ?? 0) > 0 && (
-              <p className="text-xs text-gray-400 mt-1">
-                + {wallet?.balance.toFixed(2)}€ de saldo anterior
-              </p>
-            )}
           </div>
 
           {wallet && !wallet.canOperate && (
@@ -291,27 +276,6 @@ export default function WalletPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                   Comprar mi primer pack
-                </button>
-              </>
-            ) : filter === 'topup' ? (
-              <>
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </div>
-                <p className="text-gray-900 font-medium text-lg mb-1">Sin compras</p>
-                <p className="text-gray-500 text-sm mb-4">
-                  Todavia no has comprado ningun pack de experiencias
-                </p>
-                <button
-                  onClick={() => setShowPackModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  Comprar pack
                 </button>
               </>
             ) : (
@@ -480,13 +444,6 @@ export default function WalletPage() {
                     <p className="font-medium text-gray-900">
                       {selectedTransaction.description.split(' · ')[0]}
                     </p>
-                  </div>
-                )}
-
-                {selectedTransaction.type === 'topup' && (
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-sm text-gray-500 mb-1">Recarga de monedero</p>
-                    <p className="font-medium text-gray-900">{selectedTransaction.amount.toFixed(2)}€ abonados a tu saldo</p>
                   </div>
                 )}
 

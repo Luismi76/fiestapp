@@ -10,6 +10,7 @@ import { ExperiencesModule } from '../experiences/experiences.module';
 import { CancellationsModule } from '../cancellations/cancellations.module';
 import { EmailModule } from '../email/email.module';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
+import { ConnectModule } from '../connect/connect.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
     CancellationsModule,
     EmailModule,
     ConfigModule,
+    ConnectModule,
   ],
   controllers: [MatchesController],
   providers: [MatchesService, StripeIdempotencyService],

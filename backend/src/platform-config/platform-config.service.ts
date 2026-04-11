@@ -4,25 +4,24 @@ import { PrismaService } from '../prisma/prisma.service';
 /** Claves de configuración disponibles */
 export enum ConfigKey {
   PLATFORM_FEE = 'platform_fee',
-  MIN_TOPUP = 'min_topup',
   VAT_RATE = 'vat_rate',
   STRIPE_FEE_RATE = 'stripe_fee_rate',
   STRIPE_FEE_FIXED = 'stripe_fee_fixed',
+  STRIPE_PRICE_BASICO = 'stripe_price_basico',
+  STRIPE_PRICE_AVENTURA = 'stripe_price_aventura',
+  STRIPE_PRICE_VIAJERO = 'stripe_price_viajero',
 }
 
 /** Valores por defecto */
-const DEFAULTS: Record<ConfigKey, { value: string; description: string }> = {
+const DEFAULTS: Record<string, { value: string; description: string }> = {
   [ConfigKey.PLATFORM_FEE]: {
     value: '1.5',
-    description: 'Comisión de plataforma por operación (en euros). El IVA se recauda en la recarga del monedero.',
-  },
-  [ConfigKey.MIN_TOPUP]: {
-    value: '4.5',
-    description: 'Recarga mínima del monedero (en euros). Se ajusta automáticamente para cubrir al menos 3 operaciones.',
+    description:
+      'Comisión de plataforma por operación (en euros). Se aplica al comprar un pack de experiencias.',
   },
   [ConfigKey.VAT_RATE]: {
     value: '0.21',
-    description: 'Tipo de IVA aplicado a las recargas (0.21 = 21%)',
+    description: 'Tipo de IVA aplicado a las comisiones (0.21 = 21%)',
   },
   [ConfigKey.STRIPE_FEE_RATE]: {
     value: '0.015',
@@ -31,6 +30,18 @@ const DEFAULTS: Record<ConfigKey, { value: string; description: string }> = {
   [ConfigKey.STRIPE_FEE_FIXED]: {
     value: '0.25',
     description: 'Comisión fija de Stripe por transacción (en euros)',
+  },
+  [ConfigKey.STRIPE_PRICE_BASICO]: {
+    value: 'price_1TKyf7JnOJ3BwACbiw1COnzx',
+    description: 'Stripe Price ID para Pack Básico (2 experiencias)',
+  },
+  [ConfigKey.STRIPE_PRICE_AVENTURA]: {
+    value: 'price_1TKyf7JnOJ3BwACbSzRdn7fZ',
+    description: 'Stripe Price ID para Pack Aventura (5+1 experiencias)',
+  },
+  [ConfigKey.STRIPE_PRICE_VIAJERO]: {
+    value: 'price_1TKyf8JnOJ3BwACb58Hbdldt',
+    description: 'Stripe Price ID para Pack Viajero (13+3 experiencias)',
   },
 };
 
@@ -117,15 +128,6 @@ export class PlatformConfigService implements OnModuleInit {
   }
 
   /**
-   * Recarga mínima (€) — siempre cubre al menos 3 operaciones
-   */
-  get minTopup(): number {
-    const configured = this.getNumber(ConfigKey.MIN_TOPUP);
-    const minRequired = Math.round(this.platformFee * 3 * 100) / 100;
-    return Math.max(configured, minRequired);
-  }
-
-  /**
    * Tipo de IVA (decimal, ej: 0.21)
    */
   get vatRate(): number {
@@ -143,14 +145,53 @@ export class PlatformConfigService implements OnModuleInit {
   }
 
   /**
+   * Obtiene el Stripe Price ID para un pack
+   */
+  getStripePriceId(packId: string): string | null {
+    const keyMap: Record<string, ConfigKey> = {
+      basico: ConfigKey.STRIPE_PRICE_BASICO,
+      aventura: ConfigKey.STRIPE_PRICE_AVENTURA,
+      viajero: ConfigKey.STRIPE_PRICE_VIAJERO,
+    };
+    const key = keyMap[packId];
+    if (!key) return null;
+    const val = this.cache.get(key);
+    return val && val.startsWith('price_') ? val : null;
+  }
+
+  /**
    * Definiciones de packs de experiencias (calculados a partir de la comisión)
    */
-  getPacks(): { id: string; name: string; price: number; experiences: number; bonus: number }[] {
+  getPacks(): {
+    id: string;
+    name: string;
+    price: number;
+    experiences: number;
+    bonus: number;
+  }[] {
     const fee = this.platformFee;
     return [
-      { id: 'basico', name: 'Básico', price: Math.round(2 * fee * 100) / 100, experiences: 2, bonus: 0 },
-      { id: 'aventura', name: 'Aventura', price: Math.round(4 * fee * 100) / 100, experiences: 5, bonus: 1 },
-      { id: 'viajero', name: 'Viajero', price: Math.round(8 * fee * 100) / 100, experiences: 13, bonus: 3 },
+      {
+        id: 'basico',
+        name: 'Básico',
+        price: Math.round(2 * fee * 100) / 100,
+        experiences: 2,
+        bonus: 0,
+      },
+      {
+        id: 'aventura',
+        name: 'Aventura',
+        price: Math.round(4 * fee * 100) / 100,
+        experiences: 5,
+        bonus: 1,
+      },
+      {
+        id: 'viajero',
+        name: 'Viajero',
+        price: Math.round(8 * fee * 100) / 100,
+        experiences: 13,
+        bonus: 3,
+      },
     ];
   }
 
@@ -158,14 +199,19 @@ export class PlatformConfigService implements OnModuleInit {
    * Obtiene un pack por ID
    */
   getPack(packId: string) {
-    return this.getPacks().find(p => p.id === packId) || null;
+    return this.getPacks().find((p) => p.id === packId) || null;
   }
 
   /**
    * Obtiene toda la configuración
    */
   async getAll(): Promise<
-    { key: string; value: string; description: string | null; updatedAt: Date }[]
+    {
+      key: string;
+      value: string;
+      description: string | null;
+      updatedAt: Date;
+    }[]
   > {
     return this.prisma.platformConfig.findMany({
       orderBy: { key: 'asc' },

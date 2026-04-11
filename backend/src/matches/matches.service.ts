@@ -24,6 +24,7 @@ import { EmailService } from '../email/email.service';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
 import { ConfigService } from '@nestjs/config';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
+import { ConnectService } from '../connect/connect.service';
 import Stripe from 'stripe';
 
 // Helper para parsear fechas correctamente evitando problemas de zona horaria
@@ -57,6 +58,7 @@ export class MatchesService {
     private configService: ConfigService,
     private stripeIdempotency: StripeIdempotencyService,
     private platformConfig: PlatformConfigService,
+    private connectService: ConnectService,
   ) {}
 
   // Crear solicitud de match
@@ -706,21 +708,21 @@ export class MatchesService {
       throw new BadRequestException('Esta solicitud ya no está pendiente');
     }
 
-    // Verificar saldo de ambos usuarios antes de aceptar
-    const [hostHasBalance, requesterHasBalance] = await Promise.all([
-      this.walletService.hasEnoughBalance(match.hostId),
-      this.walletService.hasEnoughBalance(match.requesterId),
+    // Verificar créditos de ambos usuarios antes de aceptar
+    const [hostHasCredits, requesterHasCredits] = await Promise.all([
+      this.walletService.hasEnoughCredits(match.hostId),
+      this.walletService.hasEnoughCredits(match.requesterId),
     ]);
 
-    if (!hostHasBalance) {
+    if (!hostHasCredits) {
       throw new BadRequestException(
-        `No tienes saldo suficiente. Necesitas ${this.platformConfig.platformFee}€ para cerrar el acuerdo. Recarga tu monedero.`,
+        `No tienes experiencias disponibles. Compra un pack para cerrar el acuerdo.`,
       );
     }
 
-    if (!requesterHasBalance) {
+    if (!requesterHasCredits) {
       throw new BadRequestException(
-        `El viajero no tiene saldo suficiente (${this.platformConfig.platformFee}€) para cerrar el acuerdo.`,
+        `El viajero no tiene experiencias disponibles para cerrar el acuerdo.`,
       );
     }
 
@@ -754,7 +756,9 @@ export class MatchesService {
     ]);
 
     // Enviar notificaciones de cargo a ambos usuarios
-    const hostOperationsLeft = Math.floor(hostWallet.balance / this.platformConfig.platformFee);
+    const hostOperationsLeft = Math.floor(
+      hostWallet.balance / this.platformConfig.platformFee,
+    );
     const requesterOperationsLeft = Math.floor(
       requesterWallet.balance / this.platformConfig.platformFee,
     );
@@ -1034,7 +1038,7 @@ export class MatchesService {
       const escrowMode = session.metadata?.escrowMode || 'platform_hold';
 
       if (escrowMode === 'immediate') {
-        // Pago inmediato: el dinero va directo al monedero del anfitrión
+        // Pago inmediato: el dinero va directo al anfitrión
         const match = await this.prisma.match.findUnique({
           where: { id: transaction.matchId },
           select: { hostId: true },
@@ -1042,31 +1046,58 @@ export class MatchesService {
 
         if (match) {
           const grossAmount = Math.abs(transaction.amount);
-          const stripeFee =
-            this.platformConfig.calculateStripeFee(grossAmount);
+          const stripeFee = this.platformConfig.calculateStripeFee(grossAmount);
           const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
 
-          await this.prisma.$transaction(async (tx) => {
-            await tx.transaction.update({
-              where: { id: transaction.id },
-              data: {
-                status: 'released',
-                stripeId: paymentIntentId || transaction.stripeId,
-              },
-            });
-
-            await tx.match.update({
-              where: { id: transaction.matchId! },
-              data: { paymentStatus: 'released' },
-            });
-
-            // Abonar directamente al anfitrión (neto de comisión Stripe)
-            await tx.wallet.upsert({
-              where: { userId: match.hostId },
-              update: { balance: { increment: netAmount } },
-              create: { userId: match.hostId, balance: netAmount },
-            });
+          // Comprobar si el host tiene Stripe Connect activo
+          const host = await this.prisma.user.findUnique({
+            where: { id: match.hostId },
+            select: { stripeConnectAccountId: true, stripeConnectPayoutsEnabled: true },
           });
+
+          if (host?.stripeConnectAccountId && host.stripeConnectPayoutsEnabled) {
+            // Stripe Connect: transferir directamente
+            await this.connectService.createTransferToHost(
+              match.hostId,
+              netAmount,
+              transaction.matchId!,
+              `Pago inmediato experiencia - Match ${transaction.matchId}`,
+            );
+
+            await this.prisma.$transaction(async (tx) => {
+              await tx.transaction.update({
+                where: { id: transaction.id },
+                data: {
+                  status: 'released',
+                  stripeId: paymentIntentId || transaction.stripeId,
+                },
+              });
+              await tx.match.update({
+                where: { id: transaction.matchId! },
+                data: { paymentStatus: 'released' },
+              });
+            });
+          } else {
+            // Fallback: abonar al wallet interno del host
+            await this.prisma.$transaction(async (tx) => {
+              await tx.transaction.update({
+                where: { id: transaction.id },
+                data: {
+                  status: 'released',
+                  stripeId: paymentIntentId || transaction.stripeId,
+                },
+              });
+              await tx.match.update({
+                where: { id: transaction.matchId! },
+                data: { paymentStatus: 'released' },
+              });
+              await tx.wallet.upsert({
+                where: { userId: match.hostId },
+                update: { balance: { increment: netAmount } },
+                create: { userId: match.hostId, balance: netAmount },
+              });
+            });
+          }
 
           this.logger.log(
             `Immediate payment released for match ${transaction.matchId}: ${netAmount}€ to host ${match.hostId} (Stripe fee: ${stripeFee}€)`,
@@ -1163,18 +1194,31 @@ export class MatchesService {
                     data: { paymentStatus: newStatus },
                   });
 
-                  // Para pago inmediato, abonar al host directamente
+                  // Para pago inmediato, abonar al host
                   if (isImmediate) {
                     const grossAmount = Math.abs(transaction.amount);
                     const stripeFee =
                       this.platformConfig.calculateStripeFee(grossAmount);
                     const netAmount =
                       Math.round((grossAmount - stripeFee) * 100) / 100;
-                    await tx.wallet.upsert({
-                      where: { userId: match.hostId },
-                      update: { balance: { increment: netAmount } },
-                      create: { userId: match.hostId, balance: netAmount },
+
+                    const host = await tx.user.findUnique({
+                      where: { id: match.hostId },
+                      select: { stripeConnectAccountId: true, stripeConnectPayoutsEnabled: true },
                     });
+
+                    if (host?.stripeConnectAccountId && host.stripeConnectPayoutsEnabled) {
+                      await this.connectService.createTransferToHost(
+                        match.hostId, netAmount, matchId,
+                        `Pago inmediato experiencia - Match ${matchId}`,
+                      );
+                    } else {
+                      await tx.wallet.upsert({
+                        where: { userId: match.hostId },
+                        update: { balance: { increment: netAmount } },
+                        create: { userId: match.hostId, balance: netAmount },
+                      });
+                    }
                   }
                 });
 
@@ -1679,29 +1723,57 @@ export class MatchesService {
       }
       // Para platform_hold el dinero ya está cobrado, no hay que hacer nada en Stripe
 
-      // Actualizar BD: marcar como liberado y abonar al host (neto de comisión Stripe)
-      await this.prisma.$transaction(async (tx) => {
-        await tx.transaction.update({
-          where: { id: transaction.id },
-          data: { status: 'released' },
-        });
-
-        await tx.match.update({
-          where: { id: matchId },
-          data: { paymentStatus: 'released' },
-        });
-
-        // El anfitrión recibe el importe neto (precio - comisión Stripe)
-        await tx.wallet.upsert({
-          where: { userId: hostId },
-          update: { balance: { increment: netAmount } },
-          create: { userId: hostId, balance: netAmount },
-        });
+      // Comprobar si el host tiene Stripe Connect activo
+      const host = await this.prisma.user.findUnique({
+        where: { id: hostId },
+        select: { stripeConnectAccountId: true, stripeConnectPayoutsEnabled: true },
       });
 
-      this.logger.log(
-        `Escrow released (${isStripeHold ? 'stripe_hold' : 'platform_hold'}) for match ${matchId}: ${netAmount} EUR to host ${hostId} (Stripe fee: ${stripeFee} EUR)`,
-      );
+      if (host?.stripeConnectAccountId && host.stripeConnectPayoutsEnabled) {
+        // Stripe Connect: transferir directamente a la cuenta del host
+        await this.connectService.createTransferToHost(
+          hostId,
+          netAmount,
+          matchId,
+          `Pago experiencia - Match ${matchId}`,
+        );
+
+        await this.prisma.$transaction(async (tx) => {
+          await tx.transaction.update({
+            where: { id: transaction.id },
+            data: { status: 'released' },
+          });
+          await tx.match.update({
+            where: { id: matchId },
+            data: { paymentStatus: 'released' },
+          });
+        });
+
+        this.logger.log(
+          `Escrow released via Connect (${isStripeHold ? 'stripe_hold' : 'platform_hold'}) for match ${matchId}: ${netAmount} EUR to host ${hostId}`,
+        );
+      } else {
+        // Fallback: abonar al wallet interno del host
+        await this.prisma.$transaction(async (tx) => {
+          await tx.transaction.update({
+            where: { id: transaction.id },
+            data: { status: 'released' },
+          });
+          await tx.match.update({
+            where: { id: matchId },
+            data: { paymentStatus: 'released' },
+          });
+          await tx.wallet.upsert({
+            where: { userId: hostId },
+            update: { balance: { increment: netAmount } },
+            create: { userId: hostId, balance: netAmount },
+          });
+        });
+
+        this.logger.log(
+          `Escrow released to wallet (${isStripeHold ? 'stripe_hold' : 'platform_hold'}) for match ${matchId}: ${netAmount} EUR to host ${hostId} (Stripe fee: ${stripeFee} EUR)`,
+        );
+      }
     } catch (error) {
       this.logger.error(
         `Failed to release escrow for match ${matchId}`,
@@ -1778,11 +1850,11 @@ export class MatchesService {
       );
     }
 
-    // Verificar que el usuario tiene saldo suficiente en su monedero
-    const hasBalance = await this.walletService.hasEnoughBalance(senderId);
-    if (!hasBalance) {
+    // Verificar que el usuario tiene créditos suficientes
+    const hasCredits = await this.walletService.hasEnoughCredits(senderId);
+    if (!hasCredits) {
       throw new BadRequestException(
-        `Necesitas al menos ${this.platformConfig.platformFee}€ en tu monedero para usar el chat. Recarga tu saldo.`,
+        `Necesitas experiencias disponibles para usar el chat. Compra un pack.`,
       );
     }
 

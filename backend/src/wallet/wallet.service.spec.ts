@@ -59,8 +59,9 @@ describe('WalletService', () => {
 
   const mockPlatformConfig = {
     platformFee: 1.5,
-    minTopup: 4.5,
     calculateStripeFee: jest.fn().mockReturnValue(0.28),
+    getPack: jest.fn(),
+    getPacks: jest.fn().mockReturnValue([]),
   };
 
   beforeEach(async () => {
@@ -87,7 +88,7 @@ describe('WalletService', () => {
     const userId = 'user-1';
 
     it('should return existing wallet', async () => {
-      const wallet = { id: 'wallet-1', userId, balance: 10 };
+      const wallet = { id: 'wallet-1', userId, balance: 10, credits: 3 };
       mockPrismaService.wallet.findUnique.mockResolvedValue(wallet);
 
       const result = await service.getWallet(userId);
@@ -99,7 +100,7 @@ describe('WalletService', () => {
     });
 
     it('should create wallet if it does not exist', async () => {
-      const newWallet = { id: 'wallet-new', userId, balance: 0 };
+      const newWallet = { id: 'wallet-new', userId, balance: 0, credits: 0 };
       mockPrismaService.wallet.findUnique.mockResolvedValue(null);
       mockPrismaService.wallet.create.mockResolvedValue(newWallet);
 
@@ -118,6 +119,7 @@ describe('WalletService', () => {
         id: 'w1',
         userId: 'user-1',
         balance: 25.5,
+        credits: 0,
       });
 
       const balance = await service.getBalance('user-1');
@@ -131,6 +133,7 @@ describe('WalletService', () => {
         id: 'w1',
         userId: 'user-1',
         balance: 0,
+        credits: 0,
       });
 
       const balance = await service.getBalance('user-1');
@@ -139,44 +142,29 @@ describe('WalletService', () => {
     });
   });
 
-  describe('hasEnoughBalance', () => {
-    it('should return true when balance is sufficient', async () => {
+  describe('hasEnoughCredits', () => {
+    it('should return true when credits >= 1', async () => {
       mockPrismaService.wallet.findUnique.mockResolvedValue({
         id: 'w1',
         userId: 'user-1',
-        balance: 10,
+        balance: 0,
+        credits: 3,
       });
 
-      const result = await service.hasEnoughBalance('user-1');
-
-      // Default amount is platformFee (1.5)
+      const result = await service.hasEnoughCredits('user-1');
       expect(result).toBe(true);
     });
 
-    it('should return false when balance is insufficient', async () => {
+    it('should return false when credits < 1', async () => {
       mockPrismaService.wallet.findUnique.mockResolvedValue({
         id: 'w1',
         userId: 'user-1',
-        balance: 0.5,
+        balance: 100,
+        credits: 0,
       });
 
-      const result = await service.hasEnoughBalance('user-1');
-
+      const result = await service.hasEnoughCredits('user-1');
       expect(result).toBe(false);
-    });
-
-    it('should check against custom amount', async () => {
-      mockPrismaService.wallet.findUnique.mockResolvedValue({
-        id: 'w1',
-        userId: 'user-1',
-        balance: 5,
-      });
-
-      const resultEnough = await service.hasEnoughBalance('user-1', 3);
-      expect(resultEnough).toBe(true);
-
-      const resultNotEnough = await service.hasEnoughBalance('user-1', 10);
-      expect(resultNotEnough).toBe(false);
     });
   });
 
@@ -213,11 +201,12 @@ describe('WalletService', () => {
   });
 
   describe('deductPlatformFee', () => {
-    it('should throw BadRequestException if balance is insufficient', async () => {
+    it('should throw BadRequestException if no credits available', async () => {
       mockPrismaService.wallet.findUnique.mockResolvedValue({
         id: 'w1',
         userId: 'user-1',
-        balance: 0.5,
+        balance: 100,
+        credits: 0,
       });
 
       await expect(
@@ -232,18 +221,19 @@ describe('WalletService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should deduct fee successfully', async () => {
+    it('should deduct credit successfully', async () => {
       mockPrismaService.wallet.findUnique.mockResolvedValue({
         id: 'w1',
         userId: 'user-1',
-        balance: 10,
+        balance: 0,
+        credits: 5,
       });
 
       mockPrismaService.$transaction.mockImplementation(
         (callback: (tx: any) => unknown) => {
           const mockTx = {
             wallet: {
-              update: jest.fn().mockResolvedValue({ balance: 8.5 }),
+              update: jest.fn().mockResolvedValue({ credits: 4 }),
             },
             transaction: {
               create: jest.fn().mockResolvedValue({}),
@@ -287,7 +277,7 @@ describe('WalletService', () => {
       expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
     });
 
-    it('should refund fee when eligible', async () => {
+    it('should refund credit when eligible', async () => {
       mockPrismaService.transaction.findFirst
         .mockResolvedValueOnce({ id: 'tx-1', type: 'platform_fee' })
         .mockResolvedValueOnce(null); // No prior refund
@@ -312,29 +302,13 @@ describe('WalletService', () => {
     });
   });
 
-  describe('createTopUpSession', () => {
-    it('should throw BadRequestException for amount below minimum', async () => {
-      await expect(service.createTopUpSession('user-1', 1)).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should throw NotFoundException if user does not exist', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue(null);
-
-      await expect(service.createTopUpSession('user-1', 10)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
   describe('getTransactionHistory', () => {
     it('should return paginated transactions', async () => {
       const transactions = [
         {
           id: 'tx-1',
-          type: 'topup',
-          amount: 10,
+          type: 'pack_purchase',
+          amount: 6,
           status: 'completed',
           otherUserId: null,
         },
@@ -359,7 +333,7 @@ describe('WalletService', () => {
         'user-1',
         1,
         20,
-        'topup',
+        'platform_fee',
       );
 
       expect(result.transactions).toHaveLength(0);
@@ -368,7 +342,7 @@ describe('WalletService', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const findManyCall = mockPrismaService.transaction.findMany.mock.calls[0][0];
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(findManyCall.where.type).toBe('topup');
+      expect(findManyCall.where.type).toBe('platform_fee');
     });
 
     it('should enrich transactions with other user data', async () => {

@@ -2233,7 +2233,6 @@ function CuentaResultadosTab() {
 
 const CONFIG_LABELS: Record<string, { label: string; suffix: string; step: string; min: string }> = {
   platform_fee: { label: 'Comisión por operación', suffix: '\u20ac', step: '0.1', min: '0' },
-  min_topup: { label: 'Recarga mínima del monedero', suffix: '\u20ac', step: '0.5', min: '0' },
   vat_rate: { label: 'Tipo de IVA', suffix: '%', step: '0.01', min: '0' },
 };
 

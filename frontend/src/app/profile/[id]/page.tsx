@@ -577,7 +577,7 @@ export default function PublicProfilePage() {
                 <div>
                   <p className="text-white/80 text-sm">Mi Monedero</p>
                   <p className="text-white text-2xl font-bold">
-                    {wallet ? `${wallet.balance.toFixed(2)}€` : '...'}
+                    {wallet ? `${wallet.operationsAvailable} exp` : '...'}
                   </p>
                 </div>
               </div>
@@ -598,9 +598,32 @@ export default function PublicProfilePage() {
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-yellow-300">
                   <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 5Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
                 </svg>
-                <span className="text-white/90 text-sm">Saldo insuficiente - Recarga para operar</span>
+                <span className="text-white/90 text-sm">Sin experiencias - Compra un pack</span>
               </div>
             )}
+          </Link>
+
+          {/* Stripe Connect - Cuenta de cobros */}
+          <Link
+            href="/connect"
+            className="mt-3 block bg-white border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">Cuenta de cobros</p>
+                  <p className="text-xs text-gray-500">Configura tus pagos como anfitrion</p>
+                </div>
+              </div>
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
           </Link>
         </div>
       )}

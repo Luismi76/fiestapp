@@ -41,6 +41,8 @@ import { GdprModule } from './gdpr/gdpr.module';
 import { HealthModule } from './health/health.module';
 import { CategoriesModule } from './categories/categories.module';
 import { PlatformConfigModule } from './platform-config/platform-config.module';
+import { ConnectModule } from './connect/connect.module';
+import { StripeWebhookModule } from './stripe-webhook/stripe-webhook.module';
 
 @Module({
   imports: [
@@ -74,6 +76,8 @@ import { PlatformConfigModule } from './platform-config/platform-config.module';
     StorageModule,
     PrismaModule,
     PlatformConfigModule,
+    ConnectModule,
+    StripeWebhookModule,
     AuthModule,
     UsersModule,
     ExperiencesModule,

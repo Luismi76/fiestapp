@@ -212,9 +212,9 @@ export default function MatchActions({
                 </svg>
               </div>
               <div>
-                <p className="font-medium text-emerald-800">Saldo disponible</p>
+                <p className="font-medium text-emerald-800">Experiencias disponibles</p>
                 <p className="text-sm text-emerald-600">
-                  Tienes {walletInfo.balance.toFixed(2)}€. Al completar se cobrarán {walletInfo.platformFee}€ de comisión.
+                  Tienes {walletInfo.operationsAvailable} experiencia{walletInfo.operationsAvailable !== 1 ? 's' : ''} disponible{walletInfo.operationsAvailable !== 1 ? 's' : ''}.
                 </p>
               </div>
             </div>

@@ -17,6 +17,7 @@ import { EmailService } from '../email/email.service';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
 import { ConfigService } from '@nestjs/config';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
+import { ConnectService } from '../connect/connect.service';
 
 describe('MatchesService', () => {
   let service: MatchesService;
@@ -39,7 +40,7 @@ describe('MatchesService', () => {
   };
 
   const mockWalletService = {
-    hasEnoughBalance: jest.fn(),
+    hasEnoughCredits: jest.fn(),
     getWallet: jest.fn(),
     deductPlatformFee: jest.fn(),
     refundPlatformFee: jest.fn(),
@@ -88,8 +89,12 @@ describe('MatchesService', () => {
 
   const mockPlatformConfig = {
     platformFee: 1.5,
-    minTopup: 4.5,
     calculateStripeFee: jest.fn().mockReturnValue(0.28),
+  };
+
+  const mockConnectService = {
+    createTransferToHost: jest.fn(),
+    getAccountStatus: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -107,6 +112,7 @@ describe('MatchesService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: StripeIdempotencyService, useValue: mockStripeIdempotency },
         { provide: PlatformConfigService, useValue: mockPlatformConfig },
+        { provide: ConnectService, useValue: mockConnectService },
       ],
     }).compile();
 
@@ -319,7 +325,7 @@ describe('MatchesService', () => {
 
     it('should throw BadRequestException if host has insufficient balance', async () => {
       mockPrismaService.match.findUnique.mockResolvedValue(mockMatch);
-      mockWalletService.hasEnoughBalance
+      mockWalletService.hasEnoughCredits
         .mockResolvedValueOnce(false) // host
         .mockResolvedValueOnce(true); // requester
 
@@ -330,7 +336,7 @@ describe('MatchesService', () => {
 
     it('should throw BadRequestException if requester has insufficient balance', async () => {
       mockPrismaService.match.findUnique.mockResolvedValue(mockMatch);
-      mockWalletService.hasEnoughBalance
+      mockWalletService.hasEnoughCredits
         .mockResolvedValueOnce(true) // host
         .mockResolvedValueOnce(false); // requester
 
@@ -341,7 +347,7 @@ describe('MatchesService', () => {
 
     it('should accept match and deduct platform fee from both users', async () => {
       mockPrismaService.match.findUnique.mockResolvedValue(mockMatch);
-      mockWalletService.hasEnoughBalance.mockResolvedValue(true);
+      mockWalletService.hasEnoughCredits.mockResolvedValue(true);
       mockWalletService.deductPlatformFee.mockResolvedValue(undefined);
       mockWalletService.getWallet.mockResolvedValue({ balance: 10 });
 
@@ -352,9 +358,7 @@ describe('MatchesService', () => {
 
       expect(result.status).toBe('accepted');
       expect(mockWalletService.deductPlatformFee).toHaveBeenCalledTimes(2);
-      expect(
-        mockNotificationsService.notifyMatchAccepted,
-      ).toHaveBeenCalledWith(
+      expect(mockNotificationsService.notifyMatchAccepted).toHaveBeenCalledWith(
         requesterId,
         matchId,
         'Host User',

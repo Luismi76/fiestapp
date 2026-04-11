@@ -197,16 +197,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.log(`[joinMatch] Match found, checking balance...`);
 
       // Verify user has enough balance to use chat
-      const hasBalance = await this.walletService.hasEnoughBalance(
+      const hasBalance = await this.walletService.hasEnoughCredits(
         client.userId,
       );
       if (!hasBalance) {
         this.logger.warn(
-          `[joinMatch] User ${client.userId} has insufficient balance`,
+          `[joinMatch] User ${client.userId} has insufficient credits`,
         );
         return {
           success: false,
-          error: `Necesitas al menos ${this.platformConfig.platformFee}€ en tu monedero para acceder al chat. Recarga tu saldo.`,
+          error: `Necesitas experiencias disponibles para acceder al chat. Compra un pack.`,
           requiresTopUp: true,
           requiredAmount: this.platformConfig.platformFee,
         };
@@ -299,13 +299,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Verify user has enough balance to use chat
-      const hasBalance = await this.walletService.hasEnoughBalance(
+      const hasBalance = await this.walletService.hasEnoughCredits(
         client.userId,
       );
       if (!hasBalance) {
         return {
           success: false,
-          error: `Necesitas al menos ${this.platformConfig.platformFee}€ en tu monedero para usar el chat. Recarga tu saldo.`,
+          error: `Necesitas experiencias disponibles para usar el chat. Compra un pack.`,
           requiresTopUp: true,
           requiredAmount: this.platformConfig.platformFee,
         };
@@ -425,13 +425,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Verify balance
-      const hasBalance = await this.walletService.hasEnoughBalance(
+      const hasBalance = await this.walletService.hasEnoughCredits(
         client.userId,
       );
       if (!hasBalance) {
         return {
           success: false,
-          error: `Necesitas al menos ${this.platformConfig.platformFee}€ en tu monedero para usar el chat.`,
+          error: `Necesitas experiencias disponibles para usar el chat. Compra un pack.`,
           requiresTopUp: true,
         };
       }
@@ -507,13 +507,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       // Verify balance
-      const hasBalance = await this.walletService.hasEnoughBalance(
+      const hasBalance = await this.walletService.hasEnoughCredits(
         client.userId,
       );
       if (!hasBalance) {
         return {
           success: false,
-          error: `Necesitas al menos ${this.platformConfig.platformFee}€ en tu monedero para usar el chat.`,
+          error: `Necesitas experiencias disponibles para usar el chat. Compra un pack.`,
           requiresTopUp: true,
         };
       }

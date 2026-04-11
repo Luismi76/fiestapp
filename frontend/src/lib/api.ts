@@ -888,11 +888,9 @@ export interface Pack {
 }
 
 export interface WalletInfo {
-  balance: number;
   credits: number;
   canOperate: boolean;
   platformFee: number;
-  minTopUp: number;
   operationsAvailable: number;
   packs: Pack[];
 }
@@ -930,17 +928,8 @@ export const walletApi = {
     return response.data;
   },
 
-  // Crear sesión de Stripe Checkout para recarga
-  createTopUp: async (amount?: number): Promise<{
-    sessionUrl: string;
-    sessionId: string;
-  }> => {
-    const response = await api.post('/wallet/topup', { amount });
-    return response.data;
-  },
-
-  // Verificar resultado de recarga
-  checkTopUpResult: async (sessionId: string): Promise<{ success: boolean; amount?: number }> => {
+  // Verificar resultado de compra de pack
+  checkPurchaseResult: async (sessionId: string): Promise<{ success: boolean; amount?: number; credits?: number; packId?: string }> => {
     const response = await api.get(`/wallet/topup-result?sessionId=${sessionId}`);
     return response.data;
   },
@@ -968,6 +957,36 @@ export const walletApi = {
   // Verificar si puede operar
   canOperate: async (): Promise<{ canOperate: boolean; requiredAmount: number }> => {
     const response = await api.get('/wallet/can-operate');
+    return response.data;
+  },
+};
+
+// Stripe Connect API (host payouts)
+export interface ConnectStatus {
+  hasAccount: boolean;
+  onboarded: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+}
+
+export const connectApi = {
+  createAccount: async (): Promise<{ accountId: string }> => {
+    const response = await api.post('/connect/create-account');
+    return response.data;
+  },
+
+  createLink: async (): Promise<{ url: string }> => {
+    const response = await api.post('/connect/create-link');
+    return response.data;
+  },
+
+  getStatus: async (): Promise<ConnectStatus> => {
+    const response = await api.get<ConnectStatus>('/connect/status');
+    return response.data;
+  },
+
+  getDashboardLink: async (): Promise<{ url: string }> => {
+    const response = await api.post('/connect/dashboard-link');
     return response.data;
   },
 };

@@ -49,6 +49,10 @@ model User {
   taxIdVerified             Boolean          @default(false)
   bankAccount               String?          // IBAN
   fiscalAddress             String?          // Dirección fiscal
+  // Stripe Connect (payouts a anfitriones)
+  stripeConnectAccountId    String?          // Stripe Connect Express account ID (acct_xxx)
+  stripeConnectOnboarded    Boolean          @default(false)
+  stripeConnectPayoutsEnabled Boolean        @default(false)
   // Preferencias de moneda
   preferredCurrency         Currency         @default(EUR)
   deletedAt                 DateTime?        // Soft delete

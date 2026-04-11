@@ -133,7 +133,7 @@ export function useSocket(): UseSocketReturn {
           if (response.success && response.message) {
             resolve(response.message);
           } else if (response.requiresTopUp) {
-            reject(new Error(response.error || 'Saldo insuficiente en el monedero'));
+            reject(new Error(response.error || 'Necesitas experiencias disponibles. Compra un pack.'));
           } else {
             logger.error('Failed to send message:', response.error);
             resolve(null);
