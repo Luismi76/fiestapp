@@ -32,15 +32,15 @@ const DEFAULTS: Record<string, { value: string; description: string }> = {
     description: 'Comisión fija de Stripe por transacción (en euros)',
   },
   [ConfigKey.STRIPE_PRICE_BASICO]: {
-    value: 'price_1TKyf7JnOJ3BwACbiw1COnzx',
+    value: 'price_1TL5PQJnOJ3BwACb5ppv1jbp',
     description: 'Stripe Price ID para Pack Básico (2 experiencias)',
   },
   [ConfigKey.STRIPE_PRICE_AVENTURA]: {
-    value: 'price_1TKyf7JnOJ3BwACbSzRdn7fZ',
+    value: 'price_1TL5PQJnOJ3BwACbzKN3dkNJ',
     description: 'Stripe Price ID para Pack Aventura (5+1 experiencias)',
   },
   [ConfigKey.STRIPE_PRICE_VIAJERO]: {
-    value: 'price_1TKyf8JnOJ3BwACb58Hbdldt',
+    value: 'price_1TL5PRJnOJ3BwACbwUWPSbAL',
     description: 'Stripe Price ID para Pack Viajero (13+3 experiencias)',
   },
 };
