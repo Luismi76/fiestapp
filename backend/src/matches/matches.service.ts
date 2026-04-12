@@ -756,6 +756,20 @@ export class MatchesService {
       );
     }
 
+    // Lock optimista: marcar el match como 'accepted' SOLO si sigue 'pending'.
+    // Si dos requests simultáneos llegan, solo uno conseguirá actualizar
+    // (count === 1) y el otro recibirá count === 0 → rechazamos.
+    // Esto evita el doble cobro de créditos por doble-click.
+    const lockResult = await this.prisma.match.updateMany({
+      where: { id, status: 'pending' },
+      data: { status: 'accepted' },
+    });
+    if (lockResult.count === 0) {
+      throw new BadRequestException(
+        'Esta solicitud ya ha sido procesada (otro intento simultáneo).',
+      );
+    }
+
     // Cobrar tarifa de plataforma a ambos usuarios al cerrar el acuerdo
     const experienceTitle = match.experience.title;
     const hostName = match.host.name;
@@ -869,14 +883,14 @@ export class MatchesService {
       ]);
     }
 
-    // Si la experiencia tiene precio, marcar como pendiente de pago
+    // Si la experiencia tiene precio, marcar como pendiente de pago.
+    // El estado 'accepted' ya se actualizó arriba con el lock optimista.
     const hasTotalPrice = match.totalPrice && match.totalPrice > 0;
     const paymentStatus = hasTotalPrice ? 'pending_payment' : null;
 
     return this.prisma.match.update({
       where: { id },
       data: {
-        status: MatchStatus.ACCEPTED,
         paymentStatus,
         startDate: startDate ? parseDate(startDate) : match.startDate,
         endDate: endDate ? parseDate(endDate) : match.endDate,
@@ -922,7 +936,7 @@ export class MatchesService {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
       include: {
-        experience: { select: { title: true } },
+        experience: { select: { title: true, price: true } },
         host: {
           select: {
             stripeConnectAccountId: true,
@@ -946,13 +960,27 @@ export class MatchesService {
       throw new BadRequestException('Esta experiencia no tiene precio');
     }
 
-    // El host debe tener Stripe Connect activo (obligatorio para Destination Charges)
+    // Validación: el precio actual de la experiencia no puede ser distinto
+    // al pactado en el match. Esto protege al viajero de cambios de precio
+    // del host entre la aceptación y el pago.
+    if (
+      match.experience.price !== null &&
+      match.experience.price !== undefined &&
+      Math.abs(match.experience.price - match.totalPrice) > 0.01
+    ) {
+      throw new BadRequestException(
+        `El precio de la experiencia ha cambiado desde la aceptación (${match.totalPrice}€ → ${match.experience.price}€). Contacta con el anfitrión.`,
+      );
+    }
+
+    // RE-validación: el host debe seguir teniendo Stripe Connect activo
+    // (puede haberlo deshabilitado entre el accept y el intento de pago).
     if (
       !match.host.stripeConnectAccountId ||
       !match.host.stripeConnectPayoutsEnabled
     ) {
       throw new BadRequestException(
-        'El anfitrión aún no ha configurado su cuenta de cobros. No se puede procesar el pago.',
+        'El anfitrión ha deshabilitado su cuenta de cobros. No se puede procesar el pago. Contacta con soporte.',
       );
     }
 
@@ -1706,9 +1734,31 @@ export class MatchesService {
       if (stripeKey) {
         const stripe = new Stripe(stripeKey);
         const pi = await stripe.paymentIntents.retrieve(transaction.stripeId);
+
+        // Estados terminales en Stripe: nunca marcar como released si Stripe
+        // dice lo contrario (puede pasar si la autorización expiró o se canceló).
+        if (pi.status === 'canceled') {
+          this.logger.warn(
+            `Cannot release escrow for match ${matchId}: payment intent already canceled in Stripe`,
+          );
+          await this.prisma.$transaction(async (tx) => {
+            await tx.transaction.update({
+              where: { id: transaction.id },
+              data: { status: 'cancelled' },
+            });
+            await tx.match.update({
+              where: { id: matchId },
+              data: { paymentStatus: 'refunded' },
+            });
+          });
+          return;
+        }
+
         if (pi.status === 'requires_capture') {
           await stripe.paymentIntents.capture(transaction.stripeId);
         }
+        // Si ya está succeeded, no hacemos nada (capture ya hecha por otro flujo)
+        // Solo actualizamos el estado en BD.
       }
 
       await this.prisma.$transaction(async (tx) => {

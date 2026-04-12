@@ -95,6 +95,23 @@ export class WalletService implements OnModuleInit {
       });
     }
 
+    // Migración on-the-fly: si el usuario tiene balance legacy en euros pero
+    // 0 créditos, lo convertimos automáticamente la primera vez que lo consultamos.
+    // Esto cubre el caso de usuarios que existen pero la app nunca se reinició
+    // tras el deploy del nuevo sistema de packs.
+    if (wallet.balance > 0 && wallet.credits === 0) {
+      const fee = this.platformConfig.platformFee;
+      const newCredits = Math.max(1, Math.floor(wallet.balance / fee));
+      const migrated = await this.prisma.wallet.update({
+        where: { id: wallet.id },
+        data: { credits: newCredits, balance: 0 },
+      });
+      this.logger.log(
+        `On-the-fly migrated wallet ${userId}: ${wallet.balance}€ → ${newCredits} credits`,
+      );
+      return migrated;
+    }
+
     return wallet;
   }
 
@@ -397,6 +414,11 @@ export class WalletService implements OnModuleInit {
         ? `${experienceTitle} · ${otherUserName}`
         : `${experienceTitle} · con ${otherUserName}`;
 
+    // Registrar amount = -platformFee (negativo porque es coste para el usuario)
+    // aunque se pague con créditos. Esto da visibilidad fiscal: las comisiones
+    // aparecen en reportes con su valor económico real, no como ceros.
+    const platformFee = this.platformConfig.platformFee;
+
     await this.prisma.$transaction(async (tx) => {
       await tx.wallet.update({
         where: { userId },
@@ -409,7 +431,7 @@ export class WalletService implements OnModuleInit {
           matchId,
           otherUserId,
           type: 'platform_fee',
-          amount: 0,
+          amount: -platformFee,
           creditsAmount: -1,
           status: 'completed',
           description,
@@ -435,6 +457,9 @@ export class WalletService implements OnModuleInit {
     });
     if (alreadyRefunded) return;
 
+    // Refund con amount = +platformFee (positivo, dinero recuperado por el usuario)
+    const platformFee = this.platformConfig.platformFee;
+
     await this.prisma.$transaction(async (tx) => {
       await tx.wallet.update({
         where: { userId },
@@ -446,7 +471,7 @@ export class WalletService implements OnModuleInit {
           userId,
           matchId,
           type: 'refund',
-          amount: 0,
+          amount: platformFee,
           creditsAmount: 1,
           status: 'completed',
           description: 'Devolución comisión por cancelación',

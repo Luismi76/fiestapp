@@ -253,9 +253,7 @@ export class ConnectService {
     });
 
     if (!user?.stripeConnectAccountId) {
-      throw new BadRequestException(
-        'No tienes cuenta de cobros configurada.',
-      );
+      throw new BadRequestException('No tienes cuenta de cobros configurada.');
     }
 
     const loginLink = await this.ensureStripe().accounts.createLoginLink(
@@ -269,15 +267,13 @@ export class ConnectService {
    * Procesar webhook de Stripe Connect (account.updated)
    */
   async handleConnectWebhook(event: Stripe.Event): Promise<void> {
-    if (
-      await this.stripeIdempotency.isAlreadyProcessed(event.id, event.type)
-    ) {
+    if (await this.stripeIdempotency.isAlreadyProcessed(event.id, event.type)) {
       return;
     }
 
     switch (event.type) {
       case 'account.updated': {
-        const account = event.data.object as Stripe.Account;
+        const account = event.data.object;
         await this.handleAccountUpdated(account);
         break;
       }

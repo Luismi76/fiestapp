@@ -97,27 +97,31 @@ export class FestivalsService implements OnModuleInit {
     return this.cacheService.getOrSet(
       CACHE_KEYS.FESTIVALS_ALL,
       async () => {
-        return this.prisma.festival.findMany({
-          where: { status: 'ACTIVE' },
-          include: {
-            _count: {
-              select: {
-                experiences: true,
-                favoritedBy: true,
+        return this.prisma.festival
+          .findMany({
+            where: { status: 'ACTIVE' },
+            include: {
+              _count: {
+                select: {
+                  experiences: true,
+                  favoritedBy: true,
+                },
               },
             },
-          },
-          orderBy: {
-            name: 'asc',
-          },
-        }).catch(async () => {
-          // Fallback sin _count si la query compleja falla
-          this.logger.warn('Festival findAll with _count failed, falling back to simple query');
-          return this.prisma.festival.findMany({
-            where: { status: 'ACTIVE' },
-            orderBy: { name: 'asc' },
+            orderBy: {
+              name: 'asc',
+            },
+          })
+          .catch(async () => {
+            // Fallback sin _count si la query compleja falla
+            this.logger.warn(
+              'Festival findAll with _count failed, falling back to simple query',
+            );
+            return this.prisma.festival.findMany({
+              where: { status: 'ACTIVE' },
+              orderBy: { name: 'asc' },
+            });
           });
-        });
       },
       CACHE_TTL.FESTIVALS,
     );

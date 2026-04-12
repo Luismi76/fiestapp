@@ -14,7 +14,9 @@ async function bootstrap() {
 
   const app = await NestFactory.create(AppModule, {
     rawBody: true, // Necesario para verificar firmas de webhooks Stripe
-    logger: isProduction ? ['error', 'warn', 'log'] : ['error', 'warn', 'log', 'debug', 'verbose'],
+    logger: isProduction
+      ? ['error', 'warn', 'log']
+      : ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
   // Allowed origins from environment or defaults
@@ -26,9 +28,7 @@ async function bootstrap() {
 
   if (isProduction && !process.env.ALLOWED_ORIGINS) {
     const logger = new Logger('Bootstrap');
-    logger.error(
-      'ALLOWED_ORIGINS not set in production! Aborting startup.',
-    );
+    logger.error('ALLOWED_ORIGINS not set in production! Aborting startup.');
     process.exit(1);
   }
 

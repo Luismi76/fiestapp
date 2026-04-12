@@ -409,43 +409,131 @@ export class AccountingService {
 
     const hostMap = new Map(hosts.map((h) => [h.id, h]));
 
-    // Los ingresos del host se calculan a través de matches porque con Destination
-    // Charges las transacciones experience_payment se almacenan bajo el requester
-    // (que es quien paga), no bajo el host. Hay que ir por los matches.
-    const hostPayments = await this.prisma.transaction.findMany({
+    // Los ingresos del host se calculan combinando:
+    // - Pagos de experiencia únicos (transactions experience_payment)
+    // - Depósitos pagados (paymentPlan.depositPaidAt)
+    // - Saldos pagados (paymentPlan.balancePaidAt)
+    // Cada uno se filtra por su fecha REAL de cobro, no por createdAt de la tx,
+    // para que pagos cruzando años naturales se asignen al año correcto.
+
+    // 1. Refunds del año (para netearlos)
+    const refundsInYear = await this.prisma.transaction.findMany({
       where: {
-        type: 'experience_payment',
-        status: { in: ['completed', 'held', 'released'] },
+        type: 'refund',
+        status: { in: ['completed', 'released'] },
         createdAt: { gte: yearStart, lt: yearEnd },
         matchId: { not: null },
       },
       select: { amount: true, matchId: true },
     });
+    const refundsByMatch = new Map<string, number>();
+    for (const r of refundsInYear) {
+      if (!r.matchId) continue;
+      refundsByMatch.set(
+        r.matchId,
+        (refundsByMatch.get(r.matchId) || 0) + Math.abs(r.amount),
+      );
+    }
 
-    const matchIds = hostPayments
+    // 2. Pagos de experiencia ÚNICOS (no payment plans). Solo los que NO tienen
+    // un paymentPlan asociado, para evitar doble conteo.
+    const singlePayments = await this.prisma.transaction.findMany({
+      where: {
+        type: 'experience_payment',
+        status: { in: ['completed', 'held', 'released'] },
+        createdAt: { gte: yearStart, lt: yearEnd },
+        matchId: { not: null },
+        match: { paymentPlan: null },
+      },
+      select: { amount: true, matchId: true },
+    });
+
+    // 3. Payment plans: depósito pagado en el año
+    const depositsInYear = await this.prisma.paymentPlan.findMany({
+      where: {
+        depositPaid: true,
+        depositPaidAt: { gte: yearStart, lt: yearEnd },
+        match: { hostId: { in: hostIds } },
+      },
+      select: {
+        depositAmount: true,
+        matchId: true,
+        match: { select: { hostId: true } },
+      },
+    });
+
+    // 4. Payment plans: saldo pagado en el año
+    const balancesInYear = await this.prisma.paymentPlan.findMany({
+      where: {
+        balancePaid: true,
+        balancePaidAt: { gte: yearStart, lt: yearEnd },
+        match: { hostId: { in: hostIds } },
+      },
+      select: {
+        balanceAmount: true,
+        matchId: true,
+        match: { select: { hostId: true } },
+      },
+    });
+
+    // 5. Mapear singlePayments → hostId
+    const singlePaymentMatchIds = singlePayments
       .map((t) => t.matchId)
       .filter((id): id is string => id !== null);
-    const matchesWithHosts = await this.prisma.match.findMany({
-      where: { id: { in: matchIds }, hostId: { in: hostIds } },
+    const singlePaymentMatches = await this.prisma.match.findMany({
+      where: { id: { in: singlePaymentMatchIds }, hostId: { in: hostIds } },
       select: { id: true, hostId: true },
     });
-    const matchToHost = new Map(matchesWithHosts.map((m) => [m.id, m.hostId]));
+    const singleToHost = new Map(
+      singlePaymentMatches.map((m) => [m.id, m.hostId]),
+    );
 
+    // 6. Agregar todo (con netting de refunds y operationCount único por match)
     const incomeMap = new Map<
       string,
-      { totalIncome: number; operationCount: number }
+      { totalIncome: number; operationCount: number; matchIds: Set<string> }
     >();
-    for (const tx of hostPayments) {
+    const ensure = (hostId: string) => {
+      let entry = incomeMap.get(hostId);
+      if (!entry) {
+        entry = { totalIncome: 0, operationCount: 0, matchIds: new Set() };
+        incomeMap.set(hostId, entry);
+      }
+      return entry;
+    };
+
+    for (const tx of singlePayments) {
       if (!tx.matchId) continue;
-      const hostId = matchToHost.get(tx.matchId);
+      const hostId = singleToHost.get(tx.matchId);
       if (!hostId) continue;
-      const current = incomeMap.get(hostId) || {
-        totalIncome: 0,
-        operationCount: 0,
-      };
-      current.totalIncome += Math.abs(tx.amount);
-      current.operationCount += 1;
-      incomeMap.set(hostId, current);
+      const entry = ensure(hostId);
+      const refunded = refundsByMatch.get(tx.matchId) || 0;
+      entry.totalIncome += Math.max(0, Math.abs(tx.amount) - refunded);
+      entry.matchIds.add(tx.matchId);
+    }
+
+    for (const dep of depositsInYear) {
+      const hostId = dep.match.hostId;
+      const entry = ensure(hostId);
+      const refunded = refundsByMatch.get(dep.matchId) || 0;
+      // Aplicamos refund proporcional al depósito
+      entry.totalIncome += Math.max(0, dep.depositAmount - refunded);
+      entry.matchIds.add(dep.matchId);
+    }
+
+    for (const bal of balancesInYear) {
+      const hostId = bal.match.hostId;
+      const entry = ensure(hostId);
+      // El refund ya se aplicó al depósito; aquí solo añadimos el saldo
+      // (en cancelaciones después del cobro del saldo el refund cubre ambos)
+      entry.totalIncome += bal.balanceAmount;
+      entry.matchIds.add(bal.matchId);
+    }
+
+    // operationCount = número de matches únicos con ingresos (no doble conteo
+    // entre depósito y saldo del mismo match)
+    for (const entry of incomeMap.values()) {
+      entry.operationCount = entry.matchIds.size;
     }
 
     const feesByHost = await this.prisma.transaction.groupBy({

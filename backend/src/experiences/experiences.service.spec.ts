@@ -34,6 +34,7 @@ describe('ExperiencesService', () => {
     },
     match: {
       findMany: jest.fn(),
+      count: jest.fn().mockResolvedValue(0),
     },
     $transaction: jest.fn(),
   };

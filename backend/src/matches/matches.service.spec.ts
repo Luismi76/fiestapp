@@ -32,6 +32,7 @@ describe('MatchesService', () => {
       findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
     message: {
       create: jest.fn(),
@@ -360,6 +361,9 @@ describe('MatchesService', () => {
       mockWalletService.hasEnoughCredits.mockResolvedValue(true);
       mockWalletService.deductPlatformFee.mockResolvedValue(undefined);
       mockWalletService.getWallet.mockResolvedValue({ balance: 10 });
+
+      // Lock optimista: el updateMany simula que el match estaba 'pending'
+      mockPrismaService.match.updateMany.mockResolvedValue({ count: 1 });
 
       const updatedMatch = { ...mockMatch, status: 'accepted' };
       mockPrismaService.match.update.mockResolvedValue(updatedMatch);

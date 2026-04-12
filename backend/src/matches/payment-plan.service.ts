@@ -55,10 +55,13 @@ export class PaymentPlanService {
   /**
    * Verifica si una experiencia admite reserva con depósito según su fecha.
    */
-  canUseDeposit(experience: {
-    depositEnabled: boolean;
-    balanceDaysBefore: number;
-  }, startDate: Date | null): boolean {
+  canUseDeposit(
+    experience: {
+      depositEnabled: boolean;
+      balanceDaysBefore: number;
+    },
+    startDate: Date | null,
+  ): boolean {
     if (!experience.depositEnabled || !startDate) return false;
     const daysUntil = Math.ceil(
       (startDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
@@ -100,14 +103,19 @@ export class PaymentPlanService {
     if (match.requesterId !== requesterId) {
       throw new ForbiddenException('Solo el viajero puede realizar el pago');
     }
-    if (match.status !== 'accepted' || match.paymentStatus !== 'pending_payment') {
+    if (
+      match.status !== 'accepted' ||
+      match.paymentStatus !== 'pending_payment'
+    ) {
       throw new BadRequestException('Esta solicitud no requiere pago');
     }
     if (!match.totalPrice || match.totalPrice <= 0) {
       throw new BadRequestException('Esta experiencia no tiene precio');
     }
     if (!match.experience.depositEnabled) {
-      throw new BadRequestException('Esta experiencia no admite reserva con depósito');
+      throw new BadRequestException(
+        'Esta experiencia no admite reserva con depósito',
+      );
     }
     if (!this.canUseDeposit(match.experience, match.startDate)) {
       throw new BadRequestException(
@@ -245,9 +253,7 @@ export class PaymentPlanService {
     const session = event.data.object;
     if (session.metadata?.type !== 'deposit_payment') return;
 
-    if (
-      await this.stripeIdempotency.isAlreadyProcessed(event.id, event.type)
-    ) {
+    if (await this.stripeIdempotency.isAlreadyProcessed(event.id, event.type)) {
       return;
     }
 
@@ -315,8 +321,9 @@ export class PaymentPlanService {
    */
   async chargeBalance(planId: string): Promise<{
     success: boolean;
-    status: 'succeeded' | 'requires_action' | 'failed';
+    status: 'succeeded' | 'requires_action' | 'host_disabled' | 'failed';
     error?: string;
+    clientSecret?: string;
   }> {
     const plan = await this.prisma.paymentPlan.findUnique({
       where: { id: planId },
@@ -329,6 +336,7 @@ export class PaymentPlanService {
                 stripeConnectPayoutsEnabled: true,
               },
             },
+            requester: { select: { email: true, name: true } },
             experience: { select: { title: true } },
           },
         },
@@ -342,13 +350,31 @@ export class PaymentPlanService {
     if (!plan.stripePaymentMethodId || !plan.stripeCustomerId) {
       throw new BadRequestException('Plan sin método de pago guardado');
     }
+
+    // Re-validar Connect activo. Si el host lo deshabilitó tras el depósito,
+    // no podemos cobrar el saldo. Marcamos el plan como host_disabled para
+    // que admin tome acción manual (refund del depósito o resolución).
     if (
       !plan.match.host.stripeConnectAccountId ||
       !plan.match.host.stripeConnectPayoutsEnabled
     ) {
-      throw new BadRequestException(
-        'El anfitrión no tiene cuenta de cobros activa',
+      this.logger.warn(
+        `Host de plan ${plan.id} ha deshabilitado Connect. Cancelando plan y refund pendiente.`,
       );
+      await this.prisma.paymentPlan.update({
+        where: { id: plan.id },
+        data: {
+          status: 'failed',
+          balanceFailureReason:
+            'host_connect_disabled: el anfitrión deshabilitó su cuenta de cobros',
+          balanceLastRetryAt: new Date(),
+        },
+      });
+      return {
+        success: false,
+        status: 'host_disabled',
+        error: 'El anfitrión no tiene cuenta de cobros activa',
+      };
     }
 
     const stripe = this.ensureStripe();
@@ -406,7 +432,34 @@ export class PaymentPlanService {
         return { success: true, status: 'succeeded' };
       }
 
-      // requires_action (SCA) u otro estado no terminal
+      // requires_action: la tarjeta necesita autenticación 3D Secure (SCA).
+      // Guardamos el client_secret para que el viajero complete la autenticación
+      // desde la app y notificamos por email.
+      if (paymentIntent.status === 'requires_action') {
+        await this.prisma.paymentPlan.update({
+          where: { id: plan.id },
+          data: {
+            balanceRetryCount: plan.balanceRetryCount + 1,
+            balanceLastRetryAt: new Date(),
+            balanceFailureReason:
+              'requires_action: el viajero debe autenticar el pago (3D Secure)',
+            balanceStripePaymentId: paymentIntent.id,
+          },
+        });
+
+        this.logger.warn(
+          `Balance ${plan.id} requires SCA authentication from traveler`,
+        );
+
+        return {
+          success: false,
+          status: 'requires_action',
+          error: 'El viajero debe autenticar el pago manualmente',
+          clientSecret: paymentIntent.client_secret ?? undefined,
+        };
+      }
+
+      // Otro estado no terminal
       await this.prisma.paymentPlan.update({
         where: { id: plan.id },
         data: {
@@ -418,11 +471,17 @@ export class PaymentPlanService {
 
       return {
         success: false,
-        status: 'requires_action',
+        status: 'failed',
         error: `Estado Stripe: ${paymentIntent.status}`,
       };
     } catch (err) {
+      // Capturamos errores de Stripe; los más comunes son:
+      // - authentication_required (SCA): igual que requires_action
+      // - card_declined, expired_card, insufficient_funds
       const errorMsg = err instanceof Error ? err.message : String(err);
+      const stripeError = err as { code?: string };
+      const isAuthRequired = stripeError.code === 'authentication_required';
+
       this.logger.error(
         `Failed to charge balance for plan ${plan.id}: ${errorMsg}`,
       );
@@ -436,7 +495,11 @@ export class PaymentPlanService {
         },
       });
 
-      return { success: false, status: 'failed', error: errorMsg };
+      return {
+        success: false,
+        status: isAuthRequired ? 'requires_action' : 'failed',
+        error: errorMsg,
+      };
     }
   }
 
@@ -456,15 +519,63 @@ export class PaymentPlanService {
   }
 
   /**
-   * Cancelar un plan (refund del depósito si ya se pagó)
+   * Cancelar un plan (refund del depósito y/o saldo si ya se pagaron).
+   * Si Stripe falla por insufficient_funds (host sin saldo), se registra
+   * el refund como pendiente para resolución manual del admin.
    */
-  async cancelPlan(matchId: string, refundPercentage: number): Promise<void> {
+  async cancelPlan(
+    matchId: string,
+    refundPercentage: number,
+  ): Promise<{
+    refundsAttempted: number;
+    refundsFailed: number;
+    failureReasons: string[];
+  }> {
     const plan = await this.prisma.paymentPlan.findUnique({
       where: { matchId },
     });
-    if (!plan) return;
+    if (!plan) {
+      return { refundsAttempted: 0, refundsFailed: 0, failureReasons: [] };
+    }
 
     const stripe = this.ensureStripe();
+    const failureReasons: string[] = [];
+    let refundsAttempted = 0;
+    let refundsFailed = 0;
+
+    const tryRefund = async (
+      paymentIntentId: string,
+      amountCents: number,
+      label: string,
+    ): Promise<boolean> => {
+      refundsAttempted++;
+      try {
+        await stripe.refunds.create({
+          payment_intent: paymentIntentId,
+          amount: amountCents,
+          metadata: { matchId, type: label },
+        });
+        this.logger.log(
+          `Refunded ${amountCents / 100}€ (${label}) for match ${matchId}`,
+        );
+        return true;
+      } catch (err) {
+        refundsFailed++;
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        const stripeErr = err as { code?: string };
+        const isInsufficientFunds =
+          stripeErr.code === 'balance_insufficient' ||
+          errorMsg.includes('insufficient');
+        const reason = isInsufficientFunds
+          ? `${label}: el anfitrión no tiene saldo suficiente para devolver ${amountCents / 100}€`
+          : `${label}: ${errorMsg}`;
+        failureReasons.push(reason);
+        this.logger.error(
+          `Refund FAILED for match ${matchId} (${label}): ${errorMsg}. Acción manual requerida.`,
+        );
+        return false;
+      }
+    };
 
     // Refund del depósito si se pagó
     if (plan.depositPaid && plan.depositStripePaymentId) {
@@ -472,13 +583,10 @@ export class PaymentPlanService {
         plan.depositAmount * (refundPercentage / 100) * 100,
       );
       if (refundAmount > 0) {
-        await stripe.refunds.create({
-          payment_intent: plan.depositStripePaymentId,
-          amount: refundAmount,
-          metadata: { matchId, type: 'deposit_refund' },
-        });
-        this.logger.log(
-          `Refunded ${refundAmount / 100}€ of deposit for match ${matchId}`,
+        await tryRefund(
+          plan.depositStripePaymentId,
+          refundAmount,
+          'deposit_refund',
         );
       }
     }
@@ -489,35 +597,57 @@ export class PaymentPlanService {
         plan.balanceAmount * (refundPercentage / 100) * 100,
       );
       if (refundAmount > 0) {
-        await stripe.refunds.create({
-          payment_intent: plan.balanceStripePaymentId,
-          amount: refundAmount,
-          metadata: { matchId, type: 'balance_refund' },
-        });
-        this.logger.log(
-          `Refunded ${refundAmount / 100}€ of balance for match ${matchId}`,
+        await tryRefund(
+          plan.balanceStripePaymentId,
+          refundAmount,
+          'balance_refund',
         );
       }
     }
 
+    // Si hay refunds fallidos, marcar el plan como necesitando atención
+    // pero igualmente cancelar el plan.
+    const newStatus = refundsFailed > 0 ? 'failed' : 'cancelled';
     await this.prisma.paymentPlan.update({
       where: { matchId },
-      data: { status: 'cancelled' },
+      data: {
+        status: newStatus,
+        balanceFailureReason:
+          failureReasons.length > 0 ? failureReasons.join('; ') : null,
+      },
     });
+
+    return { refundsAttempted, refundsFailed, failureReasons };
   }
 
   /**
    * Cron diario: cobra los saldos pendientes que ya han llegado a balanceDueDate.
    * Se ejecuta todos los días a las 09:00 (hora del servidor).
+   * Idempotente: registra el último día procesado para evitar doble ejecución
+   * tras reinicio del servidor en la misma jornada.
    */
+  private lastCronRunDate: string | null = null;
+
   @Cron(CronExpression.EVERY_DAY_AT_9AM)
   async processBalancePayments(): Promise<void> {
-    const duePlans = await this.getPlansDueForCharge();
-    if (duePlans.length === 0) return;
+    const today = new Date().toISOString().split('T')[0];
 
-    this.logger.log(
-      `Processing ${duePlans.length} balance payments due today`,
-    );
+    // Idempotencia: si ya corrimos hoy, salimos.
+    // (Protege contra reinicios del servidor en torno a las 9:00.)
+    if (this.lastCronRunDate === today) {
+      this.logger.debug(
+        `processBalancePayments ya se ejecutó hoy (${today}), saltando`,
+      );
+      return;
+    }
+
+    const duePlans = await this.getPlansDueForCharge();
+    if (duePlans.length === 0) {
+      this.lastCronRunDate = today;
+      return;
+    }
+
+    this.logger.log(`Processing ${duePlans.length} balance payments due today`);
 
     for (const { id } of duePlans) {
       try {
@@ -535,5 +665,7 @@ export class PaymentPlanService {
         );
       }
     }
+
+    this.lastCronRunDate = today;
   }
 }

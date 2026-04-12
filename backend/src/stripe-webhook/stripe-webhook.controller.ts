@@ -6,6 +6,8 @@ import {
   Req,
   Logger,
   ServiceUnavailableException,
+  BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -68,7 +70,8 @@ export class StripeWebhookController {
         'Webhook signature verification failed',
         error instanceof Error ? error.message : String(error),
       );
-      return { received: false };
+      // Firma inválida → 400 (NO reintentar, los datos son inválidos)
+      throw new BadRequestException('Invalid webhook signature');
     }
 
     this.logger.log(`Stripe webhook: ${event.type} (${event.id})`);
@@ -116,6 +119,13 @@ export class StripeWebhookController {
       this.logger.error(
         `Error procesando ${event.type}`,
         error instanceof Error ? error.stack : String(error),
+      );
+      // CRÍTICO: lanzamos error para que Stripe reintente automáticamente.
+      // Si retornáramos 200, el evento se perdería en caso de fallo de BD,
+      // Stripe Connect, etc. La idempotencia (StripeIdempotencyService) evita
+      // que se procese dos veces si el reintento llega después de éxito.
+      throw new InternalServerErrorException(
+        `Failed to process webhook ${event.type} (${event.id})`,
       );
     }
 

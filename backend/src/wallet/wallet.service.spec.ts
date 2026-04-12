@@ -114,12 +114,12 @@ describe('WalletService', () => {
   });
 
   describe('getBalance', () => {
-    it('should return wallet balance', async () => {
+    it('should return wallet balance (credits ya inicializado)', async () => {
       mockPrismaService.wallet.findUnique.mockResolvedValue({
         id: 'w1',
         userId: 'user-1',
         balance: 25.5,
-        credits: 0,
+        credits: 5, // Si tiene credits, no se dispara la migración legacy
       });
 
       const balance = await service.getBalance('user-1');
@@ -155,11 +155,11 @@ describe('WalletService', () => {
       expect(result).toBe(true);
     });
 
-    it('should return false when credits < 1', async () => {
+    it('should return false when credits < 1 and no balance', async () => {
       mockPrismaService.wallet.findUnique.mockResolvedValue({
         id: 'w1',
         userId: 'user-1',
-        balance: 100,
+        balance: 0, // Sin balance legacy → no se dispara migración
         credits: 0,
       });
 
@@ -205,7 +205,7 @@ describe('WalletService', () => {
       mockPrismaService.wallet.findUnique.mockResolvedValue({
         id: 'w1',
         userId: 'user-1',
-        balance: 100,
+        balance: 0, // Sin balance legacy → no se dispara migración
         credits: 0,
       });
 

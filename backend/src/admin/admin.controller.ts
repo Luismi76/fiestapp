@@ -143,10 +143,7 @@ export class AdminController {
   }
 
   @Post('festivals/:id/cancel')
-  cancelFestival(
-    @Param('id') id: string,
-    @Body('reason') reason?: string,
-  ) {
+  cancelFestival(@Param('id') id: string, @Body('reason') reason?: string) {
     return this.adminService.cancelFestival(id, reason);
   }
 
@@ -441,10 +438,7 @@ export class AdminController {
       ? `vat_summary_${year}_Q${quarter}.csv`
       : `vat_summary_${year}.csv`;
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename=${filename}`,
-    );
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
     res.send('\uFEFF' + csv);
   }
 

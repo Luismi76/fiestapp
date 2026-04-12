@@ -673,6 +673,25 @@ export class ExperiencesService {
       );
     }
 
+    // Si se intenta cambiar el precio, verificar que no haya matches con pago
+    // pendiente o ya pagados (eso podría romper la facturación al viajero).
+    if (updateDto.price !== undefined && updateDto.price !== experience.price) {
+      const matchesWithPayment = await this.prisma.match.count({
+        where: {
+          experienceId: id,
+          status: { in: ['accepted', 'completed'] },
+          paymentStatus: {
+            in: ['pending_payment', 'held', 'paid', 'released'],
+          },
+        },
+      });
+      if (matchesWithPayment > 0) {
+        throw new ForbiddenException(
+          `No se puede cambiar el precio: hay ${matchesWithPayment} reserva(s) activa(s) con pago en curso. Espera a que se completen o cancela primero.`,
+        );
+      }
+    }
+
     // Extraer availability, coords y cancellationPolicy del DTO para manejarlo por separado
     const {
       availability,
@@ -784,6 +803,28 @@ export class ExperiencesService {
     if (experience.hostId !== userId) {
       throw new ForbiddenException(
         'No tienes permiso para eliminar esta experiencia',
+      );
+    }
+
+    // No permitir borrar si hay matches activos con dinero involucrado.
+    // Esto protege a viajeros que ya han pagado o tienen depósitos pendientes.
+    const activeMatches = await this.prisma.match.count({
+      where: {
+        experienceId: id,
+        status: { in: ['accepted', 'completed'] },
+        OR: [
+          {
+            paymentStatus: {
+              in: ['pending_payment', 'held', 'paid', 'released'],
+            },
+          },
+          { paymentPlan: { status: { in: ['pending', 'active'] } } },
+        ],
+      },
+    });
+    if (activeMatches > 0) {
+      throw new ForbiddenException(
+        `No se puede eliminar: hay ${activeMatches} reserva(s) activa(s) con pagos en curso. Cancela o completa las reservas primero.`,
       );
     }
 

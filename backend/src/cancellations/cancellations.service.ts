@@ -387,11 +387,14 @@ export class CancellationsService {
           userId,
           type: 'system',
           title: 'Experiencias despublicadas',
-          message: 'Tus experiencias han sido despublicadas debido a cancelaciones reiteradas. Contacta con soporte para más información.',
+          message:
+            'Tus experiencias han sido despublicadas debido a cancelaciones reiteradas. Contacta con soporte para más información.',
           data: { strikes: user.strikes },
         });
 
-        this.logger.warn(`Host ${userId} alcanzó ${user.strikes} strikes: experiencias despublicadas`);
+        this.logger.warn(
+          `Host ${userId} alcanzó ${user.strikes} strikes: experiencias despublicadas`,
+        );
       }
     } else if (hostCancellations >= 2) {
       // Advertencia
@@ -449,8 +452,7 @@ export class CancellationsService {
           status: { in: ['held', 'completed', 'released'] },
         },
       });
-      isStripeHold =
-        paymentTx?.description?.includes('[stripe_hold]') || false;
+      isStripeHold = paymentTx?.description?.includes('[stripe_hold]') || false;
     }
 
     // Stripe no devuelve su comisión en refunds de pagos ya capturados
@@ -503,21 +505,22 @@ export class CancellationsService {
     const nonRefundableAllowed =
       verificationMeetsRequirement && avgRating >= 4.0 && completedAsHost >= 3;
 
-    const restrictions: Record<string, { allowed: boolean; reason?: string }> = {
-      FLEXIBLE: { allowed: true },
-      MODERATE: { allowed: true },
-      STRICT: { allowed: true },
-      NON_REFUNDABLE: {
-        allowed: nonRefundableAllowed,
-        reason: nonRefundableAllowed
-          ? undefined
-          : this.getNonRefundableRestrictionReason(
-              verificationMeetsRequirement,
-              avgRating,
-              completedAsHost,
-            ),
-      },
-    };
+    const restrictions: Record<string, { allowed: boolean; reason?: string }> =
+      {
+        FLEXIBLE: { allowed: true },
+        MODERATE: { allowed: true },
+        STRICT: { allowed: true },
+        NON_REFUNDABLE: {
+          allowed: nonRefundableAllowed,
+          reason: nonRefundableAllowed
+            ? undefined
+            : this.getNonRefundableRestrictionReason(
+                verificationMeetsRequirement,
+                avgRating,
+                completedAsHost,
+              ),
+        },
+      };
 
     const policies = Object.entries(restrictions)
       .filter(([, v]) => v.allowed)
@@ -532,8 +535,7 @@ export class CancellationsService {
     completedAsHost: number,
   ): string {
     const reasons: string[] = [];
-    if (!verificationOk)
-      reasons.push('verificación de identidad');
+    if (!verificationOk) reasons.push('verificación de identidad');
     if (avgRating < 4.0)
       reasons.push(`valoración media >= 4.0 (actual: ${avgRating.toFixed(1)})`);
     if (completedAsHost < 3)

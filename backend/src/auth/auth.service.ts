@@ -48,7 +48,9 @@ export class AuthService {
   /**
    * Valida un refresh token y emite nuevos tokens
    */
-  async refreshTokens(refreshToken: string): Promise<{ access_token: string; refresh_token: string }> {
+  async refreshTokens(
+    refreshToken: string,
+  ): Promise<{ access_token: string; refresh_token: string }> {
     let payload: { sub: string; email: string; type?: string };
     try {
       payload = this.jwtService.verify(refreshToken);
@@ -242,7 +244,10 @@ export class AuthService {
       } as TwoFactorRequiredResponseDto;
     }
 
-    const { access_token, refresh_token } = this.generateTokens(user.id, user.email);
+    const { access_token, refresh_token } = this.generateTokens(
+      user.id,
+      user.email,
+    );
     this.logger.debug('Login successful');
 
     return {
@@ -303,7 +308,10 @@ export class AuthService {
     }
 
     // Generar tokens
-    const { access_token, refresh_token } = this.generateTokens(user.id, user.email);
+    const { access_token, refresh_token } = this.generateTokens(
+      user.id,
+      user.email,
+    );
     this.logger.debug(`2FA verification successful for ${user.email}`);
 
     return {
@@ -615,7 +623,10 @@ export class AuthService {
     }
 
     // Generar tokens
-    const { access_token, refresh_token } = this.generateTokens(user.id, user.email);
+    const { access_token, refresh_token } = this.generateTokens(
+      user.id,
+      user.email,
+    );
 
     return {
       access_token,
