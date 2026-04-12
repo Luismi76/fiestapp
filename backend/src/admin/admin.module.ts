@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AdminService } from './admin.service';
@@ -9,6 +9,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CancellationsModule } from '../cancellations/cancellations.module';
 import { WalletModule } from '../wallet/wallet.module';
+import { MatchesModule } from '../matches/matches.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { WalletModule } from '../wallet/wallet.module';
     CancellationsModule,
     WalletModule,
     ConfigModule,
+    forwardRef(() => MatchesModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

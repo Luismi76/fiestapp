@@ -10,6 +10,7 @@ export interface RefundCalculation {
   penaltyAmount: number;
   policy: CancellationPolicy;
   hoursUntilStart: number;
+  forceMajeure?: boolean;
 }
 
 /**

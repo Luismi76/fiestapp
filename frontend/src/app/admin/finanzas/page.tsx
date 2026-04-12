@@ -267,6 +267,10 @@ const accountingApi = {
     return data;
   },
 
+  forceCancelMatch: async (matchId: string, reason: string): Promise<void> => {
+    await api.post(`/admin/matches/${matchId}/force-cancel`, { reason });
+  },
+
   exportTransactions: (filters: { startDate?: string; endDate?: string; type?: string; status?: string }) => {
     const params = new URLSearchParams();
     if (filters.startDate) params.append('startDate', filters.startDate);
@@ -1011,6 +1015,76 @@ function TransactionDetailPanel({ tx, timeline, timelineLoading }: {
           )}
         </div>
       )}
+
+      {/* Acción admin: cancelar por fuerza mayor */}
+      {tx.matchId &&
+        m &&
+        (m.status === 'pending' || m.status === 'accepted') &&
+        !cancel && (
+          <ForceCancelButton matchId={tx.matchId} />
+        )}
+    </div>
+  );
+}
+
+// Botón de cancelación por fuerza mayor (solo admin)
+function ForceCancelButton({ matchId }: { matchId: string }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleClick = async () => {
+    const reason = prompt(
+      'Motivo de la cancelación por fuerza mayor (mínimo 10 caracteres):\n\n' +
+        'Ejemplos: enfermedad grave del viajero (con justificante), ' +
+        'fallecimiento, desastre natural, evento cancelado por causa mayor.\n\n' +
+        'IMPORTANTE: el viajero recibirá el 100% del importe y FiestApp absorberá la comisión bancaria.',
+    );
+    if (!reason || reason.trim().length < 10) {
+      if (reason !== null) {
+        setError('La razón debe tener al menos 10 caracteres');
+      }
+      return;
+    }
+    if (
+      !confirm(
+        `¿Confirmas la cancelación por fuerza mayor de la reserva ${matchId.slice(0, 8)}...?\n\n` +
+          'Esto NO se puede deshacer.',
+      )
+    ) {
+      return;
+    }
+
+    setSubmitting(true);
+    setError('');
+    try {
+      await accountingApi.forceCancelMatch(matchId, reason);
+      alert('Cancelación por fuerza mayor procesada correctamente.');
+      window.location.reload();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al cancelar';
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+      <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">
+        Acción de administrador
+      </p>
+      <p className="text-xs text-amber-600 mb-2">
+        Cancela la reserva por fuerza mayor. El viajero recibe el 100% y FiestApp asume la comisión bancaria.
+      </p>
+      {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={submitting}
+        className="px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50"
+      >
+        {submitting ? 'Procesando...' : 'Cancelar por fuerza mayor'}
+      </button>
     </div>
   );
 }

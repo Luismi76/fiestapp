@@ -1297,6 +1297,38 @@ export class MatchesService {
     return updatedMatch;
   }
 
+  /**
+   * Cancelar un match por fuerza mayor (solo admin).
+   * FiestApp absorbe la comisión de Stripe. El viajero recibe el 100%
+   * del importe original sin descuentos.
+   *
+   * Casos de uso típicos:
+   * - Enfermedad grave del viajero o anfitrión (con justificante)
+   * - Cancelación del festival/evento por causas ajenas
+   * - Imposibilidad de viajar por circunstancias extraordinarias
+   */
+  async forceCancelAsAdmin(matchId: string, adminId: string, reason: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      select: { hostId: true, requesterId: true, status: true },
+    });
+    if (!match) {
+      throw new NotFoundException('Solicitud no encontrada');
+    }
+    if (match.status !== 'pending' && match.status !== 'accepted') {
+      throw new BadRequestException(
+        'Esta solicitud no se puede cancelar (estado actual: ' +
+          match.status +
+          ')',
+      );
+    }
+
+    // Llamamos a cancel() pasando el adminId como userId pero con forceMajeure
+    // para que FiestApp absorba la comisión. El cancel detectará que adminId
+    // no es ni host ni requester, así que añadimos un bypass.
+    return this.cancel(matchId, adminId, reason, true);
+  }
+
   // Cancelar match (solo requester si está pending, ambos si está accepted)
   // forceMajeure: solo accesible desde admin. Si es true, FiestApp absorbe
   // la comisión Stripe (cancelación por enfermedad grave, fuerza mayor, etc.)
@@ -1325,19 +1357,23 @@ export class MatchesService {
       throw new NotFoundException('Solicitud no encontrada');
     }
 
-    // Solo el requester puede cancelar si está pending
-    if (match.status === 'pending' && match.requesterId !== userId) {
-      throw new ForbiddenException(
-        'Solo quien solicitó puede cancelar una solicitud pendiente',
-      );
-    }
-
-    // Ambos pueden cancelar si está accepted
-    if (match.status === 'accepted') {
-      if (match.hostId !== userId && match.requesterId !== userId) {
+    // En cancelaciones por fuerza mayor (admin), se omiten las validaciones
+    // de permisos y los límites de cancelaciones.
+    if (!forceMajeure) {
+      // Solo el requester puede cancelar si está pending
+      if (match.status === 'pending' && match.requesterId !== userId) {
         throw new ForbiddenException(
-          'No tienes permiso para cancelar esta solicitud',
+          'Solo quien solicitó puede cancelar una solicitud pendiente',
         );
+      }
+
+      // Ambos pueden cancelar si está accepted
+      if (match.status === 'accepted') {
+        if (match.hostId !== userId && match.requesterId !== userId) {
+          throw new ForbiddenException(
+            'No tienes permiso para cancelar esta solicitud',
+          );
+        }
       }
     }
 
@@ -1345,17 +1381,20 @@ export class MatchesService {
       throw new BadRequestException('Esta solicitud no se puede cancelar');
     }
 
-    // Verificar si el usuario tiene demasiadas cancelaciones recientes
-    const cancellationWarning =
-      await this.cancellationsService.getCancellationWarning(userId);
-    if (!cancellationWarning.canCancel) {
-      throw new BadRequestException(
-        cancellationWarning.message ||
-          'Has alcanzado el límite de cancelaciones. Contacta con soporte.',
-      );
+    // Verificar límite de cancelaciones (excepto en fuerza mayor)
+    if (!forceMajeure) {
+      const cancellationWarning =
+        await this.cancellationsService.getCancellationWarning(userId);
+      if (!cancellationWarning.canCancel) {
+        throw new BadRequestException(
+          cancellationWarning.message ||
+            'Has alcanzado el límite de cancelaciones. Contacta con soporte.',
+        );
+      }
     }
 
-    const isHost = userId === match.hostId;
+    // En fuerza mayor el "cancelador" técnico es el admin, no host ni requester
+    const isHost = !forceMajeure && userId === match.hostId;
     const cancelledByHost = isHost;
 
     // Calcular reembolso si hay pago y fecha de inicio
@@ -1363,8 +1402,31 @@ export class MatchesService {
     let refundPercentage = 0;
 
     if (match.status === 'accepted' && match.totalPrice && match.startDate) {
-      // Si el host cancela, reembolso total al viajero
-      if (cancelledByHost) {
+      // Fuerza mayor (admin): siempre 100%, sin penalizaciones
+      if (forceMajeure) {
+        refundPercentage = 100;
+        refundAmount = match.totalPrice;
+
+        const hoursUntilStart =
+          (match.startDate.getTime() - Date.now()) / (1000 * 60 * 60);
+        const fmRefundCalc: RefundCalculation = {
+          refundPercentage: 100,
+          refundAmount: match.totalPrice,
+          penaltyAmount: 0,
+          policy: match.experience.cancellationPolicy,
+          hoursUntilStart: Math.max(0, hoursUntilStart),
+          forceMajeure: true,
+        };
+        await this.cancellationsService.recordCancellation(
+          id,
+          userId,
+          reason,
+          fmRefundCalc,
+          undefined,
+          true,
+        );
+      } else if (cancelledByHost) {
+        // Si el host cancela, reembolso total al viajero
         refundPercentage = 100;
         refundAmount = match.totalPrice;
 

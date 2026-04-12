@@ -10,15 +10,19 @@ import {
   HttpCode,
   HttpStatus,
   Res,
+  Request,
+  BadRequestException,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { AdminService } from './admin.service';
 import { FinancialReportService } from './financial-report.service';
 import { AccountingService } from './accounting.service';
+import { MatchesService } from '../matches/matches.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
+import type { AuthenticatedRequest } from '../common/interfaces/authenticated-request.interface';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -29,6 +33,7 @@ export class AdminController {
     private readonly accountingService: AccountingService,
     private readonly configService: ConfigService,
     private readonly platformConfigService: PlatformConfigService,
+    private readonly matchesService: MatchesService,
   ) {}
 
   @Get('platform-config')
@@ -145,6 +150,27 @@ export class AdminController {
   @Post('festivals/:id/cancel')
   cancelFestival(@Param('id') id: string, @Body('reason') reason?: string) {
     return this.adminService.cancelFestival(id, reason);
+  }
+
+  /**
+   * Cancela un match concreto por fuerza mayor.
+   * El viajero recibe el 100% del importe original y FiestApp absorbe la
+   * comisión de Stripe que no es recuperable. Pensado para casos como:
+   * enfermedad grave, fallecimiento, desastre natural, etc.
+   * Requiere `reason` con justificación para auditoría.
+   */
+  @Post('matches/:id/force-cancel')
+  forceCancel(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    if (!reason || reason.trim().length < 10) {
+      throw new BadRequestException(
+        'La razón es obligatoria y debe tener al menos 10 caracteres',
+      );
+    }
+    return this.matchesService.forceCancelAsAdmin(id, req.user.userId, reason);
   }
 
   @Get('users/banned')
