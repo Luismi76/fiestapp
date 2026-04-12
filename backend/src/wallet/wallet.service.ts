@@ -11,10 +11,7 @@ import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
 import Stripe from 'stripe';
 
-export type TransactionType =
-  | 'pack_purchase'
-  | 'platform_fee'
-  | 'refund';
+export type TransactionType = 'pack_purchase' | 'platform_fee' | 'refund';
 
 @Injectable()
 export class WalletService implements OnModuleInit {
@@ -145,21 +142,22 @@ export class WalletService implements OnModuleInit {
 
     // Usar Stripe Price ID fijo si está configurado, sino fallback a price_data dinámico
     const stripePriceId = this.platformConfig.getStripePriceId(pack.id);
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = stripePriceId
-      ? [{ price: stripePriceId, quantity: 1 }]
-      : [
-          {
-            price_data: {
-              currency: 'eur',
-              product_data: {
-                name: `Pack ${pack.name}`,
-                description: `${pack.experiences} experiencias${pack.bonus > 0 ? ` (${pack.bonus} gratis)` : ''}`,
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] =
+      stripePriceId
+        ? [{ price: stripePriceId, quantity: 1 }]
+        : [
+            {
+              price_data: {
+                currency: 'eur',
+                product_data: {
+                  name: `Pack ${pack.name}`,
+                  description: `${pack.experiences} experiencias${pack.bonus > 0 ? ` (${pack.bonus} gratis)` : ''}`,
+                },
+                unit_amount: Math.round(pack.price * 100),
               },
-              unit_amount: Math.round(pack.price * 100),
+              quantity: 1,
             },
-            quantity: 1,
-          },
-        ];
+          ];
 
     const session = await this.ensureStripe().checkout.sessions.create({
       payment_method_types: ['card'],
