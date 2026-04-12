@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
@@ -503,5 +504,36 @@ export class PaymentPlanService {
       where: { matchId },
       data: { status: 'cancelled' },
     });
+  }
+
+  /**
+   * Cron diario: cobra los saldos pendientes que ya han llegado a balanceDueDate.
+   * Se ejecuta todos los días a las 09:00 (hora del servidor).
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_9AM)
+  async processBalancePayments(): Promise<void> {
+    const duePlans = await this.getPlansDueForCharge();
+    if (duePlans.length === 0) return;
+
+    this.logger.log(
+      `Processing ${duePlans.length} balance payments due today`,
+    );
+
+    for (const { id } of duePlans) {
+      try {
+        const result = await this.chargeBalance(id);
+        if (result.success) {
+          this.logger.log(`Balance ${id} charged successfully`);
+        } else {
+          this.logger.warn(
+            `Balance ${id} charge result: ${result.status} - ${result.error ?? 'unknown'}`,
+          );
+        }
+      } catch (err) {
+        this.logger.error(
+          `Balance ${id} charge threw: ${err instanceof Error ? err.message : err}`,
+        );
+      }
+    }
   }
 }

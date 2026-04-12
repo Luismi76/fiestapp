@@ -530,7 +530,7 @@ export const matchesApi = {
   },
 
   // Crear pago de experiencia (Stripe Checkout)
-  createPayment: async (matchId: string, paymentMode: 'immediate' | 'escrow' = 'escrow'): Promise<{
+  createPayment: async (matchId: string, paymentMode: 'immediate' | 'escrow' | 'deposit' = 'escrow'): Promise<{
     sessionUrl: string;
     sessionId: string;
   }> => {
