@@ -1149,16 +1149,27 @@ export class MatchesService {
             const stripe = new Stripe(stripeKey);
             const isSession = transaction.stripeId.startsWith('cs_');
             let paymentIntentId = transaction.stripeId;
+            let savedPaymentMethodId: string | null = null;
+            let stripeCustomerId: string | null = null;
 
             if (isSession) {
               const session = await stripe.checkout.sessions.retrieve(
                 transaction.stripeId,
               );
               paymentIntentId = session.payment_intent as string;
+              if (typeof session.customer === 'string') {
+                stripeCustomerId = session.customer;
+              }
             }
 
             if (paymentIntentId) {
               const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+              // Capturar payment method para cargo off-session posterior (deposits)
+              savedPaymentMethodId =
+                typeof pi.payment_method === 'string'
+                  ? pi.payment_method
+                  : (pi.payment_method?.id ?? null);
 
               if (
                 pi.status === 'requires_capture' ||
@@ -1169,6 +1180,11 @@ export class MatchesService {
                 const newStatus =
                   pi.status === 'requires_capture' ? 'held' : 'released';
 
+                // Comprobar si hay un payment_plan asociado (reserva con depósito)
+                const paymentPlan = await this.prisma.paymentPlan.findUnique({
+                  where: { matchId },
+                });
+
                 await this.prisma.$transaction(async (tx) => {
                   await tx.transaction.update({
                     where: { id: transaction.id },
@@ -1178,6 +1194,23 @@ export class MatchesService {
                     where: { id: matchId },
                     data: { paymentStatus: newStatus },
                   });
+
+                  // Si existe un payment_plan, también lo actualizamos
+                  // (ya que el polling del frontend llega antes que el webhook)
+                  if (paymentPlan && !paymentPlan.depositPaid) {
+                    await tx.paymentPlan.update({
+                      where: { matchId },
+                      data: {
+                        depositPaid: true,
+                        depositPaidAt: new Date(),
+                        depositStripePaymentId: paymentIntentId,
+                        stripePaymentMethodId: savedPaymentMethodId,
+                        stripeCustomerId:
+                          stripeCustomerId ?? paymentPlan.stripeCustomerId,
+                        status: 'active',
+                      },
+                    });
+                  }
                 });
 
                 return { paymentStatus: newStatus, amount: match.totalPrice };
