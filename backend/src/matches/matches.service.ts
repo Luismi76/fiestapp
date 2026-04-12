@@ -1590,13 +1590,17 @@ export class MatchesService {
               data: { status: 'refunded' },
             });
 
-            // Devolver comisión solo al usuario que NO canceló.
-            // Quien cancela pierde su comisión (se usa para cubrir la devolución al otro).
-            if (isHost) {
-              // Anfitrión cancela: pierde su 1,50€, se devuelve al viajero
+            // Devolución de la comisión de plataforma (créditos):
+            // - Fuerza mayor: ambos recuperan créditos (ninguno tiene culpa)
+            // - Cancelación normal: quien cancela pierde el suyo, el otro lo recupera
+            if (forceMajeure) {
+              await this.walletService.refundPlatformFee(match.hostId, id);
+              await this.walletService.refundPlatformFee(match.requesterId, id);
+            } else if (isHost) {
+              // Anfitrión cancela: pierde su crédito, se devuelve al viajero
               await this.walletService.refundPlatformFee(match.requesterId, id);
             } else {
-              // Viajero cancela: pierde su 1,50€, se devuelve al anfitrión
+              // Viajero cancela: pierde su crédito, se devuelve al anfitrión
               await this.walletService.refundPlatformFee(match.hostId, id);
             }
           } catch (error) {
@@ -1604,8 +1608,11 @@ export class MatchesService {
           }
         }
       } else if (match.paymentStatus === 'pending_payment') {
-        // No pagó aún: quien cancela pierde su comisión, el otro la recupera
-        if (isHost) {
+        // No pagó aún: misma lógica que arriba
+        if (forceMajeure) {
+          await this.walletService.refundPlatformFee(match.hostId, id);
+          await this.walletService.refundPlatformFee(match.requesterId, id);
+        } else if (isHost) {
           await this.walletService.refundPlatformFee(match.requesterId, id);
         } else {
           await this.walletService.refundPlatformFee(match.hostId, id);
