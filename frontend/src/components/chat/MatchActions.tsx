@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { MatchStatus } from '@/types/match';
+import { MatchStatus, MatchPaymentPlan, Match } from '@/types/match';
 import { WalletInfo } from '@/lib/api';
 import { CanReviewResponse } from '@/types/review';
 import PackPurchaseModal from '@/components/PackPurchaseModal';
+import BookingPaymentStatus from '@/components/BookingPaymentStatus';
 
 interface MatchActionsProps {
   status: MatchStatus;
@@ -30,6 +31,7 @@ interface MatchActionsProps {
   depositEnabled?: boolean;
   depositPercentage?: number;
   balanceDaysBefore?: number;
+  paymentPlan?: MatchPaymentPlan | null;
 }
 
 function WalletWarning({ onTopUpSuccess }: { walletInfo: WalletInfo; onTopUpSuccess?: () => void }) {
@@ -241,6 +243,7 @@ export default function MatchActions({
   depositEnabled,
   depositPercentage,
   balanceDaysBefore,
+  paymentPlan,
 }: MatchActionsProps) {
   // El botón de confirmar solo aparece a partir de la fecha de la experiencia
   const canConfirmToday = !startDate || new Date(startDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0);
@@ -353,8 +356,6 @@ export default function MatchActions({
   if (status === 'accepted' && (paymentStatus === 'held' || !paymentStatus || paymentStatus === 'released')) {
     const myConfirmed = isHost ? hostConfirmed : requesterConfirmed;
     const otherConfirmed = isHost ? requesterConfirmed : hostConfirmed;
-    const isEscrow = paymentStatus === 'held';
-    const isReleased = paymentStatus === 'released';
 
     const checkSvg = (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-white">
@@ -363,20 +364,24 @@ export default function MatchActions({
     );
     const dot = <div className="w-1.5 h-1.5 rounded-full bg-white" />;
 
+    // Construir un objeto Match-like para pasar al componente BookingPaymentStatus
+    const matchLike = {
+      paymentPlan,
+      paymentStatus,
+      totalPrice,
+    } as unknown as Match;
+
     return (
       <div className="mx-4 mt-2 space-y-2">
-        {/* Compact info bar: escrow badge + confirmation dots */}
+        {/* Estado del pago (payment plan o pago único) */}
+        {(paymentPlan || (totalPrice && totalPrice > 0)) && (
+          <div className="px-3 py-2">
+            <BookingPaymentStatus match={matchLike} compact />
+          </div>
+        )}
+
+        {/* Confirmation dots */}
         <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl text-xs">
-          {isEscrow && (
-            <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
-              {totalPrice?.toFixed(2)}€ retenido
-            </span>
-          )}
-          {isReleased && (
-            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
-              {totalPrice?.toFixed(2)}€ pagado
-            </span>
-          )}
           <div className="flex items-center gap-1.5 flex-1 justify-end">
             <span className="text-gray-400">Tu:</span>
             <div className={`w-5 h-5 rounded-full flex items-center justify-center ${myConfirmed ? 'bg-emerald-500' : 'bg-gray-300'}`}>
