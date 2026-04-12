@@ -25,6 +25,7 @@ import { PlatformConfigService } from '../platform-config/platform-config.servic
 import { ConfigService } from '@nestjs/config';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 import { ConnectService } from '../connect/connect.service';
+import { PaymentPlanService } from './payment-plan.service';
 import Stripe from 'stripe';
 
 // Helper para parsear fechas correctamente evitando problemas de zona horaria
@@ -59,6 +60,7 @@ export class MatchesService {
     private stripeIdempotency: StripeIdempotencyService,
     private platformConfig: PlatformConfigService,
     private connectService: ConnectService,
+    private paymentPlanService: PaymentPlanService,
   ) {}
 
   // Crear solicitud de match
@@ -884,12 +886,18 @@ export class MatchesService {
   // Crear pago de experiencia con Stripe Checkout usando Destination Charges
   // - immediate: captura automática, fondos al host en el momento (refund vía Stripe 180 días)
   // - escrow: captura manual hasta 7 días; si la experiencia es posterior, se fuerza immediate
+  // - deposit: pago en dos plazos (depósito ahora + saldo off-session en balanceDueDate)
   // El host es merchant of record (on_behalf_of). Precios con IVA incluido.
   async createExperiencePayment(
     matchId: string,
     requesterId: string,
-    paymentMode: 'immediate' | 'escrow' = 'escrow',
+    paymentMode: 'immediate' | 'escrow' | 'deposit' = 'escrow',
   ) {
+    // Modo deposit: delegar al servicio especializado
+    if (paymentMode === 'deposit') {
+      return this.paymentPlanService.createDepositCheckout(matchId, requesterId);
+    }
+
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
       include: {
@@ -1311,8 +1319,17 @@ export class MatchesService {
         );
       }
 
+      // Si hay un PaymentPlan (reserva con depósito), delegar al servicio especializado
+      const paymentPlan = await this.prisma.paymentPlan.findUnique({
+        where: { matchId: id },
+      });
+      if (paymentPlan && refundAmount > 0) {
+        await this.paymentPlanService.cancelPlan(id, refundPercentage);
+      }
+
       // Procesar reembolso según estado del pago (incluye 'released' para pagos inmediatos)
       if (
+        !paymentPlan &&
         (match.paymentStatus === 'held' ||
           match.paymentStatus === 'paid' ||
           match.paymentStatus === 'released') &&

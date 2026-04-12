@@ -13,6 +13,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { MatchesService } from '../matches/matches.service';
 import { PaymentsService } from '../payments/payments.service';
 import { ConnectService } from '../connect/connect.service';
+import { PaymentPlanService } from '../matches/payment-plan.service';
 import Stripe from 'stripe';
 
 /**
@@ -33,6 +34,7 @@ export class StripeWebhookController {
     private readonly matchesService: MatchesService,
     private readonly paymentsService: PaymentsService,
     private readonly connectService: ConnectService,
+    private readonly paymentPlanService: PaymentPlanService,
   ) {
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (stripeKey) {
@@ -83,6 +85,9 @@ export class StripeWebhookController {
           } else if (metadataType === 'experience_payment') {
             // Pago de experiencia → MatchesService
             await this.matchesService.handleExperiencePaymentWebhook(event);
+          } else if (metadataType === 'deposit_payment') {
+            // Depósito de reserva → PaymentPlanService
+            await this.paymentPlanService.handleDepositWebhook(event);
           } else {
             this.logger.debug(
               `checkout.session.completed ignorado: metadata.type=${metadataType}`,

@@ -141,7 +141,7 @@ export class MatchesController {
   createPayment(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() body: { paymentMode?: 'immediate' | 'escrow' },
+    @Body() body: { paymentMode?: 'immediate' | 'escrow' | 'deposit' },
   ) {
     return this.matchesService.createExperiencePayment(
       id,

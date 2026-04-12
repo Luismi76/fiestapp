@@ -102,6 +102,9 @@ export class ExperiencesService {
             userId,
             createDto.cancellationPolicy,
           ),
+          depositEnabled: createDto.depositEnabled ?? false,
+          depositPercentage: createDto.depositPercentage ?? 20,
+          balanceDaysBefore: createDto.balanceDaysBefore ?? 30,
           hostId: userId,
         },
         include: {
@@ -232,7 +235,11 @@ export class ExperiencesService {
     }
 
     // Filtros de compatibilidad
-    if (hostHasPartner !== undefined || hostHasFriends !== undefined || hostHasChildren !== undefined) {
+    if (
+      hostHasPartner !== undefined ||
+      hostHasFriends !== undefined ||
+      hostHasChildren !== undefined
+    ) {
       where.host = {};
       if (hostHasPartner !== undefined) {
         (where.host as Record<string, boolean>).hasPartner = hostHasPartner;
@@ -413,8 +420,18 @@ export class ExperiencesService {
     });
 
     const monthNames = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
     ];
 
     const byMonth = monthNames.map((monthName, index) => ({

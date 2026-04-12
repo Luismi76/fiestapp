@@ -25,8 +25,11 @@ interface MatchActionsProps {
   onShowReviewForm: () => void;
   onOpenDispute?: () => void;
   onWalletReloaded?: () => void;
-  onPay?: (paymentMode: 'immediate' | 'escrow') => void;
+  onPay?: (paymentMode: 'immediate' | 'escrow' | 'deposit') => void;
   startDate?: string;
+  depositEnabled?: boolean;
+  depositPercentage?: number;
+  balanceDaysBefore?: number;
 }
 
 function WalletWarning({ walletInfo, onTopUpSuccess }: { walletInfo: WalletInfo; onTopUpSuccess?: () => void }) {
@@ -69,51 +72,91 @@ function WalletWarning({ walletInfo, onTopUpSuccess }: { walletInfo: WalletInfo;
   );
 }
 
-function PaymentModeSelector({ totalPrice, startDate, onPay, onCancel }: {
+function PaymentModeSelector({ totalPrice, startDate, onPay, onCancel, depositEnabled, depositPercentage = 20, balanceDaysBefore = 30 }: {
   totalPrice?: number;
   startDate?: string;
-  onPay?: (mode: 'immediate' | 'escrow') => void;
+  onPay?: (mode: 'immediate' | 'escrow' | 'deposit') => void;
   onCancel: () => void;
+  depositEnabled?: boolean;
+  depositPercentage?: number;
+  balanceDaysBefore?: number;
 }) {
   // Calcular días hasta la experiencia (7 es el límite de Stripe para manual capture)
   const daysUntil = startDate
     ? Math.ceil((new Date(startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : 0;
   const canHold = daysUntil > 0 && daysUntil <= 7;
+  const canUseDeposit = depositEnabled && daysUntil > balanceDaysBefore;
 
-  const [mode, setMode] = useState<'immediate' | 'escrow'>(canHold ? 'escrow' : 'immediate');
+  const depositAmount = totalPrice ? Math.round(totalPrice * (depositPercentage / 100) * 100) / 100 : 0;
+  const balanceAmount = totalPrice ? Math.round((totalPrice - depositAmount) * 100) / 100 : 0;
+  const balanceDueDate = startDate ? new Date(startDate) : null;
+  if (balanceDueDate) balanceDueDate.setDate(balanceDueDate.getDate() - balanceDaysBefore);
+
+  const [mode, setMode] = useState<'immediate' | 'escrow' | 'deposit'>(
+    canUseDeposit ? 'deposit' : (canHold ? 'escrow' : 'immediate'),
+  );
+
+  const hasMultipleOptions = canHold || canUseDeposit;
 
   return (
     <div className="mx-4 mt-3 space-y-3">
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <p className="font-medium text-blue-800 mb-1">Pago pendiente</p>
         <p className="text-sm text-blue-600 mb-3">
-          El anfitrión ha aceptado tu solicitud.{canHold ? ' Elige cómo quieres pagar:' : ''}
+          El anfitrión ha aceptado tu solicitud.{hasMultipleOptions ? ' Elige cómo quieres pagar:' : ''}
         </p>
 
-        {canHold ? (
+        {hasMultipleOptions ? (
           <div className="space-y-2 mb-4">
-            <button
-              onClick={() => setMode('escrow')}
-              className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${
-                mode === 'escrow'
-                  ? 'border-blue-500 bg-blue-100'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                  mode === 'escrow' ? 'border-blue-500' : 'border-gray-300'
-                }`}>
-                  {mode === 'escrow' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+            {canUseDeposit && (
+              <button
+                onClick={() => setMode('deposit')}
+                className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${
+                  mode === 'deposit'
+                    ? 'border-blue-500 bg-blue-100'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    mode === 'deposit' ? 'border-blue-500' : 'border-gray-300'
+                  }`}>
+                    {mode === 'deposit' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                  </div>
+                  <span className="font-medium text-gray-900 text-sm">Reservar con depósito</span>
+                  <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Recomendado</span>
                 </div>
-                <span className="font-medium text-gray-900 text-sm">Pago con retención</span>
-                <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Recomendado</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1 ml-6">
-                Stripe autoriza el cargo pero no lo cobra hasta que confirméis la experiencia. Si se cancela antes, la autorización se libera sin coste.
-              </p>
-            </button>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  Pagas <span className="font-semibold">{depositAmount.toFixed(2)}€</span> ({depositPercentage}%) ahora y reservamos tu plaza.
+                  El saldo de <span className="font-semibold">{balanceAmount.toFixed(2)}€</span> se cobra automáticamente el <span className="font-semibold">{balanceDueDate?.toLocaleDateString('es-ES')}</span>.
+                </p>
+              </button>
+            )}
+
+            {canHold && (
+              <button
+                onClick={() => setMode('escrow')}
+                className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${
+                  mode === 'escrow'
+                    ? 'border-blue-500 bg-blue-100'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                    mode === 'escrow' ? 'border-blue-500' : 'border-gray-300'
+                  }`}>
+                    {mode === 'escrow' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                  </div>
+                  <span className="font-medium text-gray-900 text-sm">Pago con retención</span>
+                  {!canUseDeposit && <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Recomendado</span>}
+                </div>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  Stripe autoriza el cargo pero no lo cobra hasta que confirméis la experiencia. Si se cancela antes, la autorización se libera sin coste.
+                </p>
+              </button>
+            )}
 
             <button
               onClick={() => setMode('immediate')}
@@ -129,10 +172,10 @@ function PaymentModeSelector({ totalPrice, startDate, onPay, onCancel }: {
                 }`}>
                   {mode === 'immediate' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
                 </div>
-                <span className="font-medium text-gray-900 text-sm">Pago inmediato</span>
+                <span className="font-medium text-gray-900 text-sm">Pago completo inmediato</span>
               </div>
               <p className="text-xs text-gray-500 mt-1 ml-6">
-                El anfitrión recibe el importe en el momento. Si cancelas, recibirás un reembolso según la política de cancelación (hasta 180 días).
+                El anfitrión recibe el importe total en el momento. Si cancelas, recibirás un reembolso según la política de cancelación (hasta 180 días).
               </p>
             </button>
           </div>
@@ -156,7 +199,9 @@ function PaymentModeSelector({ totalPrice, startDate, onPay, onCancel }: {
           onClick={() => onPay?.(mode)}
           className="block w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors text-center"
         >
-          Pagar {totalPrice?.toFixed(2)}€
+          {mode === 'deposit'
+            ? `Pagar depósito ${depositAmount.toFixed(2)}€`
+            : `Pagar ${totalPrice?.toFixed(2)}€`}
         </button>
       </div>
       <button
@@ -189,6 +234,9 @@ export default function MatchActions({
   paymentStatus,
   totalPrice,
   startDate,
+  depositEnabled,
+  depositPercentage,
+  balanceDaysBefore,
 }: MatchActionsProps) {
   // El botón de confirmar solo aparece a partir de la fecha de la experiencia
   const canConfirmToday = !startDate || new Date(startDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0);
@@ -261,6 +309,9 @@ export default function MatchActions({
         startDate={startDate}
         onPay={onPay}
         onCancel={onCancel}
+        depositEnabled={depositEnabled}
+        depositPercentage={depositPercentage}
+        balanceDaysBefore={balanceDaysBefore}
       />
     );
   }

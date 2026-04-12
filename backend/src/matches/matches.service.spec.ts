@@ -18,6 +18,7 @@ import { PlatformConfigService } from '../platform-config/platform-config.servic
 import { ConfigService } from '@nestjs/config';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 import { ConnectService } from '../connect/connect.service';
+import { PaymentPlanService } from './payment-plan.service';
 
 describe('MatchesService', () => {
   let service: MatchesService;
@@ -97,6 +98,14 @@ describe('MatchesService', () => {
     getAccountStatus: jest.fn(),
   };
 
+  const mockPaymentPlanService = {
+    createDepositCheckout: jest.fn(),
+    handleDepositWebhook: jest.fn(),
+    chargeBalance: jest.fn(),
+    cancelPlan: jest.fn(),
+    canUseDeposit: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -113,6 +122,7 @@ describe('MatchesService', () => {
         { provide: StripeIdempotencyService, useValue: mockStripeIdempotency },
         { provide: PlatformConfigService, useValue: mockPlatformConfig },
         { provide: ConnectService, useValue: mockConnectService },
+        { provide: PaymentPlanService, useValue: mockPaymentPlanService },
       ],
     }).compile();
 

@@ -65,6 +65,9 @@ export interface Experience {
   maxParticipants?: number | null;
   groupPricing?: GroupPricingTier[];
   cancellationPolicy?: 'FLEXIBLE' | 'MODERATE' | 'STRICT' | 'NON_REFUNDABLE';
+  depositEnabled?: boolean;
+  depositPercentage?: number;
+  balanceDaysBefore?: number;
   published: boolean;
   createdAt: string;
   updatedAt: string;
@@ -127,6 +130,9 @@ export interface CreateExperienceData {
   availability?: string[];
   idealFor?: string[];
   cancellationPolicy?: CancellationPolicy;
+  depositEnabled?: boolean;
+  depositPercentage?: number;
+  balanceDaysBefore?: number;
 }
 
 export interface DateOccupancy {
