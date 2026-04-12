@@ -881,8 +881,10 @@ export class MatchesService {
     });
   }
 
-  // Crear pago de experiencia con Stripe Checkout (solo requester, tras aceptación del host)
-  // paymentMode: 'immediate' = pago directo, 'escrow' = pago retenido hasta confirmar
+  // Crear pago de experiencia con Stripe Checkout usando Destination Charges
+  // - immediate: captura automática, fondos al host en el momento (refund vía Stripe 180 días)
+  // - escrow: captura manual hasta 7 días; si la experiencia es posterior, se fuerza immediate
+  // El host es merchant of record (on_behalf_of). Precios con IVA incluido.
   async createExperiencePayment(
     matchId: string,
     requesterId: string,
@@ -890,7 +892,15 @@ export class MatchesService {
   ) {
     const match = await this.prisma.match.findUnique({
       where: { id: matchId },
-      include: { experience: { select: { title: true } } },
+      include: {
+        experience: { select: { title: true } },
+        host: {
+          select: {
+            stripeConnectAccountId: true,
+            stripeConnectPayoutsEnabled: true,
+          },
+        },
+      },
     });
 
     if (!match) throw new NotFoundException('Solicitud no encontrada');
@@ -907,6 +917,16 @@ export class MatchesService {
       throw new BadRequestException('Esta experiencia no tiene precio');
     }
 
+    // El host debe tener Stripe Connect activo (obligatorio para Destination Charges)
+    if (
+      !match.host.stripeConnectAccountId ||
+      !match.host.stripeConnectPayoutsEnabled
+    ) {
+      throw new BadRequestException(
+        'El anfitrión aún no ha configurado su cuenta de cobros. No se puede procesar el pago.',
+      );
+    }
+
     const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!stripeKey) {
       throw new BadRequestException(
@@ -919,38 +939,31 @@ export class MatchesService {
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     const amountInCents = Math.round(match.totalPrice * 100);
 
-    // Comisión de Stripe: 1,5% + 0,25€ (tarjeta europea estándar)
-    const stripeFee = this.platformConfig.calculateStripeFee(match.totalPrice);
-
-    // Determinar modo escrow para pagos retenidos
-    // stripe_hold (< 7 días): capture_method manual, cancelación gratuita
-    // platform_hold (>= 7 días): cobro inmediato, retención interna
+    // Determinar si se puede usar captura manual (hold):
+    // Stripe solo permite autorizaciones hasta 7 días. Si la experiencia es posterior,
+    // forzamos captura automática (immediate) — no hay forma legal de retener más tiempo.
     const daysUntilExperience = match.startDate
       ? Math.ceil(
           (new Date(match.startDate).getTime() - Date.now()) /
             (1000 * 60 * 60 * 24),
         )
       : 0;
-    const useStripeHold =
+    const canHold =
       paymentMode === 'escrow' &&
       daysUntilExperience > 0 &&
       daysUntilExperience <= 7;
-    const isEscrow = paymentMode === 'escrow';
+    const captureMethod: 'manual' | 'automatic' = canHold
+      ? 'manual'
+      : 'automatic';
+    const escrowLabel = canHold ? 'hold' : 'immediate';
 
-    // Determinar etiqueta del modo
-    let escrowLabel: string;
-    if (paymentMode === 'immediate') {
-      escrowLabel = 'immediate';
-    } else {
-      escrowLabel = useStripeHold ? 'stripe_hold' : 'platform_hold';
-    }
+    const description = canHold
+      ? 'Pago experiencia FiestApp - Retenido hasta confirmar (IVA incluido)'
+      : 'Pago experiencia FiestApp - Pago directo (IVA incluido)';
 
-    // Descripción para Stripe Checkout
-    const description = isEscrow
-      ? 'Pago experiencia FiestApp - Fondos retenidos hasta confirmar'
-      : 'Pago experiencia FiestApp - Pago directo';
-
-    // Crear Stripe Checkout Session
+    // Crear Stripe Checkout Session con Destination Charge
+    // on_behalf_of + transfer_data hace que el host sea merchant of record
+    // Sin application_fee_amount porque las comisiones se cobran vía créditos
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ['card'],
       mode: 'payment',
@@ -973,26 +986,26 @@ export class MatchesService {
         type: 'experience_payment',
         paymentMode,
         escrowMode: escrowLabel,
-        stripeFee: stripeFee.toString(),
+      },
+      payment_intent_data: {
+        capture_method: captureMethod,
+        on_behalf_of: match.host.stripeConnectAccountId,
+        transfer_data: {
+          destination: match.host.stripeConnectAccountId,
+        },
+        metadata: {
+          matchId,
+          requesterId,
+          type: 'experience_payment',
+          paymentMode,
+        },
       },
       success_url: `${frontendUrl}/matches/payment-result?status=success&session_id={CHECKOUT_SESSION_ID}&matchId=${matchId}`,
       cancel_url: `${frontendUrl}/matches/payment-result?status=error&matchId=${matchId}`,
-      ...(useStripeHold && {
-        payment_intent_data: {
-          capture_method: 'manual' as const,
-          metadata: {
-            matchId,
-            requesterId,
-            type: 'experience_payment',
-            paymentMode,
-          },
-        },
-      }),
     };
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    // Crear transacción pendiente
     await this.prisma.transaction.create({
       data: {
         userId: requesterId,
@@ -1045,67 +1058,29 @@ export class MatchesService {
 
     if (session.payment_status === 'paid') {
       const paymentIntentId = session.payment_intent as string;
-      const escrowMode = session.metadata?.escrowMode || 'platform_hold';
+      const escrowMode = session.metadata?.escrowMode || 'immediate';
 
-      if (escrowMode === 'immediate') {
-        // Pago inmediato: el dinero va directo al anfitrión
-        const match = await this.prisma.match.findUnique({
-          where: { id: transaction.matchId },
-          select: { hostId: true },
+      // Con Destination Charges el dinero ya está en la cuenta conectada del host
+      // (o autorizado si es 'hold'). No hay Transfer separado.
+      const newStatus = escrowMode === 'hold' ? 'held' : 'released';
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.transaction.update({
+          where: { id: transaction.id },
+          data: {
+            status: newStatus,
+            stripeId: paymentIntentId || transaction.stripeId,
+          },
         });
-
-        if (match) {
-          const grossAmount = Math.abs(transaction.amount);
-          const stripeFee = this.platformConfig.calculateStripeFee(grossAmount);
-          const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
-
-          // Transferir al host via Stripe Connect
-          await this.connectService.createTransferToHost(
-            match.hostId,
-            netAmount,
-            transaction.matchId!,
-            `Pago inmediato experiencia - Match ${transaction.matchId}`,
-          );
-
-          await this.prisma.$transaction(async (tx) => {
-            await tx.transaction.update({
-              where: { id: transaction.id },
-              data: {
-                status: 'released',
-                stripeId: paymentIntentId || transaction.stripeId,
-              },
-            });
-            await tx.match.update({
-              where: { id: transaction.matchId! },
-              data: { paymentStatus: 'released' },
-            });
-          });
-
-          this.logger.log(
-            `Immediate payment released for match ${transaction.matchId}: ${netAmount}€ to host ${match.hostId} (Stripe fee: ${stripeFee}€)`,
-          );
-        }
-      } else {
-        // Escrow: marcar como 'held' hasta que ambos confirmen
-        await this.prisma.$transaction(async (tx) => {
-          await tx.transaction.update({
-            where: { id: transaction.id },
-            data: {
-              status: 'held',
-              stripeId: paymentIntentId || transaction.stripeId,
-            },
-          });
-
-          await tx.match.update({
-            where: { id: transaction.matchId! },
-            data: { paymentStatus: 'held' },
-          });
+        await tx.match.update({
+          where: { id: transaction.matchId! },
+          data: { paymentStatus: newStatus },
         });
+      });
 
-        this.logger.log(
-          `Payment held (${escrowMode}) for match ${transaction.matchId}`,
-        );
-      }
+      this.logger.log(
+        `Experience payment ${newStatus} for match ${transaction.matchId} (mode=${escrowMode}, via destination charge)`,
+      );
     } else {
       await this.prisma.transaction.update({
         where: { id: transaction.id },
@@ -1156,15 +1131,14 @@ export class MatchesService {
             if (paymentIntentId) {
               const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
 
-              // Ambos estados significan que el pago fue exitoso
               if (
                 pi.status === 'requires_capture' ||
                 pi.status === 'succeeded'
               ) {
-                // Determinar si es pago inmediato por la descripción de la transacción
-                const isImmediate =
-                  transaction.description?.includes('[immediate]');
-                const newStatus = isImmediate ? 'released' : 'held';
+                // Con Destination Charges: 'requires_capture' = hold, 'succeeded' = released
+                // El dinero ya está en la cuenta del host (o autorizado).
+                const newStatus =
+                  pi.status === 'requires_capture' ? 'held' : 'released';
 
                 await this.prisma.$transaction(async (tx) => {
                   await tx.transaction.update({
@@ -1175,20 +1149,6 @@ export class MatchesService {
                     where: { id: matchId },
                     data: { paymentStatus: newStatus },
                   });
-
-                  // Para pago inmediato, abonar al host
-                  if (isImmediate) {
-                    const grossAmount = Math.abs(transaction.amount);
-                    const stripeFee =
-                      this.platformConfig.calculateStripeFee(grossAmount);
-                    const netAmount =
-                      Math.round((grossAmount - stripeFee) * 100) / 100;
-
-                    await this.connectService.createTransferToHost(
-                      match.hostId, netAmount, matchId,
-                      `Pago inmediato experiencia - Match ${matchId}`,
-                    );
-                  }
                 });
 
                 return { paymentStatus: newStatus, amount: match.totalPrice };
@@ -1659,9 +1619,9 @@ export class MatchesService {
   }
 
   /**
-   * Libera el pago retenido (escrow) y lo transfiere via Stripe Connect al host.
-   * - stripe_hold: captura el payment intent en Stripe + Transfer al host
-   * - platform_hold: el dinero ya está cobrado, solo Transfer al host
+   * Libera el pago retenido (escrow con captura manual).
+   * Con Destination Charges: solo hay que capturar el PaymentIntent, el dinero
+   * va automáticamente a la cuenta conectada del host (on_behalf_of + transfer_data).
    */
   private async releaseEscrow(matchId: string, hostId: string) {
     const transaction = await this.prisma.transaction.findFirst({
@@ -1670,32 +1630,15 @@ export class MatchesService {
 
     if (!transaction?.stripeId) return; // No hay pago retenido (intercambio gratuito)
 
-    const isStripeHold = transaction.description?.includes('[stripe_hold]');
-
-    const grossAmount = Math.abs(transaction.amount);
-    const stripeFee = this.platformConfig.calculateStripeFee(grossAmount);
-    const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
-
     try {
-      // Capturar en Stripe si es un hold manual
-      if (isStripeHold) {
-        const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
-        if (stripeKey) {
-          const stripe = new Stripe(stripeKey);
-          const pi = await stripe.paymentIntents.retrieve(transaction.stripeId);
-          if (pi.status === 'requires_capture') {
-            await stripe.paymentIntents.capture(transaction.stripeId);
-          }
+      const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+      if (stripeKey) {
+        const stripe = new Stripe(stripeKey);
+        const pi = await stripe.paymentIntents.retrieve(transaction.stripeId);
+        if (pi.status === 'requires_capture') {
+          await stripe.paymentIntents.capture(transaction.stripeId);
         }
       }
-
-      // Transferir al host via Stripe Connect
-      await this.connectService.createTransferToHost(
-        hostId,
-        netAmount,
-        matchId,
-        `Pago experiencia - Match ${matchId}`,
-      );
 
       await this.prisma.$transaction(async (tx) => {
         await tx.transaction.update({
@@ -1709,7 +1652,7 @@ export class MatchesService {
       });
 
       this.logger.log(
-        `Escrow released via Connect for match ${matchId}: ${netAmount}€ to host ${hostId} (fee: ${stripeFee}€)`,
+        `Escrow released (destination charge captured) for match ${matchId} → host ${hostId}`,
       );
     } catch (error) {
       this.logger.error(

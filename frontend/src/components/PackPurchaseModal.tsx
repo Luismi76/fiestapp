@@ -118,6 +118,7 @@ export default function PackPurchaseModal({ onClose, returnTo }: PackPurchaseMod
                       </div>
                       <div className="text-right">
                         <p className="text-xl font-bold text-gray-900">{pack.price.toFixed(2)}€</p>
+                        <p className="text-[10px] text-gray-400">IVA incluido</p>
                       </div>
                     </div>
                   </button>

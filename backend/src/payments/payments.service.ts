@@ -396,17 +396,8 @@ export class PaymentsService {
           continue;
         }
 
-        const grossAmount = Math.abs(transaction.amount);
-        const stripeFee = this.platformConfig.calculateStripeFee(grossAmount);
-        const netAmount = Math.round((grossAmount - stripeFee) * 100) / 100;
-
-        await this.connectService.createTransferToHost(
-          hostId,
-          netAmount,
-          matchId,
-          `Reconciliación pago experiencia - Match ${matchId}`,
-        );
-
+        // Con Destination Charges el dinero ya está en la cuenta conectada.
+        // Solo hay que actualizar el estado en BD.
         await this.prisma.$transaction(async (tx) => {
           await tx.transaction.update({
             where: { id: transaction.id },
