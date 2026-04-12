@@ -9,10 +9,15 @@ import { PlatformConfigService } from '../platform-config/platform-config.servic
 
 export interface PeriodMetrics {
   totalCommissions: number;
-  totalTopups: number;
+  totalPackPurchases: number;
   totalExperiencePayments: number;
   totalRefunds: number;
   totalWalletBalance: number;
+  // Payment plans (reservas con depósito)
+  depositPaidCount: number;
+  depositPaidAmount: number;
+  balancePendingCount: number;
+  balancePendingAmount: number;
   transactionCount: number;
   activeHosts: number;
   activeGuests: number;
@@ -22,7 +27,7 @@ export interface DashboardKpi extends PeriodMetrics {
   previousPeriod: PeriodMetrics;
   changes: {
     totalCommissions: number;
-    totalTopups: number;
+    totalPackPurchases: number;
     totalExperiencePayments: number;
     totalRefunds: number;
     totalWalletBalance: number;
@@ -85,11 +90,11 @@ export interface VatSummary {
 export interface ProfitAndLossQuarter {
   quarter: number;
   label: string;
-  feesGross: number;        // Comisiones brutas (IVA incluido)
-  feesNet: number;          // Base imponible (comisiones sin IVA) = ingreso real
-  vatCollected: number;     // IVA repercutido (a declarar a Hacienda)
-  totalRefunds: number;     // Devoluciones
-  netProfit: number;        // Base imponible - reembolsos
+  feesGross: number; // Comisiones brutas (IVA incluido)
+  feesNet: number; // Base imponible (comisiones sin IVA) = ingreso real
+  vatCollected: number; // IVA repercutido (a declarar a Hacienda)
+  totalRefunds: number; // Devoluciones
+  netProfit: number; // Base imponible - reembolsos
 }
 
 export interface ProfitAndLoss {
@@ -151,10 +156,10 @@ export class AccountingService {
           previous.totalCommissions,
           current.totalCommissions,
         ),
-        walletTopups: current.totalTopups,
-        walletTopupsChange: this.pctChange(
-          previous.totalTopups,
-          current.totalTopups,
+        packPurchases: current.totalPackPurchases,
+        packPurchasesChange: this.pctChange(
+          previous.totalPackPurchases,
+          current.totalPackPurchases,
         ),
         experiencePayments: current.totalExperiencePayments,
         experiencePaymentsChange: this.pctChange(
@@ -167,6 +172,11 @@ export class AccountingService {
           current.totalRefunds,
         ),
         totalWalletBalance: current.totalWalletBalance,
+        // Payment plans (reservas con depósito)
+        depositPaidCount: current.depositPaidCount,
+        depositPaidAmount: current.depositPaidAmount,
+        balancePendingCount: current.balancePendingCount,
+        balancePendingAmount: current.balancePendingAmount,
         operationsCount: current.transactionCount,
         operationsCountChange: this.pctChange(
           previous.transactionCount,
@@ -182,7 +192,11 @@ export class AccountingService {
     end: Date,
     granularity: 'daily' | 'weekly' | 'monthly',
   ): Promise<
-    Array<{ period: string; revenue: number; breakdown: Record<string, number> }>
+    Array<{
+      period: string;
+      revenue: number;
+      breakdown: Record<string, number>;
+    }>
   > {
     const transactions = await this.prisma.transaction.findMany({
       where: {
@@ -239,13 +253,15 @@ export class AccountingService {
 
     const [
       commissions,
-      topups,
+      packPurchases,
       experiencePayments,
       refunds,
       walletBalance,
       transactionCount,
       activeHostIds,
       activeGuestIds,
+      depositsPaid,
+      balancesPending,
     ] = await Promise.all([
       this.prisma.transaction.aggregate({
         where: {
@@ -255,9 +271,10 @@ export class AccountingService {
         },
         _sum: { amount: true },
       }),
+      // Compras de packs (nuevo sistema) + topups (legacy histórico)
       this.prisma.transaction.aggregate({
         where: {
-          type: 'topup',
+          type: { in: ['pack_purchase', 'topup'] },
           status: { in: ['completed', 'held', 'released'] },
           createdAt: dateFilter,
         },
@@ -304,14 +321,36 @@ export class AccountingService {
         select: { requesterId: true },
         distinct: ['requesterId'],
       }),
+      // Payment plans: depósitos pagados en el período
+      this.prisma.paymentPlan.aggregate({
+        where: {
+          depositPaid: true,
+          depositPaidAt: dateFilter,
+        },
+        _sum: { depositAmount: true },
+        _count: { id: true },
+      }),
+      // Payment plans: saldos pendientes (independiente del período, son pagos futuros)
+      this.prisma.paymentPlan.aggregate({
+        where: {
+          status: 'active',
+          balancePaid: false,
+        },
+        _sum: { balanceAmount: true },
+        _count: { id: true },
+      }),
     ]);
 
     return {
       totalCommissions: Math.abs(commissions._sum.amount || 0),
-      totalTopups: topups._sum.amount || 0,
+      totalPackPurchases: packPurchases._sum.amount || 0,
       totalExperiencePayments: Math.abs(experiencePayments._sum.amount || 0),
       totalRefunds: Math.abs(refunds._sum.amount || 0),
       totalWalletBalance: walletBalance._sum.balance || 0,
+      depositPaidCount: depositsPaid._count.id || 0,
+      depositPaidAmount: depositsPaid._sum.depositAmount || 0,
+      balancePendingCount: balancesPending._count.id || 0,
+      balancePendingAmount: balancesPending._sum.balanceAmount || 0,
       transactionCount,
       activeHosts: activeHostIds.length,
       activeGuests: activeGuestIds.length,
@@ -370,27 +409,44 @@ export class AccountingService {
 
     const hostMap = new Map(hosts.map((h) => [h.id, h]));
 
-    const incomeByHost = await this.prisma.transaction.groupBy({
-      by: ['userId'],
+    // Los ingresos del host se calculan a través de matches porque con Destination
+    // Charges las transacciones experience_payment se almacenan bajo el requester
+    // (que es quien paga), no bajo el host. Hay que ir por los matches.
+    const hostPayments = await this.prisma.transaction.findMany({
       where: {
         type: 'experience_payment',
         status: { in: ['completed', 'held', 'released'] },
         createdAt: { gte: yearStart, lt: yearEnd },
-        userId: { in: hostIds },
+        matchId: { not: null },
       },
-      _sum: { amount: true },
-      _count: { id: true },
+      select: { amount: true, matchId: true },
     });
 
-    const incomeMap = new Map(
-      incomeByHost.map((row) => [
-        row.userId,
-        {
-          totalIncome: Math.abs(row._sum.amount || 0),
-          operationCount: row._count.id,
-        },
-      ]),
-    );
+    const matchIds = hostPayments
+      .map((t) => t.matchId)
+      .filter((id): id is string => id !== null);
+    const matchesWithHosts = await this.prisma.match.findMany({
+      where: { id: { in: matchIds }, hostId: { in: hostIds } },
+      select: { id: true, hostId: true },
+    });
+    const matchToHost = new Map(matchesWithHosts.map((m) => [m.id, m.hostId]));
+
+    const incomeMap = new Map<
+      string,
+      { totalIncome: number; operationCount: number }
+    >();
+    for (const tx of hostPayments) {
+      if (!tx.matchId) continue;
+      const hostId = matchToHost.get(tx.matchId);
+      if (!hostId) continue;
+      const current = incomeMap.get(hostId) || {
+        totalIncome: 0,
+        operationCount: 0,
+      };
+      current.totalIncome += Math.abs(tx.amount);
+      current.operationCount += 1;
+      incomeMap.set(hostId, current);
+    }
 
     const feesByHost = await this.prisma.transaction.groupBy({
       by: ['userId'],
@@ -469,9 +525,13 @@ export class AccountingService {
       { start: new Date(year, 9, 1), end: new Date(year + 1, 0, 1) },
     ];
 
+    // Modelo 347: solo operaciones con FiestApp (packs, comisiones, refunds).
+    // Los experience_payment NO cuentan porque con Destination Charges el dinero
+    // va directo del viajero al anfitrión vía Stripe, sin pasar por FiestApp.
     const annualTotals = await this.prisma.transaction.groupBy({
       by: ['userId'],
       where: {
+        type: { in: ['pack_purchase', 'platform_fee', 'refund', 'topup'] },
         status: { in: ['completed', 'held', 'released'] },
         createdAt: { gte: yearStart, lt: yearEnd },
       },
@@ -503,6 +563,7 @@ export class AccountingService {
         this.prisma.transaction.groupBy({
           by: ['userId'],
           where: {
+            type: { in: ['pack_purchase', 'platform_fee', 'refund', 'topup'] },
             status: { in: ['completed', 'held', 'released'] },
             userId: { in: qualifyingUserIds },
             createdAt: { gte: q.start, lt: q.end },
@@ -571,10 +632,11 @@ export class AccountingService {
 
     // Tratamiento fiscal (comisionista en nombre ajeno, Art. 11 LIVA):
     // - platform_fee: Comisión de intermediación = prestación de servicio gravada → IVA incluido, desglosar base + IVA
-    // - topup: Anticipo/depósito en monedero → sin IVA (no es hecho imponible)
-    // - payment/experience_payment: Depósito en garantía, ingreso del anfitrión → sin IVA
+    // - pack_purchase: Venta de pack (comisión agrupada) = prestación de servicio gravada → IVA incluido
+    // - topup (legacy): Anticipo/depósito en monedero → sin IVA (no es hecho imponible)
+    // - experience_payment: Ingreso del anfitrión → no entra por FiestApp (Destination Charge), sin IVA nuestro
     // - refund: Rectificación/devolución → sin IVA
-    const TYPES_WITH_VAT = new Set(['platform_fee']);
+    const TYPES_WITH_VAT = new Set(['platform_fee', 'pack_purchase']);
 
     const lines: VatLine[] = grouped.map((row) => {
       const grossAmount = Math.abs(row._sum.amount || 0);
@@ -656,16 +718,21 @@ export class AccountingService {
         ? quarterBoundaries.filter((q) => q.quarter === quarter)
         : quarterBoundaries;
 
-    const statusFilter = { in: ['completed', 'held', 'released'] as TransactionStatus[] };
+    const statusFilter = {
+      in: ['completed', 'held', 'released'] as TransactionStatus[],
+    };
 
     const quarters: ProfitAndLossQuarter[] = await Promise.all(
       boundaries.map(async (qb) => {
         const dateFilter = { gte: qb.start, lt: qb.end };
 
-        const [fees, refunds] = await Promise.all([
+        // Los ingresos reales de FiestApp son las compras de packs (que incluyen
+        // las comisiones agrupadas). Los 'platform_fee' son descuentos de créditos
+        // ya comprados, no nuevo dinero. Se incluye 'topup' para compatibilidad histórica.
+        const [packRevenue, refunds] = await Promise.all([
           this.prisma.transaction.aggregate({
             where: {
-              type: 'platform_fee',
+              type: { in: ['pack_purchase', 'topup'] },
               status: statusFilter,
               createdAt: dateFilter,
             },
@@ -681,18 +748,15 @@ export class AccountingService {
           }),
         ]);
 
-        // Comisiones = ingreso por prestación de servicio (IVA incluido)
-        const feesGross = Math.abs(fees._sum?.amount || 0);
-        const feesNet =
-          Math.round((feesGross / (1 + vatRate)) * 100) / 100;
-        const vatCollected =
-          Math.round((feesGross - feesNet) * 100) / 100;
+        // Ingresos = compras de packs (IVA incluido)
+        const feesGross = Math.abs(packRevenue._sum?.amount || 0);
+        const feesNet = Math.round((feesGross / (1 + vatRate)) * 100) / 100;
+        const vatCollected = Math.round((feesGross - feesNet) * 100) / 100;
 
         const totalRefunds = Math.abs(refunds._sum?.amount || 0);
 
-        // Beneficio neto = base imponible comisiones - reembolsos
-        const netProfit =
-          Math.round((feesNet - totalRefunds) * 100) / 100;
+        // Beneficio neto = base imponible - reembolsos
+        const netProfit = Math.round((feesNet - totalRefunds) * 100) / 100;
 
         return {
           quarter: qb.quarter,
@@ -710,8 +774,7 @@ export class AccountingService {
       (acc, q) => ({
         totalFeesGross:
           Math.round((acc.totalFeesGross + q.feesGross) * 100) / 100,
-        totalFeesNet:
-          Math.round((acc.totalFeesNet + q.feesNet) * 100) / 100,
+        totalFeesNet: Math.round((acc.totalFeesNet + q.feesNet) * 100) / 100,
         totalVatCollected:
           Math.round((acc.totalVatCollected + q.vatCollected) * 100) / 100,
         totalRefunds:
@@ -765,14 +828,12 @@ export class AccountingService {
   // CSV Exports
   // ============================================
 
-  async exportVatSummaryCsv(
-    year: number,
-    quarter?: number,
-  ): Promise<string> {
+  async exportVatSummaryCsv(year: number, quarter?: number): Promise<string> {
     const data = await this.getVatSummary(year, quarter);
     const typeLabels: Record<string, string> = {
       platform_fee: 'Comisiones de intermediación',
-      topup: 'Anticipos/recargas monedero',
+      pack_purchase: 'Venta de packs',
+      topup: 'Recargas monedero (legacy)',
       experience_payment: 'Pagos experiencias',
       payment: 'Pagos (escrow)',
       refund: 'Reembolsos',

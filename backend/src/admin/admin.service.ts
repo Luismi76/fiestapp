@@ -112,33 +112,33 @@ export class AdminService {
     ]);
 
     // Revenue stats - desglosado
-    const [platformFees, topups, totalWalletBalance] = await Promise.all([
-      // Comisiones de plataforma (1.5€ por acuerdo) - valores negativos, tomamos el absoluto
-      this.prisma.transaction.aggregate({
-        where: {
-          type: 'platform_fee',
-          status: { in: ['completed', 'held', 'released'] },
-        },
-        _sum: { amount: true },
-        _count: { amount: true },
-      }),
-      // Recargas de usuarios
-      this.prisma.transaction.aggregate({
-        where: {
-          type: 'topup',
-          status: { in: ['completed', 'held', 'released'] },
-        },
-        _sum: { amount: true },
-        _count: { amount: true },
-      }),
-      // Saldo total en monederos
-      this.prisma.wallet.aggregate({
-        _sum: { balance: true },
-      }),
-    ]);
+    const [platformFees, packPurchases, totalWalletBalance] = await Promise.all(
+      [
+        // Comisiones de plataforma (descuentos de créditos al cerrar acuerdos)
+        this.prisma.transaction.aggregate({
+          where: {
+            type: 'platform_fee',
+            status: { in: ['completed', 'held', 'released'] },
+          },
+          _sum: { amount: true },
+          _count: { amount: true },
+        }),
+        // Compras de packs (ingreso real de FiestApp). Incluye topup legacy histórico.
+        this.prisma.transaction.aggregate({
+          where: {
+            type: { in: ['pack_purchase', 'topup'] },
+            status: { in: ['completed', 'held', 'released'] },
+          },
+          _sum: { amount: true },
+          _count: { amount: true },
+        }),
+        // Saldo total en monederos (balance legacy + créditos pendientes)
+        this.prisma.wallet.aggregate({
+          _sum: { balance: true },
+        }),
+      ],
+    );
 
-    // Las comisiones se guardan como negativas (-1.5€), así que tomamos el valor absoluto
-    const platformRevenue = Math.abs(platformFees._sum.amount || 0);
     // Cada acuerdo genera 2 transacciones (host + guest), así que dividimos entre 2
     const agreementsClosed = Math.floor((platformFees._count.amount || 0) / 2);
 
@@ -161,10 +161,10 @@ export class AdminService {
       reviews: totalReviews,
       // Desglose financiero
       revenue: {
-        platformCommissions: platformRevenue,
+        // Ingresos reales = compras de packs
+        packPurchases: packPurchases._sum.amount || 0,
+        packPurchasesCount: packPurchases._count.amount || 0,
         agreementsClosed,
-        userTopups: topups._sum.amount || 0,
-        topupsCount: topups._count.amount || 0,
         totalWalletBalance: totalWalletBalance._sum.balance || 0,
       },
       recentUsers,
@@ -1358,7 +1358,10 @@ export class AdminService {
           }
 
           // Devolver comisiones de plataforma a ambas partes
-          await this.walletService.refundPlatformFee(match.requesterId, match.id);
+          await this.walletService.refundPlatformFee(
+            match.requesterId,
+            match.id,
+          );
           await this.walletService.refundPlatformFee(match.hostId, match.id);
         }
 

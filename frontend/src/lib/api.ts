@@ -1178,11 +1178,10 @@ export interface AdminDashboardStats {
   };
   reviews: number;
   revenue: {
-    platformCommissions: number;  // Ingresos reales de la plataforma (comisiones 1.5€)
-    agreementsClosed: number;     // Numero de acuerdos cerrados
-    userTopups: number;           // Total recargado por usuarios
-    topupsCount: number;          // Numero de recargas
-    totalWalletBalance: number;   // Saldo total en monederos
+    packPurchases: number;        // Ingresos reales de FiestApp (ventas de packs)
+    packPurchasesCount: number;   // Número de packs comprados
+    agreementsClosed: number;     // Número de acuerdos cerrados
+    totalWalletBalance: number;   // Saldo total en monederos (histórico)
   };
   recentUsers: {
     id: string;

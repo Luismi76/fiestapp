@@ -403,14 +403,14 @@ export default function AdminDashboardPage() {
                 </svg>
               </div>
               <div>
-                <div className="text-2xl font-bold text-emerald-600">{stats.revenue.platformCommissions.toFixed(2)} EUR</div>
-                <div className="text-xs text-gray-500">Comisiones ({stats.revenue.agreementsClosed} acuerdos)</div>
+                <div className="text-2xl font-bold text-emerald-600">{stats.revenue.packPurchases.toFixed(2)} EUR</div>
+                <div className="text-xs text-gray-500">Packs vendidos ({stats.revenue.agreementsClosed} acuerdos)</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Revenue: Comisiones de la plataforma */}
+        {/* Revenue: Ingresos de la plataforma */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 bg-green-500 rounded-full" />
@@ -418,9 +418,9 @@ export default function AdminDashboardPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-              <span className="text-xs font-medium text-green-700">COMISIONES</span>
-              <div className="text-2xl font-bold text-green-700 mt-1">{stats.revenue.platformCommissions.toFixed(2)} EUR</div>
-              <div className="text-xs text-green-600 mt-1">Revenue real del negocio</div>
+              <span className="text-xs font-medium text-green-700">VENTA DE PACKS</span>
+              <div className="text-2xl font-bold text-green-700 mt-1">{stats.revenue.packPurchases.toFixed(2)} EUR</div>
+              <div className="text-xs text-green-600 mt-1">Ingresos reales del negocio</div>
             </div>
             <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
               <span className="text-xs font-medium text-amber-700">ACUERDOS CERRADOS</span>
@@ -430,23 +430,22 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Monederos: Fondos de usuarios en custodia */}
+        {/* Monederos: Ventas de packs y saldos */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 bg-blue-500 rounded-full" />
-            <h3 className="font-semibold text-gray-900">Monederos de usuarios</h3>
-            <span className="ml-auto text-[10px] text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">Fondos en custodia</span>
+            <h3 className="font-semibold text-gray-900">Packs vendidos</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-              <span className="text-xs font-medium text-blue-700">RECARGAS</span>
-              <div className="text-2xl font-bold text-blue-700 mt-1">{stats.revenue.userTopups.toFixed(2)} EUR</div>
-              <div className="text-xs text-blue-600 mt-1">{stats.revenue.topupsCount} recargas realizadas</div>
+              <span className="text-xs font-medium text-blue-700">VENTA DE PACKS</span>
+              <div className="text-2xl font-bold text-blue-700 mt-1">{stats.revenue.packPurchases.toFixed(2)} EUR</div>
+              <div className="text-xs text-blue-600 mt-1">{stats.revenue.packPurchasesCount} packs comprados</div>
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-              <span className="text-xs font-medium text-purple-700">SALDO TOTAL</span>
+              <span className="text-xs font-medium text-purple-700">SALDO MONEDEROS</span>
               <div className="text-2xl font-bold text-purple-700 mt-1">{stats.revenue.totalWalletBalance.toFixed(2)} EUR</div>
-              <div className="text-xs text-purple-600 mt-1">Disponible en monederos</div>
+              <div className="text-xs text-purple-600 mt-1">Saldo histórico en monederos</div>
             </div>
           </div>
         </div>
