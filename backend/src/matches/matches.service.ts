@@ -672,6 +672,7 @@ export class MatchesService {
             createdAt: 'asc',
           },
         },
+        paymentPlan: true,
       },
     });
 
@@ -912,7 +913,10 @@ export class MatchesService {
   ) {
     // Modo deposit: delegar al servicio especializado
     if (paymentMode === 'deposit') {
-      return this.paymentPlanService.createDepositCheckout(matchId, requesterId);
+      return this.paymentPlanService.createDepositCheckout(
+        matchId,
+        requesterId,
+      );
     }
 
     const match = await this.prisma.match.findUnique({
