@@ -1,5 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import Stripe from 'stripe';
 
 /** Claves de configuración disponibles */
 export enum ConfigKey {
@@ -49,12 +51,22 @@ const DEFAULTS: Record<string, { value: string; description: string }> = {
 export class PlatformConfigService implements OnModuleInit {
   private readonly logger = new Logger(PlatformConfigService.name);
   private cache = new Map<string, string>();
+  private stripe: Stripe | null = null;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {
+    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (stripeKey) {
+      this.stripe = new Stripe(stripeKey);
+    }
+  }
 
   async onModuleInit() {
     try {
       await this.ensureTable();
+      await this.cleanupLegacyKeys();
       await this.seedDefaults();
       await this.loadAll();
     } catch (error) {
@@ -65,6 +77,25 @@ export class PlatformConfigService implements OnModuleInit {
       for (const [key, { value }] of Object.entries(DEFAULTS)) {
         this.cache.set(key, value);
       }
+    }
+  }
+
+  /**
+   * Limpia claves legacy que ya no se usan en el sistema actual
+   */
+  private async cleanupLegacyKeys() {
+    const legacyKeys = ['min_topup'];
+    try {
+      const result = await this.prisma.platformConfig.deleteMany({
+        where: { key: { in: legacyKeys } },
+      });
+      if (result.count > 0) {
+        this.logger.log(
+          `Cleaned up ${result.count} legacy config keys: ${legacyKeys.join(', ')}`,
+        );
+      }
+    } catch {
+      // No crítico
     }
   }
 
@@ -225,9 +256,14 @@ export class PlatformConfigService implements OnModuleInit {
     key: string,
     value: string,
   ): Promise<{ key: string; value: string }> {
-    const numValue = parseFloat(value);
-    if (isNaN(numValue) || numValue < 0) {
-      throw new Error(`Valor inválido para ${key}: debe ser un número >= 0`);
+    // Validación: las claves numéricas deben ser número >= 0;
+    // las claves de IDs Stripe son strings (price_xxx) y no se validan numéricamente.
+    const isStripePriceKey = key.startsWith('stripe_price_');
+    if (!isStripePriceKey) {
+      const numValue = parseFloat(value);
+      if (isNaN(numValue) || numValue < 0) {
+        throw new Error(`Valor inválido para ${key}: debe ser un número >= 0`);
+      }
     }
 
     const updated = await this.prisma.platformConfig.update({
@@ -238,7 +274,110 @@ export class PlatformConfigService implements OnModuleInit {
     this.cache.set(key, value);
     this.logger.log(`Configuración actualizada: ${key} = ${value}`);
 
+    // Si cambia la comisión de plataforma, sincronizar Stripe Prices
+    if (key === (ConfigKey.PLATFORM_FEE as string)) {
+      const newFee = parseFloat(value);
+      if (!isNaN(newFee) && newFee > 0) {
+        await this.syncStripePricesForFee(newFee);
+      }
+    }
+
     return { key: updated.key, value: updated.value };
+  }
+
+  /**
+   * Crea nuevos Stripe Prices con los importes recalculados al cambiar la
+   * comisión de plataforma. Mantiene los mismos Products de Stripe.
+   * Archiva los Prices antiguos.
+   */
+  private async syncStripePricesForFee(newFee: number): Promise<void> {
+    if (!this.stripe) {
+      this.logger.warn(
+        'Stripe no configurado, no se pueden sincronizar los precios de los packs',
+      );
+      return;
+    }
+
+    const packMultipliers: Array<{
+      configKey: ConfigKey;
+      label: string;
+      multiplier: number;
+    }> = [
+      {
+        configKey: ConfigKey.STRIPE_PRICE_BASICO,
+        label: 'Básico',
+        multiplier: 2,
+      },
+      {
+        configKey: ConfigKey.STRIPE_PRICE_AVENTURA,
+        label: 'Aventura',
+        multiplier: 4,
+      },
+      {
+        configKey: ConfigKey.STRIPE_PRICE_VIAJERO,
+        label: 'Viajero',
+        multiplier: 8,
+      },
+    ];
+
+    for (const pack of packMultipliers) {
+      const oldPriceId = this.cache.get(pack.configKey);
+      if (!oldPriceId || !oldPriceId.startsWith('price_')) {
+        this.logger.warn(
+          `Pack ${pack.label}: no hay Price ID válido en config, se omite el sync`,
+        );
+        continue;
+      }
+
+      try {
+        // Obtener el producto asociado al Price antiguo
+        const oldPrice = await this.stripe.prices.retrieve(oldPriceId);
+        const productId =
+          typeof oldPrice.product === 'string'
+            ? oldPrice.product
+            : oldPrice.product?.id;
+
+        if (!productId) {
+          this.logger.error(
+            `Pack ${pack.label}: no se pudo obtener el Product ID del Price ${oldPriceId}`,
+          );
+          continue;
+        }
+
+        // Calcular nuevo importe
+        const newAmountEur = Math.round(pack.multiplier * newFee * 100) / 100;
+        const newAmountCents = Math.round(newAmountEur * 100);
+
+        // Crear nuevo Price bajo el mismo Product
+        const newPrice = await this.stripe.prices.create({
+          product: productId,
+          unit_amount: newAmountCents,
+          currency: 'eur',
+        });
+
+        // Guardar el nuevo Price ID en config (sin recursión: no es PLATFORM_FEE)
+        await this.prisma.platformConfig.update({
+          where: { key: pack.configKey },
+          data: { value: newPrice.id },
+        });
+        this.cache.set(pack.configKey, newPrice.id);
+
+        // Archivar el Price antiguo (no se puede borrar pero sí desactivar)
+        try {
+          await this.stripe.prices.update(oldPriceId, { active: false });
+        } catch {
+          // No crítico
+        }
+
+        this.logger.log(
+          `Pack ${pack.label}: Stripe Price actualizado ${oldPriceId} → ${newPrice.id} (${newAmountEur}€)`,
+        );
+      } catch (err) {
+        this.logger.error(
+          `Pack ${pack.label}: error al sincronizar Stripe Price: ${err instanceof Error ? err.message : err}`,
+        );
+      }
+    }
   }
 
   /**
