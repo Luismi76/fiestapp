@@ -1298,7 +1298,14 @@ export class MatchesService {
   }
 
   // Cancelar match (solo requester si está pending, ambos si está accepted)
-  async cancel(id: string, userId: string, reason?: string) {
+  // forceMajeure: solo accesible desde admin. Si es true, FiestApp absorbe
+  // la comisión Stripe (cancelación por enfermedad grave, fuerza mayor, etc.)
+  async cancel(
+    id: string,
+    userId: string,
+    reason?: string,
+    forceMajeure = false,
+  ) {
     const match = await this.prisma.match.findUnique({
       where: { id },
       include: {
@@ -1438,6 +1445,19 @@ export class MatchesService {
               );
               isStripeHold = paymentIntent.status === 'requires_capture';
 
+              // POLÍTICA DE COMISIÓN STRIPE EN REFUNDS:
+              // - stripe_hold (autorización): cancelación gratuita, sin comisión
+              // - cargado + cancela el viajero: el viajero asume la comisión Stripe
+              // - cargado + cancela el host: el host asume la comisión (recibe -fee)
+              // - fuerza mayor (admin): FiestApp absorbe la comisión
+              const stripeFee = isStripeHold
+                ? 0
+                : this.platformConfig.calculateStripeFee(refundAmount);
+              const refundNet =
+                forceMajeure || cancelledByHost
+                  ? refundAmount
+                  : Math.max(0, refundAmount - stripeFee);
+
               if (isStripeHold) {
                 // Stripe hold (< 7 días): cancelar o capturar parcialmente (sin coste)
                 if (refundPercentage === 100) {
@@ -1455,23 +1475,18 @@ export class MatchesService {
                   }
                 }
               } else if (paymentIntent.status === 'succeeded') {
-                // Platform hold (>= 7 días): reembolso estándar
-                // Stripe no devuelve su comisión, se reembolsa el monto completo al viajero
-                // pero la diferencia (comisión Stripe) se pierde y se registra en la transacción
+                // Cargado: hacer refund por el importe NETO (descontando comisión Stripe
+                // si aplica según política).
                 await stripe.refunds.create({
                   payment_intent: paymentTx.stripeId,
-                  amount: Math.round(refundAmount * 100),
+                  amount: Math.round(refundNet * 100),
                   reason: 'requested_by_customer',
                 });
               }
-            }
 
-            // Registrar reembolso: el importe es lo que Stripe devuelve al viajero
-            // En stripe_hold no hay comisión Stripe (cancelación gratuita)
-            // En platform_hold, Stripe no devuelve su comisión → es un coste para la plataforma
-            const stripeFeeOnRefund = isStripeHold
-              ? 0
-              : this.platformConfig.calculateStripeFee(refundAmount);
+              // Actualizar refundAmount al neto que realmente se devuelve
+              refundAmount = refundNet;
+            }
 
             // Transacción de reembolso: registrar el importe REAL devuelto al viajero
             await this.prisma.transaction.create({
@@ -1481,20 +1496,29 @@ export class MatchesService {
                 type: 'refund',
                 amount: refundAmount,
                 status: 'completed',
-                description: `Devolución por cancelación: ${match.experience.title}`,
+                description: forceMajeure
+                  ? `Devolución por fuerza mayor: ${match.experience.title}`
+                  : `Devolución por cancelación: ${match.experience.title}`,
               },
             });
 
-            // Si hay comisión Stripe perdida, registrarla como gasto de plataforma
-            if (stripeFeeOnRefund > 0) {
+            // Si la cancelación es por fuerza mayor, registramos la comisión
+            // como gasto de plataforma (FiestApp lo absorbe explícitamente).
+            if (
+              forceMajeure &&
+              !isStripeHold &&
+              this.platformConfig.calculateStripeFee(refundAmount) > 0
+            ) {
+              const absorbedFee =
+                this.platformConfig.calculateStripeFee(refundAmount);
               await this.prisma.transaction.create({
                 data: {
                   userId: match.requesterId,
                   matchId: id,
                   type: 'platform_fee',
-                  amount: -stripeFeeOnRefund,
+                  amount: -absorbedFee,
                   status: 'completed',
-                  description: `Comisión procesador de pagos no recuperable: ${match.experience.title}`,
+                  description: `Comisión Stripe absorbida (fuerza mayor): ${match.experience.title}`,
                 },
               });
             }

@@ -1971,6 +1971,7 @@ export const cancellationsApi = {
         isStripeHold: boolean;
         estimatedStripeFee: number;
         netRefundAmount: number;
+        cancelledByHost: boolean;
       };
     } | null;
   }> => {

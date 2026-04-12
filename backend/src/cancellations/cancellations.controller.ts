@@ -20,12 +20,19 @@ export class CancellationsController {
   }
 
   /**
-   * Obtener preview de cancelación para un match
+   * Obtener preview de cancelación para un match.
+   * Pasamos el userId para calcular si es el host quien cancela
+   * (en cuyo caso el host absorbe la comisión Stripe).
    */
   @Get('preview/:matchId')
-  async previewCancellation(@Param('matchId') matchId: string) {
-    const preview =
-      await this.cancellationsService.previewCancellation(matchId);
+  async previewCancellation(
+    @Param('matchId') matchId: string,
+    @Request() req: { user: { sub: string } },
+  ) {
+    const preview = await this.cancellationsService.previewCancellation(
+      matchId,
+      req.user.sub,
+    );
     return { data: preview };
   }
 

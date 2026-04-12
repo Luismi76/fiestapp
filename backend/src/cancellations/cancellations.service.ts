@@ -412,13 +412,25 @@ export class CancellationsService {
    * Calcula preview del reembolso para mostrar al usuario antes de cancelar
    * Incluye estimación de costes Stripe para transparencia
    */
-  async previewCancellation(matchId: string): Promise<{
+  /**
+   * Previsualización del refund antes de cancelar.
+   * Si se pasa userId, calculamos según quién cancela:
+   * - Si el host cancela: el host absorbe la comisión Stripe, el viajero
+   *   recibe el importe bruto
+   * - Si el viajero cancela: el viajero asume la comisión Stripe (recibe neto)
+   * Sin userId, asumimos cancelación del viajero (más conservador).
+   */
+  async previewCancellation(
+    matchId: string,
+    userId?: string,
+  ): Promise<{
     refund: RefundCalculation;
     policyInfo: ReturnType<typeof this.getPolicyDescription>;
     stripeInfo: {
       isStripeHold: boolean;
       estimatedStripeFee: number;
       netRefundAmount: number;
+      cancelledByHost: boolean;
     };
   } | null> {
     const match = await this.prisma.match.findUnique({
@@ -456,17 +468,26 @@ export class CancellationsService {
     }
 
     // Stripe no devuelve su comisión en refunds de pagos ya capturados
+    const cancelledByHost = userId !== undefined && userId === match.hostId;
     const estimatedStripeFee =
       isStripeHold || refund.refundAmount === 0
         ? 0
         : this.platformConfig.calculateStripeFee(refund.refundAmount);
-    const netRefundAmount =
-      Math.round((refund.refundAmount - estimatedStripeFee) * 100) / 100;
+    // Si cancela el host, él asume la comisión y el viajero recibe el bruto.
+    // Si cancela el viajero, el viajero recibe el neto (sin la comisión Stripe).
+    const netRefundAmount = cancelledByHost
+      ? refund.refundAmount
+      : Math.round((refund.refundAmount - estimatedStripeFee) * 100) / 100;
 
     return {
       refund,
       policyInfo,
-      stripeInfo: { isStripeHold, estimatedStripeFee, netRefundAmount },
+      stripeInfo: {
+        isStripeHold,
+        estimatedStripeFee,
+        netRefundAmount,
+        cancelledByHost,
+      },
     };
   }
 

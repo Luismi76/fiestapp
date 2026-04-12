@@ -377,12 +377,21 @@ export default function ChatPage() {
       try {
         const { data: preview } = await cancellationsApi.preview(match.id);
         if (preview && preview.refund.refundAmount > 0) {
+          const cancelByHost = preview.stripeInfo?.cancelledByHost ?? false;
           const netAmount = preview.stripeInfo
             ? preview.stripeInfo.netRefundAmount
             : preview.refund.refundAmount;
-          confirmMsg = `¿Estás seguro de que quieres cancelar?\n\nReembolso: ${preview.refund.refundPercentage}% (${netAmount.toFixed(2)}€)`;
-          if (preview.stripeInfo && preview.stripeInfo.estimatedStripeFee > 0) {
-            confirmMsg += `\nComisión de procesamiento: -${preview.stripeInfo.estimatedStripeFee.toFixed(2)}€`;
+
+          if (cancelByHost) {
+            // El host cancela: el viajero recibe el bruto, el host asume comisión
+            confirmMsg = `¿Estás seguro de que quieres cancelar?\n\nEl viajero recibirá el reembolso completo: ${preview.refund.refundAmount.toFixed(2)}€\n\nComo eres el anfitrión, asumes la comisión bancaria de Stripe (~${preview.stripeInfo?.estimatedStripeFee.toFixed(2)}€) que no es recuperable.`;
+          } else {
+            // El viajero cancela: recibe el neto
+            confirmMsg = `¿Estás seguro de que quieres cancelar?\n\nReembolso (${preview.refund.refundPercentage}% según política): ${preview.refund.refundAmount.toFixed(2)}€`;
+            if (preview.stripeInfo && preview.stripeInfo.estimatedStripeFee > 0) {
+              confirmMsg += `\nComisión bancaria no recuperable: -${preview.stripeInfo.estimatedStripeFee.toFixed(2)}€`;
+              confirmMsg += `\nTotal a recibir: ${netAmount.toFixed(2)}€`;
+            }
           }
         } else if (preview && preview.refund.refundPercentage === 0) {
           confirmMsg = `¿Estás seguro de que quieres cancelar?\n\nSegún la política "${preview.policyInfo.name}", no recibirás reembolso.`;
