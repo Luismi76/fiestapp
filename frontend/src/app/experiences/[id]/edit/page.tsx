@@ -260,7 +260,8 @@ export default function EditExperiencePage() {
         } else if (err.response?.status === 403) {
           setError('No tienes permisos para editar esta experiencia.');
         } else if (err.response?.data?.message) {
-          setError(err.response.data.message);
+          const msg = err.response.data.message;
+          setError(Array.isArray(msg) ? msg.join('. ') : msg);
         } else {
           setError('No se pudo guardar los cambios. Inténtalo de nuevo.');
         }
