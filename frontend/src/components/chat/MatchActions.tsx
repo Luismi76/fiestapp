@@ -32,7 +32,7 @@ interface MatchActionsProps {
   balanceDaysBefore?: number;
 }
 
-function WalletWarning({ walletInfo, onTopUpSuccess }: { walletInfo: WalletInfo; onTopUpSuccess?: () => void }) {
+function WalletWarning({ onTopUpSuccess }: { walletInfo: WalletInfo; onTopUpSuccess?: () => void }) {
   const [showPacks, setShowPacks] = useState(false);
 
   return (
@@ -81,10 +81,14 @@ function PaymentModeSelector({ totalPrice, startDate, onPay, onCancel, depositEn
   depositPercentage?: number;
   balanceDaysBefore?: number;
 }) {
-  // Calcular días hasta la experiencia (7 es el límite de Stripe para manual capture)
-  const daysUntil = startDate
-    ? Math.ceil((new Date(startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : 0;
+  // Calcular días hasta la experiencia una vez al montar (Date.now es impuro).
+  // useState con initializer hace que Date.now solo se ejecute en el primer render.
+  const [daysUntil] = useState(() => {
+    if (!startDate) return 0;
+    return Math.ceil(
+      (new Date(startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+    );
+  });
   const canHold = daysUntil > 0 && daysUntil <= 7;
   const canUseDeposit = depositEnabled && daysUntil > balanceDaysBefore;
 
