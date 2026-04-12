@@ -503,7 +503,7 @@ export default function ExperienceDetailPage() {
 
         {/* Calendar */}
         {availabilityDates.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div data-tour="experience-dates" className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="p-4 border-b border-gray-100">
               <h2 className="font-bold text-gray-900 flex items-center gap-2">
                 <span className="text-lg">📅</span> Disponibilidad
@@ -619,7 +619,7 @@ export default function ExperienceDetailPage() {
 
         {/* Desktop booking card - sticky sidebar style (#54) */}
         <div className="hidden lg:block bg-white rounded-2xl shadow-lg p-6 mt-4 border border-gray-100 lg:sticky lg:top-24">
-          <div className="flex items-center justify-between mb-4">
+          <div data-tour="experience-price" className="flex items-center justify-between mb-4">
             {experience.price ? (
               <div>
                 <div className="flex items-baseline gap-1">
@@ -642,6 +642,7 @@ export default function ExperienceDetailPage() {
           {!isOwner && (
             <Link
               href={`/experiences/${experience.id}/book`}
+              data-tour="experience-request"
               className="block w-full py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-center text-lg"
             >
               {experience.type === 'intercambio' ? 'Proponer intercambio' : experience.type === 'ambos' ? 'Reservar o intercambiar' : 'Reservar ahora'}

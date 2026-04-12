@@ -586,7 +586,7 @@ export default function CreateExperiencePage() {
 
         {/* Step 1: Qué ofreces (básicos + detalles + precio + capacidad) */}
         {currentStep === 1 && (
-          <div className="p-4 space-y-6 animate-fadeIn">
+          <div data-tour="experience-form-basics" className="p-4 space-y-6 animate-fadeIn">
             <div className="text-center py-4">
               <div className="w-16 h-16 bg-gradient-to-br from-primary to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-primary/30">
                 <StepIcon name="sparkles" className="w-8 h-8 text-white" />
@@ -640,7 +640,7 @@ export default function CreateExperiencePage() {
             />
 
             {/* Type */}
-            <div>
+            <div data-tour="experience-form-mode">
               <label className="block text-sm font-semibold text-gray-900 mb-3">
                 Modalidad <span className="text-red-400">*</span>
               </label>
@@ -752,7 +752,7 @@ export default function CreateExperiencePage() {
 
             {/* Reserva con depósito */}
             {selectedType !== 'intercambio' && (
-              <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
+              <div data-tour="experience-form-deposit" className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
                 <label className="flex items-center justify-between cursor-pointer">
                   <div>
                     <span className="block text-sm font-semibold text-gray-900">Admitir reserva con depósito</span>
@@ -1195,6 +1195,7 @@ export default function CreateExperiencePage() {
           ) : (
             <button
               type="submit"
+              data-tour="experience-form-publish"
               onClick={isAuthenticated ? handleSubmit(onSubmit) : handleDemoSubmit}
               disabled={loading}
               className="flex-1 py-3.5 bg-primary text-white rounded-xl font-semibold shadow-lg shadow-primary/30 hover:shadow-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2"

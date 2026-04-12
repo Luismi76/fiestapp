@@ -117,6 +117,7 @@ function PaymentModeSelector({ totalPrice, startDate, onPay, onCancel, depositEn
           <div className="space-y-2 mb-4">
             {canUseDeposit && (
               <button
+                data-tour="payment-mode-deposit"
                 onClick={() => setMode('deposit')}
                 className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${
                   mode === 'deposit'
@@ -142,6 +143,7 @@ function PaymentModeSelector({ totalPrice, startDate, onPay, onCancel, depositEn
 
             {canHold && (
               <button
+                data-tour="payment-mode-hold"
                 onClick={() => setMode('escrow')}
                 className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${
                   mode === 'escrow'
@@ -165,6 +167,7 @@ function PaymentModeSelector({ totalPrice, startDate, onPay, onCancel, depositEn
             )}
 
             <button
+              data-tour="payment-mode-immediate"
               onClick={() => setMode('immediate')}
               className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${
                 mode === 'immediate'
