@@ -414,12 +414,29 @@ export class MatchesService {
           price: true,
           city: true,
           photos: true,
+          depositEnabled: true,
+          depositPercentage: true,
+          balanceDaysBefore: true,
           festival: {
             select: {
               id: true,
               name: true,
             },
           },
+        },
+      },
+      paymentPlan: {
+        select: {
+          id: true,
+          totalAmount: true,
+          depositAmount: true,
+          balanceAmount: true,
+          depositPaid: true,
+          depositPaidAt: true,
+          balanceDueDate: true,
+          balancePaid: true,
+          balancePaidAt: true,
+          status: true,
         },
       },
       ...(includeRequester

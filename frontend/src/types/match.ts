@@ -61,6 +61,19 @@ export interface OfferExperience {
   festival?: { id: string; name: string } | null;
 }
 
+export interface MatchPaymentPlan {
+  id: string;
+  totalAmount: number;
+  depositAmount: number;
+  balanceAmount: number;
+  depositPaid: boolean;
+  depositPaidAt?: string | null;
+  balanceDueDate: string;
+  balancePaid: boolean;
+  balancePaidAt?: string | null;
+  status: 'pending' | 'active' | 'completed' | 'failed' | 'cancelled';
+}
+
 export interface Match {
   id: string;
   experienceId: string;
@@ -83,6 +96,7 @@ export interface Match {
   experience: MatchExperience;
   requester: MatchUser;
   host: MatchUser;
+  paymentPlan?: MatchPaymentPlan | null;
   _count?: {
     messages: number;
   };

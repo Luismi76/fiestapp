@@ -20,6 +20,7 @@ import {
 } from '@/components/icons';
 import InstallButton from '@/components/InstallButton';
 import OnboardingBanner from '@/components/OnboardingBanner';
+import BookingPaymentStatus from '@/components/BookingPaymentStatus';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -63,6 +64,10 @@ export default function DashboardPage() {
   // Stats
   const pendingReceived = receivedMatches.filter(m => m.status === 'pending').length;
   const acceptedMatches = [...receivedMatches, ...sentMatches].filter(m => m.status === 'accepted');
+  // Próximas experiencias (enviadas y aceptadas, ordenadas por fecha)
+  const upcomingBookings = sentMatches
+    .filter(m => (m.status === 'accepted' || m.status === 'completed') && m.totalPrice && m.totalPrice > 0 && m.startDate)
+    .sort((a, b) => new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime());
 
   // Helpers
   const getImageUrl = (photos?: string[]) => {
@@ -198,6 +203,63 @@ export default function DashboardPage() {
                         </span>
                       </Link>
                     ))}
+                </div>
+              </section>
+            )}
+
+            {/* Próximas experiencias reservadas con estado de pago */}
+            {upcomingBookings.length > 0 && (
+              <section className="px-4 lg:px-0 mt-6">
+                <div className="section-header">
+                  <h2 className="section-title">Mis reservas</h2>
+                  <Link href="/matches/sent" className="section-link">
+                    Ver todas <ChevronRightIcon />
+                  </Link>
+                </div>
+                <div className="space-y-3 stagger-children">
+                  {upcomingBookings.slice(0, 5).map(match => {
+                    const startDate = match.startDate ? new Date(match.startDate) : null;
+                    const dateStr = startDate?.toLocaleDateString('es-ES', {
+                      day: '2-digit',
+                      month: 'long',
+                      year: 'numeric',
+                    });
+                    return (
+                      <Link
+                        key={match.id}
+                        href={`/matches/${match.id}`}
+                        className="card flex items-start gap-3 p-4 group"
+                      >
+                        <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+                          <Image
+                            src={getImageUrl(match.experience.photos) || '/images/placeholder-experience.svg'}
+                            alt={match.experience.title}
+                            className="w-full h-full object-cover"
+                            width={64}
+                            height={64}
+                            unoptimized
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-[#1A1410] truncate">
+                            {match.experience.title}
+                          </p>
+                          <p className="text-xs text-[#8B7355] mt-0.5 flex items-center gap-1">
+                            <MapPinIcon />
+                            {match.experience.city}
+                          </p>
+                          {dateStr && (
+                            <p className="text-xs text-[#8B7355] mt-0.5">
+                              📅 {dateStr}
+                            </p>
+                          )}
+                          <div className="mt-2">
+                            <BookingPaymentStatus match={match} compact />
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </section>
             )}
