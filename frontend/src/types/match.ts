@@ -18,6 +18,9 @@ export interface MatchExperience {
   price?: number;
   city: string;
   photos?: string[];
+  depositEnabled?: boolean;
+  depositPercentage?: number;
+  balanceDaysBefore?: number;
   festival: {
     id: string;
     name: string;

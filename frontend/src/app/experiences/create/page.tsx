@@ -161,6 +161,9 @@ export default function CreateExperiencePage() {
   const [idealFor, setIdealFor] = useState<string[]>([]);
   const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>('FLEXIBLE');
   const [policyRestrictions, setPolicyRestrictions] = useState<Record<string, { allowed: boolean; reason?: string }>>({});
+  const [depositEnabled, setDepositEnabled] = useState(false);
+  const [depositPercentage, setDepositPercentage] = useState(20);
+  const [balanceDaysBefore, setBalanceDaysBefore] = useState(30);
   const draftLoaded = useRef(false);
 
   const {
@@ -413,6 +416,9 @@ export default function CreateExperiencePage() {
         availability: availabilityDates.length > 0 ? availabilityDates : undefined,
         idealFor: idealFor.length > 0 ? idealFor : undefined,
         cancellationPolicy,
+        depositEnabled,
+        depositPercentage: depositEnabled ? depositPercentage : undefined,
+        balanceDaysBefore: depositEnabled ? balanceDaysBefore : undefined,
       };
 
       setUploadProgress('Creando experiencia...');
@@ -741,6 +747,53 @@ export default function CreateExperiencePage() {
                   <p className="text-xs text-amber-600 mt-1">{policyRestrictions['NON_REFUNDABLE'].reason}</p>
                 )}
                 <p className="text-xs text-gray-400 mt-1.5">Determina cuánto se devuelve si el viajero cancela</p>
+              </div>
+            )}
+
+            {/* Reserva con depósito */}
+            {selectedType !== 'intercambio' && (
+              <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="block text-sm font-semibold text-gray-900">Admitir reserva con depósito</span>
+                    <span className="text-xs text-gray-500">Para experiencias con mucha antelación. El viajero paga un depósito ahora y el resto se cobra automáticamente antes de la fecha.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={depositEnabled}
+                    onChange={(e) => setDepositEnabled(e.target.checked)}
+                    className="w-5 h-5 ml-3 accent-primary shrink-0"
+                  />
+                </label>
+
+                {depositEnabled && (
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Porcentaje del depósito (%)</label>
+                      <input
+                        type="number"
+                        min={5}
+                        max={100}
+                        value={depositPercentage}
+                        onChange={(e) => setDepositPercentage(Math.max(5, Math.min(100, parseInt(e.target.value) || 20)))}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Entre 5% y 100%. Valor típico: 20-30%</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Cargar el saldo (días antes de la experiencia)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={180}
+                        value={balanceDaysBefore}
+                        onChange={(e) => setBalanceDaysBefore(Math.max(1, Math.min(180, parseInt(e.target.value) || 30)))}
+                        className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Entre 1 y 180 días. El saldo se cobra automáticamente a la tarjeta del viajero.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

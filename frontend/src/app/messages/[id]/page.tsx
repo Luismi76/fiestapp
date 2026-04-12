@@ -538,7 +538,10 @@ export default function ChatPage() {
             paymentStatus={match.paymentStatus}
             totalPrice={match.totalPrice}
             startDate={match.startDate}
-            onPay={async (paymentMode: 'immediate' | 'escrow') => {
+            depositEnabled={match.experience?.depositEnabled}
+            depositPercentage={match.experience?.depositPercentage}
+            balanceDaysBefore={match.experience?.balanceDaysBefore}
+            onPay={async (paymentMode: 'immediate' | 'escrow' | 'deposit') => {
               try {
                 const { sessionUrl } = await matchesApi.createPayment(match.id, paymentMode);
                 window.location.href = sessionUrl;

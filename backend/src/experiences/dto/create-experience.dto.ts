@@ -6,7 +6,10 @@ import {
   IsEnum,
   IsDateString,
   IsNotEmpty,
+  IsBoolean,
+  IsInt,
   Min,
+  Max,
   MinLength,
   IsIn,
 } from 'class-validator';
@@ -88,4 +91,20 @@ export class CreateExperienceDto {
       'Política de cancelación debe ser: FLEXIBLE, MODERATE, STRICT o NON_REFUNDABLE',
   })
   cancellationPolicy?: string;
+
+  @IsOptional()
+  @IsBoolean({ message: 'depositEnabled debe ser booleano' })
+  depositEnabled?: boolean;
+
+  @IsOptional()
+  @IsInt({ message: 'depositPercentage debe ser un entero' })
+  @Min(5, { message: 'El depósito mínimo es del 5%' })
+  @Max(100, { message: 'El depósito máximo es del 100%' })
+  depositPercentage?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'balanceDaysBefore debe ser un entero' })
+  @Min(1, { message: 'Mínimo 1 día antes de la experiencia' })
+  @Max(180, { message: 'Máximo 180 días antes de la experiencia' })
+  balanceDaysBefore?: number;
 }

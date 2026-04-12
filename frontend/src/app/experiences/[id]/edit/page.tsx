@@ -63,6 +63,9 @@ export default function EditExperiencePage() {
   const [cityCoords, setCityCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicy>('FLEXIBLE');
   const [policyRestrictions, setPolicyRestrictions] = useState<Record<string, { allowed: boolean; reason?: string }>>({});
+  const [depositEnabled, setDepositEnabled] = useState(false);
+  const [depositPercentage, setDepositPercentage] = useState(20);
+  const [balanceDaysBefore, setBalanceDaysBefore] = useState(30);
 
   const {
     register,
@@ -123,6 +126,9 @@ export default function EditExperiencePage() {
           type: experienceData.type,
         });
         setCancellationPolicy(experienceData.cancellationPolicy || 'FLEXIBLE');
+        setDepositEnabled(experienceData.depositEnabled || false);
+        setDepositPercentage(experienceData.depositPercentage || 20);
+        setBalanceDaysBefore(experienceData.balanceDaysBefore || 30);
       } catch {
         setError('No se pudo cargar la experiencia');
       } finally {
@@ -247,6 +253,9 @@ export default function EditExperiencePage() {
         capacity: capacity,
         availability: availabilityDates.length > 0 ? availabilityDates : [],
         cancellationPolicy,
+        depositEnabled,
+        depositPercentage: depositEnabled ? depositPercentage : undefined,
+        balanceDaysBefore: depositEnabled ? balanceDaysBefore : undefined,
       });
 
       router.push(`/experiences/${params.id}`);
@@ -669,6 +678,53 @@ export default function EditExperiencePage() {
               <p className="text-xs text-amber-600 mt-1">{policyRestrictions['NON_REFUNDABLE'].reason}</p>
             )}
             <p className="text-xs text-gray-400 mt-1.5">Determina cuánto se devuelve si el viajero cancela</p>
+          </div>
+        )}
+
+        {/* Reserva con depósito */}
+        {selectedType !== 'intercambio' && (
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <span className="block text-sm font-medium text-gray-900">Admitir reserva con depósito</span>
+                <span className="text-xs text-gray-500">Viajeros pagan un depósito y el resto se cobra automáticamente antes de la experiencia.</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={depositEnabled}
+                onChange={(e) => setDepositEnabled(e.target.checked)}
+                className="w-5 h-5 ml-3 accent-blue-500 shrink-0"
+              />
+            </label>
+
+            {depositEnabled && (
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Porcentaje del depósito (%)</label>
+                  <input
+                    type="number"
+                    min={5}
+                    max={100}
+                    value={depositPercentage}
+                    onChange={(e) => setDepositPercentage(Math.max(5, Math.min(100, parseInt(e.target.value) || 20)))}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Entre 5% y 100%</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Cargar saldo X días antes</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={180}
+                    value={balanceDaysBefore}
+                    onChange={(e) => setBalanceDaysBefore(Math.max(1, Math.min(180, parseInt(e.target.value) || 30)))}
+                    className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">El saldo se cobra automáticamente a la tarjeta del viajero</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
