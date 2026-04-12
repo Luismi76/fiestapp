@@ -13,6 +13,7 @@ import {
   ActiveUsersStats,
   TopExperience,
   TopHost,
+  TourStatsResponse,
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -177,6 +178,7 @@ export default function AdminDashboardPage() {
   const [activeUsersStats, setActiveUsersStats] = useState<ActiveUsersStats | null>(null);
   const [topExperiences, setTopExperiences] = useState<TopExperience[]>([]);
   const [topHosts, setTopHosts] = useState<TopHost[]>([]);
+  const [toursStats, setToursStats] = useState<TourStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCharts, setShowCharts] = useState(false);
@@ -222,6 +224,9 @@ export default function AdminDashboardPage() {
 
         // Alertas se cargan aparte para no bloquear el dashboard si falla
         adminApi.getDashboardAlerts().then(setAlerts).catch(() => {});
+
+        // Stats de tours también aparte (no es crítico)
+        adminApi.getToursStats().then(setToursStats).catch(() => {});
       } catch (err: unknown) {
         const error = err as { response?: { status?: number } };
         if (error.response?.status === 403) {
@@ -647,6 +652,48 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Tours - onboarding interactivo */}
+        {toursStats && (
+          <div className="bg-white rounded-xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">
+                Tutoriales interactivos
+              </h3>
+              <span className="text-xs text-gray-500">
+                Sobre {toursStats.totalUsers} usuarios
+              </span>
+            </div>
+            <div className="space-y-3">
+              {toursStats.tours.map((t) => {
+                const labels: Record<string, string> = {
+                  welcome: 'Bienvenida',
+                  booking: 'Cómo reservar',
+                  host: 'Convertirse en anfitrión',
+                  payment: 'Modos de pago',
+                };
+                return (
+                  <div key={t.tourId}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="font-medium text-gray-700">
+                        {labels[t.tourId] ?? t.tourId}
+                      </span>
+                      <span className="text-gray-500">
+                        {t.completedCount} ({t.percentage}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all"
+                        style={{ width: `${Math.min(t.percentage, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Collapsible Charts */}
         <button

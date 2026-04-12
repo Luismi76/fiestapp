@@ -43,6 +43,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { PlatformConfigModule } from './platform-config/platform-config.module';
 import { ConnectModule } from './connect/connect.module';
 import { StripeWebhookModule } from './stripe-webhook/stripe-webhook.module';
+import { ToursModule } from './tours/tours.module';
 
 @Module({
   imports: [
@@ -107,6 +108,7 @@ import { StripeWebhookModule } from './stripe-webhook/stripe-webhook.module';
     GdprModule,
     HealthModule,
     CategoriesModule,
+    ToursModule,
   ],
   controllers: [AppController],
   providers: [

@@ -10,6 +10,7 @@ import { UpdateProfileData } from '@/types/user';
 import { getAvatarUrl } from '@/lib/utils';
 import MainLayout from '@/components/MainLayout';
 import Image from 'next/image';
+import TourSettings from '@/components/TourSettings';
 
 interface FormData {
   name: string;
@@ -556,6 +557,9 @@ export default function EditProfilePage() {
           </Link>
         </div>
       </form>
+
+      {/* Tutoriales interactivos */}
+      <TourSettings />
 
       {/* Logout */}
       <div className="px-4 mt-4">

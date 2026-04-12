@@ -6,6 +6,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/components/ui/Toast";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { MessageProvider } from "@/contexts/MessageContext";
+import { TourProvider } from "@/contexts/TourContext";
 import { SkipLink } from "@/components/ui/SkipLink";
 import AppWrapper from "@/components/AppWrapper";
 
@@ -133,10 +134,12 @@ export default function RootLayout({
           <ToastProvider>
             <NotificationProvider>
               <MessageProvider>
-                <AppWrapper>
-                  {children}
-                </AppWrapper>
-                <InstallPrompt />
+                <TourProvider>
+                  <AppWrapper>
+                    {children}
+                  </AppWrapper>
+                  <InstallPrompt />
+                </TourProvider>
               </MessageProvider>
             </NotificationProvider>
           </ToastProvider>

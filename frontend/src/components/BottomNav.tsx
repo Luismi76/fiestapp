@@ -103,10 +103,23 @@ function BottomNav() {
           );
         }
 
+        // Mapeo de id de nav -> data-tour para anclar pasos del tour
+        const tourAttr =
+          item.id === 'home'
+            ? undefined
+            : item.id === 'explore'
+              ? 'nav-experiences'
+              : item.id === 'messages'
+                ? 'nav-matches'
+                : item.id === 'notifications'
+                  ? 'nav-notifications'
+                  : undefined;
+
         return (
           <Link
             key={item.label}
             href={finalHref}
+            data-tour={tourAttr}
             className={`bottom-nav-item ripple ripple-dark ${active ? 'active' : ''}`}
           >
             <span className="bottom-nav-icon">

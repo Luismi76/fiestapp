@@ -991,6 +991,35 @@ export const connectApi = {
   },
 };
 
+// Tours (interactive onboarding)
+export type TourId = 'welcome' | 'booking' | 'host' | 'payment';
+
+export const toursApi = {
+  getCompleted: async (): Promise<{ completed: string[] }> => {
+    const response = await api.get<{ completed: string[] }>('/tours/completed');
+    return response.data;
+  },
+
+  markCompleted: async (tourId: TourId): Promise<{ completed: string[] }> => {
+    const response = await api.post<{ completed: string[] }>(
+      `/tours/${tourId}/complete`,
+    );
+    return response.data;
+  },
+
+  reset: async (tourId: TourId): Promise<{ completed: string[] }> => {
+    const response = await api.delete<{ completed: string[] }>(
+      `/tours/${tourId}`,
+    );
+    return response.data;
+  },
+
+  resetAll: async (): Promise<{ completed: string[] }> => {
+    const response = await api.delete<{ completed: string[] }>('/tours');
+    return response.data;
+  },
+};
+
 // Favorites types
 export interface FavoriteExperience extends Experience {
   savedAt: string;
@@ -1698,7 +1727,18 @@ export const adminApi = {
     const response = await api.post(`/admin/festivals/${festivalId}/cancel`, { reason });
     return response.data;
   },
+
+  // Tour stats (onboarding interactivo)
+  getToursStats: async (): Promise<TourStatsResponse> => {
+    const response = await api.get<TourStatsResponse>('/admin/tours/stats');
+    return response.data;
+  },
 };
+
+export interface TourStatsResponse {
+  totalUsers: number;
+  tours: { tourId: string; completedCount: number; percentage: number }[];
+}
 
 // Search types
 export interface AutocompleteExperience {

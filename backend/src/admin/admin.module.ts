@@ -10,6 +10,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { CancellationsModule } from '../cancellations/cancellations.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { MatchesModule } from '../matches/matches.module';
+import { ToursModule } from '../tours/tours.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MatchesModule } from '../matches/matches.module';
     WalletModule,
     ConfigModule,
     forwardRef(() => MatchesModule),
+    ToursModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

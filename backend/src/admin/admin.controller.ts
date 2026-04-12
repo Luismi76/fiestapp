@@ -19,6 +19,7 @@ import { AdminService } from './admin.service';
 import { FinancialReportService } from './financial-report.service';
 import { AccountingService } from './accounting.service';
 import { MatchesService } from '../matches/matches.service';
+import { ToursService } from '../tours/tours.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
@@ -34,6 +35,7 @@ export class AdminController {
     private readonly configService: ConfigService,
     private readonly platformConfigService: PlatformConfigService,
     private readonly matchesService: MatchesService,
+    private readonly toursService: ToursService,
   ) {}
 
   @Get('platform-config')
@@ -494,6 +496,15 @@ export class AdminController {
       parseInt(year) || new Date().getFullYear(),
       quarter ? parseInt(quarter) : undefined,
     );
+  }
+
+  // ============================================
+  // Tours (estadísticas de onboarding interactivo)
+  // ============================================
+
+  @Get('tours/stats')
+  getToursStats() {
+    return this.toursService.getStats();
   }
 
   @Get('accounting/export/pnl')
