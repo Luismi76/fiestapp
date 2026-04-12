@@ -177,6 +177,10 @@ model Experience {
   idealFor        String[]                 // ["pareja", "amigos", "hijos", "solo"]
   // Política de cancelación (FASE 7)
   cancellationPolicy CancellationPolicy    @default(FLEXIBLE)
+  // Reserva con depósito (experiencias con antelación >90 días)
+  depositEnabled    Boolean                @default(false)
+  depositPercentage Int                    @default(20)   // 20% del total
+  balanceDaysBefore Int                    @default(30)   // Cargar saldo X días antes de la experiencia
   deletedAt       DateTime?                // Soft delete
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
@@ -244,6 +248,7 @@ model Match {
   // Relaciones para disputas y cancelaciones
   disputes              Dispute[]
   cancellation          Cancellation?
+  paymentPlan           PaymentPlan?
 
   @@unique([experienceId, requesterId])
   @@index([experienceId])
@@ -256,6 +261,40 @@ model Match {
   @@index([requesterId, status])
   @@index([hostId, status])
   @@map("matches")
+}
+
+// Plan de pago en dos plazos (depósito + saldo) para reservas con antelación
+model PaymentPlan {
+  id                      String    @id @default(uuid())
+  matchId                 String    @unique
+  totalAmount             Float     // Importe total de la experiencia (IVA incluido)
+  depositAmount           Float     // Importe pagado como depósito
+  balanceAmount           Float     // Importe pendiente del saldo
+  currency                Currency  @default(EUR)
+  // Depósito
+  depositPaid             Boolean   @default(false)
+  depositPaidAt           DateTime?
+  depositStripePaymentId  String?   // PaymentIntent del depósito
+  // Saldo
+  balanceDueDate          DateTime  // Cuándo se cobra el saldo automáticamente
+  balancePaid             Boolean   @default(false)
+  balancePaidAt           DateTime?
+  balanceStripePaymentId  String?   // PaymentIntent del saldo
+  balanceRetryCount       Int       @default(0)
+  balanceLastRetryAt      DateTime?
+  balanceFailureReason    String?
+  // Método de pago guardado para cargar off-session
+  stripeCustomerId        String?   // Customer en Stripe
+  stripePaymentMethodId   String?   // Payment method guardado
+  // Estado general
+  status                  String    @default("pending") // pending|active|completed|failed|cancelled
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  match                   Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([balanceDueDate])
+  @@map("payment_plans")
 }
 
 model Message {

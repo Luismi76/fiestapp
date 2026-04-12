@@ -11,6 +11,8 @@ import { CancellationsModule } from '../cancellations/cancellations.module';
 import { EmailModule } from '../email/email.module';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 import { ConnectModule } from '../connect/connect.module';
+import { PaymentPlanService } from './payment-plan.service';
+import { PlatformConfigModule } from '../platform-config/platform-config.module';
 
 @Module({
   imports: [
@@ -23,9 +25,10 @@ import { ConnectModule } from '../connect/connect.module';
     EmailModule,
     ConfigModule,
     ConnectModule,
+    PlatformConfigModule,
   ],
   controllers: [MatchesController],
-  providers: [MatchesService, StripeIdempotencyService],
-  exports: [MatchesService],
+  providers: [MatchesService, StripeIdempotencyService, PaymentPlanService],
+  exports: [MatchesService, PaymentPlanService],
 })
 export class MatchesModule {}
