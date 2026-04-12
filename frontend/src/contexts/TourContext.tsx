@@ -84,6 +84,26 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, user, refresh]);
 
+  // Auto-trigger del tour de bienvenida la primera vez que el usuario se loguea.
+  // Se lanza desde aquí (no desde una página concreta) porque el login puede
+  // redirigir a /experiences, /dashboard, etc., y el tour debe arrancar
+  // independientemente de la primera ruta visitada.
+  useEffect(() => {
+    if (!loaded || !isAuthenticated) return;
+    if (completed.includes('welcome')) return;
+    if (launchedRef.current.has('welcome')) return;
+    // Delay para asegurar que el bottom nav y el resto del DOM están montados
+    const timer = setTimeout(() => {
+      const definition = tourRegistry.welcome;
+      if (!definition) return;
+      launchedRef.current.add('welcome');
+      setSteps(definition.steps);
+      setActiveTourId('welcome');
+      setRun(true);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [loaded, isAuthenticated, completed]);
+
   const isPending = useCallback(
     (tourId: TourId) => loaded && !completed.includes(tourId),
     [loaded, completed],

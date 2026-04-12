@@ -51,10 +51,11 @@ export const welcomeTour: TourDefinition = {
         'Aquí ves todas tus solicitudes y los chats con los anfitriones (o viajeros, si tú eres el anfitrión).',
     },
     {
-      target: '[data-tour="nav-profile"]',
+      target: 'body',
+      placement: 'center',
       title: 'Tu perfil',
       content:
-        'En tu perfil puedes editar tus datos, gestionar tu monedero, configurar tu cuenta de Stripe Connect (si eres anfitrión) y volver a ver estos tutoriales en cualquier momento.',
+        'Toca tu avatar (arriba a la derecha en el dashboard, o en el menú) para acceder a tu perfil. Desde ahí puedes editar tus datos, gestionar tu monedero, configurar tu cuenta de Stripe Connect (si eres anfitrión) y volver a ver estos tutoriales en cualquier momento.',
     },
     {
       target: 'body',

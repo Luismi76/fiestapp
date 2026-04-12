@@ -21,14 +21,12 @@ import {
 import InstallButton from '@/components/InstallButton';
 import OnboardingBanner from '@/components/OnboardingBanner';
 import BookingPaymentStatus from '@/components/BookingPaymentStatus';
-import { useTour } from '@/contexts/TourContext';
 
 export default function DashboardPage() {
   const router = useRouter();
   const routerRef = useRef(router);
   useEffect(() => { routerRef.current = router; }, [router]);
   const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const { isPending, startTour, loaded: toursLoaded } = useTour();
   const [myExperiences, setMyExperiences] = useState<Experience[]>([]);
   const [receivedMatches, setReceivedMatches] = useState<Match[]>([]);
   const [sentMatches, setSentMatches] = useState<Match[]>([]);
@@ -62,18 +60,6 @@ export default function DashboardPage() {
 
     loadData();
   }, [isAuthenticated, authLoading]);
-
-  // Auto-trigger del tour de bienvenida la primera vez que el usuario entra
-  // al dashboard. Sólo se lanza si no lo ha completado todavía.
-  useEffect(() => {
-    if (!toursLoaded || authLoading || loading) return;
-    if (!isAuthenticated) return;
-    if (isPending('welcome')) {
-      // Pequeño delay para asegurar que los selectores del bottom nav existan
-      const timer = setTimeout(() => startTour('welcome'), 600);
-      return () => clearTimeout(timer);
-    }
-  }, [toursLoaded, authLoading, loading, isAuthenticated, isPending, startTour]);
 
   // Stats
   const pendingReceived = receivedMatches.filter(m => m.status === 'pending').length;
