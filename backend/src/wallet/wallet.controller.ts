@@ -63,11 +63,12 @@ export class WalletController {
   @UseGuards(JwtAuthGuard)
   async purchasePack(
     @Request() req: AuthenticatedRequest,
-    @Body() body: { packId: string },
+    @Body() body: { packId: string; returnTo?: string },
   ) {
     return this.walletService.createPackPurchaseSession(
       req.user.userId,
       body.packId,
+      body.returnTo,
     );
   }
 

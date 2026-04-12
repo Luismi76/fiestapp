@@ -16,9 +16,10 @@ interface Pack {
 interface PackPurchaseModalProps {
   onClose: () => void;
   onSuccess?: () => void;
+  returnTo?: string;
 }
 
-export default function PackPurchaseModal({ onClose }: PackPurchaseModalProps) {
+export default function PackPurchaseModal({ onClose, returnTo }: PackPurchaseModalProps) {
   const [packs, setPacks] = useState<Pack[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingPacks, setLoadingPacks] = useState(true);
@@ -41,7 +42,7 @@ export default function PackPurchaseModal({ onClose }: PackPurchaseModalProps) {
     setError(null);
 
     try {
-      const { sessionUrl } = await walletApi.purchasePack(selectedPack);
+      const { sessionUrl } = await walletApi.purchasePack(selectedPack, returnTo);
       window.location.href = sessionUrl;
     } catch (err) {
       logger.error('Pack purchase error:', err);

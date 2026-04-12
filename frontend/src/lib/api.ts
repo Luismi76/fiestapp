@@ -949,8 +949,8 @@ export const walletApi = {
   },
 
   // Comprar un pack
-  purchasePack: async (packId: string): Promise<{ sessionUrl: string; sessionId: string }> => {
-    const response = await api.post('/wallet/purchase-pack', { packId });
+  purchasePack: async (packId: string, returnTo?: string): Promise<{ sessionUrl: string; sessionId: string }> => {
+    const response = await api.post('/wallet/purchase-pack', { packId, returnTo });
     return response.data;
   },
 

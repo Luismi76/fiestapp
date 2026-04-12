@@ -117,6 +117,7 @@ export class WalletService implements OnModuleInit {
   async createPackPurchaseSession(
     userId: string,
     packId: string,
+    returnTo?: string,
   ): Promise<{ sessionUrl: string; sessionId: string }> {
     const pack = this.platformConfig.getPack(packId);
     if (!pack) {
@@ -171,8 +172,12 @@ export class WalletService implements OnModuleInit {
         credits: pack.experiences.toString(),
         walletAmount: pack.price.toString(),
       },
-      success_url: `${this.frontendUrl}/wallet/topup-result?status=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${this.frontendUrl}/wallet/topup-result?status=error`,
+      success_url: returnTo
+        ? `${this.frontendUrl}/wallet/topup-result?status=success&session_id={CHECKOUT_SESSION_ID}&returnTo=${encodeURIComponent(returnTo)}`
+        : `${this.frontendUrl}/wallet/topup-result?status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: returnTo
+        ? `${this.frontendUrl}/wallet/topup-result?status=error&returnTo=${encodeURIComponent(returnTo)}`
+        : `${this.frontendUrl}/wallet/topup-result?status=error`,
     });
 
     await this.prisma.transaction.create({

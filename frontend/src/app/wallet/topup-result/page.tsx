@@ -16,6 +16,7 @@ function TopUpResultContent() {
 
   const status = searchParams.get('status');
   const sessionId = searchParams.get('session_id');
+  const returnTo = searchParams.get('returnTo');
 
   useEffect(() => {
     if (authLoading) return;
@@ -104,19 +105,29 @@ function TopUpResultContent() {
             <p className="text-sm text-gray-400 mb-6">
               {operationsAvailable ?? '...'} experiencias disponibles en total
             </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => router.push('/wallet')}
-                className="flex-1 py-3 btn-primary rounded-xl font-semibold"
-              >
-                Ver monedero
-              </button>
-              <button
-                onClick={() => router.push('/experiences')}
-                className="flex-1 py-3 border border-gray-300 rounded-xl font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Explorar
-              </button>
+            <div className="flex flex-col gap-3">
+              {returnTo && returnTo.startsWith('/') && (
+                <button
+                  onClick={() => router.push(returnTo)}
+                  className="w-full py-3 btn-primary rounded-xl font-semibold"
+                >
+                  Continuar donde estaba
+                </button>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => router.push('/wallet')}
+                  className={`flex-1 py-3 rounded-xl font-semibold ${returnTo ? 'border border-gray-300 text-gray-700 hover:bg-gray-50' : 'btn-primary'}`}
+                >
+                  Ver monedero
+                </button>
+                <button
+                  onClick={() => router.push('/experiences')}
+                  className="flex-1 py-3 border border-gray-300 rounded-xl font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Explorar
+                </button>
+              </div>
             </div>
           </>
         ) : (
@@ -134,10 +145,18 @@ function TopUpResultContent() {
                 ? 'El pago no se ha procesado. No se ha realizado ningún cargo.'
                 : 'No se ha podido verificar el estado del pago. Si el cargo se ha realizado, el saldo se actualizará automáticamente.'}
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3">
+              {returnTo && returnTo.startsWith('/') && (
+                <button
+                  onClick={() => router.push(returnTo)}
+                  className="w-full py-3 btn-primary rounded-xl font-semibold"
+                >
+                  Volver
+                </button>
+              )}
               <button
                 onClick={() => router.push('/wallet')}
-                className="flex-1 py-3 btn-primary rounded-xl font-semibold"
+                className={`w-full py-3 rounded-xl font-semibold ${returnTo ? 'border border-gray-300 text-gray-700 hover:bg-gray-50' : 'btn-primary'}`}
               >
                 Volver al monedero
               </button>

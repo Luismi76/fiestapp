@@ -58,6 +58,7 @@ function WalletWarning({ walletInfo, onTopUpSuccess }: { walletInfo: WalletInfo;
       {showPacks && (
         <PackPurchaseModal
           onClose={() => setShowPacks(false)}
+          returnTo={typeof window !== 'undefined' ? window.location.pathname : undefined}
           onSuccess={() => {
             setShowPacks(false);
             onTopUpSuccess?.();
