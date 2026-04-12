@@ -234,7 +234,18 @@ export class PlatformConfigService implements OnModuleInit {
   }
 
   /**
-   * Obtiene toda la configuración
+   * Claves que el admin puede editar desde el panel.
+   * El resto (stripe_fee_*, stripe_price_*) son internas/automáticas
+   * y no deberían poder modificarse manualmente.
+   */
+  private static readonly EDITABLE_KEYS: string[] = [
+    ConfigKey.PLATFORM_FEE,
+    ConfigKey.VAT_RATE,
+  ];
+
+  /**
+   * Obtiene la configuración visible en el panel de admin
+   * (solo claves editables).
    */
   async getAll(): Promise<
     {
@@ -245,6 +256,7 @@ export class PlatformConfigService implements OnModuleInit {
     }[]
   > {
     return this.prisma.platformConfig.findMany({
+      where: { key: { in: PlatformConfigService.EDITABLE_KEYS } },
       orderBy: { key: 'asc' },
     });
   }
@@ -256,14 +268,17 @@ export class PlatformConfigService implements OnModuleInit {
     key: string,
     value: string,
   ): Promise<{ key: string; value: string }> {
-    // Validación: las claves numéricas deben ser número >= 0;
-    // las claves de IDs Stripe son strings (price_xxx) y no se validan numéricamente.
-    const isStripePriceKey = key.startsWith('stripe_price_');
-    if (!isStripePriceKey) {
-      const numValue = parseFloat(value);
-      if (isNaN(numValue) || numValue < 0) {
-        throw new Error(`Valor inválido para ${key}: debe ser un número >= 0`);
-      }
+    // Solo se permiten editar las claves marcadas como editables.
+    // El resto (stripe_fee_*, stripe_price_*) son internas/automáticas.
+    if (!PlatformConfigService.EDITABLE_KEYS.includes(key)) {
+      throw new Error(
+        `La clave ${key} no se puede editar manualmente desde el panel.`,
+      );
+    }
+
+    const numValue = parseFloat(value);
+    if (isNaN(numValue) || numValue < 0) {
+      throw new Error(`Valor inválido para ${key}: debe ser un número >= 0`);
     }
 
     const updated = await this.prisma.platformConfig.update({
