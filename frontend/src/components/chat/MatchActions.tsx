@@ -69,66 +69,88 @@ function WalletWarning({ walletInfo, onTopUpSuccess }: { walletInfo: WalletInfo;
   );
 }
 
-function PaymentModeSelector({ totalPrice, onPay, onCancel }: {
+function PaymentModeSelector({ totalPrice, startDate, onPay, onCancel }: {
   totalPrice?: number;
+  startDate?: string;
   onPay?: (mode: 'immediate' | 'escrow') => void;
   onCancel: () => void;
 }) {
-  const [mode, setMode] = useState<'immediate' | 'escrow'>('escrow');
+  // Calcular días hasta la experiencia (7 es el límite de Stripe para manual capture)
+  const daysUntil = startDate
+    ? Math.ceil((new Date(startDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : 0;
+  const canHold = daysUntil > 0 && daysUntil <= 7;
+
+  const [mode, setMode] = useState<'immediate' | 'escrow'>(canHold ? 'escrow' : 'immediate');
 
   return (
     <div className="mx-4 mt-3 space-y-3">
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <p className="font-medium text-blue-800 mb-1">Pago pendiente</p>
         <p className="text-sm text-blue-600 mb-3">
-          El anfitrion ha aceptado tu solicitud. Elige como quieres pagar:
+          El anfitrión ha aceptado tu solicitud.{canHold ? ' Elige cómo quieres pagar:' : ''}
         </p>
 
-        {/* Selector de modo */}
-        <div className="space-y-2 mb-4">
-          <button
-            onClick={() => setMode('escrow')}
-            className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${
-              mode === 'escrow'
-                ? 'border-blue-500 bg-blue-100'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                mode === 'escrow' ? 'border-blue-500' : 'border-gray-300'
-              }`}>
-                {mode === 'escrow' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+        {canHold ? (
+          <div className="space-y-2 mb-4">
+            <button
+              onClick={() => setMode('escrow')}
+              className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${
+                mode === 'escrow'
+                  ? 'border-blue-500 bg-blue-100'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                  mode === 'escrow' ? 'border-blue-500' : 'border-gray-300'
+                }`}>
+                  {mode === 'escrow' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                </div>
+                <span className="font-medium text-gray-900 text-sm">Pago con retención</span>
+                <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Recomendado</span>
               </div>
-              <span className="font-medium text-gray-900 text-sm">Pago con garantia</span>
-              <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Recomendado</span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1 ml-6">
-              El dinero se retiene hasta que ambos confirmeis la experiencia. Si se cancela, se te devuelve.
-            </p>
-          </button>
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                Stripe autoriza el cargo pero no lo cobra hasta que confirméis la experiencia. Si se cancela antes, la autorización se libera sin coste.
+              </p>
+            </button>
 
-          <button
-            onClick={() => setMode('immediate')}
-            className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${
-              mode === 'immediate'
-                ? 'border-blue-500 bg-blue-100'
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                mode === 'immediate' ? 'border-blue-500' : 'border-gray-300'
-              }`}>
-                {mode === 'immediate' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+            <button
+              onClick={() => setMode('immediate')}
+              className={`w-full text-left p-3 rounded-xl border-2 transition-colors ${
+                mode === 'immediate'
+                  ? 'border-blue-500 bg-blue-100'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                  mode === 'immediate' ? 'border-blue-500' : 'border-gray-300'
+                }`}>
+                  {mode === 'immediate' && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                </div>
+                <span className="font-medium text-gray-900 text-sm">Pago inmediato</span>
               </div>
-              <span className="font-medium text-gray-900 text-sm">Pago directo</span>
+              <p className="text-xs text-gray-500 mt-1 ml-6">
+                El anfitrión recibe el importe en el momento. Si cancelas, recibirás un reembolso según la política de cancelación (hasta 180 días).
+              </p>
+            </button>
+          </div>
+        ) : (
+          <div className="bg-white border border-gray-200 rounded-xl p-3 mb-4">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <div className="text-xs text-gray-600 leading-relaxed">
+                <p className="font-medium text-gray-900 mb-1">Pago de la experiencia</p>
+                <p>
+                  El anfitrión recibe el importe al realizar el pago. Si la experiencia se cancela, recibirás un reembolso según la política de cancelación dentro de los <span className="font-semibold">180 días</span> siguientes al pago.
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1 ml-6">
-              El anfitrion recibe el dinero inmediatamente. Sin retencion.
-            </p>
-          </button>
-        </div>
+          </div>
+        )}
 
         <button
           onClick={() => onPay?.(mode)}
@@ -236,6 +258,7 @@ export default function MatchActions({
     return (
       <PaymentModeSelector
         totalPrice={totalPrice}
+        startDate={startDate}
         onPay={onPay}
         onCancel={onCancel}
       />
