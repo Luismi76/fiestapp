@@ -53,7 +53,7 @@ export default function BookingPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const { vibrate } = useHaptic();
 
   // State
@@ -77,10 +77,14 @@ export default function BookingPage() {
 
   // Check auth
   useEffect(() => {
+    // Esperar a que AuthContext termine su checkAuth inicial antes de decidir.
+    // Si no se espera, el primer render tiene isAuthenticated=false (user=null
+    // hasta que /auth/me responde) y redirige a login aunque la cookie sea válida.
+    if (authLoading) return;
     if (!isAuthenticated) {
       router.push(`/login?redirect=/experiences/${params.id}/book`);
     }
-  }, [isAuthenticated, params.id, router]);
+  }, [authLoading, isAuthenticated, params.id, router]);
 
   // Check if user is the owner and redirect
   useEffect(() => {
