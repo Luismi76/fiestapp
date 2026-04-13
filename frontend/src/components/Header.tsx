@@ -1,6 +1,7 @@
 'use client';
 
-import { memo, useState, useEffect, useMemo, useCallback } from 'react';
+import { memo, useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +19,11 @@ function Header() {
   const { unreadCount: notificationCount } = useNotifications();
   const { unreadCount } = useMessages();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  // Ref del botón del avatar para anclar el dropdown portalizado.
+  const avatarBtnRef = useRef<HTMLButtonElement>(null);
+  // Posición calculada del dropdown (fixed, viewport-relative) para que
+  // pueda salir del stacking context del header vía portal.
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
 
   // Close menu on navigation
   useEffect(() => {
@@ -43,6 +49,25 @@ function Header() {
     }
     return () => {
       document.body.style.overflow = '';
+    };
+  }, [isMenuOpen]);
+
+  // Recalcular la posición del dropdown portalizado cuando se abre y
+  // también si cambia el tamaño del viewport.
+  useLayoutEffect(() => {
+    if (!isMenuOpen) return;
+    const updatePos = () => {
+      const rect = avatarBtnRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPos({
+        top: rect.bottom + 8,
+        right: Math.max(0, window.innerWidth - rect.right),
+      });
+    };
+    updatePos();
+    window.addEventListener('resize', updatePos);
+    return () => {
+      window.removeEventListener('resize', updatePos);
     };
   }, [isMenuOpen]);
 
@@ -127,6 +152,7 @@ function Header() {
             {isAuthenticated ? (
               <div className="relative">
                 <button
+                  ref={avatarBtnRef}
                   onClick={() => setIsMenuOpen(prev => !prev)}
                   className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
                   aria-expanded={isMenuOpen}
@@ -150,15 +176,21 @@ function Header() {
                   </svg>
                 </button>
 
-                {/* Dropdown menu */}
-                {isMenuOpen && (
+                {/* Dropdown menu — portalizado al body para escapar del
+                    stacking context del header (backdrop-blur crea un nuevo
+                    contexto que atraparía el dropdown debajo de sticky/fixed
+                    de otras páginas con el mismo z-index). */}
+                {isMenuOpen && menuPos && typeof document !== 'undefined' && createPortal(
                   <>
                     <div
-                      className="fixed inset-0 z-30"
+                      className="fixed inset-0 z-[60]"
                       onClick={() => setIsMenuOpen(false)}
                       aria-hidden="true"
                     />
-                    <div className="absolute right-0 top-full mt-2 w-56 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-40 animate-in fade-in zoom-in-95 duration-200">
+                    <div
+                      style={{ top: menuPos.top, right: menuPos.right }}
+                      className="fixed w-56 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-[61] animate-in fade-in zoom-in-95 duration-200"
+                    >
                       <div className="px-4 py-2 border-b border-gray-100">
                         <p className="font-semibold text-gray-900 truncate">{user?.name}</p>
                         <p className="text-sm text-gray-500 truncate">{user?.email}</p>
@@ -251,7 +283,8 @@ function Header() {
                         </button>
                       </div>
                     </div>
-                  </>
+                  </>,
+                  document.body,
                 )}
               </div>
             ) : (
