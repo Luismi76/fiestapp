@@ -295,10 +295,50 @@ function ExperiencesContent() {
   return (
     <MainLayout>
       <div className="min-h-screen">
-        {/* Header - compact */}
-        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-200">
-          <div className="px-4 py-3 flex items-center gap-3">
-            <div className="relative flex-1">
+        {/* Header — mismo patrón que el resto de páginas (título + acciones) */}
+        <header className="sticky top-0 z-30 bg-white border-b border-gray-100">
+          {/* Fila 1: título y acciones (mobile idéntico a /notifications, /wallet, etc.) */}
+          <div className="flex items-center px-4 h-14">
+            <span className="flex-1 font-semibold text-gray-900 md:text-xl text-center md:text-left">
+              Explorar
+            </span>
+            <div className="flex items-center gap-1">
+              <Link
+                href="/map"
+                className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-primary"
+                aria-label="Ver mapa"
+                title="Mapa"
+              >
+                <MapIcon />
+              </Link>
+              <Link
+                href="/calendar"
+                className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-primary"
+                aria-label="Ver calendario"
+                title="Calendario"
+              >
+                <CalendarIcon />
+              </Link>
+              <button
+                onClick={() => setShowFiltersModal(true)}
+                aria-label={`Filtros${activeFiltersCount > 0 ? ` (${activeFiltersCount} activos)` : ''}`}
+                title="Filtros"
+                className={`relative w-10 h-10 flex items-center justify-center rounded-full lg:hidden ${
+                  activeFiltersCount > 0 ? 'bg-primary text-white' : 'text-gray-600 hover:text-primary'
+                }`}
+              >
+                <FilterIcon />
+                {activeFiltersCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+          {/* Fila 2: barra de búsqueda */}
+          <div className="px-4 pb-3">
+            <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                 <SearchIcon />
               </span>
@@ -310,27 +350,6 @@ function ExperiencesContent() {
                 className="w-full h-10 pl-10 pr-4 bg-gray-100 rounded-full text-sm placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary/20"
               />
             </div>
-            <Link href="/map" className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-primary" aria-label="Ver mapa" title="Mapa">
-              <MapIcon />
-            </Link>
-            <Link href="/calendar" className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-primary" aria-label="Ver calendario" title="Calendario">
-              <CalendarIcon />
-            </Link>
-            <button
-              onClick={() => setShowFiltersModal(true)}
-              aria-label={`Filtros${activeFiltersCount > 0 ? ` (${activeFiltersCount} activos)` : ''}`}
-              title="Filtros"
-              className={`relative w-10 h-10 flex items-center justify-center rounded-full lg:hidden ${
-                activeFiltersCount > 0 ? 'bg-primary text-white' : 'text-gray-600 hover:text-primary'
-              }`}
-            >
-              <FilterIcon />
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
           </div>
         </header>
 
