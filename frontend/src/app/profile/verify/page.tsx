@@ -234,25 +234,19 @@ export default function VerifyIdentityPage() {
                   <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Mayor confianza de otros usuarios
+                  Mayor confianza de otros usuarios al ver tu insignia verificada
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Insignia de verificado en tu perfil
+                  Como anfitrión, podrás aplicar la política <strong>Sin reembolso</strong> en tus experiencias (requiere además valoración media ≥ 4 y al menos 3 experiencias completadas)
                 </li>
                 <li className="flex items-start gap-2 text-sm text-gray-600">
                   <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Acceso a experiencias exclusivas
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-600">
-                  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Mayor prioridad en el matching
+                  Perfil más completo para abrir disputas y reclamaciones con garantía
                 </li>
               </ul>
             </div>
@@ -443,7 +437,7 @@ export default function VerifyIdentityPage() {
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Tu identidad esta verificada</h2>
               <p className="text-gray-600">
-                Ahora tienes acceso completo a todas las funciones de FiestApp
+                Tu perfil muestra ahora la insignia de verificado y otros usuarios sabrán que pueden confiar en ti.
               </p>
             </div>
           )}
