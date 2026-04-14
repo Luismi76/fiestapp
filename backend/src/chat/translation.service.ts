@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -61,11 +61,24 @@ export class TranslationService {
   ) {
     this.googleApiKey = this.configService.get('GOOGLE_TRANSLATE_API_KEY');
     this.libreTranslateUrl =
-      this.configService.get('LIBRETRANSLATE_URL') ||
-      'https://libretranslate.com';
+      this.configService.get('LIBRETRANSLATE_URL') || '';
 
-    // Determinar proveedor: Google si hay API key, sino LibreTranslate
-    this.provider = this.googleApiKey ? 'google' : 'libretranslate';
+    // Selección del proveedor:
+    //  1. Google si hay API key (mejor calidad, requiere pago >500k chars/mes)
+    //  2. LibreTranslate si hay URL válida y no apunta a localhost
+    //     (libretranslate.com está paywalled; se necesita self-hosted o mirror)
+    //  3. MyMemory por defecto (5000 palabras/día gratis, sin API key)
+    if (this.googleApiKey) {
+      this.provider = 'google';
+    } else if (
+      this.libreTranslateUrl &&
+      !this.libreTranslateUrl.includes('localhost') &&
+      !this.libreTranslateUrl.includes('127.0.0.1')
+    ) {
+      this.provider = 'libretranslate';
+    } else {
+      this.provider = 'mymemory';
+    }
     this.logger.log(`Using provider: ${this.provider}`);
   }
 
@@ -236,7 +249,12 @@ export class TranslationService {
         'MyMemory error',
         error instanceof Error ? error.stack : String(error),
       );
-      return this.mockTranslate(text, targetLang);
+      // Si MyMemory falla, no hay más fallbacks reales: el mock solo devolvía
+      // el texto sin tocar y el usuario creía que la traducción funcionaba.
+      // Lanzamos un 503 para que el frontend muestre un mensaje claro.
+      throw new ServiceUnavailableException(
+        'El servicio de traducción no está disponible. Inténtalo de nuevo en unos minutos.',
+      );
     }
   }
 
@@ -280,28 +298,6 @@ export class TranslationService {
       );
       return this.translateWithMyMemory(text, targetLang);
     }
-  }
-
-  private mockTranslate(text: string, targetLang: string): TranslationResult {
-    // Detectar idioma simple (basado en palabras comunes)
-    const detectedLang = this.detectLanguage(text);
-
-    // Si el idioma detectado es el mismo que el objetivo, devolver el texto original
-    if (detectedLang === targetLang) {
-      return {
-        translatedText: text,
-        detectedLanguage: detectedLang,
-      };
-    }
-
-    // Fallback: devolver texto original sin modificar
-    this.logger.warn(
-      `Translation fallback: returning original text (target: ${targetLang})`,
-    );
-    return {
-      translatedText: text,
-      detectedLanguage: detectedLang,
-    };
   }
 
   private detectLanguage(text: string): string {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import axios from 'axios';
 import logger from '@/lib/logger';
 
 interface TranslateButtonProps {
@@ -68,7 +69,11 @@ export default function TranslateButton({
       setShowTranslation(true);
     } catch (err) {
       logger.error('Translation error:', err);
-      setError('No se pudo traducir');
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('No se pudo traducir');
+      }
     } finally {
       setLoading(false);
     }
