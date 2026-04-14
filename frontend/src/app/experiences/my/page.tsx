@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { experiencesApi } from '@/lib/api';
+import { experiencesApi, connectApi, type ConnectStatus } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Experience } from '@/types/experience';
 import { getUploadUrl } from '@/lib/utils';
@@ -18,6 +18,7 @@ export default function MyExperiencesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<'all' | 'active' | 'draft'>('all');
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -39,8 +40,18 @@ export default function MyExperiencesPage() {
 
     if (isAuthenticated) {
       fetchExperiences();
+      connectApi.getStatus().then(setConnectStatus).catch(() => {});
     }
   }, [isAuthenticated]);
+
+  // Borradores de pago bloqueados por falta de Stripe Connect
+  const paidDraftsBlockedByConnect = experiences.filter(
+    (e) => !e.published && e.price && e.price > 0,
+  );
+  const needsConnectForDrafts =
+    paidDraftsBlockedByConnect.length > 0 &&
+    connectStatus !== null &&
+    !connectStatus.payoutsEnabled;
 
   const filteredExperiences = experiences.filter(exp => {
     if (filter === 'active') return exp.published;
@@ -140,6 +151,33 @@ export default function MyExperiencesPage() {
         {error && (
           <div className="mx-4 md:mx-6 lg:mx-8 mt-4 bg-red-50 text-red-600 p-4 rounded-xl text-sm">
             {error}
+          </div>
+        )}
+
+        {needsConnectForDrafts && (
+          <div className="mx-4 md:mx-6 lg:mx-8 mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5">
+              <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+            </svg>
+            <div className="flex-1 text-sm">
+              <p className="font-semibold text-amber-900 mb-1">
+                {paidDraftsBlockedByConnect.length === 1
+                  ? 'Tienes 1 experiencia de pago en borrador'
+                  : `Tienes ${paidDraftsBlockedByConnect.length} experiencias de pago en borrador`}
+              </p>
+              <p className="text-amber-800 mb-2">
+                Para publicarlas necesitas configurar tu cuenta de cobros y recibir los pagos directamente en tu banco.
+              </p>
+              <Link
+                href="/connect"
+                className="inline-flex items-center gap-1 font-semibold text-amber-900 underline"
+              >
+                Configurar cuenta de cobros
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+                </svg>
+              </Link>
+            </div>
           </div>
         )}
 

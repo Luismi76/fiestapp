@@ -416,7 +416,7 @@ export default function DashboardPage() {
                       href={`/experiences/${exp.id}`}
                       className="card flex items-center gap-3 p-3 group"
                     >
-                      <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
+                      <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 relative">
                         <Image
                           src={getImageUrl(exp.photos) || ''}
                           alt={exp.title}
@@ -425,7 +425,14 @@ export default function DashboardPage() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-[#1A1410] truncate">{exp.title}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-[#1A1410] truncate">{exp.title}</p>
+                          {!exp.published && (
+                            <span className="flex-shrink-0 px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-semibold rounded-full uppercase tracking-wide">
+                              Borrador
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-[#8B7355] flex items-center gap-1">
                           <MapPinIcon />
                           {exp.city}
