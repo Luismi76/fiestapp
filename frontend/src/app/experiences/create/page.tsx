@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
-import { experiencesApi, uploadsApi, cancellationsApi } from '@/lib/api';
+import { experiencesApi, uploadsApi, cancellationsApi, connectApi, type ConnectStatus } from '@/lib/api';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
 import { ExperienceType, CreateExperienceData, CancellationPolicy } from '@/types/experience';
@@ -164,6 +164,8 @@ export default function CreateExperiencePage() {
   const [depositEnabled, setDepositEnabled] = useState(false);
   const [depositPercentage, setDepositPercentage] = useState(20);
   const [balanceDaysBefore, setBalanceDaysBefore] = useState(30);
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
+  const [draftNotice, setDraftNotice] = useState<{ experienceId: string } | null>(null);
   const draftLoaded = useRef(false);
 
   const {
@@ -187,6 +189,13 @@ export default function CreateExperiencePage() {
     cancellationsApi.getAvailablePolicies()
       .then(({ data }) => setPolicyRestrictions(data.restrictions))
       .catch(() => {}); // Si falla, todas las opciones quedan habilitadas
+  }, []);
+
+  // --- Cargar estado de la cuenta de cobros (Stripe Connect) ---
+  useEffect(() => {
+    connectApi.getStatus()
+      .then(setConnectStatus)
+      .catch(() => setConnectStatus({ hasAccount: false, onboarded: false, payoutsEnabled: false, detailsSubmitted: false }));
   }, []);
 
   // --- Borrador: cargar al montar ---
@@ -444,6 +453,14 @@ export default function CreateExperiencePage() {
       }
 
       clearDraft();
+
+      // Si el backend la ha guardado como borrador por falta de Stripe Connect,
+      // mostrar aviso en la misma página en vez de redirigir directamente.
+      if (experience.savedAsDraft) {
+        setDraftNotice({ experienceId: experience.id });
+        return;
+      }
+
       router.push(`/experiences/${experience.id}`);
     } catch (err) {
       logger.error('Error creating experience:', err);
@@ -482,6 +499,42 @@ export default function CreateExperiencePage() {
           <div className="text-center">
             <div className="spinner spinner-lg mx-auto mb-4" />
             <div className="text-gray-500">Cargando...</div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (draftNotice) {
+    return (
+      <MainLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 text-amber-500">
+                <path fillRule="evenodd" d="M9.401 3.003c1.155-2.004 4.043-2.004 5.197 0l7.355 12.748c1.154 2.004-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.496-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Guardada como borrador</h2>
+              <p className="text-gray-600 text-sm">
+                Tu experiencia de pago se ha creado, pero aún no está visible para los viajeros. Para publicarla necesitas configurar tu cuenta de cobros y recibir los pagos directamente en tu banco.
+              </p>
+            </div>
+            <div className="space-y-2 pt-2">
+              <Link
+                href="/connect"
+                className="block w-full text-center bg-primary text-white font-semibold py-3 rounded-xl hover:bg-primary/90 transition-colors"
+              >
+                Configurar cuenta de cobros
+              </Link>
+              <Link
+                href={`/experiences/${draftNotice.experienceId}`}
+                className="block w-full text-center border border-gray-200 text-gray-700 font-medium py-3 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Ver el borrador más tarde
+              </Link>
+            </div>
           </div>
         </div>
       </MainLayout>
@@ -683,6 +736,24 @@ export default function CreateExperiencePage() {
                   </label>
                 ))}
               </div>
+              {/* Aviso si el usuario elige modalidad de pago pero no tiene cuenta de cobros */}
+              {selectedType !== 'intercambio' && connectStatus && !connectStatus.payoutsEnabled && (
+                <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5">
+                    <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                  </svg>
+                  <div className="flex-1 text-sm text-amber-900">
+                    <p className="font-semibold mb-1">Necesitas una cuenta de cobros para publicar</p>
+                    <p className="text-amber-800 mb-2">Puedes guardar la experiencia como borrador ahora y configurar tu cuenta de cobros para publicarla después.</p>
+                    <Link href="/connect" className="inline-flex items-center gap-1 font-semibold text-amber-900 underline">
+                      Configurar cuenta de cobros
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                        <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+                      </svg>
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Price (if applicable) */}

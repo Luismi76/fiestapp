@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -63,6 +64,18 @@ export class ExperiencesService {
     }
   }
 
+  /**
+   * Comprueba si el usuario tiene la cuenta de Stripe Connect lista para recibir pagos.
+   * Usa el flag cacheado en DB (se sincroniza desde connect.service.getAccountStatus).
+   */
+  private async userCanReceivePayments(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { stripeConnectPayoutsEnabled: true },
+    });
+    return !!user?.stripeConnectPayoutsEnabled;
+  }
+
   async create(createDto: CreateExperienceDto, userId: string) {
     // Verificar que el festival existe solo si se proporciona
     if (createDto.festivalId) {
@@ -74,6 +87,13 @@ export class ExperiencesService {
         throw new NotFoundException('Festival no encontrado');
       }
     }
+
+    // Si la experiencia es de pago y el host no tiene cuenta de cobros lista,
+    // se guarda como borrador (published=false). No bloqueamos la creación
+    // para permitir que el host configure Connect después.
+    const isPaid = !!createDto.price && createDto.price > 0;
+    const needsConnectBeforePublish =
+      isPaid && !(await this.userCanReceivePayments(userId));
 
     // Usar coordenadas del frontend si se proporcionan, sino geocodificar
     const coordinates =
@@ -106,6 +126,8 @@ export class ExperiencesService {
           depositPercentage: createDto.depositPercentage ?? 20,
           balanceDaysBefore: createDto.balanceDaysBefore ?? 30,
           hostId: userId,
+          // Forzar borrador si es de pago y no tiene cuenta de cobros lista
+          ...(needsConnectBeforePublish && { published: false }),
         },
         include: {
           host: {
@@ -160,7 +182,10 @@ export class ExperiencesService {
     // Invalidar cache de experiencias
     await this.cacheService.invalidateExperiences();
 
-    return experience;
+    return {
+      ...experience,
+      savedAsDraft: needsConnectBeforePublish,
+    };
   }
 
   async findAll(options?: {
@@ -692,6 +717,26 @@ export class ExperiencesService {
       }
     }
 
+    // Si tras el update la experiencia quedará publicada y con precio,
+    // exigir cuenta de cobros lista. Cubre tanto "publicar ahora" como
+    // "añadir precio a una experiencia publicada".
+    const finalPrice =
+      updateDto.price !== undefined ? updateDto.price : experience.price;
+    const finalPublished =
+      updateDto.published !== undefined
+        ? updateDto.published
+        : experience.published;
+    if (
+      finalPublished &&
+      finalPrice &&
+      finalPrice > 0 &&
+      !(await this.userCanReceivePayments(userId))
+    ) {
+      throw new BadRequestException(
+        'Para publicar experiencias de pago debes configurar tu cuenta de cobros. Ve a Perfil > Cuenta de cobros.',
+      );
+    }
+
     // Extraer availability, coords y cancellationPolicy del DTO para manejarlo por separado
     const {
       availability,
@@ -850,6 +895,19 @@ export class ExperiencesService {
     if (experience.hostId !== userId) {
       throw new ForbiddenException(
         'No tienes permiso para modificar esta experiencia',
+      );
+    }
+
+    // Si va a pasar de borrador a publicada y es de pago, exigir Connect.
+    const willPublish = !experience.published;
+    if (
+      willPublish &&
+      experience.price &&
+      experience.price > 0 &&
+      !(await this.userCanReceivePayments(userId))
+    ) {
+      throw new BadRequestException(
+        'Para publicar experiencias de pago debes configurar tu cuenta de cobros. Ve a Perfil > Cuenta de cobros.',
       );
     }
 

@@ -297,6 +297,8 @@ export default function EditExperiencePage() {
           return;
         } else if (err.response?.status === 403) {
           setError('No tienes permisos para cambiar el estado de esta experiencia.');
+        } else if (err.response?.data?.message) {
+          setError(err.response.data.message);
         } else {
           setError('No se pudo cambiar el estado de publicación.');
         }

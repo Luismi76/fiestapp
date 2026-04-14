@@ -80,6 +80,8 @@ export interface Experience {
     reviews: number;
     matches: number;
   };
+  /** Solo presente en la respuesta de POST /experiences cuando se guarda como borrador por falta de Stripe Connect. */
+  savedAsDraft?: boolean;
 }
 
 export interface Review {
