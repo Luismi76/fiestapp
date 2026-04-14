@@ -98,11 +98,14 @@ export class TranslationService {
       throw new Error('Mensaje no encontrado');
     }
 
-    // Verificar si ya tenemos la traducción en caché
+    // Verificar si ya tenemos la traducción en caché. Ignoramos entradas donde
+    // el valor cacheado es idéntico al texto original (residuo del mockTranslate
+    // antiguo que guardaba el texto sin traducir).
     const translations = (message.translations as Record<string, string>) || {};
-    if (translations[targetLang]) {
+    const cached = translations[targetLang];
+    if (cached && cached !== message.content) {
       return {
-        translatedText: translations[targetLang],
+        translatedText: cached,
         detectedLanguage: message.originalLang || undefined,
       };
     }
@@ -110,15 +113,21 @@ export class TranslationService {
     // Traducir
     const result = await this.translate(message.content, targetLang);
 
-    // Guardar en caché
-    translations[targetLang] = result.translatedText;
-    await this.prisma.message.update({
-      where: { id: messageId },
-      data: {
-        translations,
-        originalLang: result.detectedLanguage || message.originalLang,
-      },
-    });
+    // Guardar en caché solo si la traducción aporta algo.
+    const isUsefulTranslation =
+      result.translatedText !== message.content ||
+      result.detectedLanguage === targetLang;
+
+    if (isUsefulTranslation) {
+      translations[targetLang] = result.translatedText;
+      await this.prisma.message.update({
+        where: { id: messageId },
+        data: {
+          translations,
+          originalLang: result.detectedLanguage || message.originalLang,
+        },
+      });
+    }
 
     return result;
   }

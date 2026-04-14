@@ -155,11 +155,14 @@ export class ChatController {
       );
     }
 
-    // Verificar si ya tenemos la traducción en cache
+    // Verificar si ya tenemos la traducción en cache.
+    // Ignoramos entradas donde el valor cacheado es idéntico al texto original:
+    // son residuos del antiguo mockTranslate que guardaba el texto sin traducir.
     const translations = (message.translations as Record<string, string>) || {};
-    if (translations[targetLang]) {
+    const cached = translations[targetLang];
+    if (cached && cached !== message.content) {
       return {
-        translatedText: translations[targetLang],
+        translatedText: cached,
         detectedLanguage: message.originalLang,
         cached: true,
       };
@@ -171,19 +174,27 @@ export class ChatController {
       targetLang,
     );
 
-    // Guardar en cache
-    const updatedTranslations = {
-      ...translations,
-      [targetLang]: result.translatedText,
-    };
+    // Guardar en cache solo si la traducción aporta algo:
+    //  - texto distinto al original, o
+    //  - idioma detectado == idioma objetivo (caso legítimo sin cambio de texto)
+    const isUsefulTranslation =
+      result.translatedText !== message.content ||
+      result.detectedLanguage === targetLang;
 
-    await this.prisma.message.update({
-      where: { id: messageId },
-      data: {
-        translations: updatedTranslations,
-        originalLang: message.originalLang || result.detectedLanguage,
-      },
-    });
+    if (isUsefulTranslation) {
+      const updatedTranslations = {
+        ...translations,
+        [targetLang]: result.translatedText,
+      };
+
+      await this.prisma.message.update({
+        where: { id: messageId },
+        data: {
+          translations: updatedTranslations,
+          originalLang: message.originalLang || result.detectedLanguage,
+        },
+      });
+    }
 
     return {
       translatedText: result.translatedText,
