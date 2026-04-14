@@ -118,7 +118,7 @@ export const hostTour: TourDefinition = {
       target: '[data-tour="experience-form-mode"]',
       title: 'Modalidad y precio',
       content:
-        'Decide si tu experiencia es de pago, intercambio o mixta. Si es de pago, define el importe que recibirás (FiestApp añade su comisión por encima).',
+        'Decide si tu experiencia es de pago, intercambio o mixta. Si es de pago, el importe que definas es lo que paga el viajero y se transfiere directamente a tu cuenta de cobros vía Stripe.',
     },
     {
       target: '[data-tour="experience-form-deposit"]',

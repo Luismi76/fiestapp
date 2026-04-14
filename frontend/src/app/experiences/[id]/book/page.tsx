@@ -783,11 +783,9 @@ export default function BookingPage() {
         )}
 
         {/* Commission notice */}
-        {isPaid && (
-          <p className="text-xs text-gray-500 text-center">
-            Se aplicará una comisión de servicio de 1,50€ a cada parte al aceptar la solicitud
-          </p>
-        )}
+        <p className="text-xs text-gray-500 text-center">
+          Al aceptar el acuerdo se consumirá 1 experiencia del monedero de cada parte
+        </p>
 
         {/* Error message */}
         {submitError && (

@@ -74,9 +74,10 @@ export default function TermsPage() {
             <section>
               <h3 className="text-lg font-semibold text-gray-900 mb-3">5. Pagos y tarifas</h3>
               <p className="text-gray-600">
-                FiestApp cobra una tarifa de servicio de 1,50 EUR por cada match completado. Los pagos entre
-                usuarios se procesan de forma segura a través de nuestra plataforma. Los reembolsos se gestionan
-                según nuestra política de cancelación.
+                FiestApp opera mediante un sistema de experiencias prepagadas (packs de créditos). Cada acuerdo
+                cerrado consume una experiencia del monedero del viajero y una del anfitrión. Los pagos de las
+                experiencias de pago se procesan de forma segura a través de Stripe y se transfieren directamente
+                al anfitrión. Los reembolsos se gestionan según nuestra política de cancelación.
               </p>
             </section>
 

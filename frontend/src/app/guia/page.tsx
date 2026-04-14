@@ -137,7 +137,7 @@ function ViajeroSections({ openSections, toggle }: { openSections: Set<SectionId
         <Step n={5}>
           <p>Revisa el resumen (precio total, fechas, participantes) y pulsa <strong>Enviar solicitud</strong>.</p>
         </Step>
-        <Tip>Un mensaje personalizado y detallado aumenta mucho las posibilidades de aceptación.</Tip>
+        <Tip>Para que el anfitrión pueda aceptar el acuerdo, ambos necesitáis tener al menos <strong>1 experiencia disponible</strong> en el monedero. Compra un pack antes o en cuanto recibas la aceptación.</Tip>
       </AccordionSection>
 
       <AccordionSection id="v-chat" icon="💬" title="Chat y comunicación" openSections={openSections} toggle={toggle}>
@@ -153,17 +153,36 @@ function ViajeroSections({ openSections, toggle }: { openSections: Set<SectionId
         <Tip>La barra de progreso en la parte superior del chat te muestra el estado actual de tu solicitud.</Tip>
       </AccordionSection>
 
-      <AccordionSection id="v-pago" icon="💳" title="Pagos y monedero" openSections={openSections} toggle={toggle}>
+      <AccordionSection id="v-monedero" icon="🎟️" title="Monedero y experiencias disponibles" openSections={openSections} toggle={toggle}>
+        <p>FiestApp funciona con un sistema de <strong>créditos</strong> llamados &quot;experiencias disponibles&quot;. Cada acuerdo cerrado (ya sea de pago o de intercambio) consume <strong>1 experiencia de tu monedero y 1 del anfitrión</strong>.</p>
         <Step n={1}>
-          <p>Si la experiencia es de pago, una vez aceptada tu solicitud verás el botón <strong>&quot;Pagar experiencia&quot;</strong> en el chat.</p>
+          <p>Entra en <strong>Monedero</strong> para ver cuántas experiencias tienes disponibles y tu historial de compras.</p>
         </Step>
         <Step n={2}>
-          <p>El pago se realiza de forma segura a través de <strong>Stripe</strong>. Tu dinero queda en garantía hasta que se confirme la finalización.</p>
+          <p>Pulsa <strong>&quot;Comprar pack de experiencias&quot;</strong> y elige el pack que prefieras:</p>
+          <ul className="list-disc ml-6 mt-2 space-y-1">
+            <li><strong>Básico</strong>: 3 EUR → 2 experiencias</li>
+            <li><strong>Aventura</strong>: 6 EUR → 5 experiencias (incluye 1 gratis)</li>
+            <li><strong>Viajero</strong>: 12 EUR → 13 experiencias (incluye varias gratis)</li>
+          </ul>
         </Step>
         <Step n={3}>
-          <p>Desde <strong>Monedero</strong> puedes recargar saldo, ver tu historial de transacciones y el detalle de comisiones.</p>
+          <p>El pago del pack se procesa con <strong>Stripe</strong>. Las experiencias se añaden a tu monedero al instante.</p>
         </Step>
-        <Tip>La plataforma cobra una comisión de 1,50 EUR por acuerdo completado. Los intercambios son gratuitos.</Tip>
+        <Tip>Solo necesitas créditos cuando el anfitrión acepta el acuerdo. Puedes explorar, solicitar y chatear sin gastar nada.</Tip>
+      </AccordionSection>
+
+      <AccordionSection id="v-pago" icon="💳" title="Pagar una experiencia" openSections={openSections} toggle={toggle}>
+        <Step n={1}>
+          <p>Si la experiencia es de pago, cuando el anfitrión acepte tu solicitud verás el botón <strong>&quot;Pagar experiencia&quot;</strong> en el chat.</p>
+        </Step>
+        <Step n={2}>
+          <p>El pago se realiza de forma segura a través de <strong>Stripe</strong>. El importe se transfiere directamente al anfitrión (FiestApp no lo retiene).</p>
+        </Step>
+        <Step n={3}>
+          <p>Si la experiencia admite <strong>reserva con depósito</strong>, podrás elegir pagar solo una parte ahora y el resto se cobrará automáticamente unos días antes de la fecha.</p>
+        </Step>
+        <Tip>Si algo falla, puedes abrir una disputa y FiestApp mediará para gestionar un reembolso total o parcial.</Tip>
       </AccordionSection>
 
       <AccordionSection id="v-finalizar" icon="✅" title="Finalizar y valorar" openSections={openSections} toggle={toggle}>
@@ -268,6 +287,23 @@ function AnfitrionSections({ openSections, toggle }: { openSections: Set<Section
         <Tip>Los precios por grupo son opcionales. Si no los configuras, se usará el precio base para todos.</Tip>
       </AccordionSection>
 
+      <AccordionSection id="a-connect" icon="🏦" title="Configurar cuenta de cobros (Stripe)" openSections={openSections} toggle={toggle}>
+        <p><strong>Importante:</strong> para poder aceptar experiencias <strong>de pago</strong> necesitas tener configurada tu cuenta de cobros. Sin ella, el botón &quot;Aceptar&quot; dará error. Las experiencias de intercambio no lo requieren.</p>
+        <Step n={1}>
+          <p>Ve a <strong>Perfil &gt; Cuenta de cobros</strong> (o accede directamente a <em>/connect</em>).</p>
+        </Step>
+        <Step n={2}>
+          <p>Pulsa <strong>&quot;Crear cuenta de cobros&quot;</strong>. Serás redirigido a <strong>Stripe</strong> para completar la verificación.</p>
+        </Step>
+        <Step n={3}>
+          <p>Rellena tus datos personales/fiscales y añade el <strong>IBAN</strong> donde quieres recibir los cobros. Stripe puede pedirte un documento de identidad.</p>
+        </Step>
+        <Step n={4}>
+          <p>Al terminar vuelves a FiestApp. Cuando Stripe valide tus datos, el estado pasa a <strong>&quot;Cobros activados&quot;</strong> y podrás aceptar experiencias de pago.</p>
+        </Step>
+        <Tip>El dinero de cada experiencia se transfiere <strong>directamente a tu cuenta bancaria</strong> a través de Stripe. FiestApp no retiene ni gestiona esos fondos.</Tip>
+      </AccordionSection>
+
       <AccordionSection id="a-solicitudes" icon="📩" title="Gestionar solicitudes" openSections={openSections} toggle={toggle}>
         <Step n={1}>
           <p>Las solicitudes de viajeros aparecen en la pestaña <strong>&quot;Recibidas&quot;</strong> de Mensajes.</p>
@@ -279,7 +315,10 @@ function AnfitrionSections({ openSections, toggle }: { openSections: Set<Section
           <p>Puedes <strong>aceptar</strong> o <strong>rechazar</strong> la solicitud. Al aceptar, puedes ajustar las fechas si es necesario.</p>
         </Step>
         <Step n={4}>
-          <p>Si es una experiencia de pago, el viajero procederá al pago tras tu aceptación.</p>
+          <p>Al aceptar, se descuenta <strong>1 experiencia de tu monedero y 1 del viajero</strong>. Si alguno no tiene créditos disponibles, verás un aviso para comprar un pack.</p>
+        </Step>
+        <Step n={5}>
+          <p>Si la experiencia es de pago, el viajero procederá al pago tras tu aceptación y el importe llegará a tu cuenta de cobros.</p>
         </Step>
         <Tip>Responde rápido a las solicitudes. Los anfitriones con mejor tiempo de respuesta aparecen mejor posicionados.</Tip>
       </AccordionSection>
@@ -297,17 +336,18 @@ function AnfitrionSections({ openSections, toggle }: { openSections: Set<Section
         <Tip>Puedes personalizar tus respuestas rápidas desde el icono de respuestas rápidas en el chat.</Tip>
       </AccordionSection>
 
-      <AccordionSection id="a-cobros" icon="🏦" title="Cobros y monedero" openSections={openSections} toggle={toggle}>
+      <AccordionSection id="a-cobros" icon="💶" title="Cobros y monedero" openSections={openSections} toggle={toggle}>
+        <p>FiestApp separa dos cosas: el <strong>dinero real</strong> de las experiencias de pago (va a tu cuenta bancaria vía Stripe) y las <strong>experiencias disponibles</strong> (créditos para poder cerrar acuerdos).</p>
         <Step n={1}>
-          <p>Los pagos de los viajeros quedan en <strong>garantía</strong> hasta que ambas partes confirmen la finalización.</p>
+          <p><strong>Dinero de las reservas:</strong> cuando un viajero paga una experiencia, el importe se transfiere directamente a tu <strong>cuenta de cobros</strong> (Stripe Connect). Stripe aplica sus comisiones propias según su tarifa estándar.</p>
         </Step>
         <Step n={2}>
-          <p>Una vez completado el match, el dinero se <strong>libera a tu monedero</strong> descontando la comisión de la plataforma (1,50 EUR).</p>
+          <p><strong>Experiencias disponibles:</strong> para que un acuerdo se cierre, tanto tú como el viajero necesitáis tener al menos 1 experiencia disponible en el monedero. Se consume 1 crédito de cada parte al aceptar la solicitud.</p>
         </Step>
         <Step n={3}>
-          <p>Consulta tu saldo y todas las transacciones desde la sección <strong>Monedero</strong>.</p>
+          <p>Desde <strong>Monedero</strong> puedes comprar packs de experiencias, consultar tu historial y ver qué acuerdos han consumido créditos.</p>
         </Step>
-        <Tip>Las experiencias de intercambio no tienen coste de comisión.</Tip>
+        <Tip>Las experiencias de intercambio <strong>también consumen 1 crédito por parte</strong>, igual que las de pago. No hay acuerdos gratis.</Tip>
       </AccordionSection>
 
       <AccordionSection id="a-estadisticas" icon="📊" title="Estadísticas y rendimiento" openSections={openSections} toggle={toggle}>
@@ -374,8 +414,8 @@ export default function GuiaPage() {
 
   const expandAll = () => {
     const allIds = tab === 'viajero'
-      ? ['v-registro', 'v-explorar', 'v-solicitar', 'v-chat', 'v-pago', 'v-finalizar', 'v-disputas', 'v-favoritos', 'v-calendario']
-      : ['a-crear', 'a-gestionar', 'a-precios', 'a-solicitudes', 'a-chat', 'a-cobros', 'a-estadisticas', 'a-resenas', 'a-disputas'];
+      ? ['v-registro', 'v-explorar', 'v-solicitar', 'v-chat', 'v-monedero', 'v-pago', 'v-finalizar', 'v-disputas', 'v-favoritos', 'v-calendario']
+      : ['a-crear', 'a-gestionar', 'a-precios', 'a-connect', 'a-solicitudes', 'a-chat', 'a-cobros', 'a-estadisticas', 'a-resenas', 'a-disputas'];
     setOpenSections(new Set(allIds));
   };
 
