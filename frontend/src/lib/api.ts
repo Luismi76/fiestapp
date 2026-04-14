@@ -1887,22 +1887,32 @@ export const chatApi = {
       throw new Error('El archivo de audio está vacío');
     }
 
+    // Elegir extensión en función del mimeType real del blob (Chrome suele dar
+    // webm/opus, Safari mp4/aac, algunos Firefox ogg). No forzamos .webm.
+    const mime = file.type || 'audio/webm';
+    const extension = mime.includes('mp4')
+      ? 'mp4'
+      : mime.includes('ogg')
+        ? 'ogg'
+        : mime.includes('mpeg')
+          ? 'mp3'
+          : mime.includes('wav')
+            ? 'wav'
+            : 'webm';
+
     const formData = new FormData();
-    formData.append('audio', file, 'voice.webm');
+    formData.append('audio', file, `voice.${extension}`);
 
-    // Use native fetch to avoid Axios default Content-Type: application/json
-    const res = await fetch(`${API_URL}/chat/voice/${matchId}`, {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: 'Error al subir audio' }));
-      throw new Error(err.message || `Error ${res.status}`);
-    }
-
-    return res.json();
+    // Usamos la instancia Axios (con interceptor de Bearer token desde
+    // localStorage) para que el upload autentique aunque el navegador
+    // bloquee cookies de terceros. Axios 1.x detecta FormData y
+    // sustituye el Content-Type default por multipart/form-data con el
+    // boundary que añade el navegador.
+    const { data } = await api.post<VoiceUploadResponse>(
+      `/chat/voice/${matchId}`,
+      formData,
+    );
+    return data;
   },
 
   // Traducir mensaje (via REST para casos sin WebSocket)
