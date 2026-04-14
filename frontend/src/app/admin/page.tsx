@@ -408,8 +408,8 @@ export default function AdminDashboardPage() {
                 </svg>
               </div>
               <div>
-                <div className="text-2xl font-bold text-emerald-600">{stats.revenue.packPurchases.toFixed(2)} EUR</div>
-                <div className="text-xs text-gray-500">Packs vendidos ({stats.revenue.agreementsClosed} acuerdos)</div>
+                <div className="text-2xl font-bold text-emerald-600">{(stats.revenue.packPurchases ?? 0).toFixed(2)} EUR</div>
+                <div className="text-xs text-gray-500">Packs vendidos ({stats.revenue.agreementsClosed ?? 0} acuerdos)</div>
               </div>
             </div>
           </div>
@@ -424,12 +424,12 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
               <span className="text-xs font-medium text-green-700">VENTA DE PACKS</span>
-              <div className="text-2xl font-bold text-green-700 mt-1">{stats.revenue.packPurchases.toFixed(2)} EUR</div>
+              <div className="text-2xl font-bold text-green-700 mt-1">{(stats.revenue.packPurchases ?? 0).toFixed(2)} EUR</div>
               <div className="text-xs text-green-600 mt-1">Ingresos reales del negocio</div>
             </div>
             <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
               <span className="text-xs font-medium text-amber-700">ACUERDOS CERRADOS</span>
-              <div className="text-2xl font-bold text-amber-700 mt-1">{stats.revenue.agreementsClosed}</div>
+              <div className="text-2xl font-bold text-amber-700 mt-1">{stats.revenue.agreementsClosed ?? 0}</div>
               <div className="text-xs text-amber-600 mt-1">Experiencias completadas</div>
             </div>
           </div>
@@ -444,12 +444,12 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
               <span className="text-xs font-medium text-blue-700">VENTA DE PACKS</span>
-              <div className="text-2xl font-bold text-blue-700 mt-1">{stats.revenue.packPurchases.toFixed(2)} EUR</div>
-              <div className="text-xs text-blue-600 mt-1">{stats.revenue.packPurchasesCount} packs comprados</div>
+              <div className="text-2xl font-bold text-blue-700 mt-1">{(stats.revenue.packPurchases ?? 0).toFixed(2)} EUR</div>
+              <div className="text-xs text-blue-600 mt-1">{stats.revenue.packPurchasesCount ?? 0} packs comprados</div>
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
               <span className="text-xs font-medium text-purple-700">SALDO MONEDEROS</span>
-              <div className="text-2xl font-bold text-purple-700 mt-1">{stats.revenue.totalWalletBalance.toFixed(2)} EUR</div>
+              <div className="text-2xl font-bold text-purple-700 mt-1">{(stats.revenue.totalWalletBalance ?? 0).toFixed(2)} EUR</div>
               <div className="text-xs text-purple-600 mt-1">Saldo histórico en monederos</div>
             </div>
           </div>
@@ -778,7 +778,7 @@ export default function AdminDashboardPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-amber-400">
                             <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
                           </svg>
-                          <span className="font-semibold text-gray-900">{exp.avgRating.toFixed(1)}</span>
+                          <span className="font-semibold text-gray-900">{(exp.avgRating ?? 0).toFixed(1)}</span>
                         </div>
                         <div className="text-xs text-gray-400">{exp.reviewCount} resenas</div>
                       </div>
@@ -828,7 +828,7 @@ export default function AdminDashboardPage() {
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-amber-400">
                             <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z" clipRule="evenodd" />
                           </svg>
-                          <span className="font-semibold text-gray-900">{host.avgRating.toFixed(1)}</span>
+                          <span className="font-semibold text-gray-900">{(host.avgRating ?? 0).toFixed(1)}</span>
                         </div>
                         <div className="text-xs text-gray-400">{host.completedMatches} completados</div>
                       </div>

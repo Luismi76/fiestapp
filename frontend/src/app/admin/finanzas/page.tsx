@@ -191,11 +191,14 @@ const formatDate = (dateStr: string) =>
   });
 
 const typeBadge: Record<string, { label: string; bg: string; text: string }> = {
+  pack_purchase: { label: 'Venta pack', bg: 'bg-green-100', text: 'text-green-700' },
   platform_fee: { label: 'Comisión', bg: 'bg-purple-100', text: 'text-purple-700' },
   topup: { label: 'Recarga', bg: 'bg-blue-100', text: 'text-blue-700' },
   refund: { label: 'Reembolso', bg: 'bg-amber-100', text: 'text-amber-700' },
   payment: { label: 'Pago', bg: 'bg-green-100', text: 'text-green-700' },
   experience_payment: { label: 'Pago experiencia', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  payout: { label: 'Transferencia', bg: 'bg-indigo-100', text: 'text-indigo-700' },
+  referral_credit: { label: 'Crédito referido', bg: 'bg-pink-100', text: 'text-pink-700' },
 };
 
 const statusBadge: Record<string, { label: string; bg: string; text: string }> = {
@@ -205,14 +208,19 @@ const statusBadge: Record<string, { label: string; bg: string; text: string }> =
   refunded: { label: 'Reembolsado', bg: 'bg-amber-100', text: 'text-amber-700' },
   held: { label: 'Retenido', bg: 'bg-blue-100', text: 'text-blue-700' },
   released: { label: 'Liberado', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  failed: { label: 'Fallido', bg: 'bg-red-100', text: 'text-red-700' },
+  capturing: { label: 'Capturando', bg: 'bg-cyan-100', text: 'text-cyan-700' },
 };
 
 const typeBorderColor: Record<string, string> = {
+  pack_purchase: 'border-l-green-500',
   platform_fee: 'border-l-purple-500',
   topup: 'border-l-blue-500',
   refund: 'border-l-amber-500',
   payment: 'border-l-green-500',
   experience_payment: 'border-l-emerald-500',
+  payout: 'border-l-indigo-500',
+  referral_credit: 'border-l-pink-500',
 };
 
 // ============================================
@@ -323,11 +331,14 @@ const accountingApi = {
   getVatSummary: async (year: number, quarter: number): Promise<VatSummaryResponse> => {
     const { data } = await api.get(`/admin/accounting/vat-summary?year=${year}&quarter=${quarter}`);
     const typeLabels: Record<string, string> = {
+      pack_purchase: 'Venta de packs',
       platform_fee: 'Comisiones de intermediación',
       topup: 'Anticipos/recargas monedero',
       experience_payment: 'Pagos experiencias',
       payment: 'Pagos (escrow)',
       refund: 'Reembolsos',
+      payout: 'Transferencias a hosts',
+      referral_credit: 'Créditos por referidos',
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mapRow = (r: any): VatRow => ({
@@ -440,9 +451,10 @@ function KpiCard({
 }
 
 const BREAKDOWN_COLORS: Record<string, { color: string; label: string }> = {
+  pack_purchase: { color: '#10B981', label: 'Venta packs' },
   platform_fee: { color: '#8B5CF6', label: 'Comisiones' },
   topup: { color: '#3B82F6', label: 'Recargas' },
-  experience_payment: { color: '#10B981', label: 'Pagos exp.' },
+  experience_payment: { color: '#06B6D4', label: 'Pagos exp.' },
   refund: { color: '#F59E0B', label: 'Reembolsos' },
 };
 
@@ -488,7 +500,7 @@ function RevenueBarChart({
   };
 
   // Ordered types for stacking (bottom to top)
-  const stackOrder = ['platform_fee', 'topup', 'experience_payment', 'refund'];
+  const stackOrder = ['pack_purchase', 'platform_fee', 'topup', 'experience_payment', 'refund'];
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">

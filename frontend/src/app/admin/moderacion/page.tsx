@@ -940,7 +940,7 @@ function ReportesContent() {
       {!loading && data && (
         <div className="space-y-3">
           {(data.reports as ExtendedReport[]).map((report) => {
-            const statusInfo = reportStatusLabels[report.status];
+            const statusInfo = reportStatusLabels[report.status] || { label: report.status, color: 'bg-gray-100 text-gray-600' };
             const priorityInfo = report.priority ? PRIORITY_BADGES[report.priority] : null;
 
             return (
@@ -1256,10 +1256,12 @@ interface VerificationStats {
   approvalRate: number;
 }
 
-const verificationStatusConfig = {
+const verificationStatusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
   PENDING: { label: 'Pendiente', color: 'text-accent-dark', bgColor: 'bg-accent/10' },
   VERIFIED: { label: 'Verificado', color: 'text-emerald', bgColor: 'bg-emerald/10' },
+  REJECTED: { label: 'Rechazado', color: 'text-primary', bgColor: 'bg-red-50' },
 };
+const defaultVerificationStatus = { label: 'Desconocido', color: 'text-gray-600', bgColor: 'bg-gray-100' };
 
 function VerificacionesContent() {
   const toast = useToast();
@@ -1420,9 +1422,14 @@ function VerificacionesContent() {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${verificationStatusConfig[v.status].bgColor} ${verificationStatusConfig[v.status].color}`}>
-                  {verificationStatusConfig[v.status].label}
-                </span>
+                {(() => {
+                  const vCfg = verificationStatusConfig[v.status] || defaultVerificationStatus;
+                  return (
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${vCfg.bgColor} ${vCfg.color}`}>
+                      {vCfg.label}
+                    </span>
+                  );
+                })()}
                 <button
                   onClick={() => handleToggleVerification(v.user.id, v.status === 'VERIFIED')}
                   disabled={processing === v.user.id}

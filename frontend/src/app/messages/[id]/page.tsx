@@ -345,8 +345,8 @@ export default function ChatPage() {
     try {
       await matchesApi.accept(match.id);
       setMatch(prev => prev ? { ...prev, status: 'accepted' } : prev);
-    } catch {
-      setError('No se pudo aceptar la solicitud');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'No se pudo aceptar la solicitud'));
     }
   };
 
@@ -355,8 +355,8 @@ export default function ChatPage() {
     try {
       await matchesApi.reject(match.id);
       setMatch(prev => prev ? { ...prev, status: 'rejected' } : prev);
-    } catch {
-      setError('No se pudo rechazar la solicitud');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'No se pudo rechazar la solicitud'));
     }
   };
 
