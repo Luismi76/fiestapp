@@ -20,7 +20,20 @@ interface TranslationResult {
   detectedLanguage?: string;
 }
 
-type TranslationProvider = 'libretranslate' | 'mymemory' | 'google';
+type TranslationProvider =
+  | 'libretranslate'
+  | 'mymemory'
+  | 'google'
+  | 'google-free';
+
+// Respuesta del endpoint no-oficial de Google Translate (sl=auto).
+// Formato: [[[translated, original, null, null, score, ...]], null, detectedLang, ...]
+type GoogleFreeResponse = [
+  Array<[string, string, unknown, unknown, number]>,
+  unknown,
+  string,
+  ...unknown[],
+];
 
 // API response types
 interface LibreTranslateDetectResponse {
@@ -64,10 +77,12 @@ export class TranslationService {
       this.configService.get('LIBRETRANSLATE_URL') || '';
 
     // Selección del proveedor:
-    //  1. Google si hay API key (mejor calidad, requiere pago >500k chars/mes)
-    //  2. LibreTranslate si hay URL válida y no apunta a localhost
-    //     (libretranslate.com está paywalled; se necesita self-hosted o mirror)
-    //  3. MyMemory por defecto (5000 palabras/día gratis, sin API key)
+    //  1. Google oficial si hay API key (mejor calidad y soporte comercial).
+    //  2. LibreTranslate si hay URL válida y no apunta a localhost.
+    //  3. Google Free (endpoint no-oficial de translate.google.com, sin API
+    //     key) — nuestro default porque autodetecta el idioma, a diferencia
+    //     de MyMemory que depende de una detección regex frágil.
+    //  4. MyMemory queda como fallback si Google Free falla.
     if (this.googleApiKey) {
       this.provider = 'google';
     } else if (
@@ -77,7 +92,7 @@ export class TranslationService {
     ) {
       this.provider = 'libretranslate';
     } else {
-      this.provider = 'mymemory';
+      this.provider = 'google-free';
     }
     this.logger.log(`Using provider: ${this.provider}`);
   }
@@ -149,11 +164,55 @@ export class TranslationService {
     switch (this.provider) {
       case 'google':
         return this.translateWithGoogle(text, targetLang);
+      case 'google-free':
+        return this.translateWithGoogleFree(text, targetLang);
       case 'mymemory':
         return this.translateWithMyMemory(text, targetLang);
       case 'libretranslate':
       default:
         return this.translateWithLibreTranslate(text, targetLang);
+    }
+  }
+
+  // Google Translate endpoint no-oficial (el que usa translate.google.com).
+  // No requiere API key. Autodetecta el idioma con sl=auto. Puede haber rate
+  // limits agresivos por IP si abusamos. Como fallback usamos MyMemory.
+  private async translateWithGoogleFree(
+    text: string,
+    targetLang: string,
+  ): Promise<TranslationResult> {
+    try {
+      const url =
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(8000),
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (compatible; FiestApp/1.0; +https://fiestapp.lmsc.es)',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Google Free error: ${response.status}`);
+      }
+
+      const data = (await response.json()) as GoogleFreeResponse;
+      const segments = data[0] || [];
+      const translatedText = segments.map((s) => s[0]).join('');
+      const detectedLanguage = data[2];
+
+      if (!translatedText) {
+        throw new Error('Google Free returned empty translation');
+      }
+
+      return { translatedText, detectedLanguage };
+    } catch (error) {
+      this.logger.error(
+        'Google Free error',
+        error instanceof Error ? error.stack : String(error),
+      );
+      return this.translateWithMyMemory(text, targetLang);
     }
   }
 

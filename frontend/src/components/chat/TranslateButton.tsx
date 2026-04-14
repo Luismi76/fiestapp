@@ -17,6 +17,9 @@ interface TranslateButtonProps {
   compact?: boolean;
 }
 
+// Normaliza para comparar si una traducción aporta algo real
+const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+
 const LANGUAGE_NAMES: Record<string, string> = {
   es: 'Español',
   en: 'Inglés',
@@ -31,6 +34,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
 
 export default function TranslateButton({
   messageId,
+  originalText,
   originalLang,
   translations = {},
   targetLang = 'es',
@@ -62,6 +66,18 @@ export default function TranslateButton({
 
     try {
       const result = await onTranslate(messageId, targetLang);
+
+      // Si el texto devuelto es (prácticamente) el mismo que el original,
+      // el mensaje ya está en el idioma del usuario. No mostramos una
+      // "traducción" igual al original: avisamos en claro.
+      if (normalize(result.translatedText) === normalize(originalText)) {
+        if (result.detectedLanguage) {
+          setDetectedLang(result.detectedLanguage);
+        }
+        setError('Este mensaje ya está en tu idioma');
+        return;
+      }
+
       setTranslation(result.translatedText);
       if (result.detectedLanguage) {
         setDetectedLang(result.detectedLanguage);
