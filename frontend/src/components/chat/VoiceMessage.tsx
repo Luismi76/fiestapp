@@ -17,17 +17,9 @@ export default function VoiceMessage({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
-  // La duración real del audio la conocemos cuando el elemento carga la
-  // metadata. Si el backend devolvió una duración distinta (Cloudinary a
-  // veces difiere), preferimos la del audio real.
-  const [actualDuration, setActualDuration] = useState<number | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const effectiveDuration = actualDuration ?? duration;
-
   const formatTime = (seconds: number) => {
-    if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -48,13 +40,6 @@ export default function VoiceMessage({
 
     const handleLoadStart = () => {
       setIsLoading(true);
-      setLoadError(false);
-    };
-
-    const handleLoadedMetadata = () => {
-      if (Number.isFinite(audio.duration) && audio.duration > 0) {
-        setActualDuration(audio.duration);
-      }
     };
 
     const handleCanPlay = () => {
@@ -63,14 +48,12 @@ export default function VoiceMessage({
 
     const handleError = () => {
       setIsLoading(false);
-      setLoadError(true);
-      logger.error('Error loading audio', audio.error);
+      logger.error('Error loading audio');
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('loadstart', handleLoadStart);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('canplay', handleCanPlay);
     audio.addEventListener('error', handleError);
 
@@ -78,7 +61,6 @@ export default function VoiceMessage({
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('loadstart', handleLoadStart);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('error', handleError);
     };
@@ -101,8 +83,7 @@ export default function VoiceMessage({
     }
   };
 
-  const progress =
-    effectiveDuration > 0 ? (currentTime / effectiveDuration) * 100 : 0;
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <div
@@ -165,13 +146,8 @@ export default function VoiceMessage({
         {/* Time */}
         <div className="flex justify-between text-xs text-gray-500 mt-1">
           <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(effectiveDuration)}</span>
+          <span>{formatTime(duration)}</span>
         </div>
-        {loadError && (
-          <div className="text-[10px] text-red-500 mt-0.5">
-            No se pudo cargar el audio
-          </div>
-        )}
       </div>
     </div>
   );

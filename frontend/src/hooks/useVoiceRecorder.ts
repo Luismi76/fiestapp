@@ -86,44 +86,31 @@ export function useVoiceRecorder({
       streamRef.current = stream;
       chunksRef.current = [];
 
-      // Determinar el mejor formato soportado por el navegador. Orden por
-      // compatibilidad y calidad: opus en webm (Chrome/Firefox), mp4/aac
-      // (Safari), ogg/opus (Firefox antiguo), fallback sin codec.
-      const candidates = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/mp4;codecs=mp4a.40.2',
-        'audio/mp4',
-        'audio/ogg;codecs=opus',
-        'audio/ogg',
-      ];
-      const mimeType =
-        candidates.find((m) => MediaRecorder.isTypeSupported(m)) || '';
+      // Determinar el formato de audio soportado
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : 'audio/ogg';
 
-      const mediaRecorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType,
+      });
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
+        if (event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = () => {
-        // Usamos el mimeType real del MediaRecorder (puede diferir del pedido)
-        const finalMime =
-          mediaRecorder.mimeType || mimeType || 'audio/webm';
-        const blob = new Blob(chunksRef.current, { type: finalMime });
-        const recordedDuration = Math.max(
-          1,
-          Math.round((Date.now() - startTimeRef.current) / 1000),
+        const blob = new Blob(chunksRef.current, { type: mimeType });
+        const recordedDuration = Math.round(
+          (Date.now() - startTimeRef.current) / 1000
         );
 
-        if (blob.size === 0) {
-          onError?.(
-            'No se capturó audio. Comprueba los permisos del micrófono e intenta de nuevo.',
-          );
+        if (blob.size === 0 || recordedDuration < 1) {
+          onError?.('Grabación demasiado corta. Mantén pulsado al menos 1 segundo.');
           cleanup();
           setState('idle');
           return;
@@ -142,9 +129,7 @@ export function useVoiceRecorder({
       };
 
       mediaRecorderRef.current = mediaRecorder;
-      // Sin timeslice: los chunks se acumulan en un solo buffer y se emiten
-      // al llamar a stop(). Más simple y fiable para grabaciones cortas.
-      mediaRecorder.start();
+      mediaRecorder.start(250); // Chunks cada 250ms para capturar grabaciones cortas
 
       startTimeRef.current = Date.now();
       setState('recording');
@@ -193,8 +178,10 @@ export function useVoiceRecorder({
       timerRef.current = null;
     }
 
-    // stop() emite automáticamente el chunk final antes del evento 'stop'.
-    // No hace falta requestData() previo (de hecho puede causar problemas).
+    // Flush pending audio data before stopping
+    if (mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.requestData();
+    }
     mediaRecorderRef.current.stop();
   }, [state]);
 
