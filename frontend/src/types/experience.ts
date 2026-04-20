@@ -68,6 +68,8 @@ export interface Experience {
   depositEnabled?: boolean;
   depositPercentage?: number;
   balanceDaysBefore?: number;
+  allowsPrivateAgreement?: boolean;
+  suggestedPrice?: number | null;
   published: boolean;
   createdAt: string;
   updatedAt: string;
@@ -135,6 +137,8 @@ export interface CreateExperienceData {
   depositEnabled?: boolean;
   depositPercentage?: number;
   balanceDaysBefore?: number;
+  allowsPrivateAgreement?: boolean;
+  suggestedPrice?: number | null;
 }
 
 export interface DateOccupancy {

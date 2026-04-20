@@ -125,6 +125,8 @@ export class ExperiencesService {
           depositEnabled: createDto.depositEnabled ?? false,
           depositPercentage: createDto.depositPercentage ?? 20,
           balanceDaysBefore: createDto.balanceDaysBefore ?? 30,
+          allowsPrivateAgreement: createDto.allowsPrivateAgreement ?? false,
+          suggestedPrice: createDto.suggestedPrice ?? null,
           hostId: userId,
           // Forzar borrador si es de pago y no tiene cuenta de cobros lista
           ...(needsConnectBeforePublish && { published: false }),

@@ -164,6 +164,8 @@ export default function CreateExperiencePage() {
   const [depositEnabled, setDepositEnabled] = useState(false);
   const [depositPercentage, setDepositPercentage] = useState(20);
   const [balanceDaysBefore, setBalanceDaysBefore] = useState(30);
+  const [allowsPrivateAgreement, setAllowsPrivateAgreement] = useState(false);
+  const [suggestedPrice, setSuggestedPrice] = useState<string>('');
   const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
   const [draftNotice, setDraftNotice] = useState<{ experienceId: string } | null>(null);
   const draftLoaded = useRef(false);
@@ -428,6 +430,10 @@ export default function CreateExperiencePage() {
         depositEnabled,
         depositPercentage: depositEnabled ? depositPercentage : undefined,
         balanceDaysBefore: depositEnabled ? balanceDaysBefore : undefined,
+        allowsPrivateAgreement,
+        suggestedPrice: allowsPrivateAgreement && suggestedPrice
+          ? parseFloat(suggestedPrice)
+          : undefined,
       };
 
       setUploadProgress('Creando experiencia...');
@@ -818,6 +824,40 @@ export default function CreateExperiencePage() {
                   <p className="text-xs text-amber-600 mt-1">{policyRestrictions['NON_REFUNDABLE'].reason}</p>
                 )}
                 <p className="text-xs text-gray-400 mt-1.5">Determina cuánto se devuelve si el viajero cancela</p>
+              </div>
+            )}
+
+            {/* Acuerdo de pago privado (fuera de la plataforma) */}
+            {selectedType !== 'intercambio' && (
+              <div className="bg-amber-50 rounded-xl p-4 border-2 border-amber-200">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="block text-sm font-semibold text-gray-900">Permitir acuerdo privado con el viajero</span>
+                    <span className="text-xs text-gray-600">El viajero podrá pagar fuera de la app (Bizum, efectivo, transferencia…). FiestApp no intervendrá ni garantizará el cobro.</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={allowsPrivateAgreement}
+                    onChange={(e) => setAllowsPrivateAgreement(e.target.checked)}
+                    className="w-5 h-5 ml-3 accent-primary shrink-0"
+                  />
+                </label>
+
+                {allowsPrivateAgreement && (
+                  <div className="mt-4">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Importe orientativo (€)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="Ej. 30"
+                      value={suggestedPrice}
+                      onChange={(e) => setSuggestedPrice(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Se mostrará al viajero como referencia. El importe final lo pactáis entre ambos.</p>
+                  </div>
+                )}
               </div>
             )}
 

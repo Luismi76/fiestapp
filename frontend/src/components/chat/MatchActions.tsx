@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { MatchStatus, MatchPaymentPlan, Match } from '@/types/match';
+import { MatchStatus, MatchPaymentPlan, Match, PrivatePaymentMethod } from '@/types/match';
 import { WalletInfo } from '@/lib/api';
 import { CanReviewResponse } from '@/types/review';
 import PackPurchaseModal from '@/components/PackPurchaseModal';
@@ -32,6 +32,192 @@ interface MatchActionsProps {
   depositPercentage?: number;
   balanceDaysBefore?: number;
   paymentPlan?: MatchPaymentPlan | null;
+  // Acuerdo de pago privado (fuera de la plataforma)
+  allowsPrivateAgreement?: boolean;
+  suggestedPrice?: number | null;
+  paymentMethod?: PrivatePaymentMethod | null;
+  agreedPaymentChannel?: string | null;
+  travelerDeclaredPaid?: boolean;
+  hostConfirmedReceived?: boolean;
+  onSelectPaymentMethod?: (method: PrivatePaymentMethod, channel?: string) => void;
+  onDeclarePaid?: () => void;
+  onConfirmReceived?: () => void;
+}
+
+function PaymentMethodChooser({
+  suggestedPrice,
+  totalPrice,
+  onSelectStripe,
+  onSelectPrivate,
+}: {
+  suggestedPrice?: number | null;
+  totalPrice?: number;
+  onSelectStripe: () => void;
+  onSelectPrivate: () => void;
+}) {
+  return (
+    <div className="mx-4 mt-3 space-y-3">
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <p className="font-medium text-blue-800 mb-1">Elige cómo quieres pagar</p>
+        <p className="text-sm text-blue-600 mb-4">
+          El anfitrión ha aceptado tu solicitud. Puedes pagar con tarjeta o acordar el pago directamente con el anfitrión.
+        </p>
+        <div className="space-y-2">
+          <button
+            onClick={onSelectStripe}
+            className="w-full text-left p-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-400 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-gray-900 text-sm">Pagar con tarjeta</span>
+              {totalPrice ? <span className="text-sm font-semibold text-gray-900">{totalPrice.toFixed(2)}€</span> : null}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Stripe procesa el pago. Protegido por política de cancelación.</p>
+          </button>
+          <button
+            onClick={onSelectPrivate}
+            className="w-full text-left p-3 rounded-xl border-2 border-amber-200 bg-amber-50 hover:border-amber-400 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-gray-900 text-sm">Acordar con el anfitrión</span>
+              {suggestedPrice ? (
+                <span className="text-sm font-medium text-gray-700">~{suggestedPrice.toFixed(2)}€</span>
+              ) : null}
+            </div>
+            <p className="text-xs text-amber-700 mt-1">
+              Bizum, efectivo, transferencia… FiestApp no interviene ni garantiza el cobro.
+            </p>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PRIVATE_CHANNELS: { value: string; label: string }[] = [
+  { value: 'bizum', label: 'Bizum' },
+  { value: 'cash', label: 'Efectivo' },
+  { value: 'transfer', label: 'Transferencia' },
+  { value: 'other', label: 'Otro' },
+];
+
+function PrivateAgreementPanel({
+  isHost,
+  channel,
+  travelerDeclaredPaid,
+  hostConfirmedReceived,
+  suggestedPrice,
+  onSetChannel,
+  onDeclarePaid,
+  onConfirmReceived,
+  onCancel,
+}: {
+  isHost: boolean;
+  channel?: string | null;
+  travelerDeclaredPaid?: boolean;
+  hostConfirmedReceived?: boolean;
+  suggestedPrice?: number | null;
+  onSetChannel?: (c: string) => void;
+  onDeclarePaid?: () => void;
+  onConfirmReceived?: () => void;
+  onCancel: () => void;
+}) {
+  const complete = travelerDeclaredPaid && hostConfirmedReceived;
+
+  return (
+    <div className="mx-4 mt-3 space-y-3">
+      <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
+        <p className="font-semibold text-amber-900 mb-1">Acuerdo privado</p>
+        <p className="text-xs text-amber-800 mb-4">
+          Pagáis fuera de la plataforma. <strong>FiestApp no interviene en el pago ni garantiza reembolsos.</strong>
+          {suggestedPrice ? ` Importe orientativo: ${suggestedPrice.toFixed(2)}€.` : ''}
+        </p>
+
+        {!isHost && !channel && (
+          <div className="space-y-2 mb-3">
+            <p className="text-xs font-medium text-gray-700">¿Cómo vais a pagar?</p>
+            <div className="grid grid-cols-2 gap-2">
+              {PRIVATE_CHANNELS.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => onSetChannel?.(c.value)}
+                  className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:border-amber-400 transition-colors"
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {channel && (
+          <>
+            <div className="bg-white rounded-lg p-3 mb-3 text-xs text-gray-700 border border-gray-200">
+              Método acordado:{' '}
+              <span className="font-semibold text-gray-900">
+                {PRIVATE_CHANNELS.find((c) => c.value === channel)?.label || channel}
+              </span>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center justify-between bg-white rounded-lg p-2">
+                <span className="text-gray-700">Viajero ha pagado</span>
+                <span className={travelerDeclaredPaid ? 'text-emerald-600 font-semibold' : 'text-gray-400'}>
+                  {travelerDeclaredPaid ? '✓ Sí' : 'Pendiente'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-white rounded-lg p-2">
+                <span className="text-gray-700">Anfitrión ha recibido</span>
+                <span className={hostConfirmedReceived ? 'text-emerald-600 font-semibold' : 'text-gray-400'}>
+                  {hostConfirmedReceived ? '✓ Sí' : 'Pendiente'}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {channel && !complete && (
+          <div className="mt-4 space-y-2">
+            {!isHost && !travelerDeclaredPaid && (
+              <button
+                onClick={onDeclarePaid}
+                className="w-full py-2.5 bg-amber-500 text-white font-semibold rounded-xl hover:bg-amber-600 transition-colors text-sm"
+              >
+                He pagado al anfitrión
+              </button>
+            )}
+            {isHost && travelerDeclaredPaid && !hostConfirmedReceived && (
+              <button
+                onClick={onConfirmReceived}
+                className="w-full py-2.5 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-colors text-sm"
+              >
+                Confirmo que he recibido el pago
+              </button>
+            )}
+            {isHost && !travelerDeclaredPaid && (
+              <p className="text-xs text-gray-500 text-center">Esperando a que el viajero declare el pago.</p>
+            )}
+            {!isHost && travelerDeclaredPaid && !hostConfirmedReceived && (
+              <p className="text-xs text-gray-500 text-center">Esperando confirmación del anfitrión.</p>
+            )}
+          </div>
+        )}
+
+        {complete && (
+          <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+            <p className="text-sm font-semibold text-emerald-700">Pago privado completado</p>
+            <p className="text-xs text-emerald-600 mt-1">
+              Ambos habéis confirmado el pago. La experiencia sigue el flujo normal de confirmación en su fecha.
+            </p>
+          </div>
+        )}
+      </div>
+      <button
+        onClick={onCancel}
+        className="w-full py-2.5 text-sm text-gray-500 hover:text-red-500 font-medium transition-colors"
+      >
+        Cancelar solicitud
+      </button>
+    </div>
+  );
 }
 
 function WalletWarning({ onTopUpSuccess }: { walletInfo: WalletInfo; onTopUpSuccess?: () => void }) {
@@ -247,6 +433,15 @@ export default function MatchActions({
   depositPercentage,
   balanceDaysBefore,
   paymentPlan,
+  allowsPrivateAgreement,
+  suggestedPrice,
+  paymentMethod,
+  agreedPaymentChannel,
+  travelerDeclaredPaid,
+  hostConfirmedReceived,
+  onSelectPaymentMethod,
+  onDeclarePaid,
+  onConfirmReceived,
 }: MatchActionsProps) {
   // El botón de confirmar solo aparece a partir de la fecha de la experiencia
   const canConfirmToday = !startDate || new Date(startDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0);
@@ -311,7 +506,46 @@ export default function MatchActions({
     );
   }
 
-  // Accepted - Payment pending (requester must pay)
+  // Accepted - acuerdo privado en curso (viajero o anfitrión)
+  if (
+    status === 'accepted' &&
+    paymentMethod === 'PRIVATE_AGREEMENT' &&
+    !(travelerDeclaredPaid && hostConfirmedReceived)
+  ) {
+    return (
+      <PrivateAgreementPanel
+        isHost={isHost}
+        channel={agreedPaymentChannel}
+        travelerDeclaredPaid={travelerDeclaredPaid}
+        hostConfirmedReceived={hostConfirmedReceived}
+        suggestedPrice={suggestedPrice}
+        onSetChannel={(c) => onSelectPaymentMethod?.('PRIVATE_AGREEMENT', c)}
+        onDeclarePaid={onDeclarePaid}
+        onConfirmReceived={onConfirmReceived}
+        onCancel={onCancel}
+      />
+    );
+  }
+
+  // Accepted - la experiencia permite acuerdo privado y el viajero aún no ha elegido método
+  if (
+    status === 'accepted' &&
+    !paymentMethod &&
+    allowsPrivateAgreement &&
+    paymentStatus === 'pending_payment' &&
+    !isHost
+  ) {
+    return (
+      <PaymentMethodChooser
+        suggestedPrice={suggestedPrice}
+        totalPrice={totalPrice}
+        onSelectStripe={() => onSelectPaymentMethod?.('STRIPE')}
+        onSelectPrivate={() => onSelectPaymentMethod?.('PRIVATE_AGREEMENT')}
+      />
+    );
+  }
+
+  // Accepted - Payment pending (requester must pay con Stripe)
   if (status === 'accepted' && paymentStatus === 'pending_payment' && !isHost) {
     return (
       <PaymentModeSelector

@@ -221,4 +221,43 @@ export class MatchesController {
       messageDto.content,
     );
   }
+
+  // Seleccionar método de pago tras aceptación (viajero)
+  @Post(':id/payment-method')
+  @UseGuards(JwtAuthGuard)
+  selectPaymentMethod(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+    @Body() body: { method: 'STRIPE' | 'PRIVATE_AGREEMENT'; channel?: string },
+  ) {
+    return this.matchesService.selectPaymentMethod(
+      id,
+      req.user.userId,
+      body.method,
+      body.channel,
+    );
+  }
+
+  // El viajero declara que ha pagado fuera de la plataforma
+  @Patch(':id/declare-paid')
+  @UseGuards(JwtAuthGuard)
+  declarePaid(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.matchesService.declarePrivatePayment(id, req.user.userId);
+  }
+
+  // El anfitrión confirma que ha recibido el pago fuera de la plataforma
+  @Patch(':id/confirm-received')
+  @UseGuards(JwtAuthGuard)
+  confirmReceived(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.matchesService.confirmPrivatePaymentReceived(
+      id,
+      req.user.userId,
+    );
+  }
 }

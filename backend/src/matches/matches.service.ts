@@ -27,6 +27,7 @@ import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 import { ConnectService } from '../connect/connect.service';
 import { PaymentPlanService } from './payment-plan.service';
 import Stripe from 'stripe';
+import { PaymentMethod } from '@prisma/client';
 
 // Helper para parsear fechas correctamente evitando problemas de zona horaria
 function parseDate(dateStr: string | undefined | null): Date | null {
@@ -728,8 +729,13 @@ export class MatchesService {
       throw new BadRequestException('Esta solicitud ya no está pendiente');
     }
 
-    // Si la experiencia tiene precio, el host debe tener Stripe Connect activo
-    if (match.experience.price && match.experience.price > 0) {
+    // Si la experiencia tiene precio, el host debe tener Stripe Connect activo,
+    // salvo que la experiencia permita acuerdo privado (pago fuera de plataforma).
+    if (
+      match.experience.price &&
+      match.experience.price > 0 &&
+      !match.experience.allowsPrivateAgreement
+    ) {
       const connectStatus = await this.connectService.getAccountStatus(hostId);
       if (!connectStatus.payoutsEnabled) {
         throw new BadRequestException(
@@ -2022,5 +2028,148 @@ export class MatchesService {
         {} as Record<string, number>,
       ),
     };
+  }
+
+  // ============================================
+  // Acuerdo de pago privado (fuera de la plataforma)
+  // ============================================
+
+  // Viajero elige método de pago tras aceptación
+  async selectPaymentMethod(
+    matchId: string,
+    userId: string,
+    method: PaymentMethod,
+    channel?: string,
+  ) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        experience: {
+          select: { allowsPrivateAgreement: true, price: true },
+        },
+      },
+    });
+    if (!match) throw new NotFoundException('Solicitud no encontrada');
+    if (match.requesterId !== userId) {
+      throw new ForbiddenException(
+        'Solo el viajero puede elegir el método de pago',
+      );
+    }
+    if (match.status !== 'accepted') {
+      throw new BadRequestException('La solicitud debe estar aceptada');
+    }
+    if (
+      match.paymentStatus === 'paid' ||
+      match.paymentStatus === 'held' ||
+      match.paymentStatus === 'released'
+    ) {
+      throw new BadRequestException('El pago ya ha sido iniciado');
+    }
+    if (method === 'PRIVATE_AGREEMENT' && !match.experience.allowsPrivateAgreement) {
+      throw new BadRequestException(
+        'Esta experiencia no admite acuerdo privado',
+      );
+    }
+
+    return this.prisma.match.update({
+      where: { id: matchId },
+      data: {
+        paymentMethod: method,
+        agreedPaymentChannel:
+          method === 'PRIVATE_AGREEMENT' ? (channel ?? null) : null,
+        // Si es privado, limpiamos cualquier estado de pago Stripe en curso
+        ...(method === 'PRIVATE_AGREEMENT' && { paymentStatus: null }),
+      },
+    });
+  }
+
+  // Viajero declara que ha pagado fuera de la plataforma
+  async declarePrivatePayment(matchId: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        experience: { select: { title: true } },
+        requester: { select: { name: true } },
+      },
+    });
+    if (!match) throw new NotFoundException('Solicitud no encontrada');
+    if (match.requesterId !== userId) {
+      throw new ForbiddenException('Solo el viajero puede declarar el pago');
+    }
+    if (match.paymentMethod !== 'PRIVATE_AGREEMENT') {
+      throw new BadRequestException(
+        'El método de pago no es acuerdo privado',
+      );
+    }
+    if (match.travelerDeclaredPaid) {
+      throw new BadRequestException('Ya has declarado el pago');
+    }
+
+    const updated = await this.prisma.match.update({
+      where: { id: matchId },
+      data: {
+        travelerDeclaredPaid: true,
+        travelerDeclaredPaidAt: new Date(),
+      },
+    });
+
+    await this.notificationsService.create({
+      userId: match.hostId,
+      type: 'private_payment_declared',
+      title: 'El viajero ha declarado el pago',
+      message: `${match.requester.name} declara haber pagado "${match.experience.title}". Confirma que lo has recibido.`,
+      data: { matchId },
+    });
+
+    return updated;
+  }
+
+  // Anfitrión confirma que ha recibido el pago privado
+  async confirmPrivatePaymentReceived(matchId: string, userId: string) {
+    const match = await this.prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        experience: { select: { title: true } },
+        host: { select: { name: true } },
+      },
+    });
+    if (!match) throw new NotFoundException('Solicitud no encontrada');
+    if (match.hostId !== userId) {
+      throw new ForbiddenException(
+        'Solo el anfitrión puede confirmar la recepción del pago',
+      );
+    }
+    if (match.paymentMethod !== 'PRIVATE_AGREEMENT') {
+      throw new BadRequestException(
+        'El método de pago no es acuerdo privado',
+      );
+    }
+    if (!match.travelerDeclaredPaid) {
+      throw new BadRequestException(
+        'El viajero aún no ha declarado el pago',
+      );
+    }
+    if (match.hostConfirmedReceived) {
+      throw new BadRequestException('Ya has confirmado la recepción');
+    }
+
+    const updated = await this.prisma.match.update({
+      where: { id: matchId },
+      data: {
+        hostConfirmedReceived: true,
+        hostConfirmedReceivedAt: new Date(),
+        paymentStatus: 'paid',
+      },
+    });
+
+    await this.notificationsService.create({
+      userId: match.requesterId,
+      type: 'private_payment_confirmed',
+      title: 'Pago confirmado por el anfitrión',
+      message: `${match.host.name} ha confirmado la recepción del pago de "${match.experience.title}".`,
+      data: { matchId },
+    });
+
+    return updated;
   }
 }

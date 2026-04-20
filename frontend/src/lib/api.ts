@@ -543,6 +543,31 @@ export const matchesApi = {
     const response = await api.get(`/matches/${matchId}/payment-status`);
     return response.data;
   },
+
+  // Acuerdo de pago privado: el viajero elige método de pago
+  selectPaymentMethod: async (
+    matchId: string,
+    method: 'STRIPE' | 'PRIVATE_AGREEMENT',
+    channel?: string,
+  ) => {
+    const response = await api.post(`/matches/${matchId}/payment-method`, {
+      method,
+      channel,
+    });
+    return response.data;
+  },
+
+  // Acuerdo privado: el viajero declara que ha pagado fuera de la app
+  declarePaid: async (matchId: string) => {
+    const response = await api.patch(`/matches/${matchId}/declare-paid`);
+    return response.data;
+  },
+
+  // Acuerdo privado: el anfitrión confirma que ha recibido el pago
+  confirmReceived: async (matchId: string) => {
+    const response = await api.patch(`/matches/${matchId}/confirm-received`);
+    return response.data;
+  },
 };
 
 // Disputas API

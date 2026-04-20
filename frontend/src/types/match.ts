@@ -21,11 +21,15 @@ export interface MatchExperience {
   depositEnabled?: boolean;
   depositPercentage?: number;
   balanceDaysBefore?: number;
+  allowsPrivateAgreement?: boolean;
+  suggestedPrice?: number | null;
   festival: {
     id: string;
     name: string;
   };
 }
+
+export type PrivatePaymentMethod = 'STRIPE' | 'PRIVATE_AGREEMENT';
 
 export type MessageType = 'TEXT' | 'VOICE' | 'LOCATION' | 'QUICK_REPLY';
 
@@ -91,6 +95,12 @@ export interface Match {
   offerExperience?: OfferExperience | null;
   hostConfirmed?: boolean;
   requesterConfirmed?: boolean;
+  paymentMethod?: PrivatePaymentMethod | null;
+  agreedPaymentChannel?: string | null;
+  travelerDeclaredPaid?: boolean;
+  travelerDeclaredPaidAt?: string | null;
+  hostConfirmedReceived?: boolean;
+  hostConfirmedReceivedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   experience: MatchExperience;

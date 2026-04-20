@@ -161,6 +161,18 @@ export default function ChatPage() {
     setShowQuickReplies(false);
   };
 
+  // Recargar el match desde el servidor (usado tras acciones como acuerdo privado)
+  const refreshMatch = async () => {
+    const id = params.id as string;
+    if (!id) return;
+    try {
+      const data = await matchesApi.getById(id);
+      setMatch(data);
+    } catch {
+      setError('No se pudo recargar el match');
+    }
+  };
+
   // Fetch match data
   useEffect(() => {
     const fetchMatch = async () => {
@@ -551,6 +563,36 @@ export default function ChatPage() {
             depositPercentage={match.experience?.depositPercentage}
             balanceDaysBefore={match.experience?.balanceDaysBefore}
             paymentPlan={match.paymentPlan}
+            allowsPrivateAgreement={match.experience?.allowsPrivateAgreement}
+            suggestedPrice={match.experience?.suggestedPrice}
+            paymentMethod={match.paymentMethod}
+            agreedPaymentChannel={match.agreedPaymentChannel}
+            travelerDeclaredPaid={match.travelerDeclaredPaid}
+            hostConfirmedReceived={match.hostConfirmedReceived}
+            onSelectPaymentMethod={async (method, channel) => {
+              try {
+                await matchesApi.selectPaymentMethod(match.id, method, channel);
+                await refreshMatch();
+              } catch {
+                setError('No se pudo seleccionar el método de pago');
+              }
+            }}
+            onDeclarePaid={async () => {
+              try {
+                await matchesApi.declarePaid(match.id);
+                await refreshMatch();
+              } catch {
+                setError('No se pudo declarar el pago');
+              }
+            }}
+            onConfirmReceived={async () => {
+              try {
+                await matchesApi.confirmReceived(match.id);
+                await refreshMatch();
+              } catch {
+                setError('No se pudo confirmar la recepción');
+              }
+            }}
             onPay={async (paymentMode: 'immediate' | 'escrow' | 'deposit') => {
               try {
                 const { sessionUrl } = await matchesApi.createPayment(match.id, paymentMode);

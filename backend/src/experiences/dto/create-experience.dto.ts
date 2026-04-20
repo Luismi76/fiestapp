@@ -107,4 +107,13 @@ export class CreateExperienceDto {
   @Min(1, { message: 'Mínimo 1 día antes de la experiencia' })
   @Max(180, { message: 'Máximo 180 días antes de la experiencia' })
   balanceDaysBefore?: number;
+
+  @IsOptional()
+  @IsBoolean({ message: 'allowsPrivateAgreement debe ser booleano' })
+  allowsPrivateAgreement?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0, { message: 'El precio sugerido no puede ser negativo' })
+  suggestedPrice?: number;
 }

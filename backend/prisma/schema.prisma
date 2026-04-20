@@ -183,6 +183,9 @@ model Experience {
   depositEnabled    Boolean                @default(false)
   depositPercentage Int                    @default(20)   // 20% del total
   balanceDaysBefore Int                    @default(30)   // Cargar saldo X días antes de la experiencia
+  // Acuerdo de pago privado (el viajero y el anfitrión acuerdan pago fuera de la plataforma)
+  allowsPrivateAgreement Boolean          @default(false)
+  suggestedPrice         Float?           // Importe orientativo cuando allowsPrivateAgreement=true
   deletedAt       DateTime?                // Soft delete
   createdAt       DateTime                 @default(now())
   updatedAt       DateTime                 @updatedAt
@@ -225,6 +228,13 @@ model Match {
   hostId                String
   status                MatchStatus    @default(pending)
   paymentStatus         PaymentStatus?
+  // Método de pago elegido tras aceptar el match (Stripe vs acuerdo privado fuera de la plataforma)
+  paymentMethod           PaymentMethod?
+  agreedPaymentChannel    String?          // "bizum" | "cash" | "transfer" | "other"
+  travelerDeclaredPaid    Boolean          @default(false)
+  travelerDeclaredPaidAt  DateTime?
+  hostConfirmedReceived   Boolean          @default(false)
+  hostConfirmedReceivedAt DateTime?
   hostConfirmed         Boolean       @default(false)    // anfitrion ha confirmado
   requesterConfirmed    Boolean       @default(false)    // viajero ha confirmado
   startDate             DateTime?
@@ -756,6 +766,11 @@ enum Currency {
   EUR
   USD
   GBP
+}
+
+enum PaymentMethod {
+  STRIPE
+  PRIVATE_AGREEMENT
 }
 
 model QuickReply {
