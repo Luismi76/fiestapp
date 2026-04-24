@@ -176,6 +176,147 @@ export class InvoiceService {
     return invoice;
   }
 
+  /**
+   * Emite una factura rectificativa (serie RA) sobre una factura original
+   * en respuesta a un reembolso. Idempotente por refundTransactionId (la
+   * relación Invoice.transactionId es @unique, así que una segunda llamada
+   * con la misma refundTransactionId devuelve la rectificativa existente).
+   *
+   * La rectificativa conserva el snapshot de emisor/receptor de la original
+   * (obligación legal: los datos del receptor deben coincidir).
+   */
+  async issueRectifyingInvoice(params: {
+    originalInvoiceId: string;
+    refundTransactionId: string;
+    refundAmount: number; // importe bruto a rectificar
+    reason?: string;
+  }): Promise<Invoice> {
+    const existing = await this.prisma.invoice.findUnique({
+      where: { transactionId: params.refundTransactionId },
+    });
+    if (existing && existing.status === InvoiceStatus.ISSUED) {
+      return existing;
+    }
+
+    const original = await this.prisma.invoice.findUnique({
+      where: { id: params.originalInvoiceId },
+    });
+    if (!original) {
+      throw new NotFoundException(
+        `Factura original ${params.originalInvoiceId} no encontrada`,
+      );
+    }
+
+    const refundTx = await this.prisma.transaction.findUnique({
+      where: { id: params.refundTransactionId },
+    });
+    if (!refundTx) {
+      throw new NotFoundException(
+        `Transaction de refund ${params.refundTransactionId} no encontrada`,
+      );
+    }
+
+    const refundAmount = Math.round(params.refundAmount * 100) / 100;
+    if (refundAmount <= 0) {
+      throw new Error('refundAmount debe ser > 0');
+    }
+
+    // Reparto proporcional de base/cuota según el régimen de la factura original
+    const ratio = refundAmount / original.grossAmount;
+    const netAmount = Math.round(original.netAmount * ratio * 100) / 100;
+    const taxAmount = Math.round((refundAmount - netAmount) * 100) / 100;
+
+    const now = new Date();
+    const operationDate = refundTx.createdAt;
+    const fiscalPeriod = this.taxService.fiscalPeriodOf(operationDate).label;
+
+    const invoice = await this.prisma.$transaction(async (tx) => {
+      const race = await tx.invoice.findUnique({
+        where: { transactionId: params.refundTransactionId },
+      });
+      if (race) return race;
+
+      const year = operationDate.getUTCFullYear();
+      const series = await tx.invoiceSeries.findUnique({
+        where: { code_year: { code: 'RA', year } },
+      });
+      if (!series) {
+        throw new Error(
+          `No existe la serie RA para el año ${year}. El seeder debería haberla creado.`,
+        );
+      }
+      if (!series.active) {
+        throw new Error(`La serie RA-${year} está desactivada`);
+      }
+
+      const updatedSeries = await tx.invoiceSeries.update({
+        where: { code_year: { code: 'RA', year } },
+        data: { nextNumber: { increment: 1 } },
+      });
+      const number = updatedSeries.nextNumber - 1;
+      const fullNumber = `RA-${year}-${String(number).padStart(5, '0')}`;
+
+      return tx.invoice.create({
+        data: {
+          series: 'RA',
+          year,
+          number,
+          fullNumber,
+          type: InvoiceType.RECTIFYING,
+          status: InvoiceStatus.ISSUED,
+          // Snapshot emisor/receptor iguales al original (inmutable)
+          issuerName: original.issuerName,
+          issuerTaxId: original.issuerTaxId,
+          issuerAddress: original.issuerAddress,
+          issuerPostalCode: original.issuerPostalCode,
+          issuerCity: original.issuerCity,
+          issuerCountry: original.issuerCountry,
+          recipientUserId: original.recipientUserId,
+          recipientName: original.recipientName,
+          recipientTaxId: original.recipientTaxId,
+          recipientAddress: original.recipientAddress,
+          recipientPostalCode: original.recipientPostalCode,
+          recipientCity: original.recipientCity,
+          recipientCountry: original.recipientCountry,
+          recipientEmail: original.recipientEmail,
+          issueDate: now,
+          operationDate,
+          taxRegime: original.taxRegime,
+          taxRate: original.taxRate,
+          netAmount,
+          taxAmount,
+          grossAmount: refundAmount,
+          currency: original.currency,
+          concept: `Rectificación de factura ${original.fullNumber} — reembolso`,
+          conceptDetails: original.concept,
+          transactionId: params.refundTransactionId,
+          rectifiedInvoiceId: original.id,
+          rectificationReason: params.reason || 'Reembolso',
+          fiscalPeriod,
+          issuedAt: now,
+        },
+      });
+    });
+
+    this.logger.log(
+      `Rectificativa emitida ${invoice.fullNumber} sobre ${original.fullNumber} (${refundAmount}€)`,
+    );
+
+    try {
+      await this.sendInvoiceEmail(invoice);
+      await this.prisma.invoice.update({
+        where: { id: invoice.id },
+        data: { emailedAt: new Date(), emailedTo: invoice.recipientEmail },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo enviar el email de la rectificativa ${invoice.fullNumber}: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+
+    return invoice;
+  }
+
   async getMyInvoices(
     userId: string,
     options: { page?: number; limit?: number } = {},

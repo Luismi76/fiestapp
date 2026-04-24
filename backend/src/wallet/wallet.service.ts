@@ -306,6 +306,111 @@ export class WalletService implements OnModuleInit {
     }
   }
 
+  /**
+   * Procesa un evento `charge.refunded` de Stripe.
+   * Si el charge corresponde a un pack_purchase completado, crea una
+   * Transaction de reembolso y dispara la emisión de la rectificativa
+   * asociada a la factura original. Idempotente: repetidos eventos con
+   * el mismo event.id o el mismo refund.id no generan duplicados.
+   */
+  async handleChargeRefunded(event: Stripe.Event): Promise<void> {
+    if (event.type !== 'charge.refunded') return;
+    if (await this.stripeIdempotency.isAlreadyProcessed(event.id, event.type)) {
+      return;
+    }
+
+    const charge = event.data.object as Stripe.Charge;
+    const refunds = charge.refunds?.data || [];
+    if (refunds.length === 0) {
+      this.logger.debug(`charge.refunded sin refunds: ${charge.id}`);
+      return;
+    }
+
+    // Mapear payment_intent → session → transaction (pack_purchase)
+    const paymentIntentId =
+      typeof charge.payment_intent === 'string'
+        ? charge.payment_intent
+        : charge.payment_intent?.id;
+    if (!paymentIntentId) {
+      this.logger.debug(`Charge ${charge.id} sin payment_intent; ignorado`);
+      return;
+    }
+
+    const sessions = await this.ensureStripe().checkout.sessions.list({
+      payment_intent: paymentIntentId,
+      limit: 1,
+    });
+    if (sessions.data.length === 0) {
+      this.logger.debug(
+        `No hay session de Checkout para PI ${paymentIntentId}; ignorado`,
+      );
+      return;
+    }
+    const sessionId = sessions.data[0].id;
+
+    const originalTx = await this.prisma.transaction.findFirst({
+      where: {
+        stripeId: sessionId,
+        type: 'pack_purchase',
+        status: 'completed',
+      },
+      include: { invoice: true },
+    });
+    if (!originalTx) {
+      this.logger.debug(
+        `No hay pack_purchase completado para session ${sessionId}; ignorado`,
+      );
+      return;
+    }
+    if (!originalTx.invoice) {
+      this.logger.warn(
+        `pack_purchase ${originalTx.id} sin factura emitida — no se puede emitir rectificativa automática`,
+      );
+      return;
+    }
+
+    // Procesar cada refund individual que aún no esté registrado
+    for (const refund of refunds) {
+      // Idempotencia por refund.id (guardado como stripeId de la Transaction refund)
+      const already = await this.prisma.transaction.findUnique({
+        where: { stripeId: refund.id },
+      });
+      if (already) continue;
+
+      const refundAmount = (refund.amount || 0) / 100;
+      if (refundAmount <= 0) continue;
+
+      const refundTx = await this.prisma.transaction.create({
+        data: {
+          userId: originalTx.userId,
+          type: 'refund',
+          amount: refundAmount,
+          status: 'completed',
+          stripeId: refund.id,
+          description: `Reembolso ${originalTx.description || 'pack'}`,
+        },
+      });
+
+      this.logger.log(
+        `Refund Stripe registrado: refund=${refund.id} amount=${refundAmount}€ user=${originalTx.userId}`,
+      );
+
+      try {
+        await this.invoiceService.issueRectifyingInvoice({
+          originalInvoiceId: originalTx.invoice.id,
+          refundTransactionId: refundTx.id,
+          refundAmount,
+          reason: refund.reason || 'Reembolso Stripe',
+        });
+      } catch (err) {
+        this.logger.error(
+          `Error emitiendo rectificativa para refund=${refund.id}: ${err instanceof Error ? err.message : err}`,
+          err instanceof Error ? err.stack : undefined,
+        );
+      }
+    }
+  }
+
   // Verificar resultado de compra de pack (llamado desde el frontend al volver de Stripe)
   async checkPurchaseResult(
     sessionId: string,

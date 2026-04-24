@@ -106,6 +106,14 @@ export class StripeWebhookController {
           break;
         }
 
+        case 'charge.refunded': {
+          // Reembolso (total o parcial) sobre un charge → WalletService
+          // Detecta automáticamente si corresponde a un pack_purchase y
+          // emite la factura rectificativa de la factura original.
+          await this.walletService.handleChargeRefunded(event);
+          break;
+        }
+
         case 'account.updated': {
           // Stripe Connect → ConnectService
           await this.connectService.handleConnectWebhook(event);
