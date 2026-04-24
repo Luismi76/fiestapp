@@ -253,16 +253,19 @@ export class AdminController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const csv = await this.financialReportService.exportToCSV({
+    const buffer = await this.financialReportService.exportToXlsx({
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
     });
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader(
       'Content-Disposition',
-      'attachment; filename=financial_report.csv',
+      'attachment; filename=financial_report.xlsx',
     );
-    res.send('\uFEFF' + csv);
+    res.send(buffer);
   }
 
   @Get('reports/financial/wallets')
@@ -440,15 +443,18 @@ export class AdminController {
 
   @Get('accounting/export/dac7')
   async exportDac7(@Query('year') year: string, @Res() res: Response) {
-    const csv = await this.accountingService.exportDac7Csv(
+    const buffer = await this.accountingService.exportDac7Xlsx(
       parseInt(year) || new Date().getFullYear(),
     );
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=dac7_${year}.csv`,
+      `attachment; filename=dac7_${year}.xlsx`,
     );
-    res.send('\uFEFF' + csv);
+    res.send(buffer);
   }
 
   @Get('accounting/export/vat-summary')
@@ -458,29 +464,35 @@ export class AdminController {
     @Query('quarter') quarter?: string,
   ) {
     const q = quarter ? parseInt(quarter) : undefined;
-    const csv = await this.accountingService.exportVatSummaryCsv(
+    const buffer = await this.accountingService.exportVatSummaryXlsx(
       parseInt(year) || new Date().getFullYear(),
       q && q >= 1 && q <= 4 ? q : undefined,
     );
     const filename = quarter
-      ? `vat_summary_${year}_Q${quarter}.csv`
-      : `vat_summary_${year}.csv`;
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      ? `vat_summary_${year}_Q${quarter}.xlsx`
+      : `vat_summary_${year}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
-    res.send('\uFEFF' + csv);
+    res.send(buffer);
   }
 
   @Get('accounting/export/modelo347')
   async exportModelo347(@Query('year') year: string, @Res() res: Response) {
-    const csv = await this.accountingService.exportModelo347Csv(
+    const buffer = await this.accountingService.exportModelo347Xlsx(
       parseInt(year) || new Date().getFullYear(),
     );
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=modelo347_${year}.csv`,
+      `attachment; filename=modelo347_${year}.xlsx`,
     );
-    res.send('\uFEFF' + csv);
+    res.send(buffer);
   }
 
   // ============================================
@@ -509,14 +521,17 @@ export class AdminController {
 
   @Get('accounting/export/pnl')
   async exportPnl(@Query('year') year: string, @Res() res: Response) {
-    const csv = await this.accountingService.exportPnlCsv(
+    const buffer = await this.accountingService.exportPnlXlsx(
       parseInt(year) || new Date().getFullYear(),
     );
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=pnl_${year}.csv`,
+      `attachment; filename=pnl_${year}.xlsx`,
     );
-    res.send('\uFEFF' + csv);
+    res.send(buffer);
   }
 }

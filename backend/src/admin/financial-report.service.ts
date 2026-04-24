@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, TransactionType, TransactionStatus } from '@prisma/client';
+import * as ExcelJS from 'exceljs';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface FinancialReportFilters {
@@ -263,9 +264,9 @@ export class FinancialReportService {
   }
 
   /**
-   * Exporta transacciones a formato CSV
+   * Exporta transacciones a formato Excel (.xlsx)
    */
-  async exportToCSV(filters?: FinancialReportFilters): Promise<string> {
+  async exportToXlsx(filters?: FinancialReportFilters): Promise<Buffer> {
     const where: Prisma.TransactionWhereInput = {};
 
     if (filters?.startDate || filters?.endDate) {
@@ -294,7 +295,6 @@ export class FinancialReportService {
       },
     });
 
-    // Generar CSV
     const headers = [
       'ID',
       'Fecha',
@@ -312,32 +312,68 @@ export class FinancialReportService {
       'Politica Cancelacion',
       'Reembolso %',
     ];
-    const rows = transactions.map((t) => [
-      t.id,
-      t.createdAt.toISOString(),
-      t.user?.name || 'N/A',
-      t.user?.email || 'N/A',
-      t.type,
-      t.amount.toString(),
-      t.status,
-      t.description || '',
-      t.match?.experience?.title || '',
-      t.match?.experience?.city || '',
-      t.match?.host?.name || '',
-      t.match?.requester?.name || '',
-      t.match?.paymentStatus || '',
-      t.match?.cancellation?.policy || '',
-      t.match?.cancellation?.refundPercentage?.toString() || '',
-    ]);
 
-    const csv = [
-      headers.join(','),
-      ...rows.map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','),
-      ),
-    ].join('\n');
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'FiestApp';
+    workbook.created = new Date();
+    const sheet = workbook.addWorksheet('Transacciones');
 
-    return csv;
+    const headerRow = sheet.addRow(headers);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFF6B35' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.height = 22;
+
+    transactions.forEach((t) => {
+      const row = sheet.addRow([
+        t.id,
+        t.createdAt,
+        t.user?.name || 'N/A',
+        t.user?.email || 'N/A',
+        t.type,
+        Number(t.amount),
+        t.status,
+        t.description || '',
+        t.match?.experience?.title || '',
+        t.match?.experience?.city || '',
+        t.match?.host?.name || '',
+        t.match?.requester?.name || '',
+        t.match?.paymentStatus || '',
+        t.match?.cancellation?.policy || '',
+        t.match?.cancellation?.refundPercentage ?? '',
+      ]);
+      row.getCell(2).numFmt = 'yyyy-mm-dd hh:mm:ss';
+      row.getCell(6).numFmt = '#,##0.00\\ "€"';
+      if (typeof row.getCell(15).value === 'number') {
+        row.getCell(15).numFmt = '0"%"';
+      }
+    });
+
+    sheet.columns.forEach((column, idx) => {
+      let maxLength = headers[idx]?.length ?? 10;
+      column.eachCell?.({ includeEmpty: false }, (cell) => {
+        const raw = cell.value;
+        const value =
+          raw instanceof Date
+            ? raw.toISOString().slice(0, 19).replace('T', ' ')
+            : raw === null || raw === undefined
+              ? ''
+              : String(raw);
+        if (value.length > maxLength) {
+          maxLength = value.length;
+        }
+      });
+      column.width = Math.min(maxLength + 2, 50);
+    });
+
+    sheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+    const arrayBuffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(arrayBuffer as ArrayBuffer);
   }
 
   /**

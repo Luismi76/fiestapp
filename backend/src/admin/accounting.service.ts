@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, TransactionStatus } from '@prisma/client';
+import * as ExcelJS from 'exceljs';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
+
+type XlsxCell = string | number;
 
 // ============================================
 // Interfaces
@@ -881,7 +884,7 @@ export class AccountingService {
     return { year, quarter, summary, quarters };
   }
 
-  async exportPnlCsv(year: number): Promise<string> {
+  async exportPnlXlsx(year: number): Promise<Buffer> {
     const pnl = await this.getProfitAndLoss(year);
 
     const headers = [
@@ -892,31 +895,34 @@ export class AccountingService {
       'Reembolsos',
       'Beneficio neto',
     ];
-    const rows = pnl.quarters.map((q) => [
+    const rows: XlsxCell[][] = pnl.quarters.map((q) => [
       q.label,
-      q.feesGross.toFixed(2),
-      q.feesNet.toFixed(2),
-      q.vatCollected.toFixed(2),
-      q.totalRefunds.toFixed(2),
-      q.netProfit.toFixed(2),
+      q.feesGross,
+      q.feesNet,
+      q.vatCollected,
+      q.totalRefunds,
+      q.netProfit,
     ]);
     rows.push([
       'TOTAL',
-      pnl.summary.totalFeesGross.toFixed(2),
-      pnl.summary.totalFeesNet.toFixed(2),
-      pnl.summary.totalVatCollected.toFixed(2),
-      pnl.summary.totalRefunds.toFixed(2),
-      pnl.summary.netProfit.toFixed(2),
+      pnl.summary.totalFeesGross,
+      pnl.summary.totalFeesNet,
+      pnl.summary.totalVatCollected,
+      pnl.summary.totalRefunds,
+      pnl.summary.netProfit,
     ]);
 
-    return this.buildCsv(headers, rows);
+    return this.buildXlsx(`PyL ${year}`, headers, rows, {
+      currencyColumns: [2, 3, 4, 5, 6],
+      totalsLastRow: true,
+    });
   }
 
   // ============================================
-  // CSV Exports
+  // Xlsx Exports
   // ============================================
 
-  async exportVatSummaryCsv(year: number, quarter?: number): Promise<string> {
+  async exportVatSummaryXlsx(year: number, quarter?: number): Promise<Buffer> {
     const data = await this.getVatSummary(year, quarter);
     const typeLabels: Record<string, string> = {
       platform_fee: 'Comisiones de intermediación',
@@ -934,25 +940,29 @@ export class AccountingService {
       'Base Imponible',
       `IVA (${data.vatRate}%)`,
     ];
-    const rows = data.lines.map((line) => [
+    const rows: XlsxCell[][] = data.lines.map((line) => [
       typeLabels[line.type] || line.type,
-      line.count.toString(),
-      line.grossAmount.toFixed(2),
-      line.netAmount.toFixed(2),
-      line.vatAmount.toFixed(2),
+      line.count,
+      line.grossAmount,
+      line.netAmount,
+      line.vatAmount,
     ]);
     rows.push([
       'TOTAL',
-      data.totals.count.toString(),
-      data.totals.grossAmount.toFixed(2),
-      data.totals.netAmount.toFixed(2),
-      data.totals.vatAmount.toFixed(2),
+      data.totals.count,
+      data.totals.grossAmount,
+      data.totals.netAmount,
+      data.totals.vatAmount,
     ]);
 
-    return this.buildCsv(headers, rows);
+    const sheetName = quarter ? `IVA ${year} Q${quarter}` : `IVA ${year}`;
+    return this.buildXlsx(sheetName, headers, rows, {
+      currencyColumns: [3, 4, 5],
+      totalsLastRow: true,
+    });
   }
 
-  async exportDac7Csv(year: number): Promise<string> {
+  async exportDac7Xlsx(year: number): Promise<Buffer> {
     const report = await this.getDac7Report(year);
 
     const headers = [
@@ -966,43 +976,108 @@ export class AccountingService {
       'Comisiones Pagadas',
     ];
 
-    const rows = report.hosts.map((host) => [
+    const rows: XlsxCell[][] = report.hosts.map((host) => [
       host.taxId || '',
       host.name,
       host.email,
       host.fiscalAddress || '',
       host.bankAccount || '',
-      host.totalIncome.toFixed(2),
-      host.operationCount.toString(),
-      host.totalFeesPaid.toFixed(2),
+      host.totalIncome,
+      host.operationCount,
+      host.totalFeesPaid,
     ]);
 
-    return this.buildCsv(headers, rows);
+    return this.buildXlsx(`DAC7 ${year}`, headers, rows, {
+      currencyColumns: [6, 8],
+    });
   }
 
-  async exportModelo347Csv(year: number): Promise<string> {
+  async exportModelo347Xlsx(year: number): Promise<Buffer> {
     const entries = await this.getModelo347Report(year);
 
     const headers = ['NIF', 'Nombre', 'Total Anual', 'Q1', 'Q2', 'Q3', 'Q4'];
 
-    const rows = entries.map((entry) => [
+    const rows: XlsxCell[][] = entries.map((entry) => [
       entry.taxId || '',
       entry.name,
-      entry.totalAmount.toFixed(2),
-      entry.q1.toFixed(2),
-      entry.q2.toFixed(2),
-      entry.q3.toFixed(2),
-      entry.q4.toFixed(2),
+      entry.totalAmount,
+      entry.q1,
+      entry.q2,
+      entry.q3,
+      entry.q4,
     ]);
 
-    return this.buildCsv(headers, rows);
+    return this.buildXlsx(`Modelo 347 ${year}`, headers, rows, {
+      currencyColumns: [3, 4, 5, 6, 7],
+    });
   }
 
-  private buildCsv(headers: string[], rows: string[][]): string {
-    const escapedRows = rows.map((row) =>
-      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','),
-    );
+  private async buildXlsx(
+    sheetName: string,
+    headers: string[],
+    rows: XlsxCell[][],
+    options: {
+      currencyColumns?: number[];
+      totalsLastRow?: boolean;
+    } = {},
+  ): Promise<Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'FiestApp';
+    workbook.created = new Date();
 
-    return [headers.join(','), ...escapedRows].join('\n');
+    const safeName = sheetName.replace(/[\\/*?:[\]]/g, '').slice(0, 31);
+    const sheet = workbook.addWorksheet(safeName || 'Sheet1');
+
+    const headerRow = sheet.addRow(headers);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFF6B35' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.height = 22;
+
+    rows.forEach((row) => sheet.addRow(row));
+
+    const currencyFormat = '#,##0.00\\ "€"';
+    const currencyCols = new Set(options.currencyColumns ?? []);
+    headers.forEach((_, idx) => {
+      const colNumber = idx + 1;
+      const column = sheet.getColumn(colNumber);
+      if (currencyCols.has(colNumber)) {
+        column.numFmt = currencyFormat;
+      }
+    });
+
+    sheet.columns.forEach((column) => {
+      let maxLength = 10;
+      column.eachCell?.({ includeEmpty: false }, (cell) => {
+        const value =
+          cell.value === null || cell.value === undefined
+            ? ''
+            : String(cell.value);
+        if (value.length > maxLength) {
+          maxLength = value.length;
+        }
+      });
+      column.width = Math.min(maxLength + 2, 50);
+    });
+
+    if (options.totalsLastRow && rows.length > 0) {
+      const totalsRowNumber = rows.length + 1;
+      const totalsRow = sheet.getRow(totalsRowNumber);
+      totalsRow.font = { bold: true };
+      totalsRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF3F4F6' },
+      };
+    }
+
+    sheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+    const arrayBuffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(arrayBuffer as ArrayBuffer);
   }
 }
