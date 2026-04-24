@@ -17,6 +17,7 @@ import {
 } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminLayout from '@/components/admin/AdminLayout';
+import PendingTasksCard from '@/components/admin/PendingTasksCard';
 import Image from 'next/image';
 
 // Simple Bar Chart Component
@@ -289,6 +290,9 @@ export default function AdminDashboardPage() {
       <div className="min-h-screen bg-gray-50 pb-8">
 
       <div className="p-4 space-y-4">
+        {/* Tareas pendientes (fiscales + operativas críticas) */}
+        <PendingTasksCard fetchOnMount showHeader />
+
         {/* SECTION A: Centro de Alertas */}
         {alerts && alerts.totalPending > 0 && (
           <div className="bg-white rounded-xl p-4 shadow-sm">
@@ -415,46 +419,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Revenue: Ingresos de la plataforma */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 bg-green-500 rounded-full" />
-            <h3 className="font-semibold text-gray-900">Ingresos de la plataforma</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-              <span className="text-xs font-medium text-green-700">VENTA DE PACKS</span>
-              <div className="text-2xl font-bold text-green-700 mt-1">{(stats.revenue.packPurchases ?? 0).toFixed(2)} EUR</div>
-              <div className="text-xs text-green-600 mt-1">Ingresos reales del negocio</div>
-            </div>
-            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
-              <span className="text-xs font-medium text-amber-700">ACUERDOS CERRADOS</span>
-              <div className="text-2xl font-bold text-amber-700 mt-1">{stats.revenue.agreementsClosed ?? 0}</div>
-              <div className="text-xs text-amber-600 mt-1">Experiencias completadas</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Monederos: Ventas de packs y saldos */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 bg-blue-500 rounded-full" />
-            <h3 className="font-semibold text-gray-900">Packs vendidos</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-              <span className="text-xs font-medium text-blue-700">VENTA DE PACKS</span>
-              <div className="text-2xl font-bold text-blue-700 mt-1">{(stats.revenue.packPurchases ?? 0).toFixed(2)} EUR</div>
-              <div className="text-xs text-blue-600 mt-1">{stats.revenue.packPurchasesCount ?? 0} packs comprados</div>
-            </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
-              <span className="text-xs font-medium text-purple-700">SALDO MONEDEROS</span>
-              <div className="text-2xl font-bold text-purple-700 mt-1">{(stats.revenue.totalWalletBalance ?? 0).toFixed(2)} EUR</div>
-              <div className="text-xs text-purple-600 mt-1">Saldo histórico en monederos</div>
-            </div>
-          </div>
-        </div>
-
         {/* Active Users & Conversion */}
         {(activeUsersStats || conversionStats) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -492,37 +456,25 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* Quick Links - All sections */}
+        {/* Quick Links - solo accesos directos más usados */}
         <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="font-semibold text-gray-900 mb-3">Acceso rapido</h3>
-
-          <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">Gestion</p>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <Link href="/admin/gestion?tab=usuarios" className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+          <h3 className="font-semibold text-gray-900 mb-3 text-sm">Accesos directos</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Link href="/admin/gestion?tab=usuarios" className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors min-h-[80px] justify-center">
               <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
               </div>
               <span className="text-xs font-medium text-gray-700">Usuarios</span>
               <span className="text-[10px] text-gray-400">{stats.users.total}</span>
             </Link>
-            <Link href="/admin/gestion?tab=experiencias" className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+            <Link href="/admin/gestion?tab=experiencias" className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors min-h-[80px] justify-center">
               <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z" /></svg>
               </div>
               <span className="text-xs font-medium text-gray-700">Experiencias</span>
               <span className="text-[10px] text-gray-400">{stats.experiences.published} activas</span>
             </Link>
-            <Link href="/admin/gestion?tab=categorias" className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="w-10 h-10 bg-teal-500 rounded-lg flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>
-              </div>
-              <span className="text-xs font-medium text-gray-700">Categorias</span>
-            </Link>
-          </div>
-
-          <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">Moderacion</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-            <Link href="/admin/moderacion?tab=disputas" className="relative flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+            <Link href="/admin/moderacion?tab=disputas" className="relative flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors min-h-[80px] justify-center">
               <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" /></svg>
               </div>
@@ -531,53 +483,14 @@ export default function AdminDashboardPage() {
                 <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full">{alerts.disputes.total}</span>
               )}
             </Link>
-            <Link href="/admin/moderacion?tab=reportes" className="relative flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" /></svg>
-              </div>
-              <span className="text-xs font-medium text-gray-700">Denuncias</span>
-              {alerts && alerts.reports.pending > 0 && (
-                <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full">{alerts.reports.pending}</span>
-              )}
-            </Link>
-            <Link href="/admin/moderacion?tab=verificaciones" className="relative flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" /></svg>
-              </div>
-              <span className="text-xs font-medium text-gray-700">Verificaciones</span>
-              {alerts && alerts.verifications.pending > 0 && (
-                <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full">{alerts.verifications.pending}</span>
-              )}
-            </Link>
-          </div>
-
-          <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">Finanzas</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Link href="/admin/finanzas?tab=resumen" className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>
-              </div>
-              <span className="text-xs font-medium text-gray-700">Resumen</span>
-            </Link>
-            <Link href="/admin/finanzas?tab=transacciones" className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" /></svg>
-              </div>
-              <span className="text-xs font-medium text-gray-700">Transacciones</span>
-            </Link>
-            <Link href="/admin/finanzas?tab=facturas" className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+            <Link href="/admin/finanzas?tab=facturas" className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors min-h-[80px] justify-center">
               <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
               </div>
               <span className="text-xs font-medium text-gray-700">Facturas</span>
             </Link>
-            <Link href="/admin/finanzas?tab=declaraciones" className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-              <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="white" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V13.5Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V18Zm2.498-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm2.504-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm2.498-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5ZM8.25 6h7.5v2.25h-7.5V6ZM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 0 0 2.25 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0 0 12 2.25Z" /></svg>
-              </div>
-              <span className="text-xs font-medium text-gray-700">Declaraciones</span>
-            </Link>
           </div>
+          <p className="text-[10px] text-gray-400 mt-2 text-center">El resto de secciones están en el menú lateral.</p>
         </div>
 
         {/* Matches Stats */}
