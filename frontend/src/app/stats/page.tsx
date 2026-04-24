@@ -242,7 +242,9 @@ export default function StatsPage() {
           <div>
             <h2 className="font-semibold text-gray-900 md:text-lg mb-3">Actividad reciente</h2>
             <div className="bg-white rounded-2xl shadow-sm divide-y divide-gray-100 md:grid md:grid-cols-2 md:divide-y-0 md:gap-px md:bg-gray-200 md:overflow-hidden">
-              {stats.recentActivity.map((activity) => (
+              {stats.recentActivity.map((activity) => {
+                if (!activity.requester) return null;
+                return (
                 <Link
                   key={activity.id}
                   href={`/matches/${activity.id}`}
@@ -256,7 +258,7 @@ export default function StatsPage() {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">{activity.requester.name}</p>
-                    <p className="text-xs text-gray-500 truncate">{activity.experience.title}</p>
+                    <p className="text-xs text-gray-500 truncate">{activity.experience?.title}</p>
                   </div>
                   <div className="text-right">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${statusColors[activity.status]}`}>
@@ -265,7 +267,8 @@ export default function StatsPage() {
                     <p className="text-[10px] text-gray-400 mt-1">{formatTimeAgo(activity.createdAt)}</p>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

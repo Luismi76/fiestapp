@@ -178,32 +178,35 @@ export default function DashboardPage() {
                   {receivedMatches
                     .filter(m => m.status === 'pending')
                     .slice(0, 3)
-                    .map(match => (
-                      <Link
-                        key={match.id}
-                        href={`/matches/${match.id}`}
-                        className="card card-highlight flex items-center gap-3 p-4 group"
-                      >
-                        <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-accent/30">
-                          <Image
-                            src={getAvatarSrc(match.requester.avatar) || ''}
-                            alt={match.requester.name}
-                            className="w-full h-full object-cover"
-                            width={48} height={48} unoptimized
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-semibold text-[#1A1410] truncate">{match.requester.name}</p>
-                            {match.requester.verified && <VerifiedIcon />}
+                    .map(match => {
+                      if (!match.requester) return null;
+                      return (
+                        <Link
+                          key={match.id}
+                          href={`/matches/${match.id}`}
+                          className="card card-highlight flex items-center gap-3 p-4 group"
+                        >
+                          <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-accent/30">
+                            <Image
+                              src={getAvatarSrc(match.requester.avatar) || ''}
+                              alt={match.requester.name}
+                              className="w-full h-full object-cover"
+                              width={48} height={48} unoptimized
+                            />
                           </div>
-                          <p className="text-sm text-[#8B7355] truncate">{match.experience.title}</p>
-                        </div>
-                        <span className="badge badge-accent">
-                          Pendiente
-                        </span>
-                      </Link>
-                    ))}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-semibold text-[#1A1410] truncate">{match.requester.name}</p>
+                              {match.requester.verified && <VerifiedIcon />}
+                            </div>
+                            <p className="text-sm text-[#8B7355] truncate">{match.experience?.title}</p>
+                          </div>
+                          <span className="badge badge-accent">
+                            Pendiente
+                          </span>
+                        </Link>
+                      );
+                    })}
                 </div>
               </section>
             )}
@@ -277,6 +280,7 @@ export default function DashboardPage() {
                 <div className="space-y-3 stagger-children">
                   {acceptedMatches.slice(0, 3).map(match => {
                     const otherPerson = match.requesterId === user?.id ? match.host : match.requester;
+                    if (!otherPerson) return null;
                     return (
                       <Link
                         key={match.id}
@@ -297,7 +301,7 @@ export default function DashboardPage() {
                             {otherPerson.verified && <VerifiedIcon />}
                           </div>
                           <p className="text-sm text-[#8B7355] truncate">
-                            {match.lastMessage?.content || match.experience.title}
+                            {match.lastMessage?.content || match.experience?.title}
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-1">
