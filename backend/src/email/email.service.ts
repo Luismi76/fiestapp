@@ -138,6 +138,56 @@ export class EmailService {
     }
   }
 
+  /**
+   * Envío directo con adjunto (ej. PDF de factura).
+   * No pasa por la cola porque los Buffer grandes no se serializan bien
+   * en Redis y ralentizan el procesamiento. Directo + retry manual en admin.
+   */
+  async sendInvoiceEmail(
+    to: string,
+    subject: string,
+    html: string,
+    pdfBuffer: Buffer,
+    filename: string,
+  ): Promise<boolean> {
+    if (!this.isConfigured || !this.resend) {
+      this.logger.log(
+        `[DEV] Invoice email would be sent to ${to}: ${subject} (adjunto ${filename}, ${pdfBuffer.length} bytes)`,
+      );
+      return true;
+    }
+
+    const devEmail = this.configService.get<string>('DEV_EMAIL');
+    const finalTo = devEmail || to;
+    const finalSubject = devEmail ? `[Para: ${to}] ${subject}` : subject;
+
+    try {
+      const { error } = await this.resend.emails.send({
+        from: this.fromEmail,
+        to: finalTo,
+        subject: finalSubject,
+        html,
+        attachments: [
+          {
+            filename,
+            content: pdfBuffer.toString('base64'),
+          },
+        ],
+      });
+
+      if (error) {
+        this.logger.error(`Error enviando factura por email: ${error.message}`);
+        return false;
+      }
+
+      this.logger.log(`Factura enviada a ${finalTo}: ${filename}`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Fallo al enviar factura: ${error}`);
+      return false;
+    }
+  }
+
   async sendVerificationEmail(
     email: string,
     token: string,

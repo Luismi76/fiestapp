@@ -9,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeIdempotencyService } from '../common/stripe-idempotency.service';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
+import { InvoiceService } from '../invoicing/invoice.service';
 import Stripe from 'stripe';
 
 export type TransactionType = 'pack_purchase' | 'platform_fee' | 'refund';
@@ -24,6 +25,7 @@ export class WalletService implements OnModuleInit {
     private configService: ConfigService,
     private stripeIdempotency: StripeIdempotencyService,
     private platformConfig: PlatformConfigService,
+    private invoiceService: InvoiceService,
   ) {
     this.frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
@@ -289,6 +291,8 @@ export class WalletService implements OnModuleInit {
       this.logger.log(
         `Pack purchase completed: session=${sessionId}, credits=${transaction.creditsAmount}, user=${transaction.userId}`,
       );
+
+      await this.safelyIssueInvoice(transaction.id);
     } else {
       // Pago fallido
       await this.prisma.transaction.update({
@@ -349,6 +353,8 @@ export class WalletService implements OnModuleInit {
               });
             }
           });
+
+          await this.safelyIssueInvoice(transaction.id);
 
           return {
             success: true,
@@ -575,5 +581,23 @@ export class WalletService implements OnModuleInit {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * Emite la factura del pack_purchase sin bloquear el flujo de cobro.
+   * Si la facturación falla, el usuario conserva sus créditos y queda
+   * registro en logs para reemisión manual desde el panel admin.
+   */
+  private async safelyIssueInvoice(transactionId: string): Promise<void> {
+    try {
+      await this.invoiceService.issueForPackPurchase(transactionId);
+    } catch (err) {
+      this.logger.error(
+        `Error emitiendo factura para transaction=${transactionId}: ${
+          err instanceof Error ? err.message : err
+        }`,
+        err instanceof Error ? err.stack : undefined,
+      );
+    }
   }
 }

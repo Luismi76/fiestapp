@@ -986,6 +986,66 @@ export const walletApi = {
   },
 };
 
+// Invoices API
+export type InvoiceType = 'COMPLETE' | 'SIMPLIFIED' | 'RECTIFYING';
+export type TaxRegime =
+  | 'IVA_GENERAL_21'
+  | 'IVA_REDUCIDO_10'
+  | 'IVA_SUPERREDUCIDO_4'
+  | 'IGIC_CANARIAS_7'
+  | 'IPSI_CEUTA_4'
+  | 'IPSI_MELILLA_4'
+  | 'EXENTO_UE'
+  | 'EXENTO_EXTRA_UE';
+
+export interface InvoiceSummary {
+  id: string;
+  fullNumber: string;
+  type: InvoiceType;
+  issueDate: string;
+  operationDate: string;
+  concept: string;
+  netAmount: number;
+  taxAmount: number;
+  grossAmount: number;
+  taxRegime: TaxRegime;
+  taxRate: number;
+  currency: string;
+}
+
+export interface InvoicesListResponse {
+  invoices: InvoiceSummary[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
+
+export const invoicesApi = {
+  getMine: async (page = 1, limit = 20): Promise<InvoicesListResponse> => {
+    const response = await api.get('/invoices/mine', {
+      params: { page, limit },
+    });
+    return response.data;
+  },
+
+  getPdfUrl: (invoiceId: string): string => {
+    const baseUrl = api.defaults.baseURL || '';
+    return `${baseUrl}/invoices/${invoiceId}/pdf`;
+  },
+
+  downloadPdf: async (invoiceId: string, filename: string): Promise<void> => {
+    const response = await api.get(`/invoices/${invoiceId}/pdf`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(response.data as Blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
+};
+
 // Stripe Connect API (host payouts)
 export interface ConnectStatus {
   hasAccount: boolean;
