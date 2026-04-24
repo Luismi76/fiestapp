@@ -8,91 +8,98 @@ datasource db {
 }
 
 model User {
-  id                        String           @id @default(uuid())
-  email                     String           @unique
-  password                  String
-  name                      String
-  role                      UserRole         @default(user)
-  age                       Int?
-  bio                       String?
-  city                      String?
-  avatar                    String?
-  phone                     String?          // Teléfono para verificación
-  phoneVerified             Boolean          @default(false)
-  hasPartner                Boolean?         // viaja con pareja
-  hasFriends                Boolean?         // viaja con amigos
-  hasChildren               Boolean?         // viaja con hijos
-  childrenAges              String?          // edades de los hijos (ej: "5, 8, 12")
-  verified                  Boolean          @default(false) // email verified
-  emailVerificationToken    String?
-  emailVerificationExpires  DateTime?
-  passwordResetToken        String?
-  passwordResetExpires      DateTime?
-  termsAcceptedAt           DateTime?        // Fecha de aceptación de términos y privacidad
-  twoFactorSecret           String?          // Secret para TOTP 2FA
-  twoFactorEnabled          Boolean          @default(false)
+  id                          String                  @id @default(uuid())
+  email                       String                  @unique
+  password                    String
+  name                        String
+  role                        UserRole                @default(user)
+  age                         Int?
+  bio                         String?
+  city                        String?
+  avatar                      String?
+  phone                       String? // Teléfono para verificación
+  phoneVerified               Boolean                 @default(false)
+  hasPartner                  Boolean? // viaja con pareja
+  hasFriends                  Boolean? // viaja con amigos
+  hasChildren                 Boolean? // viaja con hijos
+  childrenAges                String? // edades de los hijos (ej: "5, 8, 12")
+  verified                    Boolean                 @default(false) // email verified
+  emailVerificationToken      String?
+  emailVerificationExpires    DateTime?
+  passwordResetToken          String?
+  passwordResetExpires        DateTime?
+  termsAcceptedAt             DateTime? // Fecha de aceptación de términos y privacidad
+  twoFactorSecret             String? // Secret para TOTP 2FA
+  twoFactorEnabled            Boolean                 @default(false)
   // Sistema de verificación de identidad
-  identityVerified          Boolean          @default(false)
-  verificationLevel         VerificationLevel @default(NONE)
+  identityVerified            Boolean                 @default(false)
+  verificationLevel           VerificationLevel       @default(NONE)
   // Sistema de strikes y bans
-  strikes                   Int              @default(0)
-  bannedAt                  DateTime?
-  banReason                 String?
+  strikes                     Int                     @default(0)
+  bannedAt                    DateTime?
+  banReason                   String?
   // Sistema de referidos
-  referralCode              String?          @unique
-  referredById              String?
-  referredBy                User?            @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
-  referrals                 User[]           @relation("UserReferrals")
-  referralCreditsEarned     Float            @default(0)
-  // Datos fiscales (DAC7 / AEAT)
-  taxId                     String?          // NIF/NIE del anfitrión
-  taxIdVerified             Boolean          @default(false)
-  bankAccount               String?          // IBAN
-  fiscalAddress             String?          // Dirección fiscal
+  referralCode                String?                 @unique
+  referredById                String?
+  referredBy                  User?                   @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals                   User[]                  @relation("UserReferrals")
+  referralCreditsEarned       Float                   @default(0)
+  // Datos fiscales (DAC7 / AEAT / facturación)
+  taxId                       String? // NIF/NIE del anfitrión
+  taxIdVerified               Boolean                 @default(false)
+  bankAccount                 String? // IBAN
+  fiscalAddress               String? // Dirección fiscal (calle + número)
+  fiscalPostalCode            String? // Código postal fiscal
+  residenceCountry            String? // ISO-3166-1 alpha-2 (ES, FR, DE...) — DAC7
+  residenceRegion             String? // peninsula | canarias | ceuta | melilla — régimen IVA/IGIC/IPSI
+  birthDate                   DateTime? // DAC7 (obligatorio para hosts individuales)
   // Stripe Connect (payouts a anfitriones)
-  stripeConnectAccountId    String?          // Stripe Connect Express account ID (acct_xxx)
-  stripeConnectOnboarded    Boolean          @default(false)
-  stripeConnectPayoutsEnabled Boolean        @default(false)
+  stripeConnectAccountId      String? // Stripe Connect Express account ID (acct_xxx)
+  stripeConnectOnboarded      Boolean                 @default(false)
+  stripeConnectPayoutsEnabled Boolean                 @default(false)
   // Tours completados (onboarding interactivo)
-  toursCompleted            String[]         @default([])
+  toursCompleted              String[]                @default([])
   // Preferencias de moneda
-  preferredCurrency         Currency         @default(EUR)
-  deletedAt                 DateTime?        // Soft delete
-  createdAt                 DateTime         @default(now())
-  updatedAt                 DateTime         @updatedAt
-  experiences        Experience[]
-  matchesAsHost      Match[]          @relation("MatchHost")
-  matchesAsRequester Match[]          @relation("MatchRequester")
-  messagesSent       Message[]
-  reviewsGiven       Review[]         @relation("ReviewAuthor")
-  reviewsReceived    Review[]         @relation("ReviewTarget")
-  transactions       Transaction[]
-  preferences        UserPreference[]
-  wallet             Wallet?
-  favorites          Favorite[]
-  reports            Report[]
-  blockedUsers            BlockedUser[]            @relation("UserBlocks")
-  blockedByUsers          BlockedUser[]            @relation("UserBlockedBy")
-  notifications           Notification[]
-  pushSubscriptions       PushSubscription[]
-  notificationPreferences NotificationPreference?
-  badges                  UserBadge[]
-  discountUsages          DiscountUsage[]
-  auditLogs               AuditLog[]
-  favoriteFestivals       FavoriteFestival[]
-  searchHistory           SearchHistory[]
-  quickReplies            QuickReply[]
-  preferredLang           String?            @default("es")
+  preferredCurrency           Currency                @default(EUR)
+  deletedAt                   DateTime? // Soft delete
+  createdAt                   DateTime                @default(now())
+  updatedAt                   DateTime                @updatedAt
+  experiences                 Experience[]
+  matchesAsHost               Match[]                 @relation("MatchHost")
+  matchesAsRequester          Match[]                 @relation("MatchRequester")
+  messagesSent                Message[]
+  reviewsGiven                Review[]                @relation("ReviewAuthor")
+  reviewsReceived             Review[]                @relation("ReviewTarget")
+  transactions                Transaction[]
+  preferences                 UserPreference[]
+  wallet                      Wallet?
+  favorites                   Favorite[]
+  reports                     Report[]
+  blockedUsers                BlockedUser[]           @relation("UserBlocks")
+  blockedByUsers              BlockedUser[]           @relation("UserBlockedBy")
+  notifications               Notification[]
+  pushSubscriptions           PushSubscription[]
+  notificationPreferences     NotificationPreference?
+  badges                      UserBadge[]
+  discountUsages              DiscountUsage[]
+  auditLogs                   AuditLog[]
+  favoriteFestivals           FavoriteFestival[]
+  searchHistory               SearchHistory[]
+  quickReplies                QuickReply[]
+  preferredLang               String?                 @default("es")
   // Relaciones para disputas
-  disputesOpened          Dispute[]            @relation("DisputeOpenedBy")
-  disputesReceived        Dispute[]            @relation("DisputeRespondent")
-  disputesResolved        Dispute[]            @relation("DisputeResolvedBy")
-  disputeMessages         DisputeMessage[]
+  disputesOpened              Dispute[]               @relation("DisputeOpenedBy")
+  disputesReceived            Dispute[]               @relation("DisputeRespondent")
+  disputesResolved            Dispute[]               @relation("DisputeResolvedBy")
+  disputeMessages             DisputeMessage[]
   // Relaciones para cancelaciones
-  cancellations           Cancellation[]
+  cancellations               Cancellation[]
   // Relaciones para verificación de identidad
-  identityVerification    IdentityVerification?
-  verificationsApproved   IdentityVerification[] @relation("VerificationVerifiedBy")
+  identityVerification        IdentityVerification?
+  verificationsApproved       IdentityVerification[]  @relation("VerificationVerifiedBy")
+  // Relaciones para facturación
+  invoices                    Invoice[]
+  fiscalClosures              FiscalPeriodClosure[]   @relation("FiscalClosureClosedBy")
 
   @@index([verified])
   @@index([bannedAt])
@@ -121,8 +128,8 @@ model Festival {
   endDate      DateTime?
   description  String?
   imageUrl     String?
-  region       String?            // Comunidad autonoma: "Andalucia", "Cataluna", etc.
-  festivalType String?            // "religioso", "tradicional", "gastronomico", "musical"
+  region       String? // Comunidad autonoma: "Andalucia", "Cataluna", etc.
+  festivalType String? // "religioso", "tradicional", "gastronomico", "musical"
   latitude     Float?
   longitude    Float?
   status       FestivalStatus     @default(ACTIVE)
@@ -138,8 +145,8 @@ model Category {
   id          String       @id @default(uuid())
   name        String
   slug        String       @unique
-  group       String       // "fiesta" | "local"
-  icon        String       // emoji
+  group       String // "fiesta" | "local"
+  icon        String // emoji
   sortOrder   Int          @default(0)
   active      Boolean      @default(true)
   createdAt   DateTime     @default(now())
@@ -152,52 +159,52 @@ model Category {
 }
 
 model Experience {
-  id              String                   @id @default(uuid())
-  title           String
-  description     String
-  festivalId      String?                  // Opcional - puede ser experiencia sin festividad
-  categoryId      String?                  // Categoría dinámica (referencia a Category)
-  city            String
-  latitude        Float?                   // Coordenadas de la ciudad
-  longitude       Float?
-  price           Float?
-  currency        Currency                 @default(EUR)     // Moneda del precio
-  type            String
-  hostId          String
-  photos          String[]
-  highlights      String[]
-  capacity        Int                      @default(1)
-  published       Boolean                  @default(true)
-  avgRating       Float                    @default(0)
-  reviewCount     Int                      @default(0)
+  id                     String                   @id @default(uuid())
+  title                  String
+  description            String
+  festivalId             String? // Opcional - puede ser experiencia sin festividad
+  categoryId             String? // Categoría dinámica (referencia a Category)
+  city                   String
+  latitude               Float? // Coordenadas de la ciudad
+  longitude              Float?
+  price                  Float?
+  currency               Currency                 @default(EUR) // Moneda del precio
+  type                   String
+  hostId                 String
+  photos                 String[]
+  highlights             String[]
+  capacity               Int                      @default(1)
+  published              Boolean                  @default(true)
+  avgRating              Float                    @default(0)
+  reviewCount            Int                      @default(0)
   // Campos para busqueda avanzada (FASE 3)
-  languages       String[]                 // Idiomas que habla el host: ["es", "en", "fr"]
-  accessibility   String[]                 // Opciones: ["wheelchair", "hearing_aid", "visual_aid"]
+  languages              String[] // Idiomas que habla el host: ["es", "en", "fr"]
+  accessibility          String[] // Opciones: ["wheelchair", "hearing_aid", "visual_aid"]
   // Campos para grupos (FASE 4)
-  minParticipants Int                      @default(1)
-  maxParticipants Int?                     // null = usa capacity
-  idealFor        String[]                 // ["pareja", "amigos", "hijos", "solo"]
+  minParticipants        Int                      @default(1)
+  maxParticipants        Int? // null = usa capacity
+  idealFor               String[] // ["pareja", "amigos", "hijos", "solo"]
   // Política de cancelación (FASE 7)
-  cancellationPolicy CancellationPolicy    @default(FLEXIBLE)
+  cancellationPolicy     CancellationPolicy       @default(FLEXIBLE)
   // Reserva con depósito (experiencias con antelación >90 días)
-  depositEnabled    Boolean                @default(false)
-  depositPercentage Int                    @default(20)   // 20% del total
-  balanceDaysBefore Int                    @default(30)   // Cargar saldo X días antes de la experiencia
+  depositEnabled         Boolean                  @default(false)
+  depositPercentage      Int                      @default(20) // 20% del total
+  balanceDaysBefore      Int                      @default(30) // Cargar saldo X días antes de la experiencia
   // Acuerdo de pago privado (el viajero y el anfitrión acuerdan pago fuera de la plataforma)
-  allowsPrivateAgreement Boolean          @default(false)
-  suggestedPrice         Float?           // Importe orientativo cuando allowsPrivateAgreement=true
-  deletedAt       DateTime?                // Soft delete
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
-  availability    ExperienceAvailability[]
-  category        Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  festival        Festival?                @relation(fields: [festivalId], references: [id])
-  host            User                     @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  matches         Match[]
-  offeredInMatches Match[]          @relation("OfferExperience")
-  reviews         Review[]
-  favorites       Favorite[]
-  groupPricing    GroupPricing[]
+  allowsPrivateAgreement Boolean                  @default(false)
+  suggestedPrice         Float? // Importe orientativo cuando allowsPrivateAgreement=true
+  deletedAt              DateTime? // Soft delete
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  availability           ExperienceAvailability[]
+  category               Category?                @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  festival               Festival?                @relation(fields: [festivalId], references: [id])
+  host                   User                     @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  matches                Match[]
+  offeredInMatches       Match[]                  @relation("OfferExperience")
+  reviews                Review[]
+  favorites              Favorite[]
+  groupPricing           GroupPricing[]
 
   @@index([festivalId])
   @@index([hostId])
@@ -222,45 +229,45 @@ model ExperienceAvailability {
 }
 
 model Match {
-  id                    String        @id @default(uuid())
-  experienceId          String
-  requesterId           String
-  hostId                String
-  status                MatchStatus    @default(pending)
-  paymentStatus         PaymentStatus?
+  id                      String         @id @default(uuid())
+  experienceId            String
+  requesterId             String
+  hostId                  String
+  status                  MatchStatus    @default(pending)
+  paymentStatus           PaymentStatus?
   // Método de pago elegido tras aceptar el match (Stripe vs acuerdo privado fuera de la plataforma)
   paymentMethod           PaymentMethod?
-  agreedPaymentChannel    String?          // "bizum" | "cash" | "transfer" | "other"
-  travelerDeclaredPaid    Boolean          @default(false)
+  agreedPaymentChannel    String? // "bizum" | "cash" | "transfer" | "other"
+  travelerDeclaredPaid    Boolean        @default(false)
   travelerDeclaredPaidAt  DateTime?
-  hostConfirmedReceived   Boolean          @default(false)
+  hostConfirmedReceived   Boolean        @default(false)
   hostConfirmedReceivedAt DateTime?
-  hostConfirmed         Boolean       @default(false)    // anfitrion ha confirmado
-  requesterConfirmed    Boolean       @default(false)    // viajero ha confirmado
-  startDate             DateTime?
-  endDate               DateTime?
-  selectedDates         DateTime[]
-  reminderOneDaySent    Boolean       @default(false)
-  reminderThreeDaysSent Boolean       @default(false)
-  offerDescription      String?       // Descripción adicional del intercambio (legacy/opcional)
-  offerExperienceId     String?       // Experiencia que ofrece el viajero a cambio
-  offerExperience       Experience?   @relation("OfferExperience", fields: [offerExperienceId], references: [id], onDelete: SetNull)
+  hostConfirmed           Boolean        @default(false) // anfitrion ha confirmado
+  requesterConfirmed      Boolean        @default(false) // viajero ha confirmado
+  startDate               DateTime?
+  endDate                 DateTime?
+  selectedDates           DateTime[]
+  reminderOneDaySent      Boolean        @default(false)
+  reminderThreeDaysSent   Boolean        @default(false)
+  offerDescription        String? // Descripción adicional del intercambio (legacy/opcional)
+  offerExperienceId       String? // Experiencia que ofrece el viajero a cambio
+  offerExperience         Experience?    @relation("OfferExperience", fields: [offerExperienceId], references: [id], onDelete: SetNull)
   // Campos para grupos (FASE 4)
-  participants          Int           @default(1)
-  participantNames      String[]      // Nombres opcionales de los participantes
-  totalPrice            Float?        // Precio total calculado
-  currency              Currency      @default(EUR) // Moneda de la transacción
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-  experience            Experience    @relation(fields: [experienceId], references: [id], onDelete: Cascade)
-  host                  User          @relation("MatchHost", fields: [hostId], references: [id], onDelete: Cascade)
-  requester             User          @relation("MatchRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  messages              Message[]
-  transactions          Transaction[]
+  participants            Int            @default(1)
+  participantNames        String[] // Nombres opcionales de los participantes
+  totalPrice              Float? // Precio total calculado
+  currency                Currency       @default(EUR) // Moneda de la transacción
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  experience              Experience     @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  host                    User           @relation("MatchHost", fields: [hostId], references: [id], onDelete: Cascade)
+  requester               User           @relation("MatchRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  messages                Message[]
+  transactions            Transaction[]
   // Relaciones para disputas y cancelaciones
-  disputes              Dispute[]
-  cancellation          Cancellation?
-  paymentPlan           PaymentPlan?
+  disputes                Dispute[]
+  cancellation            Cancellation?
+  paymentPlan             PaymentPlan?
 
   @@unique([experienceId, requesterId])
   @@index([experienceId])
@@ -277,32 +284,32 @@ model Match {
 
 // Plan de pago en dos plazos (depósito + saldo) para reservas con antelación
 model PaymentPlan {
-  id                      String    @id @default(uuid())
-  matchId                 String    @unique
-  totalAmount             Float     // Importe total de la experiencia (IVA incluido)
-  depositAmount           Float     // Importe pagado como depósito
-  balanceAmount           Float     // Importe pendiente del saldo
-  currency                Currency  @default(EUR)
+  id                     String    @id @default(uuid())
+  matchId                String    @unique
+  totalAmount            Float // Importe total de la experiencia (IVA incluido)
+  depositAmount          Float // Importe pagado como depósito
+  balanceAmount          Float // Importe pendiente del saldo
+  currency               Currency  @default(EUR)
   // Depósito
-  depositPaid             Boolean   @default(false)
-  depositPaidAt           DateTime?
-  depositStripePaymentId  String?   // PaymentIntent del depósito
+  depositPaid            Boolean   @default(false)
+  depositPaidAt          DateTime?
+  depositStripePaymentId String? // PaymentIntent del depósito
   // Saldo
-  balanceDueDate          DateTime  // Cuándo se cobra el saldo automáticamente
-  balancePaid             Boolean   @default(false)
-  balancePaidAt           DateTime?
-  balanceStripePaymentId  String?   // PaymentIntent del saldo
-  balanceRetryCount       Int       @default(0)
-  balanceLastRetryAt      DateTime?
-  balanceFailureReason    String?
+  balanceDueDate         DateTime // Cuándo se cobra el saldo automáticamente
+  balancePaid            Boolean   @default(false)
+  balancePaidAt          DateTime?
+  balanceStripePaymentId String? // PaymentIntent del saldo
+  balanceRetryCount      Int       @default(0)
+  balanceLastRetryAt     DateTime?
+  balanceFailureReason   String?
   // Método de pago guardado para cargar off-session
-  stripeCustomerId        String?   // Customer en Stripe
-  stripePaymentMethodId   String?   // Payment method guardado
+  stripeCustomerId       String? // Customer en Stripe
+  stripePaymentMethodId  String? // Payment method guardado
   // Estado general
-  status                  String    @default("pending") // pending|active|completed|failed|cancelled
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  match                   Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  status                 String    @default("pending") // pending|active|completed|failed|cancelled
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  match                  Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([balanceDueDate])
@@ -317,13 +324,13 @@ model Message {
   read          Boolean     @default(false)
   // Campos para chat mejorado (FASE 5)
   type          MessageType @default(TEXT)
-  voiceUrl      String?     // URL del audio en Cloudinary
-  voiceDuration Int?        // Duracion en segundos
-  latitude      Float?      // Para ubicacion
-  longitude     Float?      // Para ubicacion
-  locationName  String?     // Nombre del lugar
-  originalLang  String?     // Codigo de idioma original
-  translations  Json?       // Cache de traducciones {"es": "...", "en": "..."}
+  voiceUrl      String? // URL del audio en Cloudinary
+  voiceDuration Int? // Duracion en segundos
+  latitude      Float? // Para ubicacion
+  longitude     Float? // Para ubicacion
+  locationName  String? // Nombre del lugar
+  originalLang  String? // Codigo de idioma original
+  translations  Json? // Cache de traducciones {"es": "...", "en": "..."}
   createdAt     DateTime    @default(now())
   match         Match       @relation(fields: [matchId], references: [id], onDelete: Cascade)
   sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
@@ -335,22 +342,23 @@ model Message {
 }
 
 model Transaction {
-  id            String   @id @default(uuid())
+  id            String            @id @default(uuid())
   userId        String
   matchId       String?
-  otherUserId   String?  // ID del otro usuario en transacciones de platform_fee
+  otherUserId   String? // ID del otro usuario en transacciones de platform_fee
   type          TransactionType
   amount        Float
-  creditsAmount Int?     // Créditos de experiencia (+X al comprar pack, -1 al usar)
-  packId        String?  // ID del pack comprado (basico, aventura, viajero)
-  currency      Currency @default(EUR)
+  creditsAmount Int? // Créditos de experiencia (+X al comprar pack, -1 al usar)
+  packId        String? // ID del pack comprado (basico, aventura, viajero)
+  currency      Currency          @default(EUR)
   status        TransactionStatus @default(pending)
-  stripeId      String?  @unique
+  stripeId      String?           @unique
   description   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  match       Match?   @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match         Match?            @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  invoice       Invoice?
 
   @@index([userId])
   @@index([type])
@@ -365,7 +373,7 @@ model Wallet {
   id        String   @id @default(uuid())
   userId    String   @unique
   balance   Float    @default(0)
-  credits   Int      @default(0)       // Créditos de experiencia (packs)
+  credits   Int      @default(0) // Créditos de experiencia (packs)
   currency  Currency @default(EUR)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -378,7 +386,7 @@ model Wallet {
 model StripeEvent {
   id        String   @id @default(uuid())
   eventId   String   @unique // ID del evento de Stripe (evt_xxx)
-  type      String   // Tipo de evento (checkout.session.completed, etc.)
+  type      String // Tipo de evento (checkout.session.completed, etc.)
   processed Boolean  @default(true)
   createdAt DateTime @default(now())
 
@@ -387,31 +395,31 @@ model StripeEvent {
 }
 
 model Review {
-  id              String     @id @default(uuid())
-  experienceId    String
-  authorId        String
-  targetId        String
-  rating          Int
-  comment         String?
-  hostResponse    String?    // Respuesta del anfitrion
-  hostResponseAt  DateTime?  // Fecha de la respuesta
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  author          User       @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  experience      Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
-  target          User       @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  id             String     @id @default(uuid())
+  experienceId   String
+  authorId       String
+  targetId       String
+  rating         Int
+  comment        String?
+  hostResponse   String? // Respuesta del anfitrion
+  hostResponseAt DateTime? // Fecha de la respuesta
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  author         User       @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  experience     Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  target         User       @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
 
   @@unique([experienceId, authorId])
   @@map("reviews")
 }
 
 model Favorite {
-  id           String          @id @default(uuid())
+  id           String         @id @default(uuid())
   userId       String
   experienceId String
-  createdAt    DateTime        @default(now())
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  experience   Experience      @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experience   Experience     @relation(fields: [experienceId], references: [id], onDelete: Cascade)
   alert        FavoriteAlert?
 
   @@unique([userId, experienceId])
@@ -443,18 +451,18 @@ model FavoriteFestival {
 }
 
 model Report {
-  id            String      @id @default(uuid())
-  reporterId    String
-  reportedType  String      // user, experience, match
-  reportedId    String
-  reason        String      // spam, inappropriate, fraud, harassment, other
-  description   String?
-  status        ReportStatus @default(pending)
-  adminNotes    String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  resolvedAt    DateTime?
-  reporter      User        @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  id           String       @id @default(uuid())
+  reporterId   String
+  reportedType String // user, experience, match
+  reportedId   String
+  reason       String // spam, inappropriate, fraud, harassment, other
+  description  String?
+  status       ReportStatus @default(pending)
+  adminNotes   String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  resolvedAt   DateTime?
+  reporter     User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
 
   @@index([status])
   @@index([createdAt])
@@ -462,13 +470,13 @@ model Report {
 }
 
 model BlockedUser {
-  id          String   @id @default(uuid())
-  blockerId   String
-  blockedId   String
-  reason      String?
-  createdAt   DateTime @default(now())
-  blocker     User     @relation("UserBlocks", fields: [blockerId], references: [id], onDelete: Cascade)
-  blocked     User     @relation("UserBlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  blockerId String
+  blockedId String
+  reason    String?
+  createdAt DateTime @default(now())
+  blocker   User     @relation("UserBlocks", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("UserBlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
   @@map("blocked_users")
@@ -477,10 +485,10 @@ model BlockedUser {
 model Notification {
   id        String   @id @default(uuid())
   userId    String
-  type      String   // match_request, match_accepted, match_rejected, new_message, reminder, review_request, system
+  type      String // match_request, match_accepted, match_rejected, new_message, reminder, review_request, system
   title     String
   message   String
-  data      Json?    // Datos adicionales (matchId, experienceId, etc.)
+  data      Json? // Datos adicionales (matchId, experienceId, etc.)
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -491,36 +499,36 @@ model Notification {
 }
 
 model PushSubscription {
-  id         String   @id @default(uuid())
-  userId     String
-  endpoint   String   @unique
-  p256dh     String   // Clave pública para encriptación
-  auth       String   // Token de autenticación
-  userAgent  String?
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String // Clave pública para encriptación
+  auth      String // Token de autenticación
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("push_subscriptions")
 }
 
 model NotificationPreference {
-  id                   String  @id @default(uuid())
-  userId               String  @unique
+  id                 String  @id @default(uuid())
+  userId             String  @unique
   // Email preferences
-  emailNewMatch        Boolean @default(true)
-  emailMatchAccepted   Boolean @default(true)
-  emailMatchRejected   Boolean @default(true)
-  emailNewMessage      Boolean @default(true)
-  emailReminders       Boolean @default(true)
-  emailReviewRequest   Boolean @default(true)
-  emailMarketing       Boolean @default(false)
+  emailNewMatch      Boolean @default(true)
+  emailMatchAccepted Boolean @default(true)
+  emailMatchRejected Boolean @default(true)
+  emailNewMessage    Boolean @default(true)
+  emailReminders     Boolean @default(true)
+  emailReviewRequest Boolean @default(true)
+  emailMarketing     Boolean @default(false)
   // Push preferences
-  pushNewMatch         Boolean @default(true)
-  pushMatchAccepted    Boolean @default(true)
-  pushNewMessage       Boolean @default(true)
-  pushReminders        Boolean @default(true)
-  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pushNewMatch       Boolean @default(true)
+  pushMatchAccepted  Boolean @default(true)
+  pushNewMessage     Boolean @default(true)
+  pushReminders      Boolean @default(true)
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
 }
@@ -534,8 +542,8 @@ model Badge {
   code        String      @unique // verificado, anfitrion_estrella, viajero_frecuente, primera_fiesta, perfil_completo
   name        String
   description String
-  icon        String      // emoji o URL del icono
-  criteria    Json?       // Criterios para obtener el badge (ej: {"minReviews": 5, "minRating": 5})
+  icon        String // emoji o URL del icono
+  criteria    Json? // Criterios para obtener el badge (ej: {"minReviews": 5, "minRating": 5})
   category    String      @default("achievement") // achievement, verification, milestone
   sortOrder   Int         @default(0)
   active      Boolean     @default(true)
@@ -546,12 +554,12 @@ model Badge {
 }
 
 model UserBadge {
-  id        String   @id @default(uuid())
-  userId    String
-  badgeId   String
-  earnedAt  DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  id       String   @id @default(uuid())
+  userId   String
+  badgeId  String
+  earnedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, badgeId])
   @@index([userId])
@@ -559,21 +567,21 @@ model UserBadge {
 }
 
 model DiscountCode {
-  id          String          @id @default(uuid())
-  code        String          @unique
-  type        String          // percentage, fixed
-  value       Float           // Porcentaje o cantidad fija
-  minAmount   Float?          // Monto minimo para aplicar
-  maxUses     Int?            // Usos maximos totales
-  maxUsesPerUser Int          @default(1) // Usos maximos por usuario
-  usedCount   Int             @default(0)
-  validFrom   DateTime        @default(now())
-  expiresAt   DateTime?
-  active      Boolean         @default(true)
-  description String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  usages      DiscountUsage[]
+  id             String          @id @default(uuid())
+  code           String          @unique
+  type           String // percentage, fixed
+  value          Float // Porcentaje o cantidad fija
+  minAmount      Float? // Monto minimo para aplicar
+  maxUses        Int? // Usos maximos totales
+  maxUsesPerUser Int             @default(1) // Usos maximos por usuario
+  usedCount      Int             @default(0)
+  validFrom      DateTime        @default(now())
+  expiresAt      DateTime?
+  active         Boolean         @default(true)
+  description    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  usages         DiscountUsage[]
 
   @@map("discount_codes")
 }
@@ -582,8 +590,8 @@ model DiscountUsage {
   id             String       @id @default(uuid())
   discountCodeId String
   userId         String
-  amount         Float        // Monto descontado
-  transactionId  String?      // ID de la transaccion donde se aplico
+  amount         Float // Monto descontado
+  transactionId  String? // ID de la transaccion donde se aplico
   usedAt         DateTime     @default(now())
   discountCode   DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -598,16 +606,16 @@ model DiscountUsage {
 // ============================================
 
 model AuditLog {
-  id          String   @id @default(uuid())
-  userId      String?  // Usuario que realizo la accion (null si fue sistema)
-  action      String   // login, logout, create, update, delete, ban, unban, etc.
-  entity      String   // user, experience, match, transaction, report, etc.
-  entityId    String?  // ID de la entidad afectada
-  data        Json?    // Datos adicionales (cambios realizados, valores anteriores, etc.)
-  ipAddress   String?  // Direccion IP del usuario
-  userAgent   String?  // User agent del navegador
-  createdAt   DateTime @default(now())
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id        String   @id @default(uuid())
+  userId    String? // Usuario que realizo la accion (null si fue sistema)
+  action    String // login, logout, create, update, delete, ban, unban, etc.
+  entity    String // user, experience, match, transaction, report, etc.
+  entityId  String? // ID de la entidad afectada
+  data      Json? // Datos adicionales (cambios realizados, valores anteriores, etc.)
+  ipAddress String? // Direccion IP del usuario
+  userAgent String? // User agent del navegador
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([action])
@@ -624,7 +632,7 @@ model SearchHistory {
   id        String   @id @default(uuid())
   userId    String
   query     String
-  filters   Json?    // Filtros aplicados
+  filters   Json? // Filtros aplicados
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -639,9 +647,9 @@ model SearchHistory {
 model GroupPricing {
   id             String     @id @default(uuid())
   experienceId   String
-  minPeople      Int        // Desde X personas
-  maxPeople      Int?       // Hasta Y personas (null = sin limite)
-  pricePerPerson Float      // Precio por persona en este rango
+  minPeople      Int // Desde X personas
+  maxPeople      Int? // Hasta Y personas (null = sin limite)
+  pricePerPerson Float // Precio por persona en este rango
   experience     Experience @relation(fields: [experienceId], references: [id], onDelete: Cascade)
 
   @@index([experienceId])
@@ -712,10 +720,10 @@ enum MessageType {
 }
 
 enum CancellationPolicy {
-  FLEXIBLE        // 100% hasta 24h, 50% hasta 12h
-  MODERATE        // 100% hasta 72h, 50% hasta 24h
-  STRICT          // 100% hasta 7d, 50% hasta 72h, 0% después
-  NON_REFUNDABLE  // Sin reembolso (solo hosts verificados)
+  FLEXIBLE // 100% hasta 24h, 50% hasta 12h
+  MODERATE // 100% hasta 72h, 50% hasta 24h
+  STRICT // 100% hasta 7d, 50% hasta 72h, 0% después
+  NON_REFUNDABLE // Sin reembolso (solo hosts verificados)
 }
 
 enum FestivalStatus {
@@ -756,10 +764,10 @@ enum DocumentType {
 
 enum VerificationLevel {
   NONE
-  BASIC       // Email verificado
-  PHONE       // Email + teléfono verificado
-  IDENTITY    // Email + teléfono + documento
-  FULL        // Todo verificado + verificación manual
+  BASIC // Email verificado
+  PHONE // Email + teléfono verificado
+  IDENTITY // Email + teléfono + documento
+  FULL // Todo verificado + verificación manual
 }
 
 enum Currency {
@@ -777,7 +785,7 @@ model QuickReply {
   id        String   @id @default(uuid())
   userId    String
   text      String
-  emoji     String?  // Emoji opcional para identificar
+  emoji     String? // Emoji opcional para identificar
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -791,26 +799,26 @@ model QuickReply {
 // ============================================
 
 model Dispute {
-  id              String          @id @default(uuid())
-  matchId         String
-  openedById      String          // Usuario que abre la disputa
-  respondentId    String          // Usuario contra quien se abre
-  reason          DisputeReason
-  description     String
-  status          DisputeStatus   @default(OPEN)
-  evidence        Json?           // URLs de fotos/capturas como evidencia
-  resolution      String?         // Descripción de la resolución
-  resolvedById    String?         // Admin que resuelve
-  refundAmount    Float?          // Monto reembolsado si aplica
-  refundPercentage Float?         // Porcentaje reembolsado
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  resolvedAt      DateTime?
-  match           Match           @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  openedBy        User            @relation("DisputeOpenedBy", fields: [openedById], references: [id], onDelete: Cascade)
-  respondent      User            @relation("DisputeRespondent", fields: [respondentId], references: [id], onDelete: Cascade)
-  resolvedBy      User?           @relation("DisputeResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
-  messages        DisputeMessage[]
+  id               String           @id @default(uuid())
+  matchId          String
+  openedById       String // Usuario que abre la disputa
+  respondentId     String // Usuario contra quien se abre
+  reason           DisputeReason
+  description      String
+  status           DisputeStatus    @default(OPEN)
+  evidence         Json? // URLs de fotos/capturas como evidencia
+  resolution       String? // Descripción de la resolución
+  resolvedById     String? // Admin que resuelve
+  refundAmount     Float? // Monto reembolsado si aplica
+  refundPercentage Float? // Porcentaje reembolsado
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  resolvedAt       DateTime?
+  match            Match            @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  openedBy         User             @relation("DisputeOpenedBy", fields: [openedById], references: [id], onDelete: Cascade)
+  respondent       User             @relation("DisputeRespondent", fields: [respondentId], references: [id], onDelete: Cascade)
+  resolvedBy       User?            @relation("DisputeResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  messages         DisputeMessage[]
 
   @@index([matchId])
   @@index([openedById])
@@ -821,15 +829,15 @@ model Dispute {
 }
 
 model DisputeMessage {
-  id        String   @id @default(uuid())
-  disputeId String
-  senderId  String
-  content   String
-  isAdmin   Boolean  @default(false) // Si es mensaje de admin
-  attachments Json?  // URLs de archivos adjuntos
-  createdAt DateTime @default(now())
-  dispute   Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
-  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  disputeId   String
+  senderId    String
+  content     String
+  isAdmin     Boolean  @default(false) // Si es mensaje de admin
+  attachments Json? // URLs de archivos adjuntos
+  createdAt   DateTime @default(now())
+  dispute     Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  sender      User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([disputeId])
   @@index([senderId])
@@ -844,16 +852,16 @@ model DisputeMessage {
 model Cancellation {
   id               String             @id @default(uuid())
   matchId          String             @unique
-  cancelledById    String             // Usuario que cancela
+  cancelledById    String // Usuario que cancela
   reason           String?
   policy           CancellationPolicy // Política aplicada
-  originalAmount   Float              // Monto original de la reserva
-  refundPercentage Float              // Porcentaje reembolsado (0-100)
-  refundAmount     Float              // Monto reembolsado
-  penaltyAmount    Float              // Monto retenido como penalización
+  originalAmount   Float // Monto original de la reserva
+  refundPercentage Float // Porcentaje reembolsado (0-100)
+  refundAmount     Float // Monto reembolsado
+  penaltyAmount    Float // Monto retenido como penalización
   forceMajeure     Boolean            @default(false)
-  cancelledByRole  String?            // "host" | "requester"
-  processedAt      DateTime?          // Cuando se procesó el reembolso
+  cancelledByRole  String? // "host" | "requester"
+  processedAt      DateTime? // Cuando se procesó el reembolso
   createdAt        DateTime           @default(now())
   match            Match              @relation(fields: [matchId], references: [id], onDelete: Cascade)
   cancelledBy      User               @relation(fields: [cancelledById], references: [id], onDelete: Cascade)
@@ -885,11 +893,11 @@ model IdentityVerification {
   userId          String             @unique
   status          VerificationStatus @default(PENDING)
   documentType    DocumentType
-  documentFront   String             // URL en Cloudinary (carpeta privada)
-  documentBack    String?            // URL en Cloudinary (opcional para pasaporte)
-  selfie          String?            // URL de selfie con documento
+  documentFront   String // URL en Cloudinary (carpeta privada)
+  documentBack    String? // URL en Cloudinary (opcional para pasaporte)
+  selfie          String? // URL de selfie con documento
   verifiedAt      DateTime?
-  verifiedById    String?            // Admin que verifica
+  verifiedById    String? // Admin que verifica
   rejectionReason String?
   attempts        Int                @default(1) // Número de intentos
   createdAt       DateTime           @default(now())
@@ -902,3 +910,143 @@ model IdentityVerification {
   @@map("identity_verifications")
 }
 
+// ============================================
+// Facturación (RD 1619/2012)
+// ============================================
+
+model Invoice {
+  id String @id @default(uuid())
+
+  // Numeración correlativa por serie/año
+  series     String // "A", "C", "RA"
+  year       Int
+  number     Int
+  fullNumber String @unique // "A-2026-00001"
+
+  // Clasificación
+  type   InvoiceType
+  status InvoiceStatus @default(DRAFT)
+
+  // Emisor (snapshot inmutable desde PlatformConfig al emitir)
+  issuerName       String
+  issuerTaxId      String
+  issuerAddress    String
+  issuerPostalCode String
+  issuerCity       String
+  issuerCountry    String @default("ES")
+
+  // Receptor (snapshot inmutable al emitir)
+  recipientUserId     String?
+  recipientName       String
+  recipientTaxId      String? // Opcional en SIMPLIFIED B2C
+  recipientAddress    String?
+  recipientPostalCode String?
+  recipientCity       String?
+  recipientCountry    String?
+  recipientEmail      String
+
+  // Fechas
+  issueDate     DateTime // Fecha de expedición
+  operationDate DateTime // Fecha de devengo (puede ser distinta)
+
+  // Fiscal
+  taxRegime   TaxRegime
+  taxRate     Float // 0.21, 0.07, 0.04...
+  netAmount   Float // Base imponible
+  taxAmount   Float // Cuota IVA/IGIC/IPSI
+  grossAmount Float // Total = net + tax
+  currency    String    @default("EUR")
+
+  // Concepto
+  concept        String // "Pack Básico — 2 créditos"
+  conceptDetails String? // Líneas adicionales si aplica
+
+  // Enlaces
+  transactionId       String? @unique
+  rectifiedInvoiceId  String? // Si esta factura rectifica a otra
+  rectificationReason String? // Motivo de la rectificación
+
+  // Tracking de entrega / descarga
+  emailedAt      DateTime?
+  emailedTo      String?
+  downloadCount  Int       @default(0)
+  lastDownloadAt DateTime?
+
+  // Ciclo de vida / inmutabilidad
+  issuedAt   DateTime? // Marca inmutabilidad
+  voidedAt   DateTime? // Solo permitido si aún DRAFT
+  voidReason String?
+
+  // Cierre fiscal
+  fiscalPeriod String // "2026-Q1"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipient          User?        @relation(fields: [recipientUserId], references: [id], onDelete: SetNull)
+  transaction        Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  rectifiedInvoice   Invoice?     @relation("InvoiceRectification", fields: [rectifiedInvoiceId], references: [id], onDelete: SetNull)
+  rectifyingInvoices Invoice[]    @relation("InvoiceRectification")
+
+  @@unique([series, year, number])
+  @@index([recipientUserId])
+  @@index([issueDate])
+  @@index([fiscalPeriod])
+  @@index([status])
+  @@index([series, year])
+  @@map("invoices")
+}
+
+model InvoiceSeries {
+  id          String   @id @default(uuid())
+  code        String // "A", "C", "RA"
+  year        Int
+  nextNumber  Int      @default(1)
+  description String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([code, year])
+  @@map("invoice_series")
+}
+
+model FiscalPeriodClosure {
+  id                   String    @id @default(uuid())
+  period               String    @unique // "2026-Q1"
+  year                 Int
+  quarter              Int
+  closedAt             DateTime  @default(now())
+  closedByUserId       String
+  notes                String?
+  modelo303Submitted   Boolean   @default(false)
+  modelo303SubmittedAt DateTime?
+
+  closedBy User @relation("FiscalClosureClosedBy", fields: [closedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([year, quarter])
+  @@map("fiscal_period_closures")
+}
+
+enum InvoiceType {
+  COMPLETE // Factura completa (B2B o a petición del cliente)
+  SIMPLIFIED // Factura simplificada / ticket (B2C <= 3000€)
+  RECTIFYING // Factura rectificativa
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  VOIDED
+}
+
+enum TaxRegime {
+  IVA_GENERAL_21 // Península + Baleares, 21%
+  IVA_REDUCIDO_10 // Tipo reducido, 10% (no aplicado hoy)
+  IVA_SUPERREDUCIDO_4 // Tipo superreducido, 4% (no aplicado hoy)
+  IGIC_CANARIAS_7 // Canarias, 7%
+  IPSI_CEUTA_4 // Ceuta, típicamente 4%
+  IPSI_MELILLA_4 // Melilla, típicamente 4%
+  EXENTO_UE // Operación intracomunitaria exenta
+  EXENTO_EXTRA_UE // Exportación fuera de UE
+}

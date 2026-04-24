@@ -44,6 +44,7 @@ import { PlatformConfigModule } from './platform-config/platform-config.module';
 import { ConnectModule } from './connect/connect.module';
 import { StripeWebhookModule } from './stripe-webhook/stripe-webhook.module';
 import { ToursModule } from './tours/tours.module';
+import { InvoicingModule } from './invoicing/invoicing.module';
 
 @Module({
   imports: [
@@ -109,6 +110,7 @@ import { ToursModule } from './tours/tours.module';
     HealthModule,
     CategoriesModule,
     ToursModule,
+    InvoicingModule,
   ],
   controllers: [AppController],
   providers: [

@@ -12,7 +12,28 @@ export enum ConfigKey {
   STRIPE_PRICE_BASICO = 'stripe_price_basico',
   STRIPE_PRICE_AVENTURA = 'stripe_price_aventura',
   STRIPE_PRICE_VIAJERO = 'stripe_price_viajero',
+  // Datos fiscales del emisor (aparecen en las facturas).
+  // Placeholders hasta que el admin los rellene desde el panel.
+  ISSUER_NAME = 'issuer_name',
+  ISSUER_TAX_ID = 'issuer_tax_id',
+  ISSUER_ADDRESS = 'issuer_address',
+  ISSUER_POSTAL_CODE = 'issuer_postal_code',
+  ISSUER_CITY = 'issuer_city',
+  ISSUER_COUNTRY = 'issuer_country',
 }
+
+/** Claves cuyo valor es texto libre (no numérico) */
+const TEXT_KEYS: ReadonlySet<string> = new Set([
+  ConfigKey.ISSUER_NAME,
+  ConfigKey.ISSUER_TAX_ID,
+  ConfigKey.ISSUER_ADDRESS,
+  ConfigKey.ISSUER_POSTAL_CODE,
+  ConfigKey.ISSUER_CITY,
+  ConfigKey.ISSUER_COUNTRY,
+  ConfigKey.STRIPE_PRICE_BASICO,
+  ConfigKey.STRIPE_PRICE_AVENTURA,
+  ConfigKey.STRIPE_PRICE_VIAJERO,
+]);
 
 /** Valores por defecto */
 const DEFAULTS: Record<string, { value: string; description: string }> = {
@@ -44,6 +65,30 @@ const DEFAULTS: Record<string, { value: string; description: string }> = {
   [ConfigKey.STRIPE_PRICE_VIAJERO]: {
     value: 'price_1TL5PRJnOJ3BwACbwUWPSbAL',
     description: 'Stripe Price ID para Pack Viajero (13+3 experiencias)',
+  },
+  [ConfigKey.ISSUER_NAME]: {
+    value: 'FiestApp (placeholder — editar desde el panel)',
+    description: 'Razón social / nombre fiscal del emisor en las facturas',
+  },
+  [ConfigKey.ISSUER_TAX_ID]: {
+    value: 'PENDIENTE',
+    description: 'NIF / CIF del emisor',
+  },
+  [ConfigKey.ISSUER_ADDRESS]: {
+    value: 'Dirección pendiente de configurar',
+    description: 'Domicilio fiscal del emisor (calle y número)',
+  },
+  [ConfigKey.ISSUER_POSTAL_CODE]: {
+    value: '00000',
+    description: 'Código postal del emisor',
+  },
+  [ConfigKey.ISSUER_CITY]: {
+    value: 'Ciudad pendiente',
+    description: 'Población del emisor',
+  },
+  [ConfigKey.ISSUER_COUNTRY]: {
+    value: 'ES',
+    description: 'País del emisor (ISO-3166-1 alpha-2)',
   },
 };
 
@@ -152,6 +197,38 @@ export class PlatformConfigService implements OnModuleInit {
   }
 
   /**
+   * Obtiene un valor de texto de configuración
+   */
+  getString(key: ConfigKey): string {
+    const val = this.cache.get(key);
+    if (val === undefined) {
+      return DEFAULTS[key].value;
+    }
+    return val;
+  }
+
+  /**
+   * Datos fiscales del emisor que aparecen en cada factura (snapshot).
+   */
+  getIssuerData(): {
+    name: string;
+    taxId: string;
+    address: string;
+    postalCode: string;
+    city: string;
+    country: string;
+  } {
+    return {
+      name: this.getString(ConfigKey.ISSUER_NAME),
+      taxId: this.getString(ConfigKey.ISSUER_TAX_ID),
+      address: this.getString(ConfigKey.ISSUER_ADDRESS),
+      postalCode: this.getString(ConfigKey.ISSUER_POSTAL_CODE),
+      city: this.getString(ConfigKey.ISSUER_CITY),
+      country: this.getString(ConfigKey.ISSUER_COUNTRY),
+    };
+  }
+
+  /**
    * Comisión de plataforma (€)
    */
   get platformFee(): number {
@@ -241,6 +318,12 @@ export class PlatformConfigService implements OnModuleInit {
   private static readonly EDITABLE_KEYS: string[] = [
     ConfigKey.PLATFORM_FEE,
     ConfigKey.VAT_RATE,
+    ConfigKey.ISSUER_NAME,
+    ConfigKey.ISSUER_TAX_ID,
+    ConfigKey.ISSUER_ADDRESS,
+    ConfigKey.ISSUER_POSTAL_CODE,
+    ConfigKey.ISSUER_CITY,
+    ConfigKey.ISSUER_COUNTRY,
   ];
 
   /**
@@ -276,9 +359,15 @@ export class PlatformConfigService implements OnModuleInit {
       );
     }
 
-    const numValue = parseFloat(value);
-    if (isNaN(numValue) || numValue < 0) {
-      throw new Error(`Valor inválido para ${key}: debe ser un número >= 0`);
+    if (TEXT_KEYS.has(key)) {
+      if (typeof value !== 'string' || value.trim().length === 0) {
+        throw new Error(`Valor inválido para ${key}: debe ser una cadena no vacía`);
+      }
+    } else {
+      const numValue = parseFloat(value);
+      if (isNaN(numValue) || numValue < 0) {
+        throw new Error(`Valor inválido para ${key}: debe ser un número >= 0`);
+      }
     }
 
     const updated = await this.prisma.platformConfig.update({
