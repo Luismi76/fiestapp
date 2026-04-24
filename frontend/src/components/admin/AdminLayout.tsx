@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ReactNode, Suspense, useMemo } from 'react';
 
 interface AdminLayoutProps {
@@ -236,6 +236,7 @@ const SPINNER_STYLE = { borderColor: '#FF6B35', borderTopColor: 'transparent' } 
 
 function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const currentTab = searchParams.get('tab');
 
@@ -268,8 +269,8 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
       {/* ───── MOBILE LAYOUT (< md) ───── */}
       <div className="md:hidden flex flex-col min-h-screen">
         {/* Mobile top header */}
-        <header className="sticky top-0 z-40 h-14 bg-white border-b border-gray-200">
-          <div className="h-full grid grid-cols-3 items-center px-4">
+        <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
+          <div className="h-14 grid grid-cols-3 items-center px-4">
             <div className="flex items-center gap-1.5">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-[11px] font-bold">F</span>
@@ -289,44 +290,36 @@ function AdminLayoutInner({ children, section, title, alerts }: AdminLayoutProps
               </Link>
             </div>
           </div>
+          {/* Tab switcher como select nativo (reemplaza la pills sub-nav) */}
+          {section !== 'inicio' && sectionGroup && (
+            <div className="px-3 pb-2 pt-0.5 border-t border-gray-50">
+              <select
+                value={buildHref(
+                  sectionGroup.items.find(
+                    (i) => pathname.startsWith(i.href) && currentTab === i.tab,
+                  ) || sectionGroup.items[0],
+                )}
+                onChange={(e) => router.push(e.target.value)}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-medium bg-white min-h-[44px]"
+                style={{ color: '#111827' }}
+              >
+                {sectionGroup.items.map((sub) => {
+                  const badge = sub.alertKey ? alerts?.[sub.alertKey] ?? 0 : 0;
+                  return (
+                    <option key={sub.tab || sub.label} value={buildHref(sub)}>
+                      {sub.label}{badge > 0 ? ` · ${badge > 99 ? '99+' : badge} pendientes` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
         </header>
 
         {/* Mobile content */}
-        <main className={`flex-1 ${section === 'inicio' ? 'pb-20' : 'pb-40'}`}>
+        <main className="flex-1 pb-20">
           {children}
         </main>
-
-        {/* Mobile sub-nav (above bottom bar, only for sections with tabs) */}
-        {section !== 'inicio' && sectionGroup && (
-          <nav
-            className="fixed bottom-16 inset-x-0 z-40 bg-white border-t border-gray-100"
-            style={SHADOW_LIGHT}
-          >
-            <div className="flex gap-1.5 overflow-x-auto px-3 py-2 scrollbar-hide">
-              {sectionGroup.items.map((sub) => {
-                const active = pathname.startsWith(sub.href) && currentTab === sub.tab;
-                const badge = sub.alertKey ? alerts?.[sub.alertKey] ?? 0 : 0;
-                return (
-                  <Link
-                    key={sub.tab || sub.label}
-                    href={buildHref(sub)}
-                    className={`relative whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                      active ? 'text-white' : 'bg-gray-100 text-gray-600'
-                    }`}
-                    style={active ? ACTIVE_TAB_STYLE : undefined}
-                  >
-                    {sub.label}
-                    {badge > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 flex items-center justify-center bg-red-500 text-white text-[9px] font-bold rounded-full">
-                        {badge > 99 ? '99+' : badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          </nav>
-        )}
 
         {/* Mobile bottom bar */}
         <nav

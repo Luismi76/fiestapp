@@ -587,6 +587,7 @@ function ResumenTab() {
   const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
@@ -622,39 +623,68 @@ function ResumenTab() {
   const kpis = dashboardData.kpis || DEFAULT_KPIS;
   const revenueChart = dashboardData.revenueChart || [];
 
+  const hasDateFilter = !!startDate || !!endDate;
+  const filterLabel = hasDateFilter
+    ? `${startDate || '…'} → ${endDate || 'hoy'}`
+    : 'Últimos 30 días';
+
   return (
     <div className="space-y-4">
-      {/* Date range picker */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4">
-        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-          <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1">Desde</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50 min-h-[44px]"
-            />
+      {/* Date range picker (colapsable) */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors min-h-[48px]"
+          aria-expanded={filtersOpen}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 text-gray-500 flex-shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5.25h18M4.5 5.25V19.5A1.5 1.5 0 0 0 6 21h12a1.5 1.5 0 0 0 1.5-1.5V5.25M9 10.5h6M9 14.25h3" />
+            </svg>
+            <span className="text-sm font-medium text-gray-700 truncate">Periodo</span>
+            <span className="text-xs text-gray-400 truncate">· {filterLabel}</span>
           </div>
-          <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1">Hasta</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50 min-h-[44px]"
-            />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${filtersOpen ? 'rotate-180' : ''}`}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+        {filtersOpen && (
+          <div className="px-3 md:px-4 pb-3 md:pb-4 border-t border-gray-50">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3 pt-3">
+              <div className="flex-1">
+                <label className="block text-xs text-gray-500 mb-1">Desde</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50 min-h-[44px]"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-secondary/50 min-h-[44px]"
+                />
+              </div>
+              {hasDateFilter && (
+                <button
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                  }}
+                  className="text-xs text-secondary font-medium px-3 py-2.5 min-h-[44px] hover:bg-secondary/5 rounded-lg transition-colors"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
           </div>
-          <button
-            onClick={() => {
-              setStartDate('');
-              setEndDate('');
-            }}
-            className="text-xs text-secondary font-medium px-3 py-2.5 min-h-[44px] hover:bg-secondary/5 rounded-lg transition-colors"
-          >
-            Limpiar
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Ingresos de la plataforma */}
@@ -663,7 +693,7 @@ function ResumenTab() {
           <div className="w-2 h-2 bg-green-500 rounded-full" />
           <h3 className="text-sm font-semibold text-gray-900">Ingresos de la plataforma</h3>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <KpiCard
             label="Comisiones"
             value={formatEur(kpis.platformFees)}
@@ -712,7 +742,7 @@ function ResumenTab() {
           <div className="w-2 h-2 bg-blue-500 rounded-full" />
           <h3 className="text-sm font-semibold text-gray-900">Packs y monederos</h3>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           <KpiCard
             label="Venta de packs"
             value={formatEur(kpis.packPurchases)}
@@ -767,7 +797,7 @@ function ResumenTab() {
           <div className="w-2 h-2 bg-purple-500 rounded-full" />
           <h3 className="text-sm font-semibold text-gray-900">Reservas con depósito</h3>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-2 gap-3 md:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-gray-500">DEPÓSITOS PAGADOS (período)</span>
