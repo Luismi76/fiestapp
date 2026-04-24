@@ -18,6 +18,7 @@ import { ConfigService } from '@nestjs/config';
 import { AdminService } from './admin.service';
 import { FinancialReportService } from './financial-report.service';
 import { AccountingService } from './accounting.service';
+import { AdminTasksService } from './admin-tasks.service';
 import { MatchesService } from '../matches/matches.service';
 import { ToursService } from '../tours/tours.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -32,11 +33,17 @@ export class AdminController {
     private readonly adminService: AdminService,
     private readonly financialReportService: FinancialReportService,
     private readonly accountingService: AccountingService,
+    private readonly adminTasksService: AdminTasksService,
     private readonly configService: ConfigService,
     private readonly platformConfigService: PlatformConfigService,
     private readonly matchesService: MatchesService,
     private readonly toursService: ToursService,
   ) {}
+
+  @Get('tasks/pending')
+  getPendingTasks() {
+    return this.adminTasksService.getPendingTasks();
+  }
 
   @Get('platform-config')
   async getPlatformConfig() {

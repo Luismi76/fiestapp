@@ -5,6 +5,7 @@ import { AdminService } from './admin.service';
 import { AdminController } from './admin.controller';
 import { FinancialReportService } from './financial-report.service';
 import { AccountingService } from './accounting.service';
+import { AdminTasksService } from './admin-tasks.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { CancellationsModule } from '../cancellations/cancellations.module';
@@ -31,7 +32,7 @@ import { ToursModule } from '../tours/tours.module';
     }),
   ],
   controllers: [AdminController],
-  providers: [AdminService, FinancialReportService, AccountingService],
-  exports: [AdminService, FinancialReportService, AccountingService],
+  providers: [AdminService, FinancialReportService, AccountingService, AdminTasksService],
+  exports: [AdminService, FinancialReportService, AccountingService, AdminTasksService],
 })
 export class AdminModule {}
