@@ -50,6 +50,35 @@ export class AdminInvoiceController {
     });
   }
 
+  @Get('book/export')
+  async exportBook(
+    @Res() res: Response,
+    @Query('year') year?: string,
+    @Query('quarter') quarter?: string,
+  ) {
+    if (!year) {
+      throw new BadRequestException('year es obligatorio');
+    }
+    const parsedYear = parseInt(year, 10);
+    if (isNaN(parsedYear) || parsedYear < 2020 || parsedYear > 2100) {
+      throw new BadRequestException('year fuera de rango');
+    }
+    const parsedQuarter = quarter ? parseInt(quarter, 10) : undefined;
+    if (parsedQuarter !== undefined && (isNaN(parsedQuarter) || parsedQuarter < 1 || parsedQuarter > 4)) {
+      throw new BadRequestException('quarter debe estar entre 1 y 4');
+    }
+    const { buffer, filename } = await this.invoiceService.buildInvoiceBookXlsx({
+      year: parsedYear,
+      quarter: parsedQuarter,
+    });
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
   @Get(':id')
   async getOne(@Param('id') id: string) {
     return this.invoiceService.getByIdForAdmin(id);

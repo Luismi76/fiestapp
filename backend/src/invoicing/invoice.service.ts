@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Invoice, InvoiceStatus, InvoiceType, Prisma } from '@prisma/client';
+import * as ExcelJS from 'exceljs';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlatformConfigService } from '../platform-config/platform-config.service';
 import { EmailService } from '../email/email.service';
@@ -458,6 +459,182 @@ export class InvoiceService {
       filename: `factura-${invoice.fullNumber}.pdf`,
       invoice,
     };
+  }
+
+  /**
+   * Genera el libro registro de facturas emitidas en formato Excel.
+   * Estructura compatible con la que suelen esperar los asesores fiscales
+   * (columnas equivalentes al Modelo 340 / libros registro de IVA del RIVA art. 62-63).
+   *
+   * Incluye todas las facturas ISSUED del año/trimestre indicado, ordenadas
+   * por serie y número, con totales al final.
+   */
+  async buildInvoiceBookXlsx(filters: {
+    year: number;
+    quarter?: number;
+  }): Promise<{ buffer: Buffer; filename: string }> {
+    const where: Prisma.InvoiceWhereInput = { status: InvoiceStatus.ISSUED };
+    if (filters.quarter && filters.quarter >= 1 && filters.quarter <= 4) {
+      where.fiscalPeriod = `${filters.year}-Q${filters.quarter}`;
+    } else {
+      where.year = filters.year;
+    }
+
+    const invoices = await this.prisma.invoice.findMany({
+      where,
+      include: {
+        rectifiedInvoice: {
+          select: { fullNumber: true, type: true },
+        },
+      },
+      orderBy: [{ year: 'asc' }, { series: 'asc' }, { number: 'asc' }],
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'FiestApp';
+    workbook.created = new Date();
+
+    const periodLabel = filters.quarter
+      ? `${filters.year} Q${filters.quarter}`
+      : String(filters.year);
+    const sheet = workbook.addWorksheet(`Libro emitidas ${periodLabel}`.slice(0, 31));
+
+    // Cabecera informativa (fila 1) + cabeceras de columnas (fila 3)
+    sheet.mergeCells('A1:M1');
+    const title = sheet.getCell('A1');
+    title.value = `Libro registro de facturas emitidas · ${periodLabel}`;
+    title.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+    title.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFFF6B35' },
+    };
+    title.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+    sheet.getRow(1).height = 24;
+
+    const headers = [
+      'Nº Factura',
+      'Fecha expedición',
+      'Fecha operación',
+      'Tipo',
+      'Rectifica a',
+      'NIF receptor',
+      'Nombre receptor',
+      'Concepto',
+      'Régimen',
+      'Tipo IVA',
+      'Base imponible',
+      'Cuota IVA',
+      'Total factura',
+    ];
+
+    sheet.addRow([]); // fila 2 vacía
+    const headerRow = sheet.addRow(headers);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFF3F4F6' },
+    };
+    headerRow.border = {
+      bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+    };
+    headerRow.alignment = { vertical: 'middle' };
+
+    const typeCode = (inv: {
+      type: InvoiceType;
+      rectifiedInvoice: { type: InvoiceType } | null;
+    }): string => {
+      if (inv.type === InvoiceType.RECTIFYING) {
+        return inv.rectifiedInvoice?.type === InvoiceType.SIMPLIFIED ? 'R4' : 'R1';
+      }
+      return inv.type === InvoiceType.SIMPLIFIED ? 'F2' : 'F1';
+    };
+
+    const regimeLabel = (regime: string): string => {
+      switch (regime) {
+        case 'IVA_GENERAL_21': return 'IVA 21%';
+        case 'IVA_REDUCIDO_10': return 'IVA 10%';
+        case 'IVA_SUPERREDUCIDO_4': return 'IVA 4%';
+        case 'IGIC_CANARIAS_7': return 'IGIC 7% (Canarias)';
+        case 'IPSI_CEUTA_4': return 'IPSI 4% (Ceuta)';
+        case 'IPSI_MELILLA_4': return 'IPSI 4% (Melilla)';
+        case 'EXENTO_UE': return 'Exento (UE)';
+        case 'EXENTO_EXTRA_UE': return 'Exento (exportación)';
+        default: return regime;
+      }
+    };
+
+    for (const inv of invoices) {
+      sheet.addRow([
+        inv.fullNumber,
+        inv.issueDate,
+        inv.operationDate,
+        typeCode(inv),
+        inv.rectifiedInvoice?.fullNumber || '',
+        inv.recipientTaxId || '',
+        inv.recipientName,
+        inv.concept,
+        regimeLabel(inv.taxRegime),
+        inv.taxRate * 100,
+        inv.netAmount,
+        inv.taxAmount,
+        inv.grossAmount,
+      ]);
+    }
+
+    // Fila de totales
+    const totalRow = sheet.addRow([
+      'TOTAL',
+      null, null, null, null, null, null, null, null, null,
+      invoices.reduce((s, i) => s + i.netAmount, 0),
+      invoices.reduce((s, i) => s + i.taxAmount, 0),
+      invoices.reduce((s, i) => s + i.grossAmount, 0),
+    ]);
+    totalRow.font = { bold: true };
+    totalRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFF3F4F6' },
+    };
+
+    // Formatos de columna
+    const currencyFormat = '#,##0.00\\ "€"';
+    sheet.getColumn(2).numFmt = 'dd/mm/yyyy';
+    sheet.getColumn(3).numFmt = 'dd/mm/yyyy';
+    sheet.getColumn(10).numFmt = '0"%"';
+    sheet.getColumn(11).numFmt = currencyFormat;
+    sheet.getColumn(12).numFmt = currencyFormat;
+    sheet.getColumn(13).numFmt = currencyFormat;
+
+    // Ancho automático básico
+    sheet.columns.forEach((column) => {
+      let maxLength = 10;
+      column.eachCell?.({ includeEmpty: false }, (cell) => {
+        const raw = cell.value;
+        const value =
+          raw instanceof Date
+            ? 'dd/mm/yyyy'.length
+            : raw === null || raw === undefined
+              ? 0
+              : String(raw).length;
+        if (typeof value === 'number' && value > maxLength) maxLength = value;
+        else if (typeof value === 'string') {
+          // value here is string representation of number length or '...'
+        }
+      });
+      column.width = Math.min(maxLength + 2, 40);
+    });
+
+    // Congelar las 3 primeras filas (título + vacía + cabeceras)
+    sheet.views = [{ state: 'frozen', ySplit: 3 }];
+
+    const arrayBuffer = await workbook.xlsx.writeBuffer();
+    const buffer = Buffer.from(arrayBuffer as ArrayBuffer);
+    const filename = filters.quarter
+      ? `libro-facturas-emitidas_${filters.year}_Q${filters.quarter}.xlsx`
+      : `libro-facturas-emitidas_${filters.year}.xlsx`;
+    return { buffer, filename };
   }
 
   /**

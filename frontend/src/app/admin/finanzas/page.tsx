@@ -2917,6 +2917,44 @@ function FacturasTab() {
         </div>
       )}
 
+      {/* Export libro registro */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-gray-900">Libro registro de facturas emitidas</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Excel con estructura compatible con asesoría para el {quarter ? `Q${quarter} de ${year}` : `año ${year}`}. Incluye NIF, base, tipo IVA, cuota y totales.
+          </p>
+        </div>
+        <button
+          onClick={async () => {
+            try {
+              const params = new URLSearchParams({ year: String(year) });
+              if (quarter) params.set('quarter', String(quarter));
+              const response = await api.get(`/admin/invoices/book/export?${params.toString()}`, { responseType: 'blob' });
+              const url = window.URL.createObjectURL(response.data as Blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = quarter
+                ? `libro-facturas-emitidas_${year}_Q${quarter}.xlsx`
+                : `libro-facturas-emitidas_${year}.xlsx`;
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              window.URL.revokeObjectURL(url);
+            } catch {
+              setActionMsg({ type: 'error', text: 'No se pudo generar el libro registro' });
+            }
+          }}
+          className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white"
+          style={{ backgroundColor: '#FF6B35' }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+          </svg>
+          Descargar libro Excel
+        </button>
+      </div>
+
       {/* Listado */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
