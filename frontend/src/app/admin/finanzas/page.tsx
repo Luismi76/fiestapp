@@ -1969,7 +1969,78 @@ function FiscalClosuresSection() {
           </p>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* MOBILE: Card layout */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {periods.map((p) => {
+            const now = new Date();
+            const periodEnd = new Date(Date.UTC(p.year, p.quarter * 3, 1));
+            const canClose = !p.closed && now >= periodEnd;
+            return (
+              <div key={p.period} className="p-3">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <div className="font-mono font-semibold text-sm text-gray-900">{p.period}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{p.invoiceCount} facturas</div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    {p.closed ? (
+                      <span className="inline-block bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-medium">Cerrado</span>
+                    ) : (
+                      <span className="inline-block bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-medium">Abierto</span>
+                    )}
+                    {p.modelo303Submitted && (
+                      <span className="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-medium">303 presentado</span>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-2 bg-gray-50 rounded-lg p-2">
+                  <div className="text-center">
+                    <div className="text-[10px] text-gray-400">Base</div>
+                    <div className="text-xs font-semibold text-gray-900 tabular-nums">{formatEur(p.totalNet)}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] text-gray-400">IVA</div>
+                    <div className="text-xs font-semibold text-gray-500 tabular-nums">{formatEur(p.totalTax)}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[10px] text-gray-400">Total</div>
+                    <div className="text-xs font-semibold text-gray-900 tabular-nums">{formatEur(p.totalGross)}</div>
+                  </div>
+                </div>
+                {p.closed && p.closedAt && (
+                  <div className="text-[11px] text-gray-500 mb-2">
+                    Cerrado {fmtDate(p.closedAt)} · {p.closedByName || '—'}
+                    {p.notes && <div className="text-gray-400 italic mt-0.5">{p.notes}</div>}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  {!p.closed && (
+                    <button
+                      onClick={() => setClosingPeriod(p)}
+                      disabled={!canClose}
+                      className="flex-1 min-h-[44px] text-sm font-medium bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                    >{canClose ? 'Cerrar periodo' : 'Aún no finalizado'}</button>
+                  )}
+                  {p.closed && !p.modelo303Submitted && (
+                    <button
+                      onClick={() => handleMarkSubmitted(p)}
+                      className="flex-1 min-h-[44px] text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg"
+                    >303 presentado</button>
+                  )}
+                  {p.closed && (
+                    <button
+                      onClick={() => setReopeningPeriod(p)}
+                      className="flex-1 min-h-[44px] text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg"
+                    >Reabrir</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* DESKTOP: Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr className="text-left text-[11px] uppercase text-gray-500">
@@ -3145,7 +3216,74 @@ function FacturasTab() {
             No hay facturas con estos filtros
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* MOBILE: Card layout */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {data.invoices.map((inv) => (
+              <div key={inv.id} className="p-3">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-mono text-[13px] font-semibold">{inv.fullNumber}</span>
+                      {inv.type === 'RECTIFYING' && (
+                        <span className="text-[10px] font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">RA</span>
+                      )}
+                      {inv.type === 'SIMPLIFIED' && (
+                        <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Simp.</span>
+                      )}
+                      {inv.status === 'VOIDED' && (
+                        <span className="text-[10px] font-medium bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Anulada</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-0.5">{formatInvoiceDate(inv.issueDate)}</div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="font-bold text-gray-900 tabular-nums">{formatEur(inv.grossAmount)}</div>
+                    <div className="text-[10px] text-gray-400">{INVOICE_REGIME_LABEL[inv.taxRegime] || inv.taxRegime}</div>
+                  </div>
+                </div>
+                <div className="min-w-0 mb-2">
+                  <div className="text-sm text-gray-900 truncate">{inv.recipientName}</div>
+                  <div className="text-xs text-gray-400 truncate">{inv.recipientTaxId || inv.recipientEmail}</div>
+                  <div className="text-xs text-gray-500 mt-1 truncate">{inv.concept}</div>
+                </div>
+                <div className="flex gap-2 mt-2 -mx-1">
+                  <button
+                    onClick={() => handleDownload(inv)}
+                    className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                    </svg>
+                    PDF
+                  </button>
+                  <button
+                    onClick={() => handleResend(inv)}
+                    className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Email
+                  </button>
+                  {inv.type !== 'RECTIFYING' && inv.status === 'ISSUED' && (
+                    <button
+                      onClick={() => setRectifyModal(inv)}
+                      className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Rectificar
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP: Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr className="text-left text-[11px] uppercase text-gray-500">
@@ -3228,6 +3366,7 @@ function FacturasTab() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {/* Paginación */}
