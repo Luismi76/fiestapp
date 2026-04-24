@@ -2092,12 +2092,22 @@ function ReopenFiscalPeriodModal({
   );
 }
 
-function ObligacionesFiscalesTab() {
+type DeclaracionesSubTab = 'iva' | '347' | 'ue' | 'resultados' | 'cierres';
+
+const DECLARACIONES_SUBTABS: { key: DeclaracionesSubTab; label: string }[] = [
+  { key: 'iva', label: 'IVA trimestral' },
+  { key: '347', label: 'Modelo 347' },
+  { key: 'ue', label: 'Informe UE anfitriones' },
+  { key: 'resultados', label: 'Resultados' },
+  { key: 'cierres', label: 'Cierres' },
+];
+
+function DeclaracionesTab({ initialSubTab }: { initialSubTab?: DeclaracionesSubTab }) {
   const currentYear = new Date().getFullYear();
   const currentQ = Math.ceil((new Date().getMonth() + 1) / 3);
   const [year, setYear] = useState(currentYear);
   const [quarter, setQuarter] = useState(currentQ);
-  const [subTab, setSubTab] = useState<'iva' | '347' | 'cierres'>('iva');
+  const [subTab, setSubTab] = useState<DeclaracionesSubTab>(initialSubTab || 'iva');
 
   const [modelo347, setModelo347] = useState<Modelo347Response | null>(null);
   const [vatSummary, setVatSummary] = useState<VatSummaryResponse | null>(null);
@@ -2149,40 +2159,36 @@ function ObligacionesFiscalesTab() {
 
   return (
     <div className="space-y-4">
-      {/* Sub-tab selector: IVA / 347 */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setSubTab('iva')}
-          className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-            subTab === 'iva'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-          }`}
+      {/* Sub-tab selector: mobile = native select, desktop = pills */}
+      <div className="md:hidden">
+        <select
+          value={subTab}
+          onChange={(e) => setSubTab(e.target.value as DeclaracionesSubTab)}
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium bg-white min-h-[48px]"
         >
-          IVA trimestral
-        </button>
-        <button
-          onClick={() => setSubTab('347')}
-          className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-            subTab === '347'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          Modelo 347
-        </button>
-        <button
-          onClick={() => setSubTab('cierres')}
-          className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-            subTab === 'cierres'
-              ? 'bg-blue-600 text-white'
-              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-          }`}
-        >
-          Cierres
-        </button>
+          {DECLARACIONES_SUBTABS.map((s) => (
+            <option key={s.key} value={s.key}>{s.label}</option>
+          ))}
+        </select>
+      </div>
+      <div className="hidden md:flex gap-2 flex-wrap">
+        {DECLARACIONES_SUBTABS.map((s) => (
+          <button
+            key={s.key}
+            onClick={() => setSubTab(s.key)}
+            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+              subTab === s.key
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
 
+      {subTab === 'ue' && <Dac7Tab />}
+      {subTab === 'resultados' && <CuentaResultadosTab />}
       {subTab === 'cierres' && <FiscalClosuresSection />}
 
       {/* ── IVA TRIMESTRAL ────────────────────────────────────────── */}
@@ -3237,7 +3243,7 @@ function RectifyModal({
   );
 }
 
-function ComisionesTab() {
+function ConfiguracionTab() {
   const [configs, setConfigs] = useState<{ key: string; value: string; description: string | null; updatedAt: string }[]>([]);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -3406,16 +3412,14 @@ function ComisionesTab() {
 // TAB DEFINITIONS
 // ============================================
 
-type TabKey = 'resumen' | 'transacciones' | 'facturas' | 'pnl' | 'dac7' | 'fiscal' | 'comisiones';
+type TabKey = 'resumen' | 'transacciones' | 'facturas' | 'declaraciones' | 'configuracion';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'resumen', label: 'Resumen' },
   { key: 'transacciones', label: 'Transacciones' },
   { key: 'facturas', label: 'Facturas' },
-  { key: 'pnl', label: 'Cuenta Resultados' },
-  { key: 'dac7', label: 'DAC7' },
-  { key: 'fiscal', label: 'Obligaciones' },
-  { key: 'comisiones', label: 'Comisiones' },
+  { key: 'declaraciones', label: 'Declaraciones' },
+  { key: 'configuracion', label: 'Configuración' },
 ];
 
 // ============================================
@@ -3428,7 +3432,25 @@ function FinanzasPageInner() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const [alerts, setAlerts] = useState<{ disputes?: number; reports?: number; verifications?: number }>({});
 
-  const activeTab = (searchParams.get('tab') as TabKey) || 'resumen';
+  const rawTab = searchParams.get('tab') || '';
+  // Back-compat: redirigir claves antiguas al nuevo esquema
+  const TAB_ALIASES: Record<string, { tab: TabKey; sub?: DeclaracionesSubTab }> = {
+    dac7: { tab: 'declaraciones', sub: 'ue' },
+    pnl: { tab: 'declaraciones', sub: 'resultados' },
+    fiscal: { tab: 'declaraciones' },
+    comisiones: { tab: 'configuracion' },
+  };
+  const alias: { tab: TabKey; sub?: DeclaracionesSubTab } | undefined = TAB_ALIASES[rawTab];
+  const VALID_TABS: TabKey[] = ['resumen', 'transacciones', 'facturas', 'declaraciones', 'configuracion'];
+  const activeTab: TabKey = alias
+    ? alias.tab
+    : (VALID_TABS.includes(rawTab as TabKey) ? (rawTab as TabKey) : 'resumen');
+  const subParam = searchParams.get('sub') || '';
+  const VALID_SUBS: DeclaracionesSubTab[] = ['iva', '347', 'ue', 'resultados', 'cierres'];
+  const subFromUrl: DeclaracionesSubTab | undefined = VALID_SUBS.includes(subParam as DeclaracionesSubTab)
+    ? (subParam as DeclaracionesSubTab)
+    : undefined;
+  const initialSubTab: DeclaracionesSubTab | undefined = alias?.sub ?? subFromUrl;
 
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || (user && user.role !== 'admin'))) {
@@ -3490,10 +3512,8 @@ function FinanzasPageInner() {
         {activeTab === 'resumen' && <ResumenTab />}
         {activeTab === 'transacciones' && <TransaccionesTab />}
         {activeTab === 'facturas' && <FacturasTab />}
-        {activeTab === 'pnl' && <CuentaResultadosTab />}
-        {activeTab === 'dac7' && <Dac7Tab />}
-        {activeTab === 'fiscal' && <ObligacionesFiscalesTab />}
-        {activeTab === 'comisiones' && <ComisionesTab />}
+        {activeTab === 'declaraciones' && <DeclaracionesTab initialSubTab={initialSubTab} />}
+        {activeTab === 'configuracion' && <ConfiguracionTab />}
       </div>
     </AdminLayout>
   );

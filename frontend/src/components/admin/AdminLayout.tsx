@@ -202,9 +202,8 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
       { href: '/admin/finanzas', tab: 'resumen', label: 'Resumen', icon: ChartIcon },
       { href: '/admin/finanzas', tab: 'transacciones', label: 'Transacciones', icon: CreditCardIcon },
       { href: '/admin/finanzas', tab: 'facturas', label: 'Facturas', icon: DocumentIcon },
-      { href: '/admin/finanzas', tab: 'dac7', label: 'DAC7', icon: DocumentIcon },
-      { href: '/admin/finanzas', tab: 'fiscal', label: 'Fiscal', icon: CalculatorIcon },
-      { href: '/admin/finanzas', tab: 'comisiones', label: 'Comisiones', icon: CogIcon },
+      { href: '/admin/finanzas', tab: 'declaraciones', label: 'Declaraciones', icon: CalculatorIcon },
+      { href: '/admin/finanzas', tab: 'configuracion', label: 'Configuración', icon: CogIcon },
     ],
   },
 ];
