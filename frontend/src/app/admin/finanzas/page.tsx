@@ -1713,12 +1713,345 @@ function Dac7Tab() {
 // TAB: OBLIGACIONES FISCALES
 // ============================================
 
+interface FiscalPeriod {
+  period: string;
+  year: number;
+  quarter: number;
+  invoiceCount: number;
+  totalGross: number;
+  totalNet: number;
+  totalTax: number;
+  closed: boolean;
+  closedAt: string | null;
+  closedByName: string | null;
+  notes: string | null;
+  modelo303Submitted: boolean;
+  modelo303SubmittedAt: string | null;
+}
+
+function FiscalClosuresSection() {
+  const [periods, setPeriods] = useState<FiscalPeriod[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [closingPeriod, setClosingPeriod] = useState<FiscalPeriod | null>(null);
+  const [reopeningPeriod, setReopeningPeriod] = useState<FiscalPeriod | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await api.get('/admin/fiscal-periods');
+      setPeriods(data.periods || []);
+    } catch {
+      setMsg({ type: 'error', text: 'Error al cargar cierres fiscales' });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(null), 4000);
+    return () => clearTimeout(t);
+  }, [msg]);
+
+  const handleMarkSubmitted = async (p: FiscalPeriod) => {
+    if (!confirm(`¿Marcar el 303 de ${p.period} como presentado ante AEAT?`)) return;
+    try {
+      await api.post(`/admin/fiscal-periods/${p.period}/modelo-303-submitted`);
+      setMsg({ type: 'success', text: `303 de ${p.period} marcado como presentado` });
+      load();
+    } catch {
+      setMsg({ type: 'error', text: 'Error al marcar el 303' });
+    }
+  };
+
+  if (loading) {
+    return <div className="flex justify-center py-12"><div className="spinner spinner-lg" /></div>;
+  }
+
+  const fmtDate = (iso: string | null) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`;
+  };
+
+  return (
+    <div className="space-y-4">
+      {msg && (
+        <div className={`rounded-xl p-3 text-sm ${msg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+          {msg.text}
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900">Cierres de periodos fiscales</h3>
+          <p className="text-xs text-gray-500 mt-1">
+            Al cerrar un trimestre, se bloquea la emisión o modificación de facturas con fecha de operación en ese periodo.
+            Reabre sólo si detectas un error y necesitas rectificar.
+          </p>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr className="text-left text-[11px] uppercase text-gray-500">
+                <th className="px-3 py-2 font-medium">Periodo</th>
+                <th className="px-3 py-2 font-medium text-right">Facturas</th>
+                <th className="px-3 py-2 font-medium text-right">Base</th>
+                <th className="px-3 py-2 font-medium text-right">IVA</th>
+                <th className="px-3 py-2 font-medium text-right">Total</th>
+                <th className="px-3 py-2 font-medium">Estado</th>
+                <th className="px-3 py-2 font-medium">Modelo 303</th>
+                <th className="px-3 py-2 font-medium text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {periods.map((p) => {
+                const now = new Date();
+                const periodEnd = new Date(Date.UTC(p.year, p.quarter * 3, 1));
+                const canClose = !p.closed && now >= periodEnd;
+                return (
+                  <tr key={p.period} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 font-mono font-medium">{p.period}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{p.invoiceCount}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatEur(p.totalNet)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-500">{formatEur(p.totalTax)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{formatEur(p.totalGross)}</td>
+                    <td className="px-3 py-2">
+                      {p.closed ? (
+                        <div className="text-xs">
+                          <span className="inline-block bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">Cerrado</span>
+                          <div className="text-gray-500 mt-1">{fmtDate(p.closedAt)} · {p.closedByName || '—'}</div>
+                          {p.notes && <div className="text-gray-400 italic mt-0.5 truncate max-w-[200px]">{p.notes}</div>}
+                        </div>
+                      ) : (
+                        <span className="inline-block bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-medium">Abierto</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      {p.modelo303Submitted ? (
+                        <div>
+                          <span className="inline-block bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Presentado</span>
+                          <div className="text-gray-500 mt-1">{fmtDate(p.modelo303SubmittedAt)}</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        {!p.closed && (
+                          <button
+                            onClick={() => setClosingPeriod(p)}
+                            disabled={!canClose}
+                            title={canClose ? 'Cerrar periodo' : 'Solo se pueden cerrar periodos ya finalizados'}
+                            className="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >Cerrar</button>
+                        )}
+                        {p.closed && (
+                          <>
+                            {!p.modelo303Submitted && (
+                              <button
+                                onClick={() => handleMarkSubmitted(p)}
+                                className="text-xs px-2 py-1 rounded border border-blue-200 text-blue-700 hover:bg-blue-50"
+                              >303 presentado</button>
+                            )}
+                            <button
+                              onClick={() => setReopeningPeriod(p)}
+                              className="text-xs px-2 py-1 rounded border border-amber-200 text-amber-700 hover:bg-amber-50"
+                            >Reabrir</button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {closingPeriod && (
+        <CloseFiscalPeriodModal
+          period={closingPeriod}
+          onClose={() => setClosingPeriod(null)}
+          onSuccess={(m) => { setClosingPeriod(null); setMsg({ type: 'success', text: m }); load(); }}
+        />
+      )}
+      {reopeningPeriod && (
+        <ReopenFiscalPeriodModal
+          period={reopeningPeriod}
+          onClose={() => setReopeningPeriod(null)}
+          onSuccess={(m) => { setReopeningPeriod(null); setMsg({ type: 'success', text: m }); load(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CloseFiscalPeriodModal({
+  period,
+  onClose,
+  onSuccess,
+}: {
+  period: FiscalPeriod;
+  onClose: () => void;
+  onSuccess: (msg: string) => void;
+}) {
+  const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.post('/admin/fiscal-periods/close', {
+        year: period.year,
+        quarter: period.quarter,
+        notes: notes.trim() || undefined,
+      });
+      onSuccess(`Periodo ${period.period} cerrado`);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string | string[] } } };
+      const msg = axiosErr.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Error al cerrar el periodo');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-md w-full" role="dialog" aria-modal="true">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Cerrar {period.period}</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          {period.invoiceCount} facturas · Total {formatEur(period.totalGross)}
+        </p>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 mb-4">
+          <strong>Al cerrar:</strong> bloqueas la emisión de nuevas facturas con fecha de operación en este periodo.
+          Útil tras presentar el Modelo 303. Puedes reabrir después si es necesario (queda constancia en logs).
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Notas (opcional)</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Ej. Modelo 303 presentado el 20/04/2026"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none"
+              disabled={submitting}
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">{error}</div>
+          )}
+        </div>
+
+        <div className="flex gap-2 mt-5">
+          <button onClick={onClose} disabled={submitting} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700">Cancelar</button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50"
+            style={{ backgroundColor: '#FF6B35' }}
+          >
+            {submitting ? 'Cerrando…' : 'Cerrar periodo'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReopenFiscalPeriodModal({
+  period,
+  onClose,
+  onSuccess,
+}: {
+  period: FiscalPeriod;
+  onClose: () => void;
+  onSuccess: (msg: string) => void;
+}) {
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    if (reason.trim().length < 5) {
+      setError('El motivo debe tener al menos 5 caracteres');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.post(`/admin/fiscal-periods/${period.period}/reopen`, { reason: reason.trim() });
+      onSuccess(`Periodo ${period.period} reabierto`);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string | string[] } } };
+      const msg = axiosErr.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Error al reabrir el periodo');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-md w-full" role="dialog" aria-modal="true">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Reabrir {period.period}</h2>
+        <p className="text-sm text-gray-500 mb-4">Cerrado el {period.closedAt ? new Date(period.closedAt).toLocaleDateString('es-ES') : '—'}</p>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 mb-4">
+          <strong>Reabrir este periodo</strong> permitirá modificar las facturas con fecha en este trimestre.
+          Úsalo sólo si detectas un error. La acción queda registrada en los logs del servidor.
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Motivo (obligatorio)</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Ej. Error en base imponible de factura A-2026-00042, requiere rectificativa"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none"
+              disabled={submitting}
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">{error}</div>
+          )}
+        </div>
+
+        <div className="flex gap-2 mt-5">
+          <button onClick={onClose} disabled={submitting} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700">Cancelar</button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50 bg-amber-600 hover:bg-amber-700"
+          >
+            {submitting ? 'Reabriendo…' : 'Reabrir periodo'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ObligacionesFiscalesTab() {
   const currentYear = new Date().getFullYear();
   const currentQ = Math.ceil((new Date().getMonth() + 1) / 3);
   const [year, setYear] = useState(currentYear);
   const [quarter, setQuarter] = useState(currentQ);
-  const [subTab, setSubTab] = useState<'iva' | '347'>('iva');
+  const [subTab, setSubTab] = useState<'iva' | '347' | 'cierres'>('iva');
 
   const [modelo347, setModelo347] = useState<Modelo347Response | null>(null);
   const [vatSummary, setVatSummary] = useState<VatSummaryResponse | null>(null);
@@ -1792,7 +2125,19 @@ function ObligacionesFiscalesTab() {
         >
           Modelo 347
         </button>
+        <button
+          onClick={() => setSubTab('cierres')}
+          className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            subTab === 'cierres'
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+          }`}
+        >
+          Cierres
+        </button>
       </div>
+
+      {subTab === 'cierres' && <FiscalClosuresSection />}
 
       {/* ── IVA TRIMESTRAL ────────────────────────────────────────── */}
       {subTab === 'iva' && (

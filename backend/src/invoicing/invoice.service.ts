@@ -10,6 +10,7 @@ import { PlatformConfigService } from '../platform-config/platform-config.servic
 import { EmailService } from '../email/email.service';
 import { TaxService } from './tax.service';
 import { InvoicePdfService } from './invoice-pdf.service';
+import { FiscalClosureService } from './fiscal-closure.service';
 
 const SIMPLIFIED_THRESHOLD_EUR = 3000;
 
@@ -23,6 +24,7 @@ export class InvoiceService {
     private readonly taxService: TaxService,
     private readonly pdfService: InvoicePdfService,
     private readonly emailService: EmailService,
+    private readonly fiscalClosure: FiscalClosureService,
   ) {}
 
   /**
@@ -76,6 +78,9 @@ export class InvoiceService {
     const now = new Date();
     const operationDate = transaction.createdAt;
     const fiscalPeriod = this.taxService.fiscalPeriodOf(operationDate).label;
+
+    // No permitir emitir facturas con operationDate en periodos cerrados
+    await this.fiscalClosure.assertPeriodOpen(fiscalPeriod);
 
     // Determinar tipo de factura
     const invoiceType: InvoiceType =
@@ -229,6 +234,9 @@ export class InvoiceService {
     const now = new Date();
     const operationDate = refundTx.createdAt;
     const fiscalPeriod = this.taxService.fiscalPeriodOf(operationDate).label;
+
+    // La rectificativa se emite con fecha actual; su periodo debe estar abierto
+    await this.fiscalClosure.assertPeriodOpen(fiscalPeriod);
 
     const invoice = await this.prisma.$transaction(async (tx) => {
       const race = await tx.invoice.findUnique({
