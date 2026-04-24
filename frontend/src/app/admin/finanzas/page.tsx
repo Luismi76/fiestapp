@@ -2371,6 +2371,443 @@ const CONFIG_LABELS: Record<string, ConfigMeta> = {
   issuer_country: { label: 'País (ISO-2)', suffix: '', step: '', min: '', type: 'text', placeholder: 'ES', section: 'issuer' },
 };
 
+// ============================================
+// TAB: FACTURAS (admin)
+// ============================================
+
+interface AdminInvoice {
+  id: string;
+  fullNumber: string;
+  series: string;
+  year: number;
+  number: number;
+  type: 'COMPLETE' | 'SIMPLIFIED' | 'RECTIFYING';
+  status: 'DRAFT' | 'ISSUED' | 'VOIDED';
+  issueDate: string;
+  operationDate: string;
+  fiscalPeriod: string;
+  recipientName: string;
+  recipientEmail: string;
+  recipientTaxId: string | null;
+  concept: string;
+  netAmount: number;
+  taxAmount: number;
+  grossAmount: number;
+  taxRate: number;
+  taxRegime: string;
+  currency: string;
+  emailedAt: string | null;
+  downloadCount: number;
+  rectifiedInvoiceId: string | null;
+}
+
+interface AdminInvoicesResponse {
+  invoices: AdminInvoice[];
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
+
+const INVOICE_REGIME_LABEL: Record<string, string> = {
+  IVA_GENERAL_21: 'IVA 21%',
+  IVA_REDUCIDO_10: 'IVA 10%',
+  IVA_SUPERREDUCIDO_4: 'IVA 4%',
+  IGIC_CANARIAS_7: 'IGIC 7%',
+  IPSI_CEUTA_4: 'IPSI 4%',
+  IPSI_MELILLA_4: 'IPSI 4%',
+  EXENTO_UE: 'Exento (UE)',
+  EXENTO_EXTRA_UE: 'Exento',
+};
+
+function formatInvoiceDate(iso: string): string {
+  const d = new Date(iso);
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+  return `${day}/${month}/${d.getUTCFullYear()}`;
+}
+
+function FacturasTab() {
+  const currentYear = new Date().getFullYear();
+  const [series, setSeries] = useState<string>('');
+  const [year, setYear] = useState<number>(currentYear);
+  const [quarter, setQuarter] = useState<number | ''>('');
+  const [status, setStatus] = useState<string>('ISSUED');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState<AdminInvoicesResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [rectifyModal, setRectifyModal] = useState<AdminInvoice | null>(null);
+
+  const fetchList = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (series) params.set('series', series);
+      if (year) params.set('year', String(year));
+      if (quarter) params.set('quarter', String(quarter));
+      if (status) params.set('status', status);
+      if (search.trim()) params.set('search', search.trim());
+      params.set('page', String(page));
+      params.set('limit', '25');
+      const { data: res } = await api.get(`/admin/invoices?${params.toString()}`);
+      setData(res);
+    } catch {
+      setActionMsg({ type: 'error', text: 'Error al cargar facturas' });
+    } finally {
+      setLoading(false);
+    }
+  }, [series, year, quarter, status, search, page]);
+
+  useEffect(() => {
+    fetchList();
+  }, [fetchList]);
+
+  useEffect(() => {
+    if (!actionMsg) return;
+    const t = setTimeout(() => setActionMsg(null), 4000);
+    return () => clearTimeout(t);
+  }, [actionMsg]);
+
+  const handleDownload = async (inv: AdminInvoice) => {
+    try {
+      const response = await api.get(`/admin/invoices/${inv.id}/pdf`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(response.data as Blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `factura-${inv.fullNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setActionMsg({ type: 'error', text: 'No se pudo descargar el PDF' });
+    }
+  };
+
+  const handleResend = async (inv: AdminInvoice) => {
+    if (!confirm(`¿Reenviar la factura ${inv.fullNumber} a ${inv.recipientEmail}?`)) return;
+    try {
+      await api.post(`/admin/invoices/${inv.id}/resend`);
+      setActionMsg({ type: 'success', text: `Factura ${inv.fullNumber} reenviada a ${inv.recipientEmail}` });
+      fetchList();
+    } catch {
+      setActionMsg({ type: 'error', text: 'Error al reenviar la factura' });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filtros */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-4">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Serie</label>
+            <select
+              value={series}
+              onChange={(e) => { setSeries(e.target.value); setPage(1); }}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              <option value="">Todas</option>
+              <option value="A">A (packs)</option>
+              <option value="RA">RA (rectificativas)</option>
+              <option value="C">C (comisiones host)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Año</label>
+            <select
+              value={year}
+              onChange={(e) => { setYear(Number(e.target.value)); setPage(1); }}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Trimestre</label>
+            <select
+              value={quarter}
+              onChange={(e) => { setQuarter(e.target.value === '' ? '' : Number(e.target.value)); setPage(1); }}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              <option value="">Todos</option>
+              <option value="1">Q1</option>
+              <option value="2">Q2</option>
+              <option value="3">Q3</option>
+              <option value="4">Q4</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Estado</label>
+            <select
+              value={status}
+              onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              <option value="">Todos</option>
+              <option value="ISSUED">Emitidas</option>
+              <option value="DRAFT">Borradores</option>
+              <option value="VOIDED">Anuladas</option>
+            </select>
+          </div>
+          <div className="col-span-2 md:col-span-2">
+            <label className="block text-xs text-gray-500 mb-1">Buscar</label>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Nº factura, cliente, email o NIF"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      {actionMsg && (
+        <div className={`rounded-xl p-3 text-sm ${actionMsg.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+          {actionMsg.text}
+        </div>
+      )}
+
+      {/* Listado */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center py-12"><div className="spinner spinner-lg" /></div>
+        ) : !data || data.invoices.length === 0 ? (
+          <div className="py-12 text-center text-sm text-gray-400">
+            No hay facturas con estos filtros
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr className="text-left text-[11px] uppercase text-gray-500">
+                  <th className="px-3 py-2 font-medium">Nº</th>
+                  <th className="px-3 py-2 font-medium">Fecha</th>
+                  <th className="px-3 py-2 font-medium">Cliente</th>
+                  <th className="px-3 py-2 font-medium">Concepto</th>
+                  <th className="px-3 py-2 font-medium text-right">Base</th>
+                  <th className="px-3 py-2 font-medium text-right">Imp.</th>
+                  <th className="px-3 py-2 font-medium text-right">Total</th>
+                  <th className="px-3 py-2 font-medium">Régimen</th>
+                  <th className="px-3 py-2 font-medium text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {data.invoices.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[13px]">{inv.fullNumber}</span>
+                        {inv.type === 'RECTIFYING' && (
+                          <span className="text-[10px] font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">RA</span>
+                        )}
+                        {inv.type === 'SIMPLIFIED' && (
+                          <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Simp.</span>
+                        )}
+                        {inv.status === 'VOIDED' && (
+                          <span className="text-[10px] font-medium bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Anulada</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{formatInvoiceDate(inv.issueDate)}</td>
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-gray-900 truncate max-w-[180px]">{inv.recipientName}</div>
+                      <div className="text-xs text-gray-400 truncate max-w-[180px]">{inv.recipientTaxId || inv.recipientEmail}</div>
+                    </td>
+                    <td className="px-3 py-2 text-gray-600 truncate max-w-[220px]">{inv.concept}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatEur(inv.netAmount)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-gray-500">{formatEur(inv.taxAmount)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{formatEur(inv.grossAmount)}</td>
+                    <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">{INVOICE_REGIME_LABEL[inv.taxRegime] || inv.taxRegime}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleDownload(inv)}
+                          className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
+                          title="Descargar PDF"
+                          aria-label="Descargar PDF"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleResend(inv)}
+                          className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
+                          title="Reenviar email"
+                          aria-label="Reenviar email"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                        {inv.type !== 'RECTIFYING' && inv.status === 'ISSUED' && (
+                          <button
+                            onClick={() => setRectifyModal(inv)}
+                            className="p-1.5 text-amber-600 hover:bg-amber-50 rounded"
+                            title="Emitir rectificativa"
+                            aria-label="Rectificar"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Paginación */}
+        {data && data.pagination.pages > 1 && (
+          <div className="flex items-center justify-between px-3 py-2 border-t border-gray-100 text-xs text-gray-500">
+            <span>{data.pagination.total} facturas · página {data.pagination.page} de {data.pagination.pages}</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1 rounded border border-gray-200 disabled:opacity-40"
+              >Anterior</button>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= (data.pagination.pages || 1)}
+                className="px-3 py-1 rounded border border-gray-200 disabled:opacity-40"
+              >Siguiente</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {rectifyModal && (
+        <RectifyModal
+          invoice={rectifyModal}
+          onClose={() => setRectifyModal(null)}
+          onSuccess={(msg) => {
+            setRectifyModal(null);
+            setActionMsg({ type: 'success', text: msg });
+            fetchList();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function RectifyModal({
+  invoice,
+  onClose,
+  onSuccess,
+}: {
+  invoice: AdminInvoice;
+  onClose: () => void;
+  onSuccess: (msg: string) => void;
+}) {
+  const [amount, setAmount] = useState<string>(invoice.grossAmount.toFixed(2));
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    const parsed = parseFloat(amount.replace(',', '.'));
+    if (!isFinite(parsed) || parsed <= 0) {
+      setError('Importe inválido');
+      return;
+    }
+    if (parsed > invoice.grossAmount) {
+      setError(`No puede superar el total original (${invoice.grossAmount.toFixed(2)} €)`);
+      return;
+    }
+    if (reason.trim().length < 3) {
+      setError('Motivo obligatorio (mínimo 3 caracteres)');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.post(`/admin/invoices/${invoice.id}/rectify`, {
+        amount: parsed,
+        reason: reason.trim(),
+      });
+      onSuccess(`Rectificativa emitida sobre ${invoice.fullNumber}`);
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string | string[] } } };
+      const msg = axiosErr.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Error emitiendo rectificativa');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-md w-full" role="dialog" aria-modal="true">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Emitir rectificativa</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Sobre <span className="font-mono">{invoice.fullNumber}</span> — {invoice.recipientName} — Total {invoice.grossAmount.toFixed(2)} €
+        </p>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Importe a rectificar (€)</label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+              disabled={submitting}
+            />
+            <p className="text-xs text-gray-400 mt-1">Preseleccionado al total. Bájalo para una rectificativa parcial.</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Motivo</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Ej. error en base imponible, reembolso gestionado fuera de Stripe…"
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none"
+              disabled={submitting}
+            />
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+            <strong>Atención:</strong> esta rectificativa no devuelve dinero al cliente.
+            Si necesitas reembolsar, hazlo desde Stripe y el sistema emitirá automáticamente la rectificativa correspondiente.
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">{error}</div>
+          )}
+        </div>
+
+        <div className="flex gap-2 mt-5">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700"
+            disabled={submitting}
+          >Cancelar</button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white disabled:opacity-50"
+            style={{ backgroundColor: '#FF6B35' }}
+          >
+            {submitting ? 'Emitiendo…' : 'Emitir rectificativa'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ComisionesTab() {
   const [configs, setConfigs] = useState<{ key: string; value: string; description: string | null; updatedAt: string }[]>([]);
   const [editValues, setEditValues] = useState<Record<string, string>>({});
@@ -2540,11 +2977,12 @@ function ComisionesTab() {
 // TAB DEFINITIONS
 // ============================================
 
-type TabKey = 'resumen' | 'transacciones' | 'pnl' | 'dac7' | 'fiscal' | 'comisiones';
+type TabKey = 'resumen' | 'transacciones' | 'facturas' | 'pnl' | 'dac7' | 'fiscal' | 'comisiones';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'resumen', label: 'Resumen' },
   { key: 'transacciones', label: 'Transacciones' },
+  { key: 'facturas', label: 'Facturas' },
   { key: 'pnl', label: 'Cuenta Resultados' },
   { key: 'dac7', label: 'DAC7' },
   { key: 'fiscal', label: 'Obligaciones' },
@@ -2622,6 +3060,7 @@ function FinanzasPageInner() {
       <div className="px-3 md:px-4 pb-8">
         {activeTab === 'resumen' && <ResumenTab />}
         {activeTab === 'transacciones' && <TransaccionesTab />}
+        {activeTab === 'facturas' && <FacturasTab />}
         {activeTab === 'pnl' && <CuentaResultadosTab />}
         {activeTab === 'dac7' && <Dac7Tab />}
         {activeTab === 'fiscal' && <ObligacionesFiscalesTab />}

@@ -377,6 +377,142 @@ export class InvoiceService {
     return invoice;
   }
 
+  // ==========================================================
+  // Admin
+  // ==========================================================
+
+  async listForAdmin(filters: {
+    series?: string;
+    year?: number;
+    quarter?: number;
+    status?: InvoiceStatus;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = Math.max(1, filters.page ?? 1);
+    const limit = Math.min(200, Math.max(1, filters.limit ?? 25));
+
+    const where: Prisma.InvoiceWhereInput = {};
+    if (filters.series) where.series = filters.series;
+    if (filters.status) where.status = filters.status;
+
+    if (filters.year && filters.quarter && filters.quarter >= 1 && filters.quarter <= 4) {
+      where.fiscalPeriod = `${filters.year}-Q${filters.quarter}`;
+    } else if (filters.year) {
+      where.year = filters.year;
+    }
+
+    if (filters.search && filters.search.trim()) {
+      const s = filters.search.trim();
+      where.OR = [
+        { fullNumber: { contains: s, mode: 'insensitive' } },
+        { recipientName: { contains: s, mode: 'insensitive' } },
+        { recipientEmail: { contains: s, mode: 'insensitive' } },
+        { recipientTaxId: { contains: s, mode: 'insensitive' } },
+      ];
+    }
+
+    const [total, invoices] = await this.prisma.$transaction([
+      this.prisma.invoice.count({ where }),
+      this.prisma.invoice.findMany({
+        where,
+        orderBy: [{ year: 'desc' }, { number: 'desc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+
+    return {
+      invoices,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit) || 1,
+      },
+    };
+  }
+
+  async getByIdForAdmin(invoiceId: string): Promise<Invoice> {
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+    });
+    if (!invoice) throw new NotFoundException('Factura no encontrada');
+    return invoice;
+  }
+
+  async renderPdfForAdmin(invoiceId: string): Promise<{ buffer: Buffer; filename: string; invoice: Invoice }> {
+    const invoice = await this.getByIdForAdmin(invoiceId);
+    const buffer = await this.pdfService.render(invoice);
+    return {
+      buffer,
+      filename: `factura-${invoice.fullNumber}.pdf`,
+      invoice,
+    };
+  }
+
+  /**
+   * Reenvía el email de la factura al receptor. Si el email original falló
+   * o el usuario pidió reenvío, esta es la entrada. Registra el nuevo envío.
+   */
+  async resendEmail(invoiceId: string): Promise<Invoice> {
+    const invoice = await this.getByIdForAdmin(invoiceId);
+    await this.sendInvoiceEmail(invoice);
+    return this.prisma.invoice.update({
+      where: { id: invoice.id },
+      data: { emailedAt: new Date(), emailedTo: invoice.recipientEmail },
+    });
+  }
+
+  /**
+   * Rectifica una factura manualmente desde el panel admin, sin pasar por
+   * Stripe. Crea una Transaction de refund "manual" (stripeId null) y emite
+   * la rectificativa asociada. Útil para correcciones contables que no
+   * implican devolución real de dinero (ej. rectificación de base imponible
+   * por error de captura).
+   */
+  async rectifyManually(params: {
+    originalInvoiceId: string;
+    amount: number;
+    reason: string;
+  }): Promise<Invoice> {
+    const original = await this.prisma.invoice.findUnique({
+      where: { id: params.originalInvoiceId },
+    });
+    if (!original) {
+      throw new NotFoundException('Factura original no encontrada');
+    }
+    if (!original.recipientUserId) {
+      throw new Error(
+        'No se puede rectificar manualmente una factura sin usuario asociado',
+      );
+    }
+    const amount = Math.round(params.amount * 100) / 100;
+    if (amount <= 0 || amount > original.grossAmount) {
+      throw new Error(
+        `El importe de rectificación debe estar entre 0 y ${original.grossAmount}€`,
+      );
+    }
+
+    const refundTx = await this.prisma.transaction.create({
+      data: {
+        userId: original.recipientUserId,
+        type: 'refund',
+        amount,
+        status: 'completed',
+        description: `Rectificación manual de ${original.fullNumber}: ${params.reason}`,
+      },
+    });
+
+    return this.issueRectifyingInvoice({
+      originalInvoiceId: original.id,
+      refundTransactionId: refundTx.id,
+      refundAmount: amount,
+      reason: params.reason,
+    });
+  }
+
   async renderPdfForUser(invoiceId: string, userId: string): Promise<{ buffer: Buffer; filename: string; invoice: Invoice }> {
     const invoice = await this.getByIdForUser(invoiceId, userId);
     const buffer = await this.pdfService.render(invoice);

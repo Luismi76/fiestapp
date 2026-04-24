@@ -201,6 +201,7 @@ const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { href: '/admin/finanzas', tab: 'resumen', label: 'Resumen', icon: ChartIcon },
       { href: '/admin/finanzas', tab: 'transacciones', label: 'Transacciones', icon: CreditCardIcon },
+      { href: '/admin/finanzas', tab: 'facturas', label: 'Facturas', icon: DocumentIcon },
       { href: '/admin/finanzas', tab: 'dac7', label: 'DAC7', icon: DocumentIcon },
       { href: '/admin/finanzas', tab: 'fiscal', label: 'Fiscal', icon: CalculatorIcon },
       { href: '/admin/finanzas', tab: 'comisiones', label: 'Comisiones', icon: CogIcon },
