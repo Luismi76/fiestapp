@@ -442,9 +442,14 @@ export class AdminController {
   }
 
   @Get('accounting/export/dac7')
-  async exportDac7(@Query('year') year: string, @Res() res: Response) {
+  async exportDac7(
+    @Query('year') year: string,
+    @Res() res: Response,
+    @Query('onlyReportable') onlyReportable?: string,
+  ) {
     const buffer = await this.accountingService.exportDac7Xlsx(
       parseInt(year) || new Date().getFullYear(),
+      { onlyReportable: onlyReportable === 'true' },
     );
     res.setHeader(
       'Content-Type',

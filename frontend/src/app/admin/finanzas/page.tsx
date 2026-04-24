@@ -130,16 +130,21 @@ interface Dac7Host {
   name: string;
   email: string;
   nif: string | null;
+  nifVerified: boolean;
   iban: string | null;
+  birthDate: string | null;
+  residenceCountry: string | null;
   totalIncome: number;
   operationsCount: number;
   commissionsPaid: number;
+  belowThreshold: boolean;
 }
 
 interface Dac7Response {
   hosts: Dac7Host[];
   summary: {
     totalHosts: number;
+    reportableHosts: number;
     incompleteData: number;
     totalReportableIncome: number;
   };
@@ -296,15 +301,20 @@ const accountingApi = {
       name: h.name,
       email: h.email,
       nif: h.taxId,
+      nifVerified: !!h.taxIdVerified,
       iban: h.bankAccount,
+      birthDate: h.birthDate,
+      residenceCountry: h.residenceCountry,
       totalIncome: h.totalIncome,
       operationsCount: h.operationCount,
       commissionsPaid: h.totalFeesPaid,
+      belowThreshold: !!h.belowThreshold,
     }));
     return {
       hosts,
       summary: {
         totalHosts: data.summary?.totalHosts || 0,
+        reportableHosts: data.summary?.reportableHosts || 0,
         incompleteData: data.summary?.hostsWithIncompleteData || 0,
         totalReportableIncome: data.summary?.totalReportableIncome || 0,
       },
@@ -1500,9 +1510,10 @@ function Dac7Tab() {
     fetchDac7();
   }, [fetchDac7]);
 
-  const handleExport = () => {
+  const handleExport = (onlyReportable: boolean) => {
     const baseUrl = api.defaults.baseURL || '';
-    window.open(`${baseUrl}/admin/accounting/export/dac7?year=${year}`, '_blank');
+    const qs = onlyReportable ? `?year=${year}&onlyReportable=true` : `?year=${year}`;
+    window.open(`${baseUrl}/admin/accounting/export/dac7${qs}`, '_blank');
   };
 
   if (loading) {
@@ -1516,7 +1527,7 @@ function Dac7Tab() {
   if (!data) return null;
 
   const hosts = data.hosts || [];
-  const summary = data.summary || { totalHosts: 0, incompleteData: 0, totalReportableIncome: 0 };
+  const summary = data.summary || { totalHosts: 0, reportableHosts: 0, incompleteData: 0, totalReportableIncome: 0 };
   const incompleteCount = summary.incompleteData;
 
   return (
@@ -1535,15 +1546,29 @@ function Dac7Tab() {
             ))}
           </select>
         </div>
-        <button
-          onClick={handleExport}
-          className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 bg-secondary text-white rounded-lg text-sm font-medium hover:bg-secondary/90 transition-colors min-h-[44px]"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-          </svg>
-          Exportar DAC7 (Excel)
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={() => handleExport(true)}
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity min-h-[44px]"
+            style={{ backgroundColor: '#FF6B35' }}
+            title="Sólo los hosts que superan el umbral DAC7 (≥30 operaciones o ≥2.000 €)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Exportar reportables
+          </button>
+          <button
+            onClick={() => handleExport(false)}
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors min-h-[44px]"
+            title="Incluye también los hosts por debajo del umbral (no se envían a AEAT)"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Exportar todos
+          </button>
+        </div>
       </div>
 
       {/* Warning banner */}
@@ -1564,19 +1589,25 @@ function Dac7Tab() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
           <div className="text-[11px] md:text-xs text-gray-500 mb-1">Total anfitriones</div>
           <div className="text-xl md:text-2xl font-bold text-gray-900">{summary.totalHosts}</div>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Reportables DAC7</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-900">{summary.reportableHosts}</div>
+          <div className="text-[10px] text-gray-400 mt-0.5">≥30 ops o ≥2.000 €</div>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
           <div className="text-[11px] md:text-xs text-gray-500 mb-1">Datos incompletos</div>
           <div className={`text-xl md:text-2xl font-bold ${incompleteCount > 0 ? 'text-amber-600' : 'text-green-600'}`}>
             {incompleteCount}
           </div>
+          <div className="text-[10px] text-gray-400 mt-0.5">solo reportables</div>
         </div>
         <div className="col-span-2 sm:col-span-1 bg-white rounded-2xl shadow-sm border border-gray-100 p-3 md:p-5">
-          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Ingresos reportables totales</div>
+          <div className="text-[11px] md:text-xs text-gray-500 mb-1">Ingresos reportables</div>
           <div className="text-xl md:text-2xl font-bold text-gray-900">{formatEur(summary.totalReportableIncome)}</div>
         </div>
       </div>
@@ -1588,9 +1619,14 @@ function Dac7Tab() {
             {hosts.map((host) => (
               <div key={host.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
                 {/* Name + email */}
-                <div className="mb-2">
-                  <div className="font-medium text-gray-900 text-sm">{host.name}</div>
-                  <div className="text-xs text-gray-400">{host.email}</div>
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-gray-900 text-sm truncate">{host.name}</div>
+                    <div className="text-xs text-gray-400 truncate">{host.email}</div>
+                  </div>
+                  {host.belowThreshold && (
+                    <span className="flex-shrink-0 text-[10px] font-medium bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Bajo umbral</span>
+                  )}
                 </div>
                 {/* NIF + IBAN */}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3 text-xs">
@@ -1656,9 +1692,17 @@ function Dac7Tab() {
                 </thead>
                 <tbody>
                   {hosts.map((host) => (
-                    <tr key={host.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <tr key={host.id} className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${host.belowThreshold ? 'opacity-60' : ''}`}>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">{host.name}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-gray-900">{host.name}</div>
+                          {host.belowThreshold && (
+                            <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">Bajo umbral</span>
+                          )}
+                          {host.nifVerified && host.nif && (
+                            <span className="text-[10px] font-medium bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded" title="Dígito de control del NIF correcto">✓ NIF</span>
+                          )}
+                        </div>
                         <div className="text-xs text-gray-400">{host.email}</div>
                       </td>
                       <td className="px-4 py-3">

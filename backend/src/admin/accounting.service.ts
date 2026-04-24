@@ -48,21 +48,35 @@ export interface Dac7Host {
   taxIdVerified: boolean;
   bankAccount: string | null;
   fiscalAddress: string | null;
+  fiscalPostalCode: string | null;
   city: string | null;
+  residenceCountry: string | null;
+  birthDate: string | null; // ISO yyyy-mm-dd
   totalIncome: number;
   operationCount: number;
   totalFeesPaid: number;
   missingData: boolean;
+  belowThreshold: boolean; // true si NO llega a >30 operaciones o >2.000 €
 }
 
 export interface Dac7Report {
   hosts: Dac7Host[];
   summary: {
     totalHosts: number;
+    reportableHosts: number;
     hostsWithIncompleteData: number;
     totalReportableIncome: number;
   };
 }
+
+/**
+ * Umbrales DAC7 (Directiva UE 2021/514, art. 2 anexo V sección I.C):
+ *   - Reportable si el vendedor realiza ≥30 actividades relevantes al año, o
+ *   - la remuneración total anual ≥ 2.000 €.
+ * Por debajo de ambos umbrales, el operador queda eximido de reportar ese host.
+ */
+const DAC7_THRESHOLD_OPS = 30;
+const DAC7_THRESHOLD_INCOME_EUR = 2000;
 
 export interface Modelo347Entry {
   userId: string;
@@ -390,6 +404,7 @@ export class AccountingService {
         hosts: [],
         summary: {
           totalHosts: 0,
+          reportableHosts: 0,
           hostsWithIncompleteData: 0,
           totalReportableIncome: 0,
         },
@@ -406,7 +421,10 @@ export class AccountingService {
         taxIdVerified: true,
         bankAccount: true,
         fiscalAddress: true,
+        fiscalPostalCode: true,
         city: true,
+        residenceCountry: true,
+        birthDate: true,
       },
     });
 
@@ -565,6 +583,10 @@ export class AccountingService {
         };
         const totalFeesPaid = feeMap.get(hostId) || 0;
 
+        const belowThreshold =
+          income.operationCount < DAC7_THRESHOLD_OPS &&
+          income.totalIncome < DAC7_THRESHOLD_INCOME_EUR;
+
         return {
           userId: user.id,
           name: user.name,
@@ -573,28 +595,39 @@ export class AccountingService {
           taxIdVerified: user.taxIdVerified,
           bankAccount: user.bankAccount,
           fiscalAddress: user.fiscalAddress,
+          fiscalPostalCode: user.fiscalPostalCode,
           city: user.city,
+          residenceCountry: user.residenceCountry,
+          birthDate: user.birthDate
+            ? user.birthDate.toISOString().slice(0, 10)
+            : null,
           totalIncome: income.totalIncome,
           operationCount: income.operationCount,
           totalFeesPaid,
-          missingData: !user.taxId || !user.bankAccount,
+          missingData:
+            !user.taxId ||
+            !user.bankAccount ||
+            !user.birthDate ||
+            !user.residenceCountry,
+          belowThreshold,
         };
       })
       .filter((h): h is Dac7Host => h !== null)
       .sort((a, b) => b.totalIncome - a.totalIncome);
 
+    const reportableHosts = dac7Hosts.filter((h) => !h.belowThreshold).length;
     const hostsWithIncompleteData = dac7Hosts.filter(
-      (h) => h.missingData,
+      (h) => h.missingData && !h.belowThreshold,
     ).length;
-    const totalReportableIncome = dac7Hosts.reduce(
-      (sum, h) => sum + h.totalIncome,
-      0,
-    );
+    const totalReportableIncome = dac7Hosts
+      .filter((h) => !h.belowThreshold)
+      .reduce((sum, h) => sum + h.totalIncome, 0);
 
     return {
       hosts: dac7Hosts,
       summary: {
         totalHosts: dac7Hosts.length,
+        reportableHosts,
         hostsWithIncompleteData,
         totalReportableIncome,
       },
@@ -962,33 +995,53 @@ export class AccountingService {
     });
   }
 
-  async exportDac7Xlsx(year: number): Promise<Buffer> {
+  async exportDac7Xlsx(
+    year: number,
+    options: { onlyReportable?: boolean } = {},
+  ): Promise<Buffer> {
     const report = await this.getDac7Report(year);
+    const hosts = options.onlyReportable
+      ? report.hosts.filter((h) => !h.belowThreshold)
+      : report.hosts;
 
     const headers = [
-      'NIF',
+      'NIF/NIE',
+      'NIF verificado',
       'Nombre',
       'Email',
-      'Direccion',
+      'Fecha nacimiento',
+      'Dirección fiscal',
+      'CP',
+      'Ciudad',
+      'País residencia',
       'IBAN',
-      'Ingresos Totales',
-      'Num Operaciones',
-      'Comisiones Pagadas',
+      'Ingresos totales',
+      'Núm. operaciones',
+      'Comisiones pagadas',
+      'Reportable DAC7',
+      'Datos completos',
     ];
 
-    const rows: XlsxCell[][] = report.hosts.map((host) => [
+    const rows: XlsxCell[][] = hosts.map((host) => [
       host.taxId || '',
+      host.taxIdVerified ? 'Sí' : 'No',
       host.name,
       host.email,
+      host.birthDate || '',
       host.fiscalAddress || '',
+      host.fiscalPostalCode || '',
+      host.city || '',
+      host.residenceCountry || '',
       host.bankAccount || '',
       host.totalIncome,
       host.operationCount,
       host.totalFeesPaid,
+      host.belowThreshold ? 'No (bajo umbral)' : 'Sí',
+      host.missingData ? 'No' : 'Sí',
     ]);
 
     return this.buildXlsx(`DAC7 ${year}`, headers, rows, {
-      currencyColumns: [6, 8],
+      currencyColumns: [11, 13],
     });
   }
 

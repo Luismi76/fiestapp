@@ -7,6 +7,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CacheService, CACHE_KEYS, CACHE_TTL } from '../cache/cache.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import {
+  isValidSpanishTaxId,
+  normalizeSpanishTaxId,
+} from '../common/validators/spanish-tax-id.util';
 
 @Injectable()
 export class UsersService {
@@ -176,11 +180,27 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    const { birthDate, ...rest } = updateDto;
+    const { birthDate, taxId, ...rest } = updateDto;
+
+    // Si se envía taxId, normalizarlo y comprobar dígito de control.
+    // taxIdVerified se deriva del resultado de esa verificación formal.
+    const taxIdPatch: { taxId?: string | null; taxIdVerified?: boolean } = {};
+    if (taxId !== undefined) {
+      if (taxId === '' || taxId === null) {
+        taxIdPatch.taxId = null;
+        taxIdPatch.taxIdVerified = false;
+      } else {
+        const normalized = normalizeSpanishTaxId(taxId);
+        taxIdPatch.taxId = normalized;
+        taxIdPatch.taxIdVerified = isValidSpanishTaxId(normalized);
+      }
+    }
+
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         ...rest,
+        ...taxIdPatch,
         ...(birthDate !== undefined
           ? { birthDate: birthDate ? new Date(birthDate) : null }
           : {}),
@@ -200,6 +220,7 @@ export class UsersService {
         hasChildren: true,
         childrenAges: true,
         taxId: true,
+        taxIdVerified: true,
         bankAccount: true,
         fiscalAddress: true,
         fiscalPostalCode: true,
