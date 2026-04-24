@@ -23,6 +23,11 @@ interface FormData {
   childrenAges: string;
   taxId: string;
   bankAccount: string;
+  fiscalAddress: string;
+  fiscalPostalCode: string;
+  residenceCountry: string;
+  residenceRegion: '' | 'peninsula' | 'canarias' | 'ceuta' | 'melilla';
+  birthDate: string;
 }
 
 export default function EditProfilePage() {
@@ -64,6 +69,11 @@ export default function EditProfilePage() {
           taxId: profile.taxId || '',
           bankAccount: profile.bankAccount || '',
           childrenAges: profile.childrenAges || '',
+          fiscalAddress: profile.fiscalAddress || '',
+          fiscalPostalCode: profile.fiscalPostalCode || '',
+          residenceCountry: profile.residenceCountry || 'ES',
+          residenceRegion: (profile.residenceRegion as FormData['residenceRegion']) || '',
+          birthDate: profile.birthDate ? profile.birthDate.slice(0, 10) : '',
         });
       } catch {
         setError('No se pudo cargar el perfil');
@@ -92,8 +102,13 @@ export default function EditProfilePage() {
         hasFriends: data.hasFriends,
         hasChildren: data.hasChildren,
         childrenAges: data.childrenAges || undefined,
-        taxId: data.taxId || undefined,
+        taxId: data.taxId ? data.taxId.replace(/\s|-/g, '').toUpperCase() : undefined,
         bankAccount: data.bankAccount ? data.bankAccount.replace(/\s/g, '').toUpperCase() : undefined,
+        fiscalAddress: data.fiscalAddress || undefined,
+        fiscalPostalCode: data.fiscalPostalCode || undefined,
+        residenceCountry: data.residenceCountry ? data.residenceCountry.toUpperCase() : undefined,
+        residenceRegion: data.residenceRegion || undefined,
+        birthDate: data.birthDate || undefined,
       };
 
       await usersApi.updateProfile(updateData);
@@ -472,13 +487,51 @@ export default function EditProfilePage() {
               Datos fiscales
             </label>
             <p className="text-xs text-gray-400">
-              Necesarios para recibir pagos como anfitrión
+              País y región son obligatorios para emitir tu factura cuando compras un pack.
+              El resto es necesario para factura completa y para recibir pagos como anfitrión.
             </p>
           </div>
           <div className="p-4 space-y-4">
-            <div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  País de residencia
+                </label>
+                <select
+                  className="w-full text-gray-900 font-medium focus:outline-none bg-transparent"
+                  {...register('residenceCountry')}
+                >
+                  <option value="ES">España</option>
+                  <option value="FR">Francia</option>
+                  <option value="DE">Alemania</option>
+                  <option value="IT">Italia</option>
+                  <option value="PT">Portugal</option>
+                  <option value="GB">Reino Unido</option>
+                  <option value="US">Estados Unidos</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Región fiscal
+                </label>
+                <select
+                  className="w-full text-gray-900 font-medium focus:outline-none bg-transparent"
+                  {...register('residenceRegion')}
+                >
+                  <option value="">Selecciona…</option>
+                  <option value="peninsula">Península y Baleares</option>
+                  <option value="canarias">Canarias</option>
+                  <option value="ceuta">Ceuta</option>
+                  <option value="melilla">Melilla</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Determina el IVA/IGIC/IPSI de tu factura.
+                </p>
+              </div>
+            </div>
+            <div className="border-t border-gray-100 pt-4">
               <label className="block text-xs font-medium text-gray-500 mb-1">
-                DNI / NIE
+                DNI / NIE / CIF
               </label>
               <input
                 type="text"
@@ -491,6 +544,52 @@ export default function EditProfilePage() {
               {errors.taxId && (
                 <p className="text-red-500 text-xs mt-1">{errors.taxId.message}</p>
               )}
+            </div>
+            <div className="border-t border-gray-100 pt-4">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Dirección fiscal
+              </label>
+              <input
+                type="text"
+                className="w-full text-gray-900 font-medium focus:outline-none placeholder:text-gray-300"
+                placeholder="Calle, número, piso…"
+                {...register('fiscalAddress', {
+                  maxLength: { value: 200, message: 'Máximo 200 caracteres' },
+                })}
+              />
+              {errors.fiscalAddress && (
+                <p className="text-red-500 text-xs mt-1">{errors.fiscalAddress.message}</p>
+              )}
+            </div>
+            <div className="border-t border-gray-100 pt-4">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Código postal
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="w-full text-gray-900 font-medium focus:outline-none placeholder:text-gray-300"
+                placeholder="28001"
+                {...register('fiscalPostalCode', {
+                  pattern: { value: /^[0-9]{5}$/, message: 'Debe tener 5 dígitos' },
+                })}
+              />
+              {errors.fiscalPostalCode && (
+                <p className="text-red-500 text-xs mt-1">{errors.fiscalPostalCode.message}</p>
+              )}
+            </div>
+            <div className="border-t border-gray-100 pt-4">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Fecha de nacimiento
+              </label>
+              <input
+                type="date"
+                className="w-full text-gray-900 font-medium focus:outline-none"
+                {...register('birthDate')}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Necesario para anfitriones (reporte fiscal DAC7).
+              </p>
             </div>
             <div className="border-t border-gray-100 pt-4">
               <label className="block text-xs font-medium text-gray-500 mb-1">
@@ -508,7 +607,7 @@ export default function EditProfilePage() {
                 <p className="text-red-500 text-xs mt-1">{errors.bankAccount.message}</p>
               )}
               <p className="text-xs text-gray-400 mt-1">
-                Sin espacios. Ej: ES1234567890123456789012
+                Sin espacios. Ej: ES1234567890123456789012. Solo necesario si eres anfitrión.
               </p>
             </div>
           </div>

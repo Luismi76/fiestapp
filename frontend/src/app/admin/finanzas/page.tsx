@@ -2350,9 +2350,25 @@ function CuentaResultadosTab() {
 // TAB: COMISIONES DE PLATAFORMA
 // ============================================
 
-const CONFIG_LABELS: Record<string, { label: string; suffix: string; step: string; min: string }> = {
-  platform_fee: { label: 'Comisión por operación', suffix: '\u20ac', step: '0.1', min: '0' },
-  vat_rate: { label: 'Tipo de IVA', suffix: '%', step: '0.01', min: '0' },
+type ConfigMeta = {
+  label: string;
+  suffix: string;
+  step: string;
+  min: string;
+  type: 'number' | 'text';
+  placeholder?: string;
+  section: 'rates' | 'issuer';
+};
+
+const CONFIG_LABELS: Record<string, ConfigMeta> = {
+  platform_fee: { label: 'Comisión por operación', suffix: '€', step: '0.1', min: '0', type: 'number', section: 'rates' },
+  vat_rate: { label: 'Tipo de IVA', suffix: '%', step: '0.01', min: '0', type: 'number', section: 'rates' },
+  issuer_name: { label: 'Razón social', suffix: '', step: '', min: '', type: 'text', placeholder: 'FiestApp S.L.', section: 'issuer' },
+  issuer_tax_id: { label: 'NIF / CIF', suffix: '', step: '', min: '', type: 'text', placeholder: 'B12345678', section: 'issuer' },
+  issuer_address: { label: 'Dirección fiscal', suffix: '', step: '', min: '', type: 'text', placeholder: 'Calle, número, piso', section: 'issuer' },
+  issuer_postal_code: { label: 'Código postal', suffix: '', step: '', min: '', type: 'text', placeholder: '28001', section: 'issuer' },
+  issuer_city: { label: 'Ciudad', suffix: '', step: '', min: '', type: 'text', placeholder: 'Madrid', section: 'issuer' },
+  issuer_country: { label: 'País (ISO-2)', suffix: '', step: '', min: '', type: 'text', placeholder: 'ES', section: 'issuer' },
 };
 
 function ComisionesTab() {
@@ -2422,6 +2438,51 @@ function ComisionesTab() {
     );
   }
 
+  const renderConfigRow = (config: { key: string; value: string; description: string | null }) => {
+    const meta: ConfigMeta = CONFIG_LABELS[config.key] || {
+      label: config.key,
+      suffix: '',
+      step: '0.01',
+      min: '0',
+      type: 'text',
+      section: 'issuer',
+    };
+    return (
+      <div key={config.key} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+        <div className="sm:w-64 flex-shrink-0">
+          <label className="block text-sm font-medium text-gray-900">{meta.label}</label>
+          {config.description && (
+            <p className="text-xs text-gray-400 mt-0.5">{config.description}</p>
+          )}
+        </div>
+        {meta.type === 'number' ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              step={meta.step}
+              min={meta.min}
+              value={editValues[config.key] || ''}
+              onChange={(e) => setEditValues((prev) => ({ ...prev, [config.key]: e.target.value }))}
+              className="w-28 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+            />
+            <span className="text-sm text-gray-500 w-6">{meta.suffix}</span>
+          </div>
+        ) : (
+          <input
+            type="text"
+            placeholder={meta.placeholder}
+            value={editValues[config.key] ?? ''}
+            onChange={(e) => setEditValues((prev) => ({ ...prev, [config.key]: e.target.value }))}
+            className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+          />
+        )}
+      </div>
+    );
+  };
+
+  const rateConfigs = configs.filter((c) => (CONFIG_LABELS[c.key]?.section ?? 'issuer') === 'rates');
+  const issuerConfigs = configs.filter((c) => CONFIG_LABELS[c.key]?.section === 'issuer');
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -2431,47 +2492,35 @@ function ComisionesTab() {
         </p>
 
         <div className="space-y-5">
-          {configs.map((config) => {
-            const meta = CONFIG_LABELS[config.key] || { label: config.key, suffix: '', step: '0.01', min: '0' };
-            return (
-              <div key={config.key} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <div className="sm:w-64 flex-shrink-0">
-                  <label className="block text-sm font-medium text-gray-900">{meta.label}</label>
-                  {config.description && (
-                    <p className="text-xs text-gray-400 mt-0.5">{config.description}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    step={meta.step}
-                    min={meta.min}
-                    value={editValues[config.key] || ''}
-                    onChange={(e) => setEditValues((prev) => ({ ...prev, [config.key]: e.target.value }))}
-                    className="w-28 px-3 py-2 border border-gray-200 rounded-lg text-right text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
-                  />
-                  <span className="text-sm text-gray-500 w-6">{meta.suffix}</span>
-                </div>
-              </div>
-            );
-          })}
+          {rateConfigs.map(renderConfigRow)}
         </div>
+      </div>
 
-        <div className="mt-6 flex items-center gap-4">
-          <button
-            onClick={handleSave}
-            disabled={saving || !hasChanges}
-            className="px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50"
-            style={{ backgroundColor: '#FF6B35' }}
-          >
-            {saving ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-          {message && (
-            <p className={`text-sm ${message.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
-              {message.text}
-            </p>
-          )}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">Datos del emisor</h2>
+        <p className="text-sm text-gray-500 mb-6">
+          Aparecen en todas las facturas emitidas por FiestApp. Rellena estos datos antes de empezar a emitir.
+        </p>
+
+        <div className="space-y-5">
+          {issuerConfigs.map(renderConfigRow)}
         </div>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <button
+          onClick={handleSave}
+          disabled={saving || !hasChanges}
+          className="px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50"
+          style={{ backgroundColor: '#FF6B35' }}
+        >
+          {saving ? 'Guardando...' : 'Guardar cambios'}
+        </button>
+        {message && (
+          <p className={`text-sm ${message.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+            {message.text}
+          </p>
+        )}
       </div>
 
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
@@ -2479,7 +2528,7 @@ function ComisionesTab() {
         <ul className="text-xs text-amber-700 space-y-1">
           <li>La comisión por operación se descuenta del monedero de cada parte al cerrar un acuerdo.</li>
           <li>El IVA se recauda una sola vez, al recargar el monedero. Las comisiones son una detracción interna sobre saldo que ya tributó.</li>
-          <li>La recarga mínima determina el importe mínimo que un usuario puede añadir a su monedero.</li>
+          <li>Los datos del emisor son obligatorios en factura (RD 1619/2012). Verifica que estén completos antes de empezar a emitir.</li>
           <li>Los cambios afectan solo a nuevas operaciones. Las transacciones ya realizadas no se modifican.</li>
         </ul>
       </div>

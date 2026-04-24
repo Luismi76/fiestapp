@@ -145,6 +145,20 @@ export class WalletService implements OnModuleInit {
       throw new NotFoundException('Usuario no encontrado');
     }
 
+    // Gating fiscal: necesitamos país + región para determinar el régimen
+    // (IVA/IGIC/IPSI) en la factura que se emitirá al cobrar el pack.
+    const missingFiscalFields: string[] = [];
+    if (!user.residenceCountry) missingFiscalFields.push('residenceCountry');
+    if (!user.residenceRegion) missingFiscalFields.push('residenceRegion');
+    if (missingFiscalFields.length > 0) {
+      throw new BadRequestException({
+        code: 'FISCAL_DATA_MISSING',
+        message:
+          'Antes de comprar un pack necesitamos tus datos fiscales (país y región) para emitirte la factura correspondiente.',
+        missingFields: missingFiscalFields,
+      });
+    }
+
     // Cancelar compras pendientes antiguas
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
     await this.prisma.transaction.updateMany({

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { walletApi } from '@/lib/api';
 import logger from '@/lib/logger';
 import { getErrorMessage } from '@/lib/error';
@@ -25,6 +26,7 @@ export default function PackPurchaseModal({ onClose, returnTo }: PackPurchaseMod
   const [loadingPacks, setLoadingPacks] = useState(true);
   const [selectedPack, setSelectedPack] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fiscalMissing, setFiscalMissing] = useState(false);
 
   useEffect(() => {
     walletApi.getPacks()
@@ -40,13 +42,19 @@ export default function PackPurchaseModal({ onClose, returnTo }: PackPurchaseMod
     if (!selectedPack) return;
     setLoading(true);
     setError(null);
+    setFiscalMissing(false);
 
     try {
       const { sessionUrl } = await walletApi.purchasePack(selectedPack, returnTo);
       window.location.href = sessionUrl;
     } catch (err) {
       logger.error('Pack purchase error:', err);
-      setError(getErrorMessage(err, 'Error al iniciar el pago'));
+      const axiosErr = err as { response?: { data?: { code?: string } } };
+      if (axiosErr?.response?.data?.code === 'FISCAL_DATA_MISSING') {
+        setFiscalMissing(true);
+      } else {
+        setError(getErrorMessage(err, 'Error al iniciar el pago'));
+      }
       setLoading(false);
     }
   };
@@ -84,6 +92,38 @@ export default function PackPurchaseModal({ onClose, returnTo }: PackPurchaseMod
         {loadingPacks ? (
           <div className="flex justify-center py-8">
             <div className="spinner" />
+          </div>
+        ) : fiscalMissing ? (
+          <div className="space-y-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <h3 className="font-semibold text-amber-900 mb-1">Necesitamos tus datos fiscales</h3>
+                  <p className="text-sm text-amber-800">
+                    Para emitirte la factura de este pack necesitamos saber tu país y región de residencia fiscal.
+                    Te lleva un minuto y solo hay que hacerlo una vez.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-3 rounded-xl font-medium border border-gray-200 text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <Link
+                href="/profile/edit"
+                className="flex-1 btn-primary py-3 rounded-xl font-semibold text-center"
+              >
+                Completar datos
+              </Link>
+            </div>
           </div>
         ) : (
           <>

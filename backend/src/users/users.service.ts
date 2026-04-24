@@ -176,9 +176,15 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
+    const { birthDate, ...rest } = updateDto;
     const updated = await this.prisma.user.update({
       where: { id: userId },
-      data: updateDto,
+      data: {
+        ...rest,
+        ...(birthDate !== undefined
+          ? { birthDate: birthDate ? new Date(birthDate) : null }
+          : {}),
+      },
       select: {
         id: true,
         email: true,
@@ -195,6 +201,11 @@ export class UsersService {
         childrenAges: true,
         taxId: true,
         bankAccount: true,
+        fiscalAddress: true,
+        fiscalPostalCode: true,
+        residenceCountry: true,
+        residenceRegion: true,
+        birthDate: true,
       },
     });
 
@@ -224,6 +235,11 @@ export class UsersService {
         childrenAges: true,
         taxId: true,
         bankAccount: true,
+        fiscalAddress: true,
+        fiscalPostalCode: true,
+        residenceCountry: true,
+        residenceRegion: true,
+        birthDate: true,
         _count: {
           select: {
             experiences: true,

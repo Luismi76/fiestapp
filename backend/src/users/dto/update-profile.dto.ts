@@ -7,7 +7,12 @@ import {
   MaxLength,
   IsBoolean,
   Matches,
+  IsIn,
+  IsISO31661Alpha2,
+  IsDateString,
 } from 'class-validator';
+import { FISCAL_REGIONS } from '../../invoicing/tax.service';
+import { IsSpanishTaxId } from '../../common/validators/is-spanish-tax-id.decorator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -54,9 +59,10 @@ export class UpdateProfileDto {
   })
   childrenAges?: string;
 
+  // Datos fiscales
   @IsOptional()
   @IsString()
-  @Matches(/^[0-9A-Z]{7,12}$/, { message: 'Formato de DNI/NIE no válido' })
+  @IsSpanishTaxId()
   taxId?: string;
 
   @IsOptional()
@@ -65,4 +71,28 @@ export class UpdateProfileDto {
     message: 'Formato de IBAN no válido',
   })
   bankAccount?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200, { message: 'La dirección no puede superar 200 caracteres' })
+  fiscalAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[0-9]{5}$/, { message: 'El código postal debe tener 5 dígitos' })
+  fiscalPostalCode?: string;
+
+  @IsOptional()
+  @IsISO31661Alpha2({ message: 'País no válido (usa código ISO-2, ej. ES)' })
+  residenceCountry?: string;
+
+  @IsOptional()
+  @IsIn(FISCAL_REGIONS, {
+    message: 'Región no válida. Valores: peninsula, canarias, ceuta, melilla',
+  })
+  residenceRegion?: string;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'Fecha de nacimiento no válida' })
+  birthDate?: string;
 }

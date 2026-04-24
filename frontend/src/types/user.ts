@@ -23,6 +23,8 @@ export interface UserPublicProfile {
   reviews: Review[];
 }
 
+export type FiscalRegion = 'peninsula' | 'canarias' | 'ceuta' | 'melilla';
+
 export interface UserFullProfile {
   id: string;
   email: string;
@@ -37,6 +39,11 @@ export interface UserFullProfile {
   childrenAges?: string;
   taxId?: string;
   bankAccount?: string;
+  fiscalAddress?: string;
+  fiscalPostalCode?: string;
+  residenceCountry?: string;
+  residenceRegion?: FiscalRegion;
+  birthDate?: string;
   verified: boolean;
   createdAt: string;
   avgRating: number;
@@ -66,4 +73,9 @@ export interface UpdateProfileData {
   childrenAges?: string;
   taxId?: string;
   bankAccount?: string;
+  fiscalAddress?: string;
+  fiscalPostalCode?: string;
+  residenceCountry?: string;
+  residenceRegion?: FiscalRegion;
+  birthDate?: string;
 }
