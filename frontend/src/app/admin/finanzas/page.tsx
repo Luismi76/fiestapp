@@ -530,7 +530,7 @@ function RevenueBarChart({
           </div>
         )}
       </div>
-      <div className="flex items-end gap-0.5 md:gap-1 h-40">
+      <div className="flex gap-0.5 md:gap-1 h-48">
         {data.map((item, index) => {
           const totalHeight = (item.revenue / maxValue) * 100;
           const segments = hasBreakdown && item.breakdown
@@ -545,22 +545,24 @@ function RevenueBarChart({
             : [{ type: 'total', value: item.revenue, height: totalHeight, color: '#8B5CF6' }];
 
           return (
-            <div key={index} className="flex-1 flex flex-col items-center min-w-0">
-              <div
-                className="w-full flex flex-col-reverse rounded-t overflow-hidden transition-all duration-300 hover:opacity-80"
-                style={{ height: `${totalHeight}%`, minHeight: item.revenue > 0 ? '4px' : '0', minWidth: '6px' }}
-                title={`${item.period}: ${formatEur(item.revenue)}`}
-              >
-                {segments.map((seg, si) => (
-                  <div
-                    key={si}
-                    style={{
-                      backgroundColor: seg.color,
-                      flex: `${seg.height} 0 0%`,
-                      minHeight: seg.value > 0 ? '2px' : '0',
-                    }}
-                  />
-                ))}
+            <div key={index} className="flex-1 flex flex-col items-center min-w-0 h-full">
+              <div className="flex-1 w-full flex items-end">
+                <div
+                  className="w-full flex flex-col-reverse rounded-t overflow-hidden transition-all duration-300 hover:opacity-80"
+                  style={{ height: `${totalHeight}%`, minHeight: item.revenue > 0 ? '4px' : '0', minWidth: '6px' }}
+                  title={`${item.period}: ${formatEur(item.revenue)}`}
+                >
+                  {segments.map((seg, si) => (
+                    <div
+                      key={si}
+                      style={{
+                        backgroundColor: seg.color,
+                        flex: `${seg.height} 0 0%`,
+                        minHeight: seg.value > 0 ? '2px' : '0',
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
               <span className="text-[8px] md:text-[9px] text-gray-400 mt-1 truncate w-full text-center">
                 {formatLabel(item.period)}
